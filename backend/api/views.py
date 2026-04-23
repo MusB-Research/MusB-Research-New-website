@@ -14,6 +14,10 @@ from .models import (
     StudyKit, QuestionnaireTemplate, StudyQuestionnaire, QuestionnaireScheduleInstance,
     Technology, InnovationPageSettings, SponsorInquiry
 )
+import logging
+
+logger = logging.getLogger(__name__)
+
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
 from .serializers import (
@@ -46,16 +50,17 @@ from .utils.cache_utils import cache_api_response, invalidate_cache
 
 class IsAdminOrCoordinator(permissions.BasePermission):
     def has_permission(self, request, view):
-        if not request.user.is_authenticated:
+        if not request.user or not request.user.is_authenticated:
             return False
-        return (request.user.role or '').upper() in ['ADMIN', 'SUPER_ADMIN', 'COORDINATOR', 'PI', 'SPONSOR']
+        role = (getattr(request.user, 'role', '') or '').upper()
+        return role in ['ADMIN', 'SUPER_ADMIN', 'COORDINATOR', 'PI', 'SPONSOR']
 
 class SoftPaginationMixin:
     """
     Mixin to apply a limit-based slice to the queryset in the list view.
     Maintains a plain array response structure without metadata.
     """
-    @cache_api_response("participants_list", timeout=300)
+    @cache_api_response("participants_list", timeout=10)  # Short TTL for real-time dashboard hydration
     def list(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())
         
@@ -804,8 +809,8 @@ class ParticipantViewSet(SoftPaginationMixin, viewsets.ModelViewSet):
         # Default to nothing for security
         return Participant.objects.none()
 
-    @cache_api_response("participants_list", timeout=600)  # Increased from 300s to 600s (10 minutes)
     def list(self, request, *args, **kwargs):
+        # NOTE: Caching handled by SoftPaginationMixin.list (60s TTL)
         return super().list(request, *args, **kwargs)
         
     def perform_create(self, serializer):
@@ -1862,7 +1867,7 @@ class ConsentViewSet(viewsets.ModelViewSet):
             participant.status = 'CONSENTED'
             participant.save()
 
-            from api.models import ParticipantTask
+            from .models import ParticipantTask
             for pt in ParticipantTask.objects.filter(
                 participant=participant,
                 task__task_type='CONSENT',
@@ -2460,17 +2465,45 @@ class UserViewSet(viewsets.ModelViewSet):
         return super().get_permissions()
 
     def create(self, request, *args, **kwargs):
+        # 1. Validation check for duplicate email before processing
+        email = request.data.get('email', '').strip().lower()
+        if email and User.objects.filter(email=email).exists():
+            logger.warning("Attempted to create user with existing email: %s", email)
+            return Response({"error": "A user with this email already exists."}, status=status.HTTP_400_BAD_REQUEST)
+
         serializer = self.get_serializer(data=request.data)
         if not serializer.is_valid():
             logger.warning("User creation validation failed: %s", serializer.errors)
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         
         try:
-            self.perform_create(serializer)
+            # 2. Perform creation with explicit created_by tracking
+            user_instance = serializer.save(created_by=request.user)
+            
+            # 3. Optional: Trigger invitation email if this is a staff member added via dashboard
+            # (Note: Standard invitations use InvitationViewSet, but TeamModule uses UserViewSet)
+            if user_instance.role in ['ADMIN', 'PI', 'COORDINATOR', 'TEAM_MEMBER']:
+                try:
+                    from .utils.email_utils import send_musb_system_email
+                    from django.conf import settings as django_settings
+                    import urllib.parse
+                    
+                    frontend_url = getattr(django_settings, 'FRONTEND_URL', 'https://musbhealth.com')
+                    reset_link = f"{frontend_url}/setup-credentials?email={urllib.parse.quote(user_instance.email)}"
+                    
+                    import threading
+                    threading.Thread(
+                        target=send_musb_system_email,
+                        args=(user_instance.email, user_instance.decrypted_name, 'INVITE', reset_link),
+                        daemon=True
+                    ).start()
+                except Exception as mail_err:
+                    logger.error("Failed to trigger welcome email for new user %s: %s", user_instance.email, mail_err)
+
             headers = self.get_success_headers(serializer.data)
             return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
         except Exception as e:
-            logger.error("User creation exception: %s", e)
+            logger.error("User creation exception: %s", e, exc_info=True)
             return Response({"error": "System failure during record creation", "detail": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def get_queryset(self):
@@ -2485,7 +2518,8 @@ class UserViewSet(viewsets.ModelViewSet):
             Q(must_change_password=True) |
             Q(status__iexact='PENDING') |
             Q(status__iexact='pending')
-        ).select_related('created_by')  # eliminate N+1 on created_by
+        )
+        
         # Super Admins and Admins see all staff
         if (user.role or '').upper() in ['ADMIN', 'SUPER_ADMIN']:
             return staff_qs.order_by('-date_joined')
@@ -2541,8 +2575,13 @@ class InvitationViewSet(viewsets.ModelViewSet):
         expires = now() + datetime.timedelta(days=7)
         import uuid
         token = str(uuid.uuid4())
+        
+        # Fallback for organization if missing
+        org = self.request.data.get('organization') or getattr(self.request.user, 'organization', None) or getattr(self.request.user, 'affiliation', 'MusB')
+        
         invitation = serializer.save(
             invited_by=self.request.user,
+            organization=org,
             expires_at=expires,
             token=token
         )
@@ -2716,7 +2755,7 @@ class SubscribeNewsletterView(APIView):
             subscriber.is_subscribed = True
             subscriber.save()
         else:
-            from api.utils.resend_utils import send_welcome_email
+            from .utils.resend_utils import send_welcome_email
             send_welcome_email.delay(email)
         serializer = NewsletterSubscriberSerializer(subscriber)
         return Response(serializer.data, status=status.HTTP_200_OK if not created else status.HTTP_201_CREATED)

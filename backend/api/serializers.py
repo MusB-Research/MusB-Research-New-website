@@ -15,6 +15,7 @@ from authentication.models import User, Invitation
 from authentication.security import decrypt_data
 from .utils.sanitizers import sanitize_html
 import bson
+from bson import ObjectId
 import os
 import logging
 
@@ -124,10 +125,17 @@ class UserSerializer(SanitizedModelSerializer):
     
     # Aliases for frontend compatibility
     mobile_number = serializers.CharField(source='phone_number', required=False, allow_blank=True)
+    decrypted_name = serializers.SerializerMethodField()
     decrypted_phone = serializers.SerializerMethodField()
     decrypted_address = serializers.SerializerMethodField()
     decrypted_npi = serializers.SerializerMethodField()
     decrypted_qualifications = serializers.SerializerMethodField()
+
+    def get_decrypted_name(self, obj):
+        try:
+            return obj.decrypted_name
+        except Exception:
+            return obj.full_name or obj.email
 
     def get_decrypted_phone(self, obj):
         """Always return the decrypted phone_number using the model's property."""
@@ -158,7 +166,7 @@ class UserSerializer(SanitizedModelSerializer):
     class Meta:
         model = User
         fields = [
-            'id', 'email', 'full_name', 'decrypted_phone', 'decrypted_address',
+            'id', 'email', 'full_name', 'decrypted_name', 'decrypted_phone', 'decrypted_address',
             'decrypted_npi', 'decrypted_qualifications',
             'role', 'phone_number', 'mobile_number',
             'profile_picture', 'password', 'last_login_formatted', 'date_joined_formatted',
@@ -181,6 +189,11 @@ class UserSerializer(SanitizedModelSerializer):
         if value:
             return value.upper()
         return value
+
+    def validate_affiliation(self, value):
+        if value:
+            return value.upper()
+        return value
         
     def to_representation(self, instance):
         ret = super().to_representation(instance)
@@ -196,6 +209,9 @@ class UserSerializer(SanitizedModelSerializer):
                     pass
         
         # Explicit priority for decrypted properties to ensure UI consistency
+        if hasattr(instance, 'decrypted_name'):
+             ret['decrypted_name'] = instance.decrypted_name
+
         if hasattr(instance, 'decrypted_phone') and instance.decrypted_phone:
              ret['decrypted_phone'] = instance.decrypted_phone
              if ret.get('mobile_number') and str(ret.get('mobile_number')).startswith('gAAAA'):
@@ -239,9 +255,17 @@ class UserSerializer(SanitizedModelSerializer):
 
 class UserBriefSerializer(SanitizedModelSerializer):
     """High-Performance light-weight user serializer for dashboard lists."""
+    decrypted_name = serializers.SerializerMethodField()
+
+    def get_decrypted_name(self, obj):
+        try:
+            return obj.decrypted_name
+        except Exception:
+            return obj.full_name or obj.email
+
     class Meta:
         model = User
-        fields = ['id', 'email', 'full_name', 'role', 'status', 'affiliation', 'profile_picture']
+        fields = ['id', 'email', 'full_name', 'decrypted_name', 'role', 'status', 'affiliation', 'profile_picture']
 
 
 
@@ -513,6 +537,8 @@ class VisitSerializer(SanitizedModelSerializer):
 
 
 class LeadSerializer(SanitizedModelSerializer):
+    full_name = serializers.ReadOnlyField()
+
     class Meta:
         model = Lead
         fields = '__all__'

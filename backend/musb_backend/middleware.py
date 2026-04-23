@@ -1,5 +1,10 @@
 import time
-import logging
+import sys
+import io
+
+# Force stdout to UTF-8 so emoji/unicode characters don't crash on Windows cp1252
+if hasattr(sys.stdout, 'buffer'):
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
 
 class TimingMiddleware:
     def __init__(self, get_response):
@@ -7,25 +12,28 @@ class TimingMiddleware:
 
     def __call__(self, request):
         start_time = time.time()
-        
+
         response = self.get_response(request)
-        
+
         duration = time.time() - start_time
         duration_ms = int(duration * 1000)
-        
-        # Determine prefix and color based on speed
+
+        # Determine prefix based on speed (no emoji — Windows cp1252 safe)
         if duration_ms > 800:
-            prefix = "\033[91m🔴 [CRITICAL]\033[0m" # Red
+            prefix = "[CRITICAL]"
         elif duration_ms > 200:
-            prefix = "\033[93m🟡 [SLOW]\033[0m" # Yellow
+            prefix = "[SLOW]"
         else:
-            prefix = "\033[92m🟢 [FAST]\033[0m" # Green
+            prefix = "[FAST]"
 
         # Only print for API routes to avoid console spam
         if getattr(request, 'path', '').startswith('/api/'):
-            print(f"{prefix} {request.method} {request.path} took {duration_ms}ms")
-        
+            try:
+                print(f"{prefix} {request.method} {request.path} took {duration_ms}ms")
+            except Exception:
+                pass  # Never crash a request due to logging
+
         # Add a custom header to the response for observability
         response['X-Request-Duration-MS'] = str(duration_ms)
-        
+
         return response

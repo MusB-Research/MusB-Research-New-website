@@ -117,7 +117,17 @@ export default function VisitsModule({ selectedStudyId, preloadedParticipants, p
             id: p.id,
             db_id: p.id,
             participant_sid: p.participant_sid || 'REQ-000',
-            name: p.user_details?.decrypted_name || p.user_details?.full_name || p.participant_sid || 'Subject',
+            name: (() => {
+                const ud = p.user_details;
+                if (!ud) return p.participant_sid || 'Subject';
+                // Try every possible name field the backend might send
+                const n = ud.decrypted_name || ud.full_name ||
+                    (ud.first_name && ud.last_name ? `${ud.first_name} ${ud.last_name}`.trim() : null) ||
+                    ud.first_name || ud.name || ud.email?.split('@')[0];
+                // If the resolved name looks like an encrypted token, fall back
+                if (n && !String(n).startsWith('gAAAA')) return n;
+                return p.participant_sid || 'Subject';
+            })(),
             protocol_id: p.protocol_id || 'N/A',
             status: p.status === 'ACTIVE' ? 'Active' : p.status === 'SCREENING' ? 'Screening' : (p.status || 'Active'),
             coordinator: p.coordinator_name || 'Coordinator Unassigned',

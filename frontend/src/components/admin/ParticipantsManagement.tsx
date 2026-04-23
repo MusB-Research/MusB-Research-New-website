@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, User as UserIcon, Eye, Edit2, Filter, Download, Loader2 } from 'lucide-react';
-import { authFetch , API } from '../../utils/auth';
+import { authFetch , API, revealValue } from '../../utils/auth';
 
 interface ParticipantRecord {
   id: string;
@@ -35,7 +35,7 @@ export default function ParticipantsManagement({ allParticipants = [], allStudie
       id: p.participant_sid || p.id || 'N/A',
       internal_id: p.id,
       raw: p.user_details ? { ...p.user_details, id: p.id, role: 'PARTICIPANT' } : { id: p.id, role: 'PARTICIPANT', name: 'Anonymous' },
-      name: p.user_details?.full_name || p.user_details?.name || 'Anonymous',
+      name: revealValue(p.user_details?.full_name, p.user_details?.decrypted_name) || p.user_details?.name || 'Anonymous',
       email: p.user_details?.email || 'N/A',
       registeredDate: p.created_at ? new Date(p.created_at).toLocaleString('en-US', { month: 'short', day: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'N/A',
       status: p.status || 'NEW',

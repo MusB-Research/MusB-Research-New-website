@@ -92,7 +92,18 @@ export const SubjectOverview: React.FC<SubjectOverviewProps> = ({
                     </button>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-10">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
+                    {/* NAME CARD */}
+                    <div className="flex items-center gap-4 md:gap-6">
+                        <div className="w-10 h-10 md:w-14 md:h-14 bg-indigo-500/10 rounded-xl md:rounded-2xl shadow-sm border border-indigo-500/20 flex items-center justify-center text-indigo-400 font-black text-[10px] md:text-xs shrink-0">NAME</div>
+                        <div className="flex-1">
+                            <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest mb-1.5 opacity-70">Legal Identity</p>
+                            <p className="text-lg md:text-xl font-black text-white tracking-tight uppercase truncate">
+                                {participant.display_name || 'Anonymous Subject'}
+                            </p>
+                        </div>
+                    </div>
+
                     {/* PID CARD */}
                     <div className="flex items-center gap-4 md:gap-6">
                         <div className="w-10 h-10 md:w-14 md:h-14 bg-[#F0F6FF] rounded-xl md:rounded-2xl shadow-sm border border-[#E3F2FD] flex items-center justify-center text-[#1E88E5] font-black text-[10px] md:text-xs shrink-0">PID</div>

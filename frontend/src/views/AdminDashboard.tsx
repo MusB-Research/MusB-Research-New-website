@@ -93,6 +93,8 @@ export default function AdminDashboard() {
     const [staff, setStaff] = useState<any[]>([]);
     const [auditLogs, setAuditLogs] = useState<any[]>([]);
     const [studyInquiries, setStudyInquiries] = useState<any[]>([]);
+    const [participantLeads, setParticipantLeads] = useState<any[]>([]);
+    const [facilityInquiries, setFacilityInquiries] = useState<any[]>([]);
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [selectedStudy, setSelectedStudy] = useState<any>(null);
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -117,8 +119,14 @@ export default function AdminDashboard() {
 
     const fetchInquiries = async () => {
         try {
-            const data = await apiFetch<any[]>('/api/study-inquiries/');
-            setStudyInquiries(data || []);
+            const [studyData, leadData, facilityData] = await Promise.all([
+                apiFetch<any[]>('/api/study-inquiries/'),
+                apiFetch<any[]>('/api/leads/'),
+                apiFetch<any[]>('/api/facilities-inquiry/')
+            ]);
+            setStudyInquiries(studyData || []);
+            setParticipantLeads(leadData || []);
+            setFacilityInquiries(facilityData || []);
         } catch (error) {
             console.error('Inquiries fetch error:', error);
         }
@@ -414,6 +422,8 @@ export default function AdminDashboard() {
                 {activeModule === 'INQUIRIES' && (
                     <StudyInquiriesModule 
                         studyInquiries={studyInquiries}
+                        participantLeads={participantLeads}
+                        facilityInquiries={facilityInquiries}
                         studies={studies}
                         authFetch={authFetch}
                         API={apiUrl}

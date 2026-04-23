@@ -282,6 +282,10 @@ export default function PIMessagesModule() {
     // --- LOGIC: MESSAGE SENDING ---
     const handleSendMessage = async () => {
         if (!messageInput.trim() && !attachedFile) return;
+        if (!activeConvId) {
+            addToast('No conversation selected', 'error');
+            return;
+        }
 
         try {
             const res = await authFetch(`${API}/api/clinical-conversations/${activeConvId}/add_message/`, {
@@ -306,6 +310,7 @@ export default function PIMessagesModule() {
     };
 
     const handleSaveDraft = () => {
+        if (!activeConvId) return;
         setConversations(prev => prev.map(c => c.id === activeConvId ? { ...c, draft: messageInput } : c));
         setMessageInput('');
         addToast('Draft saved for thread', 'warning');

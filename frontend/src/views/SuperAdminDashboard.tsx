@@ -1070,7 +1070,7 @@ export default function SuperAdminDashboard() {
           { label: 'Active Participants', value: (participants || []).length, icon: UserCheck, color: '#14b8a6', onClick: () => handlePageChange('PARTICIPANTS') },
           { label: 'Admins & Staff', value: (users || []).filter((u: any) => ['ADMIN', 'SUPER_ADMIN', 'PI', 'COORDINATOR'].includes(u.role)).length, icon: Crown, color: '#f59e0b', onClick: () => handlePageChange('TEAM') },
           { label: 'Sponsors', value: (users || []).filter((u: any) => u.role === 'SPONSOR').length, icon: Building, color: '#ec4899', onClick: () => handlePageChange('SPONSORS') },
-          { label: 'Sponsor Teams', value: (studyInquiries || []).length, icon: Users, color: '#ec4899', onClick: () => handlePageChange('INQUIRIES') },
+          { label: 'Incoming Inquiries', value: (studyInquiries || []).length, icon: Bell, color: '#ec4899', onClick: () => handlePageChange('INQUIRIES') },
           { label: 'Active Studies', value: (studies || []).filter((s: any) => s.status === 'UPCOMING' || s.status === 'RECRUITING' || s.status === 'ACTIVE').length, icon: Activity, color: '#14b8a6', onClick: () => handlePageChange('STUDIES') },
           { label: 'Open Adverse Events', value: 0, icon: ShieldAlert, color: '#ef4444', onClick: () => alert("Adverse Event Monitor: No active high-severity alerts detected in active matrix.") },
           { label: 'Audit Events Today', value: (activities || []).length, icon: FileText, color: '#7c3aed', onClick: () => handlePageChange('AUDIT_LOGS') },
@@ -1470,7 +1470,7 @@ export default function SuperAdminDashboard() {
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="flex justify-between items-end">
         <div>
-          <h1 className="text-4xl font-black text-white italic uppercase tracking-tighter">Sponsor <span className="text-cyan-500">Leads & Inquiries</span></h1>
+          <h1 className="text-4xl font-black text-white italic uppercase tracking-tighter">Clinical <span className="text-cyan-500">Leads</span></h1>
           <p className="text-[12px] text-slate-500 font-black uppercase tracking-[0.2em] mt-3">Prospecting data filtered from global inquiry endpoints</p>
         </div>
         <button className="px-6 py-3 bg-white/5 border border-white/10 text-white rounded-xl text-[12px] font-black uppercase tracking-widest hover:bg-cyan-500/10 hover:text-cyan-500 transition-all">Export CRM Data</button>
@@ -1489,7 +1489,12 @@ export default function SuperAdminDashboard() {
               </div>
               <div>
                 <h4 className="text-lg font-black text-white uppercase italic group-hover:text-cyan-400 transition-colors truncate">{iq.product_name}</h4>
-                <p className="text-[12px] text-slate-500 font-black uppercase tracking-widest mt-2">{iq.legal_name || 'Anonymous'}</p>
+                <div className="flex flex-col gap-1 mt-2">
+                  <p className="text-[12px] text-slate-500 font-black uppercase tracking-widest">{iq.legal_name || 'Anonymous Sponsor'}</p>
+                  {iq.contact_person_name && (
+                    <p className="text-[11px] text-cyan-500/70 font-black uppercase tracking-[0.1em] italic">Contact: {iq.contact_person_name}</p>
+                  )}
+                </div>
               </div>
               <div className="pt-6 border-t border-white/5 flex flex-col gap-3">
                 <div className="flex justify-between text-[12px] font-black uppercase tracking-widest text-[#555a7a]">
@@ -1648,9 +1653,16 @@ export default function SuperAdminDashboard() {
       ]
     },
     {
-      group: 'STAKEHOLDERS & ACCESS', items: [
+      group: 'CRM & LEAD PIPELINE', items: [
+        { id: 'SPONSOR_LEADS', label: 'Lead Prospecting', icon: BarChart2 },
+        { id: 'INQUIRIES', label: 'Clinical Inquiries', icon: Bell, hasNotify: studyInquiries.length > 0 },
+        { id: 'SPONSORS', label: 'Registered Sponsors', icon: Building },
+      ]
+    },
+    {
+      group: 'ACCESS CONTROL', items: [
         { id: 'TEAM_APPROVALS', label: 'Team Approvals', icon: ShieldCheck, hasNotify: true },
-        { id: 'SPONSORS', label: 'Sponsors', icon: Building },
+        { id: 'TEAM', label: 'Internal Staff', icon: Users },
         { id: 'COORDINATORS', label: 'Coordinators', icon: UserCheck },
         { id: 'PARTICIPANTS', label: 'Participants', icon: UserIcon },
       ]
@@ -1658,9 +1670,6 @@ export default function SuperAdminDashboard() {
     {
       group: 'ANALYTICS & INTEL', items: [
         { id: 'METRICS', label: 'Visitor Analytics', icon: Globe },
-        { id: 'SPONSOR_LEADS', label: 'Sponsor Leads', icon: BarChart2 },
-        { id: 'TEAM', label: 'Invited Team Members', icon: Users },
-        { id: 'INQUIRIES', label: 'Platform Inquiries', icon: Bell, hasNotify: studyInquiries.length > 0 },
       ]
     },
     {

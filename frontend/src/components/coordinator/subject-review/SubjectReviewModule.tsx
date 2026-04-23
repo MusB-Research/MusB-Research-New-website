@@ -158,9 +158,13 @@ export default function CCC_SubjectReviewModule({
         let autoAge = participant.age;
         let autoSex = participant.gender || participant.sex;
         let autoArm = participant.assigned_arm_name || (typeof participant.assigned_arm === 'string' ? participant.assigned_arm : participant.assigned_arm?.name);
+        let autoName = participant.user_details?.decrypted_name || participant.user_details?.full_name;
 
         if (participant.eligibility_data && screenerSchema) {
             const questions = Array.isArray(screenerSchema.questions) ? screenerSchema.questions : [];
+            let firstName = '';
+            let lastName = '';
+
             Object.entries(participant.eligibility_data).forEach(([key, value]) => {
                 const q = questions.find((quest: any) => quest.id === key || quest.key === key);
                 const label = q ? q.label : key;
@@ -187,6 +191,13 @@ export default function CCC_SubjectReviewModule({
                 if (!autoSex && (lowLabel.includes('sex') || lowLabel.includes('gender'))) autoSex = value;
                 if (!autoArm && (lowLabel.includes('arm') || lowLabel.includes('group') || lowLabel.includes('cohort'))) autoArm = value;
 
+                // Extract Name if missing
+                if (!autoName) {
+                    if (lowLabel.includes('first name') || lowLabel.includes('given name')) firstName = String(value);
+                    if (lowLabel.includes('last name') || lowLabel.includes('surname') || lowLabel.includes('family name')) lastName = String(value);
+                    if (lowLabel === 'name' || lowLabel === 'full name') autoName = String(value);
+                }
+
                 const isExclusion = lowLabel.includes('exclusion');
                 
                 const entry = {
@@ -198,10 +209,17 @@ export default function CCC_SubjectReviewModule({
                 if (isExclusion) exclusions.push(entry);
                 else inclusions.push(entry);
             });
+
+            if (!autoName && firstName) {
+                autoName = firstName + (lastName ? ' ' + lastName : '');
+            }
         }
         
         // Fallback if schema doesn't exist but data does
         if (inclusions.length === 0 && exclusions.length === 0 && participant.eligibility_data) {
+             let firstName = '';
+             let lastName = '';
+
              Object.entries(participant.eligibility_data).forEach(([key, value]) => {
                 const lowKey = key.toLowerCase();
                 if (!autoAge && (lowKey.includes('age') || lowKey.includes('old') || lowKey.includes('birth') || lowKey.includes('dob'))) {
@@ -223,15 +241,26 @@ export default function CCC_SubjectReviewModule({
                 if (!autoSex && (lowKey.includes('sex') || lowKey.includes('gender'))) autoSex = value;
                 if (!autoArm && (lowKey.includes('arm') || lowKey.includes('group') || lowKey.includes('cohort'))) autoArm = value;
                 
+                if (!autoName) {
+                    if (lowKey.includes('first_name') || lowKey.includes('firstname')) firstName = String(value);
+                    if (lowKey.includes('last_name') || lowKey.includes('lastname')) lastName = String(value);
+                    if (lowKey === 'name' || lowKey === 'full_name') autoName = String(value);
+                }
+
                 inclusions.push({
                     label: key.replace(/_/g, ' ').toUpperCase(),
                     met: value === 'Yes' || value === true || value === 'Eligible'
                 });
              });
+
+             if (!autoName && firstName) {
+                autoName = firstName + (lastName ? ' ' + lastName : '');
+            }
         }
 
         return {
             ...participant,
+            display_name: autoName,
             age: autoAge,
             sex: autoSex,
             assigned_arm_name: autoArm,
@@ -353,7 +382,7 @@ export default function CCC_SubjectReviewModule({
                     </button>
                     <div>
                         <div className="text-xl font-black text-white uppercase tracking-tight italic">
-                            {participant.user_details?.full_name || participant.participant_sid || 'AWAITING ID'}
+                            {processedParticipant.display_name || processedParticipant.participant_sid || 'AWAITING ID'}
                             <span className="text-slate-600 font-bold text-[11px] ml-3 uppercase tracking-[0.2em] italic">/ {participant.study_name || 'PROTOCOL UNSPECIFIED'}</span>
                         </div>
                         <div className="flex items-center gap-4 mt-2">

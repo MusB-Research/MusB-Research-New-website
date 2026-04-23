@@ -7,6 +7,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 interface StudyInquiriesModuleProps {
     studyInquiries: any[];
+    participantLeads: any[];
+    facilityInquiries: any[];
     studies: any[];
     authFetch: (url: string, options?: any) => Promise<Response>;
     API: string;
@@ -17,6 +19,8 @@ interface StudyInquiriesModuleProps {
 
 const StudyInquiriesModule: React.FC<StudyInquiriesModuleProps> = ({ 
     studyInquiries, 
+    participantLeads = [],
+    facilityInquiries = [],
     studies, 
     authFetch, 
     API, 
@@ -24,7 +28,7 @@ const StudyInquiriesModule: React.FC<StudyInquiriesModuleProps> = ({
     handlePageChange,
     userRole = 'ADMIN'
 }) => {
-    const [subTab, setSubTab] = useState<'study_queries' | 'authorizations'>('study_queries');
+    const [subTab, setSubTab] = useState<'SPONSOR' | 'PARTICIPANT' | 'FACILITY' | 'AUTHORIZATIONS'>('SPONSOR');
     const [isEngaging, setIsEngaging] = useState<string | null>(null);
     const [viewingInquiry, setViewingInquiry] = useState<any | null>(null);
     const pendingStudies = (studies || []).filter((s: any) => s.approval_status === 'pending');
@@ -109,21 +113,33 @@ const StudyInquiriesModule: React.FC<StudyInquiriesModuleProps> = ({
                     </p>
                 </div>
                 <div className="flex flex-col sm:flex-row items-center gap-4">
-                    <div className="flex bg-[#0a0b1a] p-1.5 rounded-2xl border border-white/5 shadow-2xl">
+                    <div className="flex bg-[#0a0b1a] p-1.5 rounded-2xl border border-white/5 shadow-2xl flex-wrap">
                         <button
-                            onClick={() => setSubTab('study_queries')}
-                            className={`px-8 py-3.5 rounded-xl text-[12px] font-black uppercase tracking-widest transition-all ${subTab === 'study_queries' ? 'bg-[#f472b6] text-white shadow-lg' : 'text-[#555a7a] hover:text-white'}`}
+                            onClick={() => setSubTab('SPONSOR')}
+                            className={`px-6 py-3 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all ${subTab === 'SPONSOR' ? 'bg-[#f472b6] text-white shadow-lg' : 'text-[#555a7a] hover:text-white'}`}
                         >
-                            Study Queries ({studyInquiries.length})
+                            Sponsor ({studyInquiries.length})
                         </button>
                         <button
-                            onClick={() => setSubTab('authorizations')}
-                            className={`px-8 py-3.5 rounded-xl text-[12px] font-black uppercase tracking-widest transition-all ${subTab === 'authorizations' ? 'bg-[#f472b6] text-white shadow-lg' : 'text-[#555a7a] hover:text-white'}`}
+                            onClick={() => setSubTab('PARTICIPANT')}
+                            className={`px-6 py-3 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all ${subTab === 'PARTICIPANT' ? 'bg-[#f472b6] text-white shadow-lg' : 'text-[#555a7a] hover:text-white'}`}
                         >
-                            Authorizations ({pendingStudies.length})
+                            Participant ({participantLeads.length})
+                        </button>
+                        <button
+                            onClick={() => setSubTab('FACILITY')}
+                            className={`px-6 py-3 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all ${subTab === 'FACILITY' ? 'bg-[#f472b6] text-white shadow-lg' : 'text-[#555a7a] hover:text-white'}`}
+                        >
+                            Facility ({facilityInquiries.length})
+                        </button>
+                        <button
+                            onClick={() => setSubTab('AUTHORIZATIONS')}
+                            className={`px-6 py-3 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all ${subTab === 'AUTHORIZATIONS' ? 'bg-[#f472b6] text-white shadow-lg' : 'text-[#555a7a] hover:text-white'}`}
+                        >
+                            Auths ({pendingStudies.length})
                         </button>
                     </div>
-                    {userRole === 'SUPER_ADMIN' && subTab === 'study_queries' && studyInquiries.length > 0 && (
+                    {userRole === 'SUPER_ADMIN' && subTab === 'SPONSOR' && studyInquiries.length > 0 && (
                         <button
                             onClick={async () => {
                                 if (!window.confirm("CRITICAL WARNING: Are you sure you want to REJECT and DELETE ALL pending study inquiries?")) return;
@@ -148,12 +164,12 @@ const StudyInquiriesModule: React.FC<StudyInquiriesModuleProps> = ({
                 </div>
             </div>
 
-            {subTab === 'study_queries' ? (
+            {subTab === 'SPONSOR' && (
                 <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
                     {studyInquiries.length === 0 ? (
                         <div className="col-span-full py-20 bg-[#0f1133] rounded-[3rem] border border-white/5 text-center">
                             <Server className="w-12 h-12 text-[#555a7a] mx-auto mb-6 animate-pulse" />
-                            <p className="text-[12px] text-[#555a7a] font-black uppercase tracking-[0.3em]">No incoming study queries</p>
+                            <p className="text-[12px] text-[#555a7a] font-black uppercase tracking-[0.3em]">No incoming sponsor queries</p>
                         </div>
                     ) : (
                         studyInquiries.map((iq: any, i: number) => (
@@ -181,6 +197,9 @@ const StudyInquiriesModule: React.FC<StudyInquiriesModuleProps> = ({
                                 </div>
                                 <div className="space-y-4 mb-10 relative z-10">
                                     <DetailRow label="Legal Entity" value={iq.legal_name || 'Anonymous Sponsor'} />
+                                    {iq.contact_person_name && (
+                                        <DetailRow label="Contact Person" value={iq.contact_person_name} color="text-pink-400" />
+                                    )}
                                     <DetailRow label="Clinical Needs" value={(iq.needs || []).join(', ')} color="text-cyan-400" />
                                     <DetailRow label="Primary Focus" value={iq.primary_focus} />
                                     <DetailRow label="Description" value={iq.project_description} multiline />
@@ -199,20 +218,96 @@ const StudyInquiriesModule: React.FC<StudyInquiriesModuleProps> = ({
                                     >
                                         Reject
                                     </button>
-                                    {userRole === 'SUPER_ADMIN' && (
-                                        <button 
-                                            onClick={() => handleDeleteLead(iq.id)}
-                                            className="px-6 py-4 bg-white/5 border border-white/5 text-slate-500 hover:text-white hover:bg-slate-800 rounded-2xl transition-all"
-                                        >
-                                            <Trash2 className="w-5 h-5" />
-                                        </button>
-                                    )}
                                 </div>
                             </div>
                         ))
                     )}
                 </div>
-            ) : (
+            )}
+
+            {subTab === 'PARTICIPANT' && (
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+                    {participantLeads.length === 0 ? (
+                        <div className="col-span-full py-20 bg-[#0f1133] rounded-[3rem] border border-white/5 text-center">
+                            <Server className="w-12 h-12 text-[#555a7a] mx-auto mb-6 animate-pulse" />
+                            <p className="text-[12px] text-[#555a7a] font-black uppercase tracking-[0.3em]">No incoming participant leads</p>
+                        </div>
+                    ) : (
+                        participantLeads.map((lead: any, i: number) => (
+                            <div key={i} className="bg-[#0f1133] border border-white/5 rounded-[2.5rem] p-12 hover:border-emerald-500/40 transition-all group overflow-hidden relative shadow-2xl">
+                                <div className="flex justify-between items-start mb-8 relative z-10">
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-emerald-400 border border-emerald-500/20">
+                                            <GlobeIcon className="w-7 h-7" />
+                                        </div>
+                                        <div>
+                                            <p className="text-[12px] font-black text-emerald-400 uppercase tracking-widest mb-1 italic">PARTICIPANT LEAD</p>
+                                            <h4 className="text-xl font-black text-white italic uppercase tracking-tight">{lead.first_name} {lead.last_name}</h4>
+                                            <p className="text-[12px] text-[#555a7a] font-black uppercase tracking-widest">{lead.email}</p>
+                                        </div>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="text-[12px] font-black text-[#555a7a] uppercase tracking-widest mb-1">{new Date(lead.created_at).toLocaleDateString()}</p>
+                                        <span className="px-3 py-1 bg-emerald-500/10 text-emerald-400 rounded-lg text-[12px] font-black uppercase tracking-widest border border-emerald-500/10 italic">{lead.status}</span>
+                                    </div>
+                                </div>
+                                <div className="space-y-4 mb-10 relative z-10">
+                                    <DetailRow label="Phone" value={lead.phone || 'N/A'} />
+                                    <DetailRow label="Source" value={lead.source} color="text-emerald-400" />
+                                    <DetailRow label="Notes" value={lead.notes || 'No notes provided.'} multiline />
+                                </div>
+                                <div className="flex gap-4 relative z-10">
+                                    <button 
+                                        onClick={() => handlePageChange('TEAM')}
+                                        className="flex-1 py-4 bg-emerald-500 text-white rounded-2xl text-[12px] font-black uppercase tracking-[0.2em] shadow-xl shadow-emerald-900/20 hover:scale-105 transition-all"
+                                    >
+                                        Manage in Team
+                                    </button>
+                                </div>
+                            </div>
+                        ))
+                    )}
+                </div>
+            )}
+
+            {subTab === 'FACILITY' && (
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+                    {facilityInquiries.length === 0 ? (
+                        <div className="col-span-full py-20 bg-[#0f1133] rounded-[3rem] border border-white/5 text-center">
+                            <Server className="w-12 h-12 text-[#555a7a] mx-auto mb-6 animate-pulse" />
+                            <p className="text-[12px] text-[#555a7a] font-black uppercase tracking-[0.3em]">No incoming facility inquiries</p>
+                        </div>
+                    ) : (
+                        facilityInquiries.map((fi: any, i: number) => (
+                            <div key={i} className="bg-[#0f1133] border border-white/5 rounded-[2.5rem] p-12 hover:border-cyan-500/40 transition-all group overflow-hidden relative shadow-2xl">
+                                <div className="flex justify-between items-start mb-8 relative z-10">
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-14 h-14 rounded-2xl bg-cyan-500/10 flex items-center justify-center text-cyan-400 border border-cyan-500/20">
+                                            <Building className="w-7 h-7" />
+                                        </div>
+                                        <div>
+                                            <p className="text-[12px] font-black text-cyan-400 uppercase tracking-widest mb-1 italic">FACILITY INQUIRY</p>
+                                            <h4 className="text-xl font-black text-white italic uppercase tracking-tight">{fi.name}</h4>
+                                            <p className="text-[12px] text-[#555a7a] font-black uppercase tracking-widest">{fi.company}</p>
+                                        </div>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="text-[12px] font-black text-[#555a7a] uppercase tracking-widest mb-1">{new Date(fi.created_at).toLocaleDateString()}</p>
+                                    </div>
+                                </div>
+                                <div className="space-y-4 mb-10 relative z-10">
+                                    <DetailRow label="Email" value={fi.email} />
+                                    <DetailRow label="Phone" value={fi.phone || 'N/A'} />
+                                    <DetailRow label="Type" value={fi.inquiry_type} color="text-cyan-400" />
+                                    <DetailRow label="Message" value={fi.message} multiline />
+                                </div>
+                            </div>
+                        ))
+                    )}
+                </div>
+            )}
+
+            {subTab === 'AUTHORIZATIONS' && (
                 <div className="bg-[#0f1133] border border-white/5 rounded-[3rem] overflow-hidden">
                     <table className="w-full text-left">
                         <thead>

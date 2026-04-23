@@ -8,8 +8,8 @@
         ".gemini/**"
     ],
     "pythonVersion": "3.11",
-    "venvPath": "backend",
-    "venv": "venv",
+    "venvPath": ".",
+    "venv": ".venv",
     "extraPaths": [
         "backend",
         "backend/api",
