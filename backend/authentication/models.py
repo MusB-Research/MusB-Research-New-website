@@ -48,9 +48,9 @@ class User(AbstractBaseUser, PermissionsMixin):
     full_name = models.CharField(max_length=255)
     
     organization = models.CharField(max_length=255, blank=True, null=True)
-    role = models.CharField(max_length=30, choices=ROLE_CHOICES, default='PARTICIPANT')
-    affiliation = models.CharField(max_length=20, choices=AFFILIATION_CHOICES, default='MUSB', null=True, blank=True)
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING', null=True, blank=True)
+    role = models.CharField(max_length=30, choices=ROLE_CHOICES, default='PARTICIPANT', db_index=True)
+    affiliation = models.CharField(max_length=20, choices=AFFILIATION_CHOICES, default='MUSB', null=True, blank=True, db_index=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING', null=True, blank=True, db_index=True)
     assigned_studies = models.JSONField(default=list, blank=True, null=True) # List of study protocol_ids
     
     # Hierarchy

@@ -39,6 +39,16 @@ export default function InvitationsModule({ allStudies = [] }: InvitationsModule
         study_ids: [] as string[]
     });
 
+    const [windowWidth, setWindowWidth] = useState(window.innerWidth);
+    const isMobile = windowWidth < 768;
+    const isTablet = windowWidth >= 768 && windowWidth < 1024;
+
+    useEffect(() => {
+        const handleResize = () => setWindowWidth(window.innerWidth);
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
     const fetchInvitations = async () => {
         setLoading(true);
         try {
@@ -99,9 +109,9 @@ export default function InvitationsModule({ allStudies = [] }: InvitationsModule
             className="flex flex-col h-full space-y-6"
         >
             {/* Header */}
-            <div className="flex justify-between items-center bg-white/[0.03] border border-white/5 rounded-3xl p-6 shadow-2xl">
+            <div className={`flex ${isMobile ? 'flex-col gap-6' : 'justify-between items-center'} bg-white/[0.03] border border-white/5 rounded-3xl p-6 shadow-2xl`}>
                 <div>
-                    <h1 className="text-2xl font-black text-white italic uppercase tracking-tighter">
+                    <h1 className={`${isMobile ? 'text-2xl' : 'text-3xl'} font-black text-white italic uppercase tracking-tighter`}>
                         Invitation <span className="text-indigo-400">Management</span>
                     </h1>
                     <p className="text-[10px] text-white/40 font-bold uppercase tracking-[0.3em] mt-1 flex items-center gap-2">
@@ -111,7 +121,7 @@ export default function InvitationsModule({ allStudies = [] }: InvitationsModule
                 </div>
                 <button 
                     onClick={() => setShowInviteModal(true)}
-                    className="flex items-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] transition-all shadow-lg shadow-indigo-600/20 active:scale-95"
+                    className={`${isMobile ? 'w-full py-4' : 'px-6 py-3.5'} flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-black uppercase tracking-widest text-[11px] transition-all shadow-lg shadow-indigo-600/20 active:scale-95`}
                 >
                     <UserPlus className="w-4 h-4" />
                     Invite Personnel
@@ -119,19 +129,19 @@ export default function InvitationsModule({ allStudies = [] }: InvitationsModule
             </div>
 
             {/* Stats Row */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className={`grid grid-cols-1 ${isTablet ? 'grid-cols-2' : 'md:grid-cols-3'} gap-4 md:gap-6`}>
                 {[
                     { label: 'Pending Invites', value: invitations.filter(i => !i.is_accepted).length, color: 'text-indigo-400', icon: Clock },
                     { label: 'Accepted Access', value: invitations.filter(i => i.is_accepted).length, color: 'text-emerald-400', icon: CheckCircle2 },
                     { label: 'Response Rate', value: invitations.length > 0 ? `${Math.round((invitations.filter(i => i.is_accepted).length / invitations.length) * 100)}%` : '0%', color: 'text-amber-400', icon: RefreshCcw },
                 ].map((stat, idx) => (
-                    <div key={idx} className="bg-white/[0.02] border border-white/5 rounded-2xl p-5 flex items-center justify-between">
+                    <div key={idx} className="bg-white/[0.02] border border-white/5 rounded-2xl p-6 flex items-center justify-between">
                         <div>
-                            <p className="text-[9px] font-black text-white/40 uppercase tracking-widest mb-1">{stat.label}</p>
-                            <p className={`text-2xl font-black italic ${stat.color}`}>{stat.value}</p>
+                            <p className="text-[10px] font-black text-white/40 uppercase tracking-widest mb-1">{stat.label}</p>
+                            <p className={`text-3xl font-black italic ${stat.color}`}>{stat.value}</p>
                         </div>
-                        <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center">
-                            <stat.icon className={`w-5 h-5 ${stat.color} opacity-40`} />
+                        <div className="w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center">
+                            <stat.icon className={`w-6 h-6 ${stat.color} opacity-40`} />
                         </div>
                     </div>
                 ))}
@@ -140,45 +150,35 @@ export default function InvitationsModule({ allStudies = [] }: InvitationsModule
             {/* Table Area */}
             <div className="flex-1 bg-white/[0.03] border border-white/5 rounded-3xl overflow-hidden flex flex-col shadow-2xl">
                 {/* Table Header / Search */}
-                <div className="p-4 border-b border-white/5 flex items-center justify-between gap-4">
-                    <div className="relative flex-1 max-w-md">
+                <div className={`p-4 border-b border-white/5 flex ${isMobile ? 'flex-col' : 'items-center justify-between'} gap-4`}>
+                    <div className="relative flex-1">
                         <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/20" />
                         <input 
                             type="text" 
                             placeholder="Search by email or role..."
-                            className="w-full bg-white/5 border border-white/10 rounded-xl pl-12 pr-4 py-3 text-sm text-white focus:border-indigo-500/50 outline-none"
+                            className="w-full bg-white/5 border border-white/10 rounded-xl pl-12 pr-4 py-3.5 text-sm text-white focus:border-indigo-500/50 outline-none"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                         />
                     </div>
-                    <div className="flex items-center gap-2">
-                         <button className="p-3 bg-white/5 border border-white/10 rounded-xl text-white/40 hover:text-white transition-colors">
+                    <div className={`flex items-center ${isMobile ? 'justify-end' : ''} gap-2`}>
+                         <button className="p-3.5 bg-white/5 border border-white/10 rounded-xl text-white/40 hover:text-white transition-colors">
                             <Filter className="w-4 h-4" />
                          </button>
-                         <button onClick={fetchInvitations} className="p-3 bg-white/5 border border-white/10 rounded-xl text-white/40 hover:text-white transition-colors">
+                         <button onClick={fetchInvitations} className="p-3.5 bg-white/5 border border-white/10 rounded-xl text-white/40 hover:text-white transition-colors">
                             <RefreshCcw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
                          </button>
                     </div>
                 </div>
 
                 <div className="flex-1 overflow-auto">
-                    <table className="w-full text-left border-collapse">
-                        <thead className="sticky top-0 bg-[#0B1120] z-10">
-                            <tr className="border-b border-white/5">
-                                <th className="px-6 py-4 text-[10px] font-black text-white/40 uppercase tracking-widest">Invited Personnel</th>
-                                <th className="px-6 py-4 text-[10px] font-black text-white/40 uppercase tracking-widest">Target Role</th>
-                                <th className="px-6 py-4 text-[10px] font-black text-white/40 uppercase tracking-widest">Scope</th>
-                                <th className="px-6 py-4 text-[10px] font-black text-white/40 uppercase tracking-widest">Created</th>
-                                <th className="px-6 py-4 text-[10px] font-black text-white/40 uppercase tracking-widest">Status</th>
-                                <th className="px-6 py-4"></th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-white/5">
+                    {isMobile ? (
+                        <div className="p-4 space-y-4">
                             {filteredInvitations.map((inv) => (
-                                <tr key={inv.id} className="hover:bg-white/[0.02] transition-colors group">
-                                    <td className="px-6 py-4">
+                                <div key={inv.id} className="bg-white/[0.02] border border-white/5 rounded-3xl p-5 space-y-4 shadow-xl">
+                                    <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500/10 to-purple-500/10 border border-white/5 flex items-center justify-center">
+                                            <div className="w-10 h-10 rounded-xl bg-indigo-500/10 border border-white/5 flex items-center justify-center">
                                                 <Mail className="w-5 h-5 text-indigo-400 opacity-60" />
                                             </div>
                                             <div>
@@ -186,50 +186,115 @@ export default function InvitationsModule({ allStudies = [] }: InvitationsModule
                                                 <p className="text-[10px] text-white/30 uppercase font-black">{inv.organization || 'MusB Research'}</p>
                                             </div>
                                         </div>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <span className="flex items-center gap-2 text-[11px] font-black text-white/70 uppercase tracking-widest">
-                                            <Shield className="w-3 h-3 text-indigo-500" />
-                                            {inv.role}
-                                        </span>
-                                    </td>
-                                    <td className="px-6 py-4">
+                                        {inv.is_accepted ? (
+                                            <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+                                        ) : (
+                                            <Clock className={`w-5 h-5 ${new Date(inv.expires_at) < new Date() ? 'text-red-500' : 'text-amber-500'}`} />
+                                        )}
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-4 py-4 border-y border-white/5">
                                         <div className="space-y-1">
-                                            <p className="text-[10px] font-black text-white/40 uppercase tracking-[0.1em]">{inv.scope}</p>
-                                            <p className="text-[11px] font-bold text-indigo-400">
+                                            <p className="text-[9px] font-black text-white/40 uppercase tracking-widest">Target Role</p>
+                                            <div className="flex items-center gap-1.5">
+                                                <Shield className="w-3 h-3 text-indigo-500" />
+                                                <span className="text-[10px] font-black text-white uppercase tracking-widest">{inv.role}</span>
+                                            </div>
+                                        </div>
+                                        <div className="space-y-1">
+                                            <p className="text-[9px] font-black text-white/40 uppercase tracking-widest">Scope</p>
+                                            <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">
                                                 {inv.scope === 'SPECIFIC' ? `${inv.study_ids?.length || 0} Studies` : 'Access to All'}
                                             </p>
                                         </div>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <p className="text-sm font-bold text-white/60 tabular-nums">
-                                            {new Date(inv.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                                        </p>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        {inv.is_accepted ? (
-                                            <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/20 rounded-full w-fit">
-                                                <CheckCircle2 className="w-3 h-3 text-emerald-500" />
-                                                <span className="text-[9px] font-black text-emerald-400 uppercase tracking-widest">Accepted</span>
-                                            </div>
-                                        ) : (
-                                            <div className={`flex items-center gap-2 px-3 py-1.5 border rounded-full w-fit ${new Date(inv.expires_at) < new Date() ? 'bg-red-500/10 border-red-500/20' : 'bg-amber-500/10 border-amber-500/20'}`}>
-                                                <Clock className={`w-3 h-3 ${new Date(inv.expires_at) < new Date() ? 'text-red-500' : 'text-amber-500'}`} />
-                                                <span className={`text-[9px] font-black uppercase tracking-widest ${new Date(inv.expires_at) < new Date() ? 'text-red-400' : 'text-amber-400'}`}>
-                                                    {new Date(inv.expires_at) < new Date() ? 'Expired' : 'Pending'}
-                                                </span>
-                                            </div>
-                                        )}
-                                    </td>
-                                    <td className="px-6 py-4 text-right">
-                                        <button className="p-2 opacity-0 group-hover:opacity-100 transition-all text-white/40 hover:text-white">
-                                            <ChevronRight className="w-4 h-4" />
-                                        </button>
-                                    </td>
-                                </tr>
+                                    </div>
+
+                                    <div className="flex items-center justify-between pt-2">
+                                        <div className="space-y-1">
+                                            <p className="text-[9px] font-black text-white/40 uppercase tracking-widest">Created On</p>
+                                            <p className="text-[10px] font-bold text-white/60">
+                                                {new Date(inv.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                            </p>
+                                        </div>
+                                        <div className={`px-4 py-1.5 rounded-full border ${inv.is_accepted ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : new Date(inv.expires_at) < new Date() ? 'bg-red-500/10 border-red-500/20 text-red-400' : 'bg-amber-500/10 border-amber-500/20 text-amber-400'}`}>
+                                            <span className="text-[9px] font-black uppercase tracking-widest">
+                                                {inv.is_accepted ? 'Accepted' : new Date(inv.expires_at) < new Date() ? 'Expired' : 'Pending'}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
                             ))}
-                        </tbody>
-                    </table>
+                        </div>
+                    ) : (
+                        <table className="w-full text-left border-collapse">
+                            <thead className="sticky top-0 bg-[#0B1120] z-10">
+                                <tr className="border-b border-white/5">
+                                    <th className="px-6 py-5 text-[10px] font-black text-white/40 uppercase tracking-widest">Invited Personnel</th>
+                                    <th className="px-6 py-5 text-[10px] font-black text-white/40 uppercase tracking-widest">Target Role</th>
+                                    <th className="px-6 py-5 text-[10px] font-black text-white/40 uppercase tracking-widest">Scope</th>
+                                    <th className="px-6 py-5 text-[10px] font-black text-white/40 uppercase tracking-widest">Created</th>
+                                    <th className="px-6 py-5 text-[10px] font-black text-white/40 uppercase tracking-widest">Status</th>
+                                    <th className="px-6 py-5"></th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-white/5">
+                                {filteredInvitations.map((inv) => (
+                                    <tr key={inv.id} className="hover:bg-white/[0.02] transition-colors group">
+                                        <td className="px-6 py-5">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500/10 to-purple-500/10 border border-white/5 flex items-center justify-center">
+                                                    <Mail className="w-5 h-5 text-indigo-400 opacity-60" />
+                                                </div>
+                                                <div>
+                                                    <p className="text-sm font-bold text-white tracking-tight">{inv.email}</p>
+                                                    <p className="text-[10px] text-white/30 uppercase font-black">{inv.organization || 'MusB Research'}</p>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-5">
+                                            <span className="flex items-center gap-2 text-[11px] font-black text-white/70 uppercase tracking-widest">
+                                                <Shield className="w-3 h-3 text-indigo-500" />
+                                                {inv.role}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-5">
+                                            <div className="space-y-1">
+                                                <p className="text-[10px] font-black text-white/40 uppercase tracking-[0.1em]">{inv.scope}</p>
+                                                <p className="text-[11px] font-bold text-indigo-400">
+                                                    {inv.scope === 'SPECIFIC' ? `${inv.study_ids?.length || 0} Studies` : 'Access to All'}
+                                                </p>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-5">
+                                            <p className="text-sm font-bold text-white/60 tabular-nums">
+                                                {new Date(inv.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                            </p>
+                                        </td>
+                                        <td className="px-6 py-5">
+                                            {inv.is_accepted ? (
+                                                <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/20 rounded-full w-fit">
+                                                    <CheckCircle2 className="w-3 h-3 text-emerald-500" />
+                                                    <span className="text-[9px] font-black text-emerald-400 uppercase tracking-widest">Accepted</span>
+                                                </div>
+                                            ) : (
+                                                <div className={`flex items-center gap-2 px-3 py-1.5 border rounded-full w-fit ${new Date(inv.expires_at) < new Date() ? 'bg-red-500/10 border-red-500/20' : 'bg-amber-500/10 border-amber-500/20'}`}>
+                                                    <Clock className={`w-3 h-3 ${new Date(inv.expires_at) < new Date() ? 'text-red-500' : 'text-amber-500'}`} />
+                                                    <span className={`text-[9px] font-black uppercase tracking-widest ${new Date(inv.expires_at) < new Date() ? 'text-red-400' : 'text-amber-400'}`}>
+                                                        {new Date(inv.expires_at) < new Date() ? 'Expired' : 'Pending'}
+                                                    </span>
+                                                </div>
+                                            )}
+                                        </td>
+                                        <td className="px-6 py-5 text-right">
+                                            <button className="p-2 opacity-0 group-hover:opacity-100 transition-all text-white/40 hover:text-white">
+                                                <ChevronRight className="w-4 h-4" />
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    )}
                 </div>
             </div>
 

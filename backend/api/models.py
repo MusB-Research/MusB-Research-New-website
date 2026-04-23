@@ -272,8 +272,8 @@ class Candidate(models.Model):
 
 class StudyAssignment(models.Model):
     """Links Users to Studies with specific hierarchy/access roles"""
-    study = models.ForeignKey(Study, on_delete=models.CASCADE, related_name='assignments')
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='study_assignments')
+    study = models.ForeignKey(Study, on_delete=models.CASCADE, related_name='assignments', db_index=True)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='study_assignments', db_index=True)
     role = models.CharField(max_length=30, choices=[
         ('PI', 'Principal Investigator'),
         ('COORDINATOR', 'Clinical Coordinator'),
@@ -1691,6 +1691,48 @@ class StudyActionRequest(BaseMongoModel):
 
     def __str__(self):
         return f"{self.request_type} - {self.status}"
+
+class StudyKit(BaseMongoModel):
+    KIT_STATUS_CHOICES = [
+        ('ASSIGNED', 'Kit Assigned'),
+        ('PENDING', 'Pending Dispatch'),
+        ('PREPARING', 'Preparing for Shipment'),
+        ('SHIPPED', 'In Transit'),
+        ('DELIVERED', 'Arrived at Site / Participant'),
+        ('RETURN_SHIPPED', 'Return Transit Initiated'),
+        ('RECEIVED', 'Samples Received at Lab'),
+        ('DAMAGED', 'Damaged / Invalid'),
+    ]
+
+    CARRIER_CHOICES = [
+        ('FedEx', 'FedEx'),
+        ('UPS', 'UPS'),
+        ('DHL', 'DHL'),
+        ('USPS', 'USPS'),
+        ('Other', 'Other'),
+    ]
+
+    study = models.ForeignKey(Study, on_delete=models.CASCADE, related_name='study_kits')
+    participant = models.ForeignKey(Participant, on_delete=models.SET_NULL, null=True, blank=True, related_name='assigned_kits')
+    kit_number = models.CharField(max_length=100, unique=True)
+    kit_type = models.CharField(max_length=100, blank=True)
+    
+    status = models.CharField(max_length=30, choices=KIT_STATUS_CHOICES, default='ASSIGNED')
+    carrier = models.CharField(max_length=20, choices=CARRIER_CHOICES, default='Other')
+    tracking_number = models.CharField(max_length=100, blank=True)
+    
+    address = models.TextField(blank=True, help_text="Delivery address for DTP kits")
+    shipping_label_url = models.URLField(blank=True, null=True)
+    return_label_url = models.URLField(blank=True, null=True)
+    
+    last_updated = models.DateTimeField(auto_now=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta(BaseMongoModel.Meta):
+        ordering = ['-last_updated']
+
+    def __str__(self):
+        return f"Kit {self.kit_number} ({self.status})"
 
 @receiver(post_save, sender=Document)
 def notify_sponsor_on_new_doc(sender, instance, created, **kwargs):

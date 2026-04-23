@@ -282,6 +282,15 @@ html {
   scroll-behavior: smooth;
 }
 
+/* Scrollbar Visibility Utilities */
+.no-scrollbar::-webkit-scrollbar {
+    display: none;
+}
+.no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
 /* Floating Animation */
 @keyframes float {
   0% {

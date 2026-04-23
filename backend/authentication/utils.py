@@ -42,7 +42,9 @@ def send_mail_premium(to_email, subject, title, body, button_text=None, button_u
     # Generate QR Code image URL via secure API if qr_url is provided
     qr_img_html = ""
     if qr_url:
-        qr_api = f"https://api.qrserver.com/v1/create-qr-code/?size=200x200&data={qr_url}"
+        import urllib.parse
+        encoded_url = urllib.parse.quote(qr_url)
+        qr_api = f"https://api.qrserver.com/v1/create-qr-code/?size=200x200&data={encoded_url}"
         qr_img_html = f"""
         <div style="margin-top: 30px; text-align: center; background: #f8fafc; padding: 25px; border-radius: 16px; border: 1px solid #e2e8f0;">
             <p style="margin-bottom: 15px; font-size: 14px; font-weight: 700; color: #1e293b;">Scan to Enroll Instantly</p>

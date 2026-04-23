@@ -45,6 +45,16 @@ export default function LabsResultsModule({ selectedStudyId, preloadedStudies, i
     
     const apiUrl = API || 'http://localhost:8000';
 
+    const [windowWidth, setWindowWidth] = useState(window.innerWidth);
+    const isMobile = windowWidth < 768;
+    const isTablet = windowWidth >= 768 && windowWidth < 1024;
+
+    React.useEffect(() => {
+        const handleResize = () => setWindowWidth(window.innerWidth);
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
     React.useEffect(() => {
         const fetchLabs = async () => {
             setInternalLoading(true);
@@ -124,23 +134,23 @@ export default function LabsResultsModule({ selectedStudyId, preloadedStudies, i
     if (selectedSample) {
         return (
             <motion.div key="lab-detail" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-10 relative z-10">
-                <div className="flex items-center justify-between">
+                <div className={`flex ${isMobile ? 'flex-col gap-6' : 'items-center justify-between'}`}>
                     <button 
                         onClick={() => setSelectedSample(null)}
-                        className="flex items-center gap-3 px-6 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl text-[12px] font-black text-slate-400 hover:text-white uppercase tracking-widest transition-all cursor-pointer"
+                        className={`flex items-center gap-3 ${isMobile ? 'w-full py-4' : 'px-6 py-3'} bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl text-[12px] font-black text-slate-400 hover:text-white uppercase tracking-widest transition-all cursor-pointer`}
                     >
                         <ArrowLeft size={16} /> Dashboard
                     </button>
-                    <div className="flex items-center gap-4">
+                    <div className={`flex items-center gap-4 ${isMobile ? 'flex-col w-full' : ''}`}>
                         {!selectedSample.isReleased && selectedSample.status === 'Resulted' && (
                             <button 
                                 onClick={() => handleRelease(selectedSample.id)}
-                                className="px-8 py-3 bg-blue-600 text-white rounded-2xl text-[12px] font-black uppercase tracking-widest flex items-center gap-3 hover:bg-blue-500 shadow-xl shadow-blue-600/20 transition-all cursor-pointer"
+                                className={`flex-1 ${isMobile ? 'w-full py-4' : 'px-8 py-3'} bg-blue-600 text-white rounded-2xl text-[12px] font-black uppercase tracking-widest flex items-center justify-center gap-3 hover:bg-blue-500 shadow-xl shadow-blue-600/20 transition-all cursor-pointer`}
                             >
                                 Release Results <CheckCircle2 size={16} />
                             </button>
                         )}
-                        <button className="px-8 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl text-[12px] font-black text-white uppercase tracking-widest transition-all cursor-pointer">
+                        <button className={`flex-1 ${isMobile ? 'w-full py-4' : 'px-8 py-3'} bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl text-[12px] font-black text-white uppercase tracking-widest transition-all cursor-pointer flex items-center justify-center gap-3`}>
                             Export PDF <Download size={16} />
                         </button>
                     </div>
@@ -148,13 +158,13 @@ export default function LabsResultsModule({ selectedStudyId, preloadedStudies, i
 
                 <div className="grid grid-cols-1 xl:grid-cols-3 gap-10">
                     <div className="xl:col-span-2 space-y-10">
-                        <div className="bg-[#0B101B]/50 border border-white/5 rounded-[3rem] p-12 relative overflow-hidden">
+                        <div className={`bg-[#0B101B]/50 border border-white/5 rounded-[3rem] ${isMobile ? 'p-8' : 'p-12'} relative overflow-hidden`}>
                             <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/5 blur-[100px] -mr-32 -mt-32" />
                             
-                            <div className="flex flex-col md:flex-row md:items-start justify-between gap-6 relative z-10">
+                            <div className={`flex flex-col ${isMobile ? 'gap-6' : 'md:flex-row md:items-start justify-between'} relative z-10`}>
                                 <div>
                                     <p className="text-[11px] text-blue-400 font-black uppercase tracking-[0.4em] mb-4 italic">Analysis Dossier</p>
-                                    <h2 className="text-2xl md:text-4xl font-black text-white italic truncate tracking-tight uppercase mb-2">{selectedSample.type}</h2>
+                                    <h2 className={`${isMobile ? 'text-3xl' : 'text-2xl md:text-4xl'} font-black text-white italic truncate tracking-tight uppercase mb-2`}>{selectedSample.type}</h2>
                                     <p className="text-sm text-slate-500 font-mono tracking-widest uppercase">Batch ID: {selectedSample.id}</p>
                                 </div>
                                 <div className={`inline-flex px-6 py-3 rounded-2xl border text-[12px] font-black uppercase tracking-widest self-start ${getStatusStyle(selectedSample.status)}`}>
@@ -162,7 +172,7 @@ export default function LabsResultsModule({ selectedStudyId, preloadedStudies, i
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-12 mt-16 pt-12 border-t border-white/5 relative z-10">
+                            <div className={`grid grid-cols-1 ${isMobile ? 'gap-10 mt-12' : 'md:grid-cols-2 gap-12 mt-16'} pt-12 border-t border-white/5 relative z-10`}>
                                 <div>
                                     <p className="text-[11px] text-slate-500 font-black uppercase tracking-widest mb-6">Subject Information</p>
                                     <div className="flex items-center gap-6">
@@ -193,7 +203,7 @@ export default function LabsResultsModule({ selectedStudyId, preloadedStudies, i
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                        <div className={`grid grid-cols-1 ${isMobile ? 'gap-6' : 'md:grid-cols-2 gap-10'}`}>
                             <div className="bg-[#0B101B]/50 border border-white/5 rounded-[2.5rem] p-10">
                                 <h4 className="text-[11px] text-white/50 font-black uppercase tracking-widest mb-8 flex items-center gap-3">
                                     <Clock size={14} className="text-blue-400" /> Lab Timeline
@@ -222,8 +232,8 @@ export default function LabsResultsModule({ selectedStudyId, preloadedStudies, i
                         </div>
                     </div>
                     
-                    <div className="space-y-10">
-                        <div className="bg-blue-600 rounded-[2.5rem] p-8 text-white relative overflow-hidden group hover:scale-[1.02] transition-all cursor-pointer">
+                    <div className={`space-y-10 ${isMobile ? 'pt-6' : ''}`}>
+                        <div className="bg-blue-600 rounded-[2.5rem] p-8 text-white relative overflow-hidden group hover:scale-[1.02] transition-all cursor-pointer shadow-2xl">
                             <div className="absolute -right-4 -bottom-4 opacity-20 transition-transform group-hover:scale-110">
                                 <TrendingUp size={120} />
                             </div>
@@ -232,7 +242,7 @@ export default function LabsResultsModule({ selectedStudyId, preloadedStudies, i
                             <p className="text-2xl font-black italic tracking-tighter">+12% vs Baseline</p>
                         </div>
 
-                        <div className="bg-white/[0.02] border border-white/5 rounded-[2.5rem] p-8">
+                        <div className="bg-white/[0.02] border border-white/5 rounded-[2.5rem] p-8 shadow-xl">
                             <h4 className="text-[11px] text-white/40 font-black uppercase tracking-widest mb-8">Verification Log</h4>
                             <div className="space-y-6">
                                 {[
@@ -259,28 +269,25 @@ export default function LabsResultsModule({ selectedStudyId, preloadedStudies, i
     return (
         <motion.div key="lab-list" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-10 relative z-10">
             {/* Header / Tactical Controls */}
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
+            <div className={`flex ${isMobile ? 'flex-col' : 'items-center justify-between'} gap-8`}>
                 <div>
-                    <h2 className="text-xl md:text-2xl font-black text-white italic uppercase tracking-tight">Health Check <span className="text-blue-400">Reports</span></h2>
+                    <h2 className={`${isMobile ? 'text-2xl' : 'text-xl md:text-2xl'} font-black text-white italic uppercase tracking-tight`}>Health Check <span className="text-blue-400">Reports</span></h2>
                     <p className="text-[11px] text-white/50 font-bold uppercase tracking-[0.4em] mt-3 md:mt-4 italic">Global Specimen Tracking & Bio-Analysis</p>
                 </div>
-                <div className="flex items-center gap-4">
-                    <div className="relative h-[52px] pointer-events-auto">
+                <div className={`flex ${isMobile ? 'flex-col' : 'items-center'} gap-4`}>
+                    <div className={`relative ${isMobile ? 'h-14 w-full' : 'h-[52px] w-80'} pointer-events-auto`}>
                         <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
                         <input 
                             type="text" 
                             placeholder="Sample ID / Subject Name..."
                             value={searchQuery}
-                            onChange={(e) => {
-                                console.log("Search updated:", e.target.value);
-                                setSearchQuery(e.target.value);
-                            }}
-                            className="bg-white/5 border border-white/10 rounded-2xl pl-12 pr-6 h-full text-[12px] text-white font-bold outline-none focus:border-blue-500/50 focus:bg-white/10 transition-all w-80 uppercase tracking-widest placeholder:text-slate-700 font-mono cursor-text"
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="bg-white/5 border border-white/10 rounded-2xl pl-12 pr-6 h-full text-[12px] text-white font-bold outline-none focus:border-blue-500/50 focus:bg-white/10 transition-all w-full uppercase tracking-widest placeholder:text-slate-700 font-mono cursor-text shadow-inner"
                         />
                     </div>
                     <button 
                         onClick={handleRequestReRun}
-                        className={`flex items-center gap-2 px-8 h-[52px] ${isReRunning ? 'bg-blue-500/50' : 'bg-blue-600'} text-white rounded-2xl text-[12px] font-black uppercase tracking-widest hover:scale-[1.03] transition-all shadow-xl shadow-blue-600/20 whitespace-nowrap cursor-pointer`}
+                        className={`flex items-center justify-center gap-3 ${isMobile ? 'py-4 w-full' : 'px-8 h-[52px]'} ${isReRunning ? 'bg-blue-500/50' : 'bg-blue-600'} text-white rounded-2xl text-[12px] font-black uppercase tracking-widest hover:scale-[1.03] transition-all shadow-xl shadow-blue-600/20 whitespace-nowrap cursor-pointer active:scale-95`}
                     >
                         {isReRunning ? 'Processing...' : 'Request Re-run'} <FlaskConical className="w-4 h-4" />
                     </button>
@@ -288,48 +295,92 @@ export default function LabsResultsModule({ selectedStudyId, preloadedStudies, i
             </div>
 
             {/* KPI Cards Row */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
+            <div className={`grid ${isMobile ? 'grid-cols-1' : isTablet ? 'grid-cols-2' : 'grid-cols-4'} gap-6 lg:gap-8`}>
                 {[
-                    { 
-                        label: 'Total Samples', 
-                        val: samples.length.toLocaleString(), 
-                        icon: Microscope, 
-                        color: 'blue' 
-                    },
-                    { 
-                        label: 'Processing', 
-                        val: samples.filter(s => s.status === 'Processing' || s.status === 'Shipped').length.toString(), 
-                        icon: Activity, 
-                        color: 'blue' 
-                    },
-                    { 
-                        label: 'Abnormal Highs', 
-                        val: samples.filter(s => s.critical).length.toString(), 
-                        icon: Bell, 
-                        color: 'red' 
-                    },
-                    { 
-                        label: 'Turnaround Avg', 
-                        val: samples.length > 0 ? '3.8 Days' : '0.0 Days', 
-                        icon: Clock, 
-                        color: 'emerald' 
-                    }
+                    { label: 'Total Samples', val: samples.length.toLocaleString(), icon: Microscope, color: 'blue' },
+                    { label: 'Processing', val: samples.filter(s => s.status === 'Processing' || s.status === 'Shipped').length.toString(), icon: Activity, color: 'blue' },
+                    { label: 'Abnormal Highs', val: samples.filter(s => s.critical).length.toString(), icon: Bell, color: 'red' },
+                    { label: 'Turnaround Avg', val: samples.length > 0 ? '3.8 Days' : '0.0 Days', icon: Clock, color: 'emerald' }
                 ].map((kpi, i) => (
-                    <div key={i} className="flex items-center gap-6 lg:gap-8 group">
+                    <div key={i} className="flex items-center gap-6 p-6 bg-white/[0.02] border border-white/5 rounded-[2rem] shadow-xl group">
                         <div className={`flex-shrink-0 w-16 h-16 bg-${kpi.color}-500/5 border border-${kpi.color}-500/10 rounded-2xl flex items-center justify-center text-${kpi.color}-400 group-hover:scale-110 transition-transform`}>
                             <kpi.icon className="w-8 h-8" />
                         </div>
                         <div>
                             <span className="text-[11px] text-white/40 font-black uppercase tracking-widest italic block mb-1">{kpi.label}</span>
-                            <p className="text-2xl lg:text-3xl font-black text-white italic tracking-tighter leading-none">{kpi.val}</p>
+                            <p className="text-2xl font-black text-white italic tracking-tighter leading-none">{kpi.val}</p>
                         </div>
                     </div>
                 ))}
             </div>
 
-            {/* Labs Table */}
-            <div className="overflow-x-auto custom-scrollbar-horizontal">
-                <table className="w-full text-left table-fixed min-w-[1000px] border-t border-white/5">
+            {/* Labs Table / Cards */}
+            <div className="bg-[#0f1133]/40 border border-white/5 rounded-[3rem] overflow-hidden shadow-2xl">
+                {(isMobile || isTablet) ? (
+                    <div className="p-4 space-y-4">
+                        {isLoading ? (
+                            Array.from({ length: 3 }).map((_, i) => (
+                                <div key={i} className="p-6 bg-white/[0.02] border border-white/5 rounded-[2.5rem] space-y-4 animate-pulse">
+                                    <div className="h-4 bg-white/5 w-1/2 rounded" />
+                                    <div className="h-14 bg-white/5 w-full rounded-2xl" />
+                                </div>
+                            ))
+                        ) : filteredSamples.length === 0 ? (
+                            <div className="py-20 text-center">
+                                <Microscope className="w-16 h-16 text-slate-800 mx-auto mb-4" />
+                                <p className="text-sm font-black uppercase tracking-widest text-slate-700 italic">No specimen data synced</p>
+                            </div>
+                        ) : filteredSamples.map((s) => (
+                            <div key={s.id} className="p-6 bg-white/[0.02] border border-white/5 rounded-[2.5rem] space-y-5 shadow-xl">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-5">
+                                        <div className="w-14 h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-blue-400 shadow-inner transition-all">
+                                            <Droplet className="w-6 h-6" />
+                                        </div>
+                                        <div>
+                                            <p className="text-base font-black text-white italic truncate tracking-tight uppercase leading-none">{s.type}</p>
+                                            <p className="text-[12px] text-slate-500 font-mono tracking-widest mt-1.5">{s.id}</p>
+                                        </div>
+                                    </div>
+                                    <div className={`px-4 py-2 rounded-xl border text-[11px] font-black uppercase tracking-widest ${getStatusStyle(s.status)} shadow-lg`}>
+                                        {s.status}
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-6 py-5 border-y border-white/5">
+                                    <div className="space-y-1.5">
+                                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest italic">Subject</p>
+                                        <p className="text-base font-black text-white uppercase italic truncate leading-none">{s.subjectName}</p>
+                                        <p className="text-[11px] text-slate-600 font-black tracking-widest uppercase">{s.subjectId}</p>
+                                    </div>
+                                    <div className="space-y-1.5 text-right">
+                                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest italic">Analysis Result</p>
+                                        <div className="flex items-end justify-end gap-1.5">
+                                            <p className={`text-2xl font-black italic tracking-tighter leading-none ${s.critical ? 'text-red-400 animate-pulse' : 'text-slate-100'}`}>{s.value}</p>
+                                            <p className="text-[11px] text-slate-500 font-black uppercase mb-0.5">{s.unit}</p>
+                                        </div>
+                                        {s.critical && <p className="text-[10px] font-black text-red-500 uppercase tracking-widest mt-1">CRITICAL ALERT</p>}
+                                    </div>
+                                </div>
+
+                                <div className="flex items-center justify-between pt-2">
+                                    <div className="flex flex-col">
+                                        <p className="text-[10px] text-slate-600 font-black uppercase font-mono tracking-widest">DUE: {s.date}</p>
+                                    </div>
+                                    <div className="flex items-center gap-3">
+                                        {s.status === 'Resulted' && !s.isReleased && (
+                                            <button onClick={() => handleRelease(s.id)} className="px-6 py-3 bg-blue-600 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest shadow-xl shadow-blue-900/40">Release</button>
+                                        )}
+                                        <button className="p-3 bg-white/5 border border-white/5 rounded-2xl text-slate-500 shadow-xl"><TrendingUp size={18} /></button>
+                                        <button onClick={() => setSelectedSample(s)} className="px-6 py-3 bg-white text-slate-900 rounded-2xl text-[11px] font-black uppercase tracking-widest shadow-2xl">Review</button>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                    <div className="overflow-x-auto custom-scrollbar-horizontal">
+                        <table className="w-full text-left table-fixed min-w-[1000px]">
                     <colgroup>
                         <col className="w-[25%]" />
                         <col className="w-[15%]" />
@@ -424,6 +475,8 @@ export default function LabsResultsModule({ selectedStudyId, preloadedStudies, i
                     </tbody>
                 </table>
             </div>
-        </motion.div>
-    );
+        )}
+    </div>
+</motion.div>
+);
 }

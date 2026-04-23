@@ -5,7 +5,7 @@ import { PersonalDoc, INITIAL_DOCS, mapUserToDocs } from '../credentials/Credent
 import { CredentialCard } from '../credentials/components/CredentialCard';
 import { CredentialProfile } from '../credentials/components/CredentialProfile';
 import { ComplianceLensModal } from '../credentials/components/ComplianceLensModal';
-import { authFetch, API } from '../../../utils/auth';
+import { authFetch } from '../../../utils/auth';
 
 export default function MyDocumentsModule({ selectedStudyId }: { selectedStudyId?: string }) {
     const [docs, setDocs] = useState<PersonalDoc[]>(INITIAL_DOCS);
@@ -16,7 +16,7 @@ export default function MyDocumentsModule({ selectedStudyId }: { selectedStudyId
     useEffect(() => {
         const fetchUserData = async () => {
             try {
-                const response = await authFetch(`${API.AUTH}/me/`);
+                const response = await authFetch(`/api/auth/me/`);
                 if (response.ok) {
                     const data = await response.json();
                     setUser(data);

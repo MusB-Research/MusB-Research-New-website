@@ -331,6 +331,7 @@ export default function StudyScreener() {
                             if (pRes.ok) {
                                 const pData = await pRes.json();
                                 setIsEnrolledInThisStudy(true);
+                                setEnrollmentResult(pData);
 
                                 setFormData((prev: any) => ({
                                     ...prev,
@@ -597,16 +598,30 @@ export default function StudyScreener() {
             });
 
             // 🚀 Trigger Enrollment for Logged-in Users (Requirement 8)
-            if (getAccessToken() && !isEnrolledInThisStudy) {
+            if (getAccessToken()) {
                 const enrollmentStatus = finalOutcome === 'ELIGIBLE' ? 'CONSENTED' : 'PENDING_REVIEW';
-                const enrollRes = await authFetch(`${API}/api/studies/${id}/enroll/`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ status: enrollmentStatus })
-                });
-                if (enrollRes.ok) {
-                    const eData = await enrollRes.json();
-                    setEnrollmentResult(eData);
+                let sid = enrollmentResult?.participant_sid || enrollmentResult?.sid;
+
+                if (!isEnrolledInThisStudy) {
+                    const enrollRes = await authFetch(`${API}/api/studies/${id}/enroll/`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ status: enrollmentStatus })
+                    });
+                    if (enrollRes.ok) {
+                        const eData = await enrollRes.json();
+                        setEnrollmentResult(eData);
+                        sid = eData.participant_sid || eData.sid;
+                    }
+                }
+
+                // 🚀 CRITICAL FIX: Sync eligibility data to the participant record
+                if (sid) {
+                    await authFetch(`${API}/api/participants/${sid}/submit_eligibility/`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ eligibility_data: formData })
+                    });
                 }
             }
         } catch (e) {
@@ -715,20 +730,7 @@ export default function StudyScreener() {
                                                 />
                                             </div>
 
-                                            <div className="space-y-4">
-                                                <label className="text-lg font-black italic tracking-tight text-white/50">
-                                                    Self-reported Age
-                                                </label>
-                                                <div className="relative">
-                                                    <input
-                                                        type="text"
-                                                        readOnly
-                                                        value={formData.age}
-                                                        className={`w-full bg-[#161f35]/50 border border-white/5 rounded-2xl px-8 py-5 text-[#00ADEF] text-xl outline-none cursor-not-allowed font-bold italic`}
-                                                        placeholder="Auto-calculated"
-                                                    />
-                                                </div>
-                                            </div>
+
                                             <div className="space-y-4">
                                                 <label className="text-lg font-black italic tracking-tight text-white">
                                                     Zip / Postal code

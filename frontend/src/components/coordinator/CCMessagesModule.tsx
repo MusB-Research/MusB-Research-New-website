@@ -130,6 +130,10 @@ export default function CCMessagesModule({ selectedStudyId }: { selectedStudyId?
     const [allParticipants, setAllParticipants] = useState<any[]>([]);
     const [allStudies, setAllStudies] = useState<any[]>([]);
     const [composeForm, setComposeForm] = useState({ participantId: '', studyId: '', text: '' });
+    const [windowWidth, setWindowWidth] = useState(window.innerWidth);
+    const isMobile = windowWidth < 768;
+    const isTablet = windowWidth >= 768 && windowWidth < 1024;
+    const [mobileView, setMobileView] = useState<'list' | 'thread'>('list');
     
     // Refs
     const threadEndRef = useRef<HTMLDivElement>(null);
@@ -236,6 +240,18 @@ export default function CCMessagesModule({ selectedStudyId }: { selectedStudyId?
     }, [selectedStudyId]);
 
     useEffect(() => {
+        const handleResize = () => setWindowWidth(window.innerWidth);
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
+    useEffect(() => {
+        if (!isMobile && mobileView === 'thread') {
+            setMobileView('list');
+        }
+    }, [isMobile]);
+
+    useEffect(() => {
         threadEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [activeConvId, conversations]);
 
@@ -272,6 +288,7 @@ export default function CCMessagesModule({ selectedStudyId }: { selectedStudyId?
 
     const handleSelectConv = (id: string) => {
         setActiveConvId(id);
+        if (isMobile) setMobileView('thread');
         setConversations(prev => prev.map(c => c.id === id ? { ...c, status: c.status === 'Unread' ? 'Open' : c.status } : c));
     };
 
@@ -431,13 +448,13 @@ export default function CCMessagesModule({ selectedStudyId }: { selectedStudyId?
             backgroundColor: '#6366f1',
             color: 'white',
             border: 'none',
-            padding: '0.3rem 0.6rem',
-            borderRadius: '4px',
-            fontSize: '10px',
+            padding: '0.4rem 0.9rem',
+            borderRadius: '6px',
+            fontSize: '11px',
             fontWeight: 900,
             textTransform: 'uppercase' as const,
             cursor: 'pointer',
-            boxShadow: '0 4px 10px rgba(99, 102, 241, 0.2)',
+            boxShadow: '0 4px 20px rgba(99, 102, 241, 0.3)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -448,9 +465,9 @@ export default function CCMessagesModule({ selectedStudyId }: { selectedStudyId?
             backgroundColor: 'transparent',
             color: '#94a3b8',
             border: '1px solid rgba(255,255,255,0.1)',
-            padding: '0.3rem 0.6rem',
-            borderRadius: '4px',
-            fontSize: '10px',
+            padding: '0.4rem 0.8rem',
+            borderRadius: '6px',
+            fontSize: '11px',
             fontWeight: 900,
             textTransform: 'uppercase' as const,
             cursor: 'pointer',
@@ -465,42 +482,56 @@ export default function CCMessagesModule({ selectedStudyId }: { selectedStudyId?
     return (
         <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', width: '100%', backgroundColor: '#0B101B', color: 'white', overflow: 'hidden' }}>
             {/* TOP BAR */}
-            <header style={{ ...G.glass, padding: '0.4rem 1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', zIndex: 10 }}>
-                <h1 style={{ ...G.title, fontSize: '1.25rem' }}>Messages</h1>
+            <header style={{ 
+                ...G.glass, 
+                padding: isMobile ? '0.75rem' : '0.4rem 1rem', 
+                display: 'flex', 
+                flexDirection: isMobile ? 'column' : 'row',
+                alignItems: isMobile ? 'stretch' : 'center', 
+                justifyContent: 'space-between', 
+                zIndex: 10,
+                gap: '0.75rem'
+            }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <h1 style={G.title}>Messages</h1>
+                    {isMobile && <button style={G.btnPrimary} onClick={() => setComposeOpen(true)}><Plus size={13} /> Compose</button>}
+                </div>
 
-                <div style={{ display: 'flex', flex: 1, maxWidth: '600px', margin: '0 2rem', backgroundColor: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', padding: '0 1rem' }}>
-                    <Search size={14} color="#64748b" style={{ marginTop: '0.75rem' }} />
+                <div style={{ display: 'flex', flex: 1, maxWidth: isMobile ? '100%' : '400px', backgroundColor: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '6px', padding: '0 0.6rem', alignItems: 'center' }}>
+                    <Search size={13} color="#64748b" />
                     <input 
-                        style={{ backgroundColor: 'transparent', border: 'none', color: 'white', padding: '0.4rem', fontSize: '11px', outline: 'none', width: '100%', textTransform: 'uppercase', fontWeight: 900, letterSpacing: '0.1em' }}
-                        placeholder="Search..."
+                        style={{ backgroundColor: 'transparent', border: 'none', color: 'white', padding: '0.45rem 0.5rem', fontSize: '12px', outline: 'none', width: '100%' }}
+                        placeholder="Search IDs, studies..."
                         value={searchQuery}
                         onChange={e => setSearchQuery(e.target.value)}
                     />
                 </div>
 
-                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                    <button style={G.btnPrimary} onClick={() => setComposeOpen(true)}>
-                        <Plus size={14} /> 
-                        Compose
-                    </button>
-                    <div style={{ display: 'flex', gap: '0.5rem', marginLeft: '1rem' }}>
-                        {['All', 'Unread', 'Flagged', 'Requires Action'].map(f => {
-                            const count = conversations.filter(c => {
-                                if (f === 'All') return true;
-                                if (f === 'Unread') return c.status === 'Unread';
-                                if (f === 'Flagged') return c.flagged;
-                                if (f === 'Requires Action') return c.status === 'Action Required';
-                                return true;
-                            }).length;
-                            return (
-                                <button key={f} 
-                                    onClick={() => setFilterStatus(f)}
-                                    style={{ ...G.btnGhost, padding: '0.2rem 0.6rem', borderColor: filterStatus === f ? '#6366f1' : 'rgba(255,255,255,0.1)', backgroundColor: filterStatus === f ? 'rgba(99,102,241,0.1)' : 'transparent', color: filterStatus === f ? 'white' : '#64748b' }}>
-                                    {f} <span style={{ marginLeft: '4px', opacity: 0.5, fontSize: '9px' }}>({count})</span>
-                                </button>
-                            );
-                        })}
-                    </div>
+                <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center', flexWrap: 'wrap', justifyContent: isMobile ? 'center' : 'flex-end' }}>
+                    {!isMobile && <button style={G.btnPrimary} onClick={() => setComposeOpen(true)}><Plus size={13} style={{ marginRight: '4px', verticalAlign: 'middle' }} /> Compose</button>}
+                    {['All', 'Unread', 'Flagged', 'Action'].map(f => {
+                         const filterLabel = f === 'Action' ? 'Requires Action' : f;
+                         const count = conversations.filter(c => {
+                            if (f === 'All') return true;
+                            if (f === 'Unread') return c.status === 'Unread';
+                            if (f === 'Flagged') return c.flagged;
+                            if (f === 'Action') return c.status === 'Action Required';
+                            return true;
+                        }).length;
+                        return (
+                            <button key={f} 
+                                onClick={() => setFilterStatus(filterLabel)}
+                                style={{ 
+                                    ...G.btnGhost, 
+                                    borderColor: filterStatus === filterLabel ? '#6366f1' : 'rgba(255,255,255,0.1)', 
+                                    color: filterStatus === filterLabel ? 'white' : '#64748b', 
+                                    padding: '0.3rem 0.6rem',
+                                    fontSize: isMobile ? '10px' : '11px'
+                                }}>
+                                {f} <span style={{ opacity: 0.5, marginLeft: '3px' }}>{count}</span>
+                            </button>
+                        );
+                    })}
                 </div>
             </header>
 
@@ -508,8 +539,16 @@ export default function CCMessagesModule({ selectedStudyId }: { selectedStudyId?
             <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
                 
                 {/* LEFT PANEL: Conversation List */}
-                <div style={{ width: '320px', borderRight: '1px solid rgba(99, 102, 241, 0.2)', display: 'flex', flexDirection: 'column', ...G.glass }}>
-                    <div style={{ padding: '0.5rem 1rem', borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ 
+                    width: isMobile ? '100%' : '280px', 
+                    minWidth: isMobile ? '100%' : '240px',
+                    borderRight: '1px solid rgba(99, 102, 241, 0.2)', 
+                    display: isMobile && mobileView === 'thread' ? 'none' : 'flex', 
+                    flexDirection: 'column', 
+                    ...G.glass,
+                    zIndex: 5
+                }}>
+                    <div style={{ padding: '0.6rem 0.75rem', borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <span style={G.label}>Conversations</span>
                         <div style={{ display: 'flex', gap: '0.5rem' }}>
                             <button onClick={() => setSortMode('recent')} style={{ border: 'none', background: 'none', color: sortMode === 'recent' ? '#6366f1' : '#64748b', cursor: 'pointer' }}><Clock size={16} /></button>
@@ -519,90 +558,102 @@ export default function CCMessagesModule({ selectedStudyId }: { selectedStudyId?
                     </div>
                     <div style={{ flex: 1, overflowY: 'auto' }}>
                         {getSortedConversations().length === 0 ? (
-                            <div style={{ padding: '3rem 2rem', textAlign: 'center', opacity: 0.3 }}>
-                                <MessageSquare size={32} style={{ margin: '0 auto 1rem' }} />
-                                <p style={{ fontSize: '11px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em' }}>No conversations found</p>
+                            <div style={{ padding: '3rem 1.5rem', textAlign: 'center', color: '#64748b' }}>
+                                <MessageSquare size={32} style={{ opacity: 0.1, marginBottom: '1rem' }} />
+                                <p style={{ fontSize: '12px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em' }}>No results found</p>
                                 <p style={{ fontSize: '10px', marginTop: '0.5rem' }}>Check your filters or search query</p>
                             </div>
                         ) : (
                             getSortedConversations().map(conv => (
-                            <div 
-                                key={conv.id}
-                                onClick={() => handleSelectConv(conv.id)}
-                                style={{
-                                    padding: '0.5rem 0.75rem',
-                                    borderBottom: '1px solid rgba(255,255,255,0.03)',
-                                    cursor: 'pointer',
-                                    borderLeft: activeConvId === conv.id ? '4px solid #6366f1' : '4px solid transparent',
-                                    backgroundColor: activeConvId === conv.id ? 'rgba(99,102,241,0.08)' : 'transparent',
-                                    transition: 'all 0.2s'
-                                }}
-                            >
-                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
-                                    <span style={{ fontSize: '14px', fontWeight: 900, fontStyle: 'italic', color: 'white' }}>{conv.participantId} <span style={{ color: '#64748b', fontSize: '11px' }}>| {conv.study}</span></span>
-                                    <span style={{ fontSize: '11px', color: '#64748b' }}>{conv.timestamp}</span>
+                                <div 
+                                    key={conv.id}
+                                    onClick={() => handleSelectConv(conv.id)}
+                                    style={{
+                                        padding: '0.5rem 0.75rem',
+                                        borderBottom: '1px solid rgba(255,255,255,0.03)',
+                                        cursor: 'pointer',
+                                        borderLeft: activeConvId === conv.id ? '3px solid #6366f1' : '3px solid transparent',
+                                        backgroundColor: activeConvId === conv.id ? 'rgba(99,102,241,0.08)' : 'transparent',
+                                        transition: 'all 0.1s'
+                                    }}
+                                >
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem', gap: '0.5rem' }}>
+                                        <span style={{ fontSize: '12px', fontWeight: 900, fontStyle: 'italic', color: 'white', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{conv.participantId} <span style={{ color: '#64748b', fontSize: '10px' }}>| {conv.study}</span></span>
+                                        <span style={{ fontSize: '10px', color: '#64748b', whiteSpace: 'nowrap' }}>{conv.timestamp}</span>
+                                    </div>
+                                    <div style={{ fontSize: '10px', color: '#94a3b8', marginBottom: '0.25rem', fontWeight: 'bold', textTransform: 'uppercase' }}>{conv.sender} • {conv.senderRole}</div>
+                                    <div style={{ fontSize: '10px', color: '#64748b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{conv.preview}</div>
+                                    
+                                    <div style={{ display: 'flex', gap: '0.4rem', marginTop: '0.4rem', alignItems: 'center' }}>
+                                        {conv.status === 'Unread' && <span style={{ backgroundColor: '#6366f1', height: '8px', width: '8px', borderRadius: '50%' }} />}
+                                        {conv.status === 'Action Required' && <span style={{ backgroundColor: '#ef4444', height: '8px', width: '8px', borderRadius: '50%' }} />}
+                                        {conv.status === 'Resolved' && <CheckCircle2 size={12} color="#10b981" />}
+                                        {conv.flagged && <Bookmark size={12} color="#f59e0b" fill="#f59e0b" />}
+                                        <span style={{ fontSize: '12px', fontWeight: 900, color: conv.status === 'Resolved' ? '#10b981' : '#64748b', textTransform: 'uppercase' }}>{conv.status}</span>
+                                    </div>
                                 </div>
-                                <div style={{ fontSize: '11px', color: '#94a3b8', marginBottom: '0.25rem', fontWeight: 'bold', textTransform: 'uppercase' }}>{conv.sender} • {conv.senderRole}</div>
-                                <div style={{ fontSize: '12px', color: '#64748b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{conv.preview}</div>
-                                
-                                <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem', alignItems: 'center' }}>
-                                    {conv.status === 'Unread' && <span style={{ backgroundColor: '#6366f1', height: '8px', width: '8px', borderRadius: '50%' }} />}
-                                    {conv.status === 'Action Required' && <span style={{ backgroundColor: '#ef4444', height: '8px', width: '8px', borderRadius: '50%' }} />}
-                                    {conv.status === 'Resolved' && <CheckCircle2 size={12} color="#10b981" />}
-                                    {conv.flagged && <Bookmark size={10} color="#f59e0b" fill="#f59e0b" />}
-                                    <span style={{ fontSize: '10px', fontWeight: 900, color: conv.status === 'Resolved' ? '#10b981' : '#64748b', textTransform: 'uppercase' }}>{conv.status}</span>
-                                </div>
-                            </div>
-                        )))}
+                            ))
+                        )}
                     </div>
                 </div>
 
                 {/* RIGHT PANEL: Message Thread */}
-                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', backgroundColor: 'rgba(255,255,255,0.01)' }}>
+                <div style={{ 
+                    flex: 1, 
+                    display: isMobile && mobileView === 'list' ? 'none' : 'flex', 
+                    flexDirection: 'column', 
+                    backgroundColor: 'rgba(255,255,255,0.01)',
+                    width: isMobile ? '100%' : 'auto'
+                }}>
                     {activeConv ? (
                         <>
                             {/* THREAD HEADER */}
-                            <div style={{ ...G.glass, borderTop: 'none', borderRight: 'none', padding: '0.4rem 1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                <div>
-                                    <div style={{ fontSize: '16px', fontWeight: 900, fontStyle: 'italic', textTransform: 'uppercase' }}>{activeConv.participantId} • <span style={{ color: '#6366f1' }}>{activeConv.study}</span></div>
-                                    <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.2rem', alignItems: 'center' }}>
-                                        <span style={{ fontSize: '10px', fontWeight: 900, color: '#10b981', backgroundColor: 'rgba(16,185,129,0.1)', padding: '0.1rem 0.4rem', borderRadius: '4px' }}>{activeConv.participantStatus} Participant</span>
-                                        <span style={{ fontSize: '10px', color: '#94a3b8' }}><User size={10} style={{ marginRight: '4px' }} /> {activeConv.assignedCoordinator}</span>
+                            <div style={{ ...G.glass, borderTop: 'none', borderRight: 'none', padding: '0.5rem 1rem', display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'center', justifyContent: 'space-between', gap: '1rem' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                    {isMobile && <button style={{ ...G.btnGhost, padding: '0.4rem' }} onClick={() => setMobileView('list')}><X size={16} /></button>}
+                                    <div style={{ minWidth: 0, flex: 1 }}>
+                                        <div style={{ fontSize: '13px', fontWeight: 900, fontStyle: 'italic', textTransform: 'uppercase', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{activeConv.participantId} • <span style={{ color: '#6366f1' }}>{activeConv.study}</span></div>
+                                        <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.2rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                                            <span style={{ fontSize: '10px', fontWeight: 900, color: '#10b981', backgroundColor: 'rgba(16,185,129,0.1)', padding: '0.1rem 0.4rem', borderRadius: '20px', whiteSpace: 'nowrap' }}>{activeConv.participantStatus} Participant</span>
+                                            <span style={{ fontSize: '10px', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '4px' }}><User size={10} /> {activeConv.assignedCoordinator}</span>
+                                        </div>
                                     </div>
                                 </div>
-                                <div style={{ display: 'flex', gap: '0.4rem' }}>
-                                    <button style={{ ...G.btnGhost, padding: '0.3rem 0.6rem' }} onClick={() => toggleFlag(activeConv.id)}><Bookmark size={12} color={activeConv.flagged ? '#f59e0b' : '#64748b'} fill={activeConv.flagged ? '#f59e0b' : 'none'} style={{ marginRight: '4px' }} /> FLAG</button>
-                                    <button style={{ ...G.btnGhost, padding: '0.3rem 0.6rem' }} onClick={() => markResolved(activeConv.id)}><CheckCircle2 size={12} color="#10b981" style={{ marginRight: '4px' }} /> RESOLVE</button>
-                                    <button style={{ ...G.btnGhost, padding: '0.3rem 0.6rem' }} onClick={() => setParticipantDrawerOpen(true)}><FileText size={12} style={{ marginRight: '4px' }} /> RECORD</button>
-                                    <button style={{ ...G.btnPrimary, padding: '0.3rem 0.8rem' }} onClick={() => setActionPanelOpen(!actionPanelOpen)}>ACTIONS {actionPanelOpen ? <ChevronDown size={12} /> : <ChevronRight size={12} />}</button>
+                                <div style={{ display: 'flex', gap: '0.4rem', flexShrink: 0, overflowX: 'auto', paddingBottom: isMobile ? '0.5rem' : 0 }}>
+                                    <button style={{ ...G.btnGhost, padding: isMobile ? '0.3rem 0.5rem' : '0.4rem 0.8rem' }} onClick={() => toggleFlag(activeConv.id)}><Bookmark size={12} color={activeConv.flagged ? '#f59e0b' : '#64748b'} fill={activeConv.flagged ? '#f59e0b' : 'none'} style={{ marginRight: '4px' }} /> FLAG</button>
+                                    <button style={{ ...G.btnGhost, padding: isMobile ? '0.3rem 0.5rem' : '0.4rem 0.8rem' }} onClick={() => markResolved(activeConv.id)}><CheckCircle2 size={12} color="#10b981" style={{ marginRight: '4px' }} /> RESOLVE</button>
+                                    {!isMobile && <button style={G.btnGhost} onClick={() => setParticipantDrawerOpen(true)}><FileText size={12} style={{ marginRight: '4px' }} /> RECORD</button>}
+                                    <button style={{ ...G.btnPrimary, padding: isMobile ? '0.3rem 0.5rem' : '0.4rem 0.9rem' }} onClick={() => setActionPanelOpen(!actionPanelOpen)}>ACTIONS {actionPanelOpen ? <ChevronDown size={12} /> : <ChevronRight size={12} />}</button>
                                 </div>
                             </div>
 
                             {/* DYNAMIC ACTION PANEL */}
                             {actionPanelOpen && (
-                                <div style={{ backgroundColor: 'rgba(255,255,255,0.02)', borderBottom: '1px solid rgba(255,255,255,0.06)', padding: '0.4rem 1rem' }}>
-                                    <div style={{ display: 'flex', gap: '1.5rem' }}>
-                                        <div>
-                                            <div style={{ ...G.label, marginBottom: '0.3rem', fontSize: '10px' }}>Actions</div>
-                                            <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                                <button style={{ ...G.btnGhost, padding: '0.4rem 0.8rem', fontSize: '12px' }} onClick={() => handleAction('Request Info', 'PI has requested additional information. Please update clinical details.', 'General')}>Request Info</button>
-                                                <button style={{ ...G.btnGhost, padding: '0.4rem 0.8rem', fontSize: '12px' }} onClick={() => handleAction('Deviation', 'Marked as protocol deviation by PI.', 'Protocol')}>Deviation</button>
-                                                <button style={{ ...G.btnGhost, padding: '0.4rem 0.8rem', fontSize: '12px', borderColor: '#ef444430', color: '#ef4444' }} onClick={() => handleAction('Escalation', 'Escalated to safety event by PI. Immediate review required.', 'Safety', true)}>Escalate</button>
+                                <div style={{ backgroundColor: 'rgba(255,255,255,0.02)', borderBottom: '1px solid rgba(255,255,255,0.06)', padding: '0.6rem 1rem' }}>
+                                    <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: isMobile ? '1rem' : '1.5rem', flexWrap: 'wrap', alignItems: isMobile ? 'stretch' : 'center' }}>
+                                        <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'center', gap: '0.5rem' }}>
+                                            <span style={{ ...G.label, whiteSpace: 'nowrap', marginBottom: isMobile ? '0.2rem' : 0 }}>Clinical:</span>
+                                            <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+                                                <button style={{ ...G.btnGhost, padding: '0.3rem 0.6rem', flex: isMobile ? 1 : 'none' }} onClick={() => handleAction('Info Request', 'PI has requested more information. Please update details.', 'General')}>More Info</button>
+                                                <button style={{ ...G.btnGhost, padding: '0.3rem 0.6rem', flex: isMobile ? 1 : 'none' }} onClick={() => handleAction('Deviation', 'Marked as study deviation by PI.', 'Protocol')}>Deviation</button>
+                                                <button style={{ ...G.btnGhost, padding: '0.3rem 0.6rem', borderColor: '#ef444430', color: '#ef4444', flex: isMobile ? 1 : 'none' }} onClick={() => handleAction('Escalation', 'Escalated to safety event by PI. Immediate review required.', 'Safety', true)}>Escalate</button>
                                             </div>
                                         </div>
-                                        <div>
-                                            <div style={{ ...G.label, marginBottom: '0.3rem', fontSize: '10px' }}>Workflow</div>
-                                            <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                        <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'center', gap: '0.5rem' }}>
+                                            <span style={{ ...G.label, whiteSpace: 'nowrap', marginBottom: isMobile ? '0.2rem' : 0 }}>Workflow:</span>
+                                            <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
                                                 <select 
-                                                    style={{ ...G.btnGhost, padding: '0.4rem 0.8rem', outline: 'none', backgroundColor: '#0B101B' }}
+                                                    style={{ ...G.btnGhost, padding: '0.3rem 0.6rem', outline: 'none', backgroundColor: '#0B101B', flex: isMobile ? 1 : 'none' }}
                                                     onChange={(e) => executeSystemAction('Assignment', `Assigned to coordinator ${e.target.value} by PI`, 'General')}
                                                 >
                                                     <option>Assign to...</option>
                                                     {COORDINATORS.map(c => <option key={c} value={c}>{c}</option>)}
                                                 </select>
-                                                {['Open', 'In Progress', 'Resolved'].map(s => (
-                                                    <button key={s} onClick={() => markResolved(activeConv.id)} style={{ ...G.btnGhost, padding: '0.4rem 0.8rem', border: activeConv.status === s ? '1px solid #10b981' : '1px solid rgba(255,255,255,0.1)' }}>{s}</button>
-                                                ))}
+                                                <div style={{ display: 'flex', gap: '0.4rem', flex: isMobile ? 1 : 'none' }}>
+                                                    {['Open', 'In Progress', 'Resolved'].map(s => (
+                                                        <button key={s} onClick={() => markResolved(activeConv.id)} style={{ ...G.btnGhost, padding: '0.3rem 0.4rem', flex: 1, border: activeConv.status === s ? '1px solid #6366f1' : '1px solid rgba(255,255,255,0.1)', fontSize: '10px' }}>{s}</button>
+                                                    ))}
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
@@ -652,47 +703,49 @@ export default function CCMessagesModule({ selectedStudyId }: { selectedStudyId?
                             </div>
 
                             {/* INPUT AREA */}
-                            <div style={{ ...G.glass, borderRight: 'none', borderBottom: 'none', padding: '0.4rem 1rem' }}>
-                                <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '0.75rem' }}>
-                                    <button style={{ ...G.btnGhost, padding: '0.4rem 0.8rem', fontSize: '11px' }} onClick={() => {
+                            <div style={{ ...G.glass, borderRight: 'none', borderBottom: 'none', padding: isMobile ? '0.75rem' : '0.5rem 0.75rem' }}>
+                                <div style={{ display: 'flex', gap: '0.4rem', marginBottom: '0.4rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                                    <button style={{ ...G.btnGhost, padding: '0.25rem 0.5rem', fontSize: '10px', flex: isMobile ? 1 : 'none' }} onClick={() => {
                                         const t = TEMPLATES[0];
                                         setMessageInput(t.text.replace('[ID]', activeConv.participantId));
-                                    }}>Eligibility</button>
-                                    <button style={{ ...G.btnGhost, padding: '0.4rem 0.8rem', fontSize: '11px' }} onClick={() => {
+                                    }}>Template: Eligibility</button>
+                                    <button style={{ ...G.btnGhost, padding: '0.25rem 0.5rem', fontSize: '10px', flex: isMobile ? 1 : 'none' }} onClick={() => {
                                         const t = TEMPLATES[1];
                                         setMessageInput(t.text);
-                                    }}>AE Follow-up</button>
-                                    <div style={{ flex: 1 }} />
-                                    <div style={{ display: 'flex', backgroundColor: 'rgba(255,255,255,0.03)', padding: '2px', borderRadius: '4px' }}>
+                                    }}>Template: AE Follow-up</button>
+                                    {!isMobile && <div style={{ flex: 1 }} />}
+                                    <div style={{ display: 'flex', backgroundColor: 'rgba(255,255,255,0.03)', padding: '2px', borderRadius: '4px', width: isMobile ? '100%' : 'auto', overflowX: 'auto' }}>
                                         {['General', 'Safety', 'Eligibility', 'Protocol'].map(t => (
                                             <button key={t} 
                                                 onClick={() => setSelectedTag(t as any)}
-                                                style={{ border: 'none', background: selectedTag === t ? 'rgba(99,102,241,0.2)' : 'transparent', color: selectedTag === t ? '#6366f1' : '#64748b', padding: '0.2rem 0.5rem', fontSize: '10px', fontWeight: 900, textTransform: 'uppercase', borderRadius: '4px', cursor: 'pointer' }}>
+                                                style={{ border: 'none', background: selectedTag === t ? 'rgba(99,102,241,0.2)' : 'transparent', color: selectedTag === t ? '#6366f1' : '#64748b', padding: '0.25rem 0.5rem', fontSize: '10px', fontWeight: 900, textTransform: 'uppercase', borderRadius: '4px', cursor: 'pointer', flex: 1 }}>
                                                 {t}
                                             </button>
                                         ))}
                                     </div>
                                 </div>
-                                <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'flex-end' }}>
+                                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-end' }}>
                                     <div style={{ flex: 1, position: 'relative' }}>
                                         {attachedFile && (
-                                            <div style={{ position: 'absolute', top: '-45px', left: 0, padding: '0.5rem 1rem', backgroundColor: 'rgba(99,102,241,0.1)', borderRadius: '20px', border: '1px solid #6366f1', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                                                <Paperclip size={12} color="#6366f1" />
-                                                <span style={{ fontSize: '12px', fontWeight: 900, color: '#6366f1' }}>{attachedFile.name}</span>
-                                                <X size={12} color="#6366f1" style={{ cursor: 'pointer' }} onClick={() => setAttachedFile(null)} />
+                                            <div style={{ position: 'absolute', top: '-32px', left: 0, padding: '0.25rem 0.6rem', backgroundColor: 'rgba(99,102,241,0.1)', borderRadius: '20px', border: '1px solid #6366f1', display: 'flex', alignItems: 'center', gap: '0.5rem', zIndex: 5 }}>
+                                                <Paperclip size={10} color="#6366f1" />
+                                                <span style={{ fontSize: '10px', fontWeight: 900, color: '#6366f1', maxWidth: '100px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{attachedFile.name}</span>
+                                                <X size={10} color="#6366f1" style={{ cursor: 'pointer' }} onClick={() => setAttachedFile(null)} />
                                             </div>
                                         )}
                                         <textarea 
-                                            style={{ width: '100%', backgroundColor: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: 'white', padding: '0.75rem', fontSize: '13px', outline: 'none', minHeight: '40px', resize: 'vertical' }}
-                                            placeholder="Type a message..."
+                                            style={{ width: '100%', backgroundColor: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '6px', color: 'white', padding: '0.5rem 0.75rem', fontSize: '13px', outline: 'none', minHeight: isMobile ? '44px' : '52px', resize: 'vertical' }}
+                                            placeholder="Compose clinical feedback..."
                                             value={messageInput}
                                             onChange={e => setMessageInput(e.target.value)}
                                         />
                                     </div>
                                     <input type="file" ref={fileInputRef} hidden onChange={e => setAttachedFile(e.target.files?.[0] || null)} />
-                                    <button style={{ ...G.btnGhost, padding: '0.75rem' }} onClick={() => fileInputRef.current?.click()}><Paperclip size={18} /></button>
-                                    <button style={{ ...G.btnGhost, padding: '0.75rem' }} onClick={handleSaveDraft}><Save size={18} /></button>
-                                    <button style={{ ...G.btnPrimary, height: '40px', padding: '0 1.5rem' }} onClick={handleSendMessage}><Send size={18} /></button>
+                                    <div style={{ display: 'flex', gap: '0.3rem' }}>
+                                        <button style={{ ...G.btnGhost, padding: isMobile ? '0.4rem' : '0.5rem' }} onClick={() => fileInputRef.current?.click()}><Paperclip size={isMobile ? 13 : 15} /></button>
+                                        {!isMobile && <button style={{ ...G.btnGhost, padding: '0.5rem' }} onClick={handleSaveDraft}><Save size={15} /></button>}
+                                        <button style={{ ...G.btnPrimary, height: isMobile ? '44px' : '52px', padding: isMobile ? '0 0.75rem' : '0 1rem' }} onClick={handleSendMessage}><Send size={15} /></button>
+                                    </div>
                                 </div>
                             </div>
                         </>
@@ -707,15 +760,15 @@ export default function CCMessagesModule({ selectedStudyId }: { selectedStudyId?
 
             {/* COMPOSE MODAL */}
             {composeOpen && (
-                <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: isMobile ? '1rem' : 0 }}>
                     <div style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(10px)' }} onClick={() => setComposeOpen(false)} />
-                    <div style={{ ...G.glass, width: '720px', padding: '3rem', position: 'relative', borderRadius: '12px' }}>
-                        <h2 style={G.title}>New Message</h2>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', marginTop: '2.5rem' }}>
+                    <div style={{ ...G.glass, width: isMobile ? '100%' : '720px', maxWidth: '100%', padding: isMobile ? '1.5rem' : '3rem', position: 'relative', borderRadius: '12px', maxHeight: '90vh', overflowY: 'auto' }}>
+                        <h2 style={{ ...G.title, fontSize: isMobile ? '1rem' : '1.25rem' }}>New Message</h2>
+                        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: isMobile ? '1rem' : '2rem', marginTop: isMobile ? '1.5rem' : '2.5rem' }}>
                             <div>
                                 <label style={G.label}>To</label>
                                 <select 
-                                    style={{ ...G.btnGhost, width: '100%', padding: '1rem', marginTop: '0.5rem', backgroundColor: '#0B101B' }}
+                                    style={{ ...G.btnGhost, width: '100%', padding: '1rem', marginTop: '0.5rem', backgroundColor: '#0B101B', textTransform: 'uppercase' }}
                                     value={composeForm.participantId}
                                     onChange={e => setComposeForm({ ...composeForm, participantId: e.target.value })}
                                 >
@@ -728,7 +781,7 @@ export default function CCMessagesModule({ selectedStudyId }: { selectedStudyId?
                             <div>
                                 <label style={G.label}>Select Study</label>
                                 <select 
-                                    style={{ ...G.btnGhost, width: '100%', padding: '1rem', marginTop: '0.5rem', backgroundColor: '#0B101B' }}
+                                    style={{ ...G.btnGhost, width: '100%', padding: '1rem', marginTop: '0.5rem', backgroundColor: '#0B101B', textTransform: 'uppercase' }}
                                     value={composeForm.studyId}
                                     onChange={e => setComposeForm({ ...composeForm, studyId: e.target.value })}
                                 >
@@ -739,16 +792,16 @@ export default function CCMessagesModule({ selectedStudyId }: { selectedStudyId?
                                 </select>
                             </div>
                         </div>
-                        <div style={{ marginTop: '2rem' }}>
+                        <div style={{ marginTop: isMobile ? '1.5rem' : '2rem' }}>
                             <label style={G.label}>Message</label>
                             <textarea 
-                                style={{ ...G.glass, width: '100%', padding: '1.5rem', marginTop: '0.5rem', minHeight: '200px', fontSize: '14px', color: 'white', outline: 'none' }} 
+                                style={{ ...G.glass, width: '100%', padding: isMobile ? '1rem' : '1.5rem', marginTop: '0.5rem', minHeight: isMobile ? '120px' : '200px', fontSize: isMobile ? '14px' : '16px', color: 'white', outline: 'none' }} 
                                 placeholder="Detail assessment..." 
                                 value={composeForm.text}
                                 onChange={e => setComposeForm({ ...composeForm, text: e.target.value })}
                             />
                         </div>
-                        <div style={{ display: 'flex', gap: '1rem', marginTop: '3rem', justifyContent: 'flex-end' }}>
+                        <div style={{ display: 'flex', gap: '1rem', marginTop: isMobile ? '2rem' : '3rem', justifyContent: 'flex-end' }}>
                             <button style={G.btnGhost} onClick={() => setComposeOpen(false)}>CANCEL</button>
                             <button style={G.btnPrimary} onClick={handleComposeSubmit}>SEND</button>
                         </div>
@@ -773,27 +826,39 @@ export default function CCMessagesModule({ selectedStudyId }: { selectedStudyId?
 
             {/* RECORD DRAWER */}
             {participantDrawerOpen && (
-                <div style={{ position: 'fixed', top: 0, right: 0, width: '480px', height: '100vh', ...G.glass, zIndex: 500, boxShadow: '-50px 0 100px rgba(0,0,0,0.8)', padding: '3rem' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '3rem' }}>
+                <div style={{ 
+                    position: 'fixed', 
+                    top: 0, 
+                    right: 0, 
+                    width: isMobile ? '100%' : '480px', 
+                    height: '100vh', 
+                    ...G.glass, 
+                    zIndex: 500, 
+                    boxShadow: '-50px 0 100px rgba(0,0,0,0.8)', 
+                    padding: isMobile ? '1.5rem' : '3rem',
+                    display: 'flex',
+                    flexDirection: 'column'
+                }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: isMobile ? '1.5rem' : '3rem' }}>
                         <h2 style={G.title}>Record</h2>
                         <button style={G.btnGhost} onClick={() => setParticipantDrawerOpen(false)}><X size={24} /></button>
                     </div>
                     {activeConv && (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-                            <div style={{ padding: '2rem', backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', overflowY: 'auto' }}>
+                            <div style={{ padding: '1.5rem', backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)' }}>
                                 <span style={G.label}>ID</span>
-                                <div style={{ fontSize: '24px', fontWeight: 900, fontStyle: 'italic', marginTop: '0.5rem' }}>{activeConv.participantId}</div>
+                                <div style={{ fontSize: isMobile ? '20px' : '24px', fontWeight: 900, fontStyle: 'italic', marginTop: '0.5rem' }}>{activeConv.participantId}</div>
                             </div>
                             <div>
                                 <span style={G.label}>Clinical Status</span>
-                                <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#10b981', marginTop: '0.5rem' }}>{activeConv.participantStatus}</div>
+                                <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#10b981', marginTop: '0.5rem' }}>{activeConv.participantStatus}</div>
                             </div>
                             <div>
                                 <span style={G.label}>Active Study</span>
-                                <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#6366f1', marginTop: '0.5rem' }}>{activeConv.study}</div>
+                                <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#6366f1', marginTop: '0.5rem' }}>{activeConv.study}</div>
                             </div>
-                            <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '2rem' }}>
-                                <button style={{ ...G.btnPrimary, width: '100%' }}>OPEN RECORD</button>
+                            <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '1.5rem', marginTop: 'auto' }}>
+                                <button style={{ ...G.btnPrimary, width: '100%', padding: '1rem' }}>OPEN RECORD</button>
                             </div>
                         </div>
                     )}

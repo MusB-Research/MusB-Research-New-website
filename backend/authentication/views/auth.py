@@ -115,14 +115,6 @@ def login_view(request):
         AuditLog.log('LOGIN_FAILED', user_email=login_id, request=request, detail='Account pending approval')
         return Response({'error': 'Your account is pending Super Admin approval.'}, status=status.HTTP_403_FORBIDDEN)
 
-    # Robust update for last login and timezone (bypass Djongo save() quirks)
-    update_data = {'last_login': now()}
-    client_timezone = request.data.get('timezone')
-    if client_timezone:
-        update_data['timezone'] = client_timezone
-    
-    User.objects.filter(pk=user.pk).update(**update_data)
-
     # ─────────────────────────────────────────────────────────
     # 2FA Check (App-based TOTP)
     # ─────────────────────────────────────────────────────────
@@ -133,11 +125,37 @@ def login_view(request):
             'email': user.email
         }, status=status.HTTP_200_OK)
 
-    # Offload non-critical logging to background thread for better UX speed
+    # ─────────────────────────────────────────────────────────
+    # Background Updates & Logging (Performance Optimization)
+    # ─────────────────────────────────────────────────────────
     import threading
-    threading.Thread(target=AuditLog.log, args=('LOGIN_SUCCESS', user.email, request)).start()
+    
+    # Pre-extract metadata to avoid accessing 'request' in background thread
+    ip = request.META.get('HTTP_X_FORWARDED_FOR', request.META.get('REMOTE_ADDR'))
+    if ip and ',' in ip: ip = ip.split(',')[0].strip()
+    ua = request.META.get('HTTP_USER_AGENT', '')[:512]
+    
+    def background_login_ops(u_id, email, ip_addr, user_agent, tz):
+        # 1. Update user last login and timezone
+        u_data = {'last_login': now()}
+        if tz: u_data['timezone'] = tz
+        User.objects.filter(pk=u_id).update(**u_data)
+        
+        # 2. Log Success
+        AuditLog.objects.create(
+            user_email=email,
+            action='LOGIN_SUCCESS',
+            ip_address=ip_addr,
+            user_agent=user_agent
+        )
 
-    # Token Generation
+    threading.Thread(target=background_login_ops, args=(
+        str(user.pk), user.email, ip, ua, request.data.get('timezone')
+    )).start()
+
+    # ─────────────────────────────────────────────────────────
+    # Token Generation (Synchronous)
+    # ─────────────────────────────────────────────────────────
     try:
         access_token           = generate_access_token(user)
         refresh_token, ref_jti = generate_refresh_token(user)
@@ -145,15 +163,14 @@ def login_view(request):
         logger.error(f'JWT signing failed: {e}')
         return Response({'error': 'Token generation failed.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    # Persistent Storage
-    ip = request.META.get('HTTP_X_FORWARDED_FOR', request.META.get('REMOTE_ADDR'))
+    # Persistent Storage for Refresh Token (Synchronous - required for rotation)
     RefreshToken.objects.create(
         user=user,
         token_hash=hash_token(refresh_token),
         jti=ref_jti,
         expires_at=now() + REFRESH_TOKEN_LIFETIME,
-        user_agent=request.META.get('HTTP_USER_AGENT', '')[:512],
-        ip_address=ip.split(',')[0].strip() if ip and ',' in ip else ip,
+        user_agent=ua,
+        ip_address=ip,
     )
 
     response = Response({
@@ -406,3 +423,9 @@ def google_login(request):
         logger.error(f"Google login error: {e}\n{traceback.format_exc()}")
         return Response({'error': f"{e} - {traceback.format_exc()}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def me_view(request):
+    """Returns data for the currently authenticated user."""
+    return Response(get_user_data_dict(request.user))

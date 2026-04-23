@@ -12,10 +12,14 @@ class DualAuthBackend(ModelBackend):
             return None
             
         try:
-            # OPTIMIZATION: Try case-sensitive exact email first (index-optimized)
+            # 1. Exact email match (case-sensitive, highly indexed)
             user = User.objects.filter(email=username).first()
             
-            # If fail, try case-insensitive email or username lookup
+            # 2. Fallback: exact username (case-sensitive)
+            if not user:
+                user = User.objects.filter(username=username).first()
+
+            # 3. Last resort: case-insensitive (slower regex check)
             if not user:
                 user = User.objects.filter(
                     Q(email__iexact=username) | Q(username__iexact=username)

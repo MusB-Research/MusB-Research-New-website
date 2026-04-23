@@ -33,6 +33,16 @@ export default function ParticipantTaskManagement({ primaryColor = 'indigo', sel
     });
 
 
+    const [windowWidth, setWindowWidth] = useState(window.innerWidth);
+    const isMobile = windowWidth < 768;
+    const isTablet = windowWidth >= 768 && windowWidth < 1024;
+
+    useEffect(() => {
+        const handleResize = () => setWindowWidth(window.innerWidth);
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
     const fetchTasks = async () => {
         try {
             const url = selectedStudyId && selectedStudyId !== 'all' 
@@ -148,16 +158,16 @@ export default function ParticipantTaskManagement({ primaryColor = 'indigo', sel
     );
 
     return (
-        <div className="space-y-5">
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+        <div className="space-y-6">
+            <div className={`flex ${isMobile ? 'flex-col gap-4' : 'items-center justify-between'}`}>
                 <div>
-                    <h2 className="text-2xl font-black text-white italic uppercase tracking-tighter">
+                    <h2 className={`${isMobile ? 'text-xl' : 'text-2xl'} font-black text-white italic uppercase tracking-tighter`}>
                         Participant <span style={{ color: colorHex }}>Tasks</span>
                     </h2>
                 </div>
                 <button 
                     onClick={() => setShowNewTaskModal(true)}
-                    className="flex items-center gap-2 px-6 py-3 bg-white text-slate-900 rounded-2xl text-[12px] font-black uppercase tracking-widest hover:scale-[1.02] transition-all shadow-xl"
+                    className={`flex items-center justify-center gap-2 px-6 py-4 bg-white text-slate-900 rounded-2xl text-[12px] font-black uppercase tracking-widest hover:scale-[1.02] transition-all shadow-xl ${isMobile ? 'w-full' : ''}`}
                 >
                     <Plus className="w-4 h-4" /> New Task
                 </button>
@@ -170,130 +180,206 @@ export default function ParticipantTaskManagement({ primaryColor = 'indigo', sel
                 </div>
             ) : (
                 <>
-                    <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                    <div className={`grid ${isMobile ? 'grid-cols-1' : (isTablet ? 'grid-cols-2' : 'grid-cols-4')} gap-6`}>
                          {[
                             { label: 'Active', count: tasks.filter(t => t.status !== 'COMPLETED').length, icon: List, color: 'cyan' },
                             { label: 'Overdue', count: tasks.filter(t => t.status === 'OVERDUE').length, icon: AlertCircle, color: 'red' },
                             { label: 'Locked', count: tasks.filter(t => t.status === 'LOCKED' && !t.title?.toUpperCase().includes('DAILY MEDICINE LOG')).length, icon: Lock, color: 'amber' },
                             { label: 'Completion Rate', count: `${Math.round((tasks.filter(t => t.status === 'COMPLETED').length / (tasks.length || 1)) * 100)}%`, icon: CheckCircle2, color: 'emerald' }
                          ].map((stat, i) => (
-                            <div key={i} className="bg-[#0B1222] border border-white/5 p-6 rounded-3xl hover:border-white/10 transition-all">
+                            <div key={i} className="bg-[#0B1222]/60 backdrop-blur-md border border-white/5 p-6 rounded-[2rem] hover:border-white/10 transition-all shadow-lg group">
                                 <div className="flex items-center gap-3 mb-4">
-                                    <stat.icon className={`w-4 h-4 text-${stat.color}-400`} />
-                                    <span className="text-xs font-black text-slate-500 uppercase tracking-widest">{stat.label}</span>
+                                    <div className={`w-8 h-8 rounded-lg bg-${stat.color}-500/10 flex items-center justify-center`}>
+                                        <stat.icon className={`w-4 h-4 text-${stat.color}-400`} />
+                                    </div>
+                                    <span className="text-[11px] font-black text-slate-500 uppercase tracking-widest">{stat.label}</span>
                                 </div>
-                                <div className="text-2xl font-black text-white italic">{stat.count}</div>
+                                <div className="text-3xl font-black text-white italic tracking-tighter leading-none group-hover:scale-105 transition-transform">{stat.count}</div>
                             </div>
                          ))}
                     </div>
 
-                    <div className="bg-[#0a101f]/80 backdrop-blur-xl border border-white/5 rounded-[2rem] overflow-hidden shadow-2xl">
-                        <div className="p-4 border-b border-white/5 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                            <div className={`flex items-center gap-4 bg-white/5 border border-white/10 px-5 py-2.5 rounded-2xl flex-1 max-w-md group focus-within:border-${primaryColor === 'blue' ? 'blue' : 'cyan'}-500/50 transition-all`}>
+                    <div className="bg-[#0a101f]/80 backdrop-blur-xl border border-white/5 rounded-[2.5rem] overflow-hidden shadow-2xl">
+                        <div className="p-6 border-b border-white/5">
+                            <div className={`flex items-center gap-4 bg-white/5 border border-white/10 px-6 py-4 rounded-[1.5rem] group focus-within:border-${primaryColor === 'blue' ? 'blue' : 'cyan'}-500/50 transition-all ${isMobile ? 'w-full' : 'max-w-md'}`}>
                                 <Search className={`w-4 h-4 text-slate-500 group-focus-within:text-${primaryColor === 'blue' ? 'blue' : 'cyan'}-400`} />
                                 <input 
                                     type="text" 
                                     placeholder="SEARCH BY PARTICIPANT OR PROTOCOL ID..." 
-                                    className="bg-transparent border-none outline-none text-white text-xs font-black tracking-widest uppercase w-full"
+                                    className="bg-transparent border-none outline-none text-white text-[11px] font-black tracking-widest uppercase w-full placeholder:text-slate-700"
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
                                 />
                             </div>
                         </div>
 
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-left border-collapse">
-                                <thead>
-                                    <tr className="bg-white/[0.02]">
-                                        <th className="px-6 py-3 text-xs font-black text-slate-500 uppercase tracking-widest">Participant / Study</th>
-                                        <th className="px-6 py-3 text-xs font-black text-slate-500 uppercase tracking-widest">Task</th>
-                                        <th className="px-6 py-3 text-xs font-black text-slate-500 uppercase tracking-widest">Due Date</th>
-                                        <th className="px-6 py-3 text-xs font-black text-slate-500 uppercase tracking-widest">Status</th>
-                                        <th className="px-6 py-3 text-xs font-black text-slate-500 uppercase tracking-widest text-right">Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {filteredTasks.length === 0 ? (
-                                        <tr>
-                                            <td colSpan={5} className="px-10 py-20 text-center">
-                                                <p className="text-slate-500 font-black uppercase tracking-widest">No tasks found.</p>
-                                            </td>
-                                        </tr>
-                                    ) : (
-                                        filteredTasks.map((task) => (
-                                            <tr key={task.id} className="border-b border-white/5 group hover:bg-white/[0.01] transition-all">
-                                                <td className="px-6 py-4">
-                                                    <div className="flex items-center gap-4">
-                                                        <div className="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center border border-white/10 italic font-black text-white text-[12px]">
-                                                            {task.participant_name?.charAt(0) || 'S'}
-                                                        </div>
-                                                        <div>
-                                                            <div className="text-sm font-black text-white uppercase tracking-tight">{task.participant_name || 'Anonymous Subject'}</div>
-                                                            <div className="text-xs font-bold text-slate-600 uppercase tracking-widest">{task.protocol_id || 'GENERAL'}</div>
-                                                        </div>
+                        {(isMobile || isTablet) ? (
+                            <div className="p-4 space-y-4">
+                                {filteredTasks.length === 0 ? (
+                                    <div className="py-20 text-center">
+                                        <p className="text-slate-500 font-black uppercase tracking-widest text-[11px]">No tasks found.</p>
+                                    </div>
+                                ) : (
+                                    filteredTasks.map((task) => (
+                                        <div key={task.id} className="p-6 bg-white/[0.02] border border-white/5 rounded-[2rem] space-y-5 shadow-xl">
+                                            <div className="flex items-start justify-between gap-4">
+                                                <div className="flex items-center gap-4">
+                                                    <div className="w-12 h-12 rounded-2xl bg-slate-800 flex items-center justify-center border border-white/10 italic font-black text-white text-lg">
+                                                        {task.participant_name?.charAt(0) || 'S'}
                                                     </div>
-                                                </td>
-                                                <td className="px-6 py-4">
-                                                    <div className="flex items-center gap-3">
-                                                        <div className={`w-1.5 h-1.5 rounded-full ${primaryColor === 'blue' ? 'bg-blue-500' : 'bg-cyan-500'} animate-pulse`} />
-                                                        <span className="text-[13px] font-black text-white uppercase tracking-tight italic">{task.title}</span>
+                                                    <div>
+                                                        <p className="text-sm font-black text-white uppercase tracking-tight leading-none">{task.participant_name || 'Anonymous Subject'}</p>
+                                                        <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest mt-2">{task.protocol_id || 'GENERAL'}</p>
                                                     </div>
-                                                </td>
-                                                <td className="px-6 py-4">
+                                                </div>
+                                                <div className={`px-4 py-1.5 rounded-full border text-[10px] font-black uppercase tracking-widest ${
+                                                    (task.status === 'LOCKED' && task.title?.toUpperCase().includes('DAILY MEDICINE LOG'))
+                                                        ? 'text-red-400 bg-red-500/10 border-red-500/20'
+                                                        : getStatusStyle(task.status)
+                                                }`}>
+                                                    {(task.status === 'LOCKED' && task.title?.toUpperCase().includes('DAILY MEDICINE LOG')) ? 'OVERDUE' : task.status}
+                                                </div>
+                                            </div>
+
+                                            <div className="py-4 border-y border-white/5">
+                                                <div className="flex items-center gap-3 mb-2">
+                                                    <div className={`w-1.5 h-1.5 rounded-full ${primaryColor === 'blue' ? 'bg-blue-500' : 'bg-cyan-500'} animate-pulse`} />
+                                                    <span className="text-sm font-black text-white uppercase tracking-tight italic">{task.title}</span>
+                                                </div>
+                                                <div className="flex items-center gap-2 mt-4">
+                                                    <Calendar className="w-4 h-4 text-slate-600" />
+                                                    <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">DUE: {task.due_date ? new Date(task.due_date).toLocaleDateString() : 'NO DEADLINE'}</span>
+                                                </div>
+                                                <div className="mt-3 flex items-center justify-between">
+                                                    <span className="text-[10px] font-bold text-slate-600 uppercase italic tracking-widest">
+                                                        Rules: {task.delay_allowed}d Delay | {task.grace_period}d Grace
+                                                    </span>
                                                     <div className="flex items-center gap-2">
-                                                        <Calendar className="w-4 h-4 text-slate-600" />
-                                                        <span className="text-[12px] font-bold text-slate-300 uppercase">{task.due_date ? new Date(task.due_date).toLocaleDateString() : 'NO DEADLINE'}</span>
-                                                    </div>
-                                                </td>
-                                                <td className="px-6 py-4">
-                                                    <div className="flex flex-col gap-2">
-                                                        <div className={`px-4 py-1.5 rounded-full border text-xs font-black uppercase tracking-widest w-fit ${
-                                                            (task.status === 'LOCKED' && task.title?.toUpperCase().includes('DAILY MEDICINE LOG'))
-                                                                ? 'text-red-400 bg-red-500/10 border-red-500/20' // Change Locked Log to Overdue style
-                                                                : getStatusStyle(task.status)
-                                                        }`}>
-                                                            {(task.status === 'LOCKED' && task.title?.toUpperCase().includes('DAILY MEDICINE LOG')) ? 'OVERDUE' : task.status}
+                                                        <div className="w-16 h-1 bg-white/5 rounded-full overflow-hidden">
+                                                            <div className="h-full bg-blue-500" style={{ width: '85%' }} />
                                                         </div>
-                                                        <span className="text-xs font-bold text-slate-600 uppercase italic">
-                                                            Rules: {task.delay_allowed}d Delay | {task.grace_period}d Grace
-                                                        </span>
+                                                        <span className="text-[9px] font-black text-blue-400">85%</span>
                                                     </div>
-                                                </td>
-                                                <td className="px-6 py-4 text-right">
-                                                     <div className="flex items-center justify-end gap-3 transition-opacity">
-                                                        {task.title?.toUpperCase().includes('DAILY MEDICINE LOG') && (
-                                                            <button 
-                                                                onClick={() => {
-                                                                    // Navigate to a log entry form or open a modal
-                                                                    alert(`Opening Log Entry Terminal for ${task.participant_name} [${task.due_date}]`);
-                                                                }}
-                                                                className="px-4 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-[11px] font-black uppercase tracking-widest transition-all shadow-lg flex items-center gap-2"
-                                                            >
-                                                                <FileText className="w-4 h-4" /> Fill Clinical Data
-                                                            </button>
-                                                        )}
-                                                        <button 
-                                                            onClick={() => alert(`Reviewing clinical compliance metrics for ${task.participant_name}...`)}
-                                                            className="p-3 bg-white/5 border border-white/10 text-slate-400 hover:text-white rounded-xl transition-all shadow-lg"
-                                                        >
-                                                            <Shield className="w-4 h-4" />
-                                                        </button>
-                                                        <button 
-                                                            onClick={() => {
-                                                                alert(`Operational Override: Granting ${task.participant_name} extension for ${task.title}.`);
-                                                            }}
-                                                            className={`px-6 py-3 ${primaryColor === 'blue' ? 'bg-blue-600 hover:bg-blue-500 shadow-blue-900/40' : 'bg-cyan-600 hover:bg-cyan-500 shadow-cyan-900/40'} text-white rounded-2xl text-[12px] font-black uppercase tracking-widest transition-all shadow-lg`}
-                                                        >
-                                                            Extend
-                                                        </button>
-                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div className="flex items-center gap-3">
+                                                {task.title?.toUpperCase().includes('DAILY MEDICINE LOG') && (
+                                                    <button 
+                                                        onClick={() => alert(`Opening Log Entry Terminal for ${task.participant_name}`)}
+                                                        className="flex-1 py-3.5 bg-emerald-600 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest shadow-lg flex items-center justify-center gap-2"
+                                                    >
+                                                        <FileText className="w-4 h-4" /> Log
+                                                    </button>
+                                                )}
+                                                <button 
+                                                    onClick={() => alert(`Granting extension for ${task.title}.`)}
+                                                    className={`flex-1 py-3.5 ${primaryColor === 'blue' ? 'bg-blue-600' : 'bg-cyan-600'} text-white rounded-2xl text-[11px] font-black uppercase tracking-widest shadow-lg`}
+                                                >
+                                                    Extend
+                                                </button>
+                                                <button 
+                                                    onClick={() => alert(`Reviewing clinical compliance...`)}
+                                                    className="p-3.5 bg-white/5 border border-white/10 text-slate-400 rounded-2xl"
+                                                >
+                                                    <Shield className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+                        ) : (
+                            <div className="overflow-x-auto custom-scrollbar-horizontal">
+                                <table className="w-full text-left border-collapse min-w-[1000px]">
+                                    <thead>
+                                        <tr className="bg-white/[0.02] border-b border-white/5">
+                                            <th className="px-8 py-5 text-[11px] font-black text-slate-500 uppercase tracking-widest italic border-r border-white/5">Participant / Study</th>
+                                            <th className="px-8 py-5 text-[11px] font-black text-slate-500 uppercase tracking-widest italic border-r border-white/5">Tactical Task</th>
+                                            <th className="px-8 py-5 text-[11px] font-black text-slate-500 uppercase tracking-widest italic border-r border-white/5">Due Date</th>
+                                            <th className="px-8 py-5 text-[11px] font-black text-slate-500 uppercase tracking-widest italic border-r border-white/5">Compliance Status</th>
+                                            <th className="px-8 py-5 text-[11px] font-black text-slate-500 uppercase tracking-widest italic text-right">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-white/5">
+                                        {filteredTasks.length === 0 ? (
+                                            <tr>
+                                                <td colSpan={5} className="px-10 py-24 text-center">
+                                                    <Activity className="w-12 h-12 text-slate-800 mx-auto mb-4" />
+                                                    <p className="text-slate-500 font-black uppercase tracking-widest text-sm italic">No active research tasks found.</p>
                                                 </td>
                                             </tr>
-                                        ))
-                                    )}
-                                </tbody>
-                            </table>
-                        </div>
+                                        ) : (
+                                            filteredTasks.map((task) => (
+                                                <tr key={task.id} className="group hover:bg-white/[0.02] transition-all">
+                                                    <td className="px-8 py-6 border-r border-white/5">
+                                                        <div className="flex items-center gap-5">
+                                                            <div className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center italic font-black text-white text-lg group-hover:border-white/20 transition-all shadow-inner">
+                                                                {task.participant_name?.charAt(0) || 'S'}
+                                                            </div>
+                                                            <div>
+                                                                <div className="text-base font-black text-white uppercase tracking-tight italic leading-none">{task.participant_name || 'Anonymous Subject'}</div>
+                                                                <div className="text-[11px] font-black text-slate-600 uppercase tracking-[0.2em] mt-2 leading-none">{task.protocol_id || 'GENERAL'}</div>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-8 py-6 border-r border-white/5">
+                                                        <div className="flex items-center gap-3">
+                                                            <div className={`w-1.5 h-1.5 rounded-full ${primaryColor === 'blue' ? 'bg-blue-500' : 'bg-cyan-500'} animate-pulse shadow-[0_0_10px_currentColor]`} />
+                                                            <span className="text-[15px] font-black text-white uppercase tracking-tight italic">{task.title}</span>
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-8 py-6 border-r border-white/5">
+                                                        <div className="flex items-center gap-3">
+                                                            <Calendar className="w-4 h-4 text-slate-600" />
+                                                            <span className="text-[12px] font-black text-slate-300 uppercase tracking-widest">{task.due_date ? new Date(task.due_date).toLocaleDateString() : 'NO DEADLINE'}</span>
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-8 py-6 border-r border-white/5">
+                                                        <div className="flex flex-col gap-3">
+                                                            <div className={`px-5 py-2 rounded-xl border text-[11px] font-black uppercase tracking-[0.2em] w-fit shadow-lg ${
+                                                                (task.status === 'LOCKED' && task.title?.toUpperCase().includes('DAILY MEDICINE LOG'))
+                                                                    ? 'text-red-400 bg-red-500/10 border-red-500/20 shadow-red-900/20'
+                                                                    : getStatusStyle(task.status)
+                                                            }`}>
+                                                                {(task.status === 'LOCKED' && task.title?.toUpperCase().includes('DAILY MEDICINE LOG')) ? 'OVERDUE' : task.status}
+                                                            </div>
+                                                            <span className="text-[10px] font-black text-slate-600 uppercase italic tracking-widest">
+                                                                Rules: {task.delay_allowed}d Delay | {task.grace_period}d Grace
+                                                            </span>
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-8 py-6 text-right">
+                                                         <div className="flex items-center justify-end gap-3">
+                                                            {task.title?.toUpperCase().includes('DAILY MEDICINE LOG') && (
+                                                                <button 
+                                                                    onClick={() => alert(`Opening Log Entry Terminal for ${task.participant_name}`)}
+                                                                    className="px-5 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-[1.25rem] text-[11px] font-black uppercase tracking-widest transition-all shadow-xl flex items-center gap-2 hover:scale-[1.03]"
+                                                                >
+                                                                    <FileText className="w-4 h-4" /> Clinical Data
+                                                                </button>
+                                                            )}
+                                                            <button 
+                                                                onClick={() => alert(`Reviewing compliance metrics...`)}
+                                                                className="p-3 bg-white/5 border border-white/10 text-slate-400 hover:text-white rounded-[1.25rem] transition-all shadow-lg hover:bg-white/10"
+                                                            >
+                                                                <Shield className="w-4 h-4" />
+                                                            </button>
+                                                            <button 
+                                                                onClick={() => alert(`Granting extension for ${task.title}.`)}
+                                                                className={`px-8 py-3 ${primaryColor === 'blue' ? 'bg-blue-600 hover:bg-blue-500 shadow-blue-900/40' : 'bg-cyan-600 hover:bg-cyan-500 shadow-cyan-900/40'} text-white rounded-[1.25rem] text-[11px] font-black uppercase tracking-widest transition-all shadow-xl hover:scale-[1.03]`}
+                                                            >
+                                                                Extend
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            ))
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
                     </div>
                 </>
             )}

@@ -35,7 +35,7 @@ def _get_qr_img_tag(url: str) -> str:
     """Return an <img> tag using Google Charts QR API — no base64 bloat, renders in all clients."""
     import urllib.parse
     encoded = urllib.parse.quote(url, safe='')
-    qr_url = f"https://chart.googleapis.com/chart?cht=qr&chs=160x160&choe=UTF-8&chl={encoded}"
+    qr_url = f"https://api.qrserver.com/v1/create-qr-code/?size=160x160&data={encoded}"
     return (
         f'<img src="{qr_url}" width="160" height="160" '
         f'style="border-radius:8px;border:1px solid #1e2d45;display:block;margin:0 auto;" '
@@ -51,7 +51,7 @@ def _build_invite_html(name: str, invite_link: str) -> str:
     """
     import urllib.parse
     encoded = urllib.parse.quote(invite_link, safe='')
-    qr_url = f"https://chart.googleapis.com/chart?cht=qr&chs=150x150&choe=UTF-8&chl={encoded}"
+    qr_url = f"https://api.qrserver.com/v1/create-qr-code/?size=150x150&data={encoded}"
 
     return f"""<!DOCTYPE html>
 <html lang="en">

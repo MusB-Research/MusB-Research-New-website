@@ -11,7 +11,7 @@ from .models import (
     StudyInquiry, ClinicalConversation, ClinicalMessage,
     DosingLog, AEReport, Document, Notification, ProgressReport,
     StudyActionRequest, DailyMedicationLog, AssignedForm, SponsorOrganization,
-    QuestionnaireTemplate, StudyQuestionnaire, QuestionnaireScheduleInstance,
+    StudyKit, QuestionnaireTemplate, StudyQuestionnaire, QuestionnaireScheduleInstance,
     Technology, InnovationPageSettings, SponsorInquiry
 )
 from django.utils.decorators import method_decorator
@@ -29,9 +29,9 @@ from .serializers import (
     ClinicalConversationSerializer, ClinicalConversationBriefSerializer, ClinicalMessageSerializer,
     DosingLogSerializer, AEReportSerializer,
     NotificationSerializer, ProgressReportSerializer, DocumentSerializer,
-    DailyMedicationLogSerializer, AssignedFormSerializer, SponsorOrganizationSerializer,
-    PublicStudySerializer, QuestionnaireTemplateSerializer, StudyQuestionnaireSerializer,
-    QuestionnaireScheduleInstanceSerializer,
+    DailyMedicationLogSerializer, AssignedFormSerializer, AssignedFormBriefSerializer, SponsorOrganizationSerializer,
+    PublicStudySerializer, StudyKitSerializer, QuestionnaireTemplateSerializer, QuestionnaireTemplateBriefSerializer, StudyQuestionnaireSerializer,
+    QuestionnaireScheduleInstanceSerializer, QuestionnaireScheduleInstanceBriefSerializer,
     TechnologySerializer, InnovationPageSettingsSerializer, SponsorInquirySerializer, InvitationSerializer
 )
 from authentication.models import User, AuditLog, Invitation
@@ -828,23 +828,23 @@ class ParticipantViewSet(SoftPaginationMixin, viewsets.ModelViewSet):
         lookup_url_kwarg = self.lookup_url_kwarg or self.lookup_field
         lookup_value = self.kwargs[lookup_url_kwarg]
         
-        # Try finding by participant_sid first
-        obj = queryset.filter(participant_sid=lookup_value).first()
-        if obj:
-            self.check_object_permissions(self.request, obj)
-            return obj
-            
-        # Try finding by hex ID (pk) if the value looks like a MongoDB ObjectId
+        # PERFORMANCE: Try pk lookup first if it's a valid MongoDB ObjectID
+        # This is faster than participant_sid scan because pk is the primary index
         import bson
         if bson.ObjectId.is_valid(lookup_value):
             obj = queryset.filter(pk=lookup_value).first()
             if obj:
                 self.check_object_permissions(self.request, obj)
                 return obj
+
+        # Fallback to participant_sid lookup
+        obj = queryset.filter(participant_sid=lookup_value).first()
+        if obj:
+            self.check_object_permissions(self.request, obj)
+            return obj
         
-        # Fallback to standard behavior if neither found
         from django.http import Http404
-        raise Http404("Participant not found with provided Study ID or DB ID.")
+        raise Http404("Participant not found with provided DB ID or Study ID.")
 
 
     @action(detail=False, methods=['get'], permission_classes=[permissions.IsAuthenticated])
@@ -1137,6 +1137,25 @@ class ParticipantViewSet(SoftPaginationMixin, viewsets.ModelViewSet):
         participant.eligibility_data = data
         participant.status = 'PENDING_REVIEW' # Requirement 3
         participant.submitted_at = now()
+        
+        # Auto-extraction of demographics for persistence (Requirement 18)
+        try:
+            # Look for gender/sex
+            for key, val in data.items():
+                low_key = key.lower()
+                if not participant.gender and ('sex' in low_key or 'gender' in low_key):
+                    participant.gender = str(val)[:20]
+                if not participant.dob and ('dob' in low_key or 'birth' in low_key or 'date_of_birth' in low_key):
+                    from django.utils.dateparse import parse_date
+                    try:
+                        # Attempt to parse ISO date string (YYYY-MM-DD)
+                        if isinstance(val, str) and len(val) >= 10:
+                            participant.dob = parse_date(val[:10])
+                    except:
+                        pass
+        except:
+            pass
+
         participant.save()
 
         # Notify PI and Coordinator (Requirement 2)
@@ -1342,10 +1361,18 @@ class ParticipantViewSet(SoftPaginationMixin, viewsets.ModelViewSet):
     @action(detail=True, methods=['post'], permission_classes=[IsAdminOrCoordinator])
     def toggle_flag(self, request, *args, **kwargs):
         """Toggle manual review flag for the participant"""
+        # PERFORMANCE: Use .update() for toggles to avoid signal overhead and heavy model save logic
         participant = self.get_object()
-        participant.is_locked = not participant.is_locked # Using is_locked as flagging mechanism
-        participant.save()
-        return Response({'status': 'toggled', 'is_flagged': participant.is_locked})
+        new_state = not participant.is_locked
+        Participant.objects.filter(pk=participant.pk).update(is_locked=new_state)
+        
+        # Manually invalidate key caches to ensure UI reflects the change
+        from .utils.cache_utils import invalidate_cache
+        if participant.user_id:
+            invalidate_cache("participant_dashboard", user_id=str(participant.user_id))
+            invalidate_cache("participants_list")
+            
+        return Response({'status': 'toggled', 'is_flagged': new_state})
 
     @action(detail=True, methods=['patch'], permission_classes=[IsAdminOrCoordinator])
     def update_clinical_notes(self, request, *args, **kwargs):
@@ -1364,6 +1391,13 @@ class ParticipantViewSet(SoftPaginationMixin, viewsets.ModelViewSet):
         if self.action == 'list':
             return ParticipantBriefSerializer
         return ParticipantSerializer
+    @cache_api_response("participants_list", timeout=300)
+    def list(self, request, *args, **kwargs):
+        # Performance: Inform serializer to skip expensive field-by-field decryption for bulk lists
+        self.context = self.get_serializer_context()
+        self.context['skip_decryption'] = True
+        return super().list(request, *args, **kwargs)
+
     def get_queryset(self):
         user = self.request.user
         if not user.is_authenticated:
@@ -1379,7 +1413,8 @@ class ParticipantViewSet(SoftPaginationMixin, viewsets.ModelViewSet):
             return Participant.objects.filter(user=user).select_related('user', 'study').order_by('-created_at')
             
         # PIs and Coordinators only see participants in studies they are explicitly assigned to
-        return Participant.objects.filter(study__assignments__user=user).distinct().select_related('user', 'study').order_by('-created_at')
+        assigned_study_ids = StudyAssignment.objects.filter(user=user).values_list('study_id', flat=True)
+        return Participant.objects.filter(study_id__in=assigned_study_ids).select_related('user', 'study').order_by('-created_at')
 
 class VisitViewSet(SoftPaginationMixin, viewsets.ModelViewSet):
     queryset = Visit.objects.all()
@@ -1450,8 +1485,14 @@ class LeadViewSet(SoftPaginationMixin, viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         if not user.is_authenticated: return Lead.objects.none()
-        if (user.role or '').upper() == 'SUPER_ADMIN': return Lead.objects.all().select_related('study')
-        return Lead.objects.filter(study__assignments__user=user).select_related('study').distinct()
+        # PERFORMANCE: Added order_by to satisfy pagination requirements and avoid full scans
+        if (user.role or '').upper() == 'SUPER_ADMIN': 
+            return Lead.objects.all().select_related('study').order_by('-created_at')
+        return Lead.objects.filter(study__assignments__user=user).select_related('study').distinct().order_by('-created_at')
+
+    @cache_api_response("leads_list", timeout=120)
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
 
 class CommunicationLogViewSet(SoftPaginationMixin, viewsets.ModelViewSet):
     queryset = CommunicationLog.objects.all()
@@ -2107,6 +2148,11 @@ class AssignedFormViewSet(viewsets.ModelViewSet):
     def list(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
 
+    def get_serializer_class(self):
+        if self.action == 'list':
+            return AssignedFormBriefSerializer
+        return AssignedFormSerializer
+
     def get_queryset(self):
         user = self.request.user
         if (user.role or '').upper() in ['ADMIN', 'SUPER_ADMIN']:
@@ -2317,14 +2363,34 @@ class ParticipantTaskViewSet(viewsets.ModelViewSet):
         from django.utils.timezone import now
         now_time = now()
         # Only iterate over tasks that ARE actually overdue and not yet locked
-        overdue = queryset.filter(
+        overdue_tasks = list(queryset.filter(
             participant__user=user,
             status='PENDING', 
             due_date__lt=now_time, 
             is_locked=False
-        )
-        for task in overdue:
-             task.check_and_lock()
+        ))
+        
+        if overdue_tasks:
+            # Update tasks in bulk
+            ParticipantTask.objects.filter(id__in=[t.id for t in overdue_tasks]).update(is_locked=True)
+            
+            # Bulk create staff notifications
+            staff_tasks = []
+            for task in overdue_tasks:
+                 # Logic for StaffTask creation
+                 staff_user = task.participant.study.coordinator or task.participant.study.pi
+                 if staff_user:
+                     staff_tasks.append(StaffTask(
+                         user=staff_user,
+                         study=task.participant.study,
+                         title=f"ALERT: Task Overdue for {task.participant.participant_sid}",
+                         description=f"Task '{task.task.title}' reached its deadline and has been locked.",
+                         task_type='OVERDUE_ALERT',
+                         reference_id=str(task.id)
+                     ))
+            
+            if staff_tasks:
+                StaffTask.objects.bulk_create(staff_tasks)
 
         visible_statuses = ['ENROLLED', 'CONSENTED', 'RANDOMIZED', 'ACTIVE', 'COMPLETED']
         return queryset.filter(
@@ -2431,7 +2497,7 @@ class UserViewSet(viewsets.ModelViewSet):
                 Q(created_by=user)
             ).distinct().order_by('-date_joined')
 
-        return User.objects.filter(id=user.id)
+        return User.objects.filter(id=user.id).order_by('id')
 
     @cache_api_response("users_list", timeout=300)
     def list(self, request, *args, **kwargs):
@@ -2959,6 +3025,13 @@ class NotificationViewSet(viewsets.ModelViewSet):
     serializer_class = NotificationSerializer
     permission_classes = [permissions.IsAuthenticated]
 
+    @cache_api_response("notifications_list", timeout=60)
+    def list(self, request, *args, **kwargs):
+        # Performance: Notifications never contain encrypted fields, skip the loop
+        self.context = self.get_serializer_context()
+        self.context['skip_decryption'] = True
+        return super().list(request, *args, **kwargs)
+
     def get_queryset(self):
         # Allow filtering by is_read via query param
         qs = Notification.objects.filter(user=self.request.user).order_by('-created_at')
@@ -3224,15 +3297,18 @@ class StudyMetaView(APIView):
             'STUDY_TYPES': [{'val': k, 'label': v} for k, v in Study.STUDY_TYPES]
         })
 class QuestionnaireTemplateViewSet(viewsets.ModelViewSet):
-    # 'studyquestionnaire_set' is the correct reverse accessor (no related_name set on FK)
-    queryset = QuestionnaireTemplate.objects.all().order_by('-created_at').prefetch_related(
-        'studyquestionnaire_set__study'
-    )
+    # Performance: Removed prefetch_related from base queryset because 'list' uses a brief serializer that doesn't need it.
+    queryset = QuestionnaireTemplate.objects.all().order_by('-created_at')
     serializer_class = QuestionnaireTemplateSerializer
 
     @cache_api_response("questionnaire_templates", timeout=300)
     def list(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
+
+    def get_serializer_class(self):
+        if self.action == 'list':
+            return QuestionnaireTemplateBriefSerializer
+        return QuestionnaireTemplateSerializer
     def _get_pdf_content(self, template):
         """Adaptive retrieval engine for both Cloudinary and Local clinical PDFs."""
         import requests, io
@@ -3405,6 +3481,11 @@ class QuestionnaireScheduleInstanceViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
     pagination_class = None
 
+    def get_serializer_class(self):
+        if self.action == 'list':
+            return QuestionnaireScheduleInstanceBriefSerializer
+        return QuestionnaireScheduleInstanceSerializer
+
     @cache_api_response("questionnaire_schedules", timeout=120)
     def list(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
@@ -3516,3 +3597,21 @@ class SponsorInquiryView(APIView):
         import logging
         logging.getLogger(__name__).error(f"Sponsor Inquiry Validation Failed: {serializer.errors}")
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class StudyKitViewSet(viewsets.ModelViewSet):
+    queryset = StudyKit.objects.all()
+    serializer_class = StudyKitSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.role == 'SUPER_ADMIN':
+            return StudyKit.objects.all()
+        elif user.role in ['PI', 'COORDINATOR']:
+            from .models import StudyAssignment
+            assigned_study_ids = StudyAssignment.objects.filter(user=user).values_list('study_id', flat=True)
+            return StudyKit.objects.filter(study_id__in=assigned_study_ids)
+        return StudyKit.objects.none()
+
+    def perform_create(self, serializer):
+        serializer.save()

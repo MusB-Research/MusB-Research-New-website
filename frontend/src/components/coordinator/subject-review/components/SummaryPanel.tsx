@@ -9,7 +9,7 @@ interface SummaryPanelProps {
 
 export const SummaryPanel: React.FC<SummaryPanelProps> = ({ participant, setActiveTab }) => {
     return (
-        <aside className="w-64 border-l border-[#1F2937] bg-[#0B1221] p-8 flex flex-col gap-10 overflow-y-auto flex-shrink-0 animate-in slide-in-from-right duration-500">
+        <div className="flex-1 p-6 md:p-8 flex flex-col gap-8 md:gap-10 overflow-y-auto animate-in slide-in-from-right duration-500">
             {/* Triage Section */}
             <div>
                 <label className="text-[10px] font-black text-slate-600 uppercase tracking-[0.2em] italic mb-6 block">Clinical Triage</label>
@@ -70,6 +70,6 @@ export const SummaryPanel: React.FC<SummaryPanelProps> = ({ participant, setActi
                     </button>
                 ))}
             </div>
-        </aside>
+        </div>
     );
 };

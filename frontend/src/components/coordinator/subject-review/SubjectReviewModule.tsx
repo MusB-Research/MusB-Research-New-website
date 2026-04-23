@@ -2,7 +2,8 @@ import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { authFetch, API } from '../../../utils/auth';
 import { 
-    AlertCircle, Info, ShieldAlert, Bookmark, ArrowLeft, Loader2, Target, Activity
+    AlertCircle, Info, ShieldAlert, Bookmark, ArrowLeft, Loader2, Target, Activity,
+    ChevronDown
 } from 'lucide-react';
 import { COLORS, S } from './SubRevConstants';
 import { SubjectOverview } from './views/SubjectOverview';
@@ -84,6 +85,16 @@ export default function CCC_SubjectReviewModule({
     const [toasts, setToasts] = useState<{ id: string, type: string, message: string }[]>([]);
     const [confirmModal, setConfirmModal] = useState<{ message: string, type: string, onConfirm: () => void } | null>(null);
     const [screeningNotes, setScreeningNotes] = useState('');
+    const [isMobile, setIsMobile] = useState(false);
+
+    useEffect(() => {
+        const checkMobile = () => {
+            setIsMobile(window.innerWidth < 1024);
+        };
+        checkMobile();
+        window.addEventListener('resize', checkMobile);
+        return () => window.removeEventListener('resize', checkMobile);
+    }, []);
 
     const fetchData = useCallback(async () => {
         if (!participantId) {
@@ -156,9 +167,25 @@ export default function CCC_SubjectReviewModule({
                 const lowLabel = label.toLowerCase();
                 
                 // Try to auto-populate missing fields from screener data
-                if (!autoAge && (lowLabel.includes('age') || lowLabel.includes('old'))) autoAge = value;
+                if (!autoAge && (lowLabel.includes('age') || lowLabel.includes('old') || lowLabel.includes('birth') || lowLabel.includes('dob'))) {
+                    // If it's a date string, calculate age
+                    if (typeof value === 'string' && value.includes('-')) {
+                        const birthDate = new Date(value);
+                        if (!isNaN(birthDate.getTime())) {
+                            const today = new Date();
+                            let age = today.getFullYear() - birthDate.getFullYear();
+                            const m = today.getMonth() - birthDate.getMonth();
+                            if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) age--;
+                            autoAge = age;
+                        } else {
+                            autoAge = value;
+                        }
+                    } else {
+                        autoAge = value;
+                    }
+                }
                 if (!autoSex && (lowLabel.includes('sex') || lowLabel.includes('gender'))) autoSex = value;
-                if (!autoArm && lowLabel.includes('arm')) autoArm = value;
+                if (!autoArm && (lowLabel.includes('arm') || lowLabel.includes('group') || lowLabel.includes('cohort'))) autoArm = value;
 
                 const isExclusion = lowLabel.includes('exclusion');
                 
@@ -177,8 +204,24 @@ export default function CCC_SubjectReviewModule({
         if (inclusions.length === 0 && exclusions.length === 0 && participant.eligibility_data) {
              Object.entries(participant.eligibility_data).forEach(([key, value]) => {
                 const lowKey = key.toLowerCase();
-                if (!autoAge && (lowKey.includes('age') || lowKey.includes('old'))) autoAge = value;
+                if (!autoAge && (lowKey.includes('age') || lowKey.includes('old') || lowKey.includes('birth') || lowKey.includes('dob'))) {
+                    if (typeof value === 'string' && value.includes('-')) {
+                        const birthDate = new Date(value);
+                        if (!isNaN(birthDate.getTime())) {
+                            const today = new Date();
+                            let age = today.getFullYear() - birthDate.getFullYear();
+                            const m = today.getMonth() - birthDate.getMonth();
+                            if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) age--;
+                            autoAge = age;
+                        } else {
+                            autoAge = value;
+                        }
+                    } else {
+                        autoAge = value;
+                    }
+                }
                 if (!autoSex && (lowKey.includes('sex') || lowKey.includes('gender'))) autoSex = value;
+                if (!autoArm && (lowKey.includes('arm') || lowKey.includes('group') || lowKey.includes('cohort'))) autoArm = value;
                 
                 inclusions.push({
                     label: key.replace(/_/g, ' ').toUpperCase(),
@@ -296,14 +339,15 @@ export default function CCC_SubjectReviewModule({
     );
 
     const alerts: any[] = []; 
+    const tabs = ['Overview', 'Screening Review', 'Outcomes', 'Safety', 'Core Diagnostics', 'Artifacts', 'Audit'];
 
     return (
         <div style={{...S.panel, backgroundColor: '#0B1221', color: '#CBD5E1'}}>
-            <header className="flex items-center justify-between px-8 py-6 border-b border-[#1F2937] bg-[#0B1221]">
-                <div className="flex items-center gap-6">
+            <header className="flex flex-col md:flex-row md:items-center justify-between px-4 md:px-8 py-6 border-b border-[#1F2937] bg-[#0B1221] gap-6">
+                <div className="flex items-center gap-4 md:gap-6">
                     <button 
                         onClick={() => window.dispatchEvent(new CustomEvent('nav-to-participants'))}
-                        className="p-2 border border-[#1F2937] rounded-lg text-slate-500 hover:text-white hover:bg-white/5 transition-all"
+                        className="p-2 border border-[#1F2937] rounded-lg text-slate-500 hover:text-white hover:bg-white/5 transition-all shrink-0"
                     >
                         <ArrowLeft size={18} />
                     </button>
@@ -323,17 +367,17 @@ export default function CCC_SubjectReviewModule({
                         </div>
                     </div>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 md:gap-3 flex-wrap">
                     <button 
                         onClick={handleToggleFlag}
-                        className={`flex items-center gap-2 px-5 py-2.5 border rounded-lg text-[10px] font-black uppercase tracking-[0.2em] transition-all ${participant.is_flagged ? 'bg-amber-500 text-white border-amber-500' : 'bg-transparent border-[#1F2937] text-slate-400 hover:text-white hover:bg-white/5'}`}
+                        className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-4 md:px-5 py-2.5 border rounded-lg text-[10px] font-black uppercase tracking-[0.2em] transition-all ${participant.is_flagged ? 'bg-amber-500 text-white border-amber-500' : 'bg-transparent border-[#1F2937] text-slate-400 hover:text-white hover:bg-white/5'}`}
                     >
                         <Bookmark size={14} fill={participant.is_flagged ? "currentColor" : "none"} /> 
                         {participant.is_flagged ? 'FLAGGED' : 'FLAG'}
                     </button>
                     <button 
                         onClick={() => handleReviewDecision('ELIGIBLE')}
-                        className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-[10px] font-black uppercase tracking-[0.2em] transition-all shadow-lg shadow-emerald-900/10"
+                        className="flex-1 md:flex-none px-4 md:px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-[10px] font-black uppercase tracking-[0.2em] transition-all shadow-lg shadow-emerald-900/10"
                     >
                         Approve
                     </button>
@@ -343,30 +387,50 @@ export default function CCC_SubjectReviewModule({
                             type: 'danger',
                             onConfirm: () => handleWithdraw('PI decision during subject review.')
                         })}
-                        className="px-6 py-2.5 bg-rose-600 hover:bg-rose-500 text-white rounded-lg text-[10px] font-black uppercase tracking-[0.2em] transition-all shadow-lg shadow-rose-900/10"
+                        className="flex-1 md:flex-none px-4 md:px-6 py-2.5 bg-rose-600 hover:bg-rose-500 text-white rounded-lg text-[10px] font-black uppercase tracking-[0.2em] transition-all shadow-lg shadow-rose-900/10"
                     >
                         Withdraw
                     </button>
                 </div>
             </header>
 
-            <nav className="flex items-center px-8 border-b border-[#1F2937] bg-[#0B1221] overflow-x-auto no-scrollbar">
-                {['Overview', 'Screening Review', 'Outcomes', 'Safety', 'Core Diagnostics', 'Artifacts', 'Audit'].map((tab) => (
-                    <button
-                        key={tab}
-                        onClick={() => setActiveTab(tab)}
-                        className={`px-6 py-4 text-[10px] font-black uppercase tracking-[0.25em] transition-all relative whitespace-nowrap ${activeTab === tab ? 'text-blue-400' : 'text-slate-500 hover:text-slate-300'}`}
-                    >
-                        {tab}
-                        {activeTab === tab && (
-                            <motion.div layoutId="activeTab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.5)]" />
-                        )}
-                    </button>
-                ))}
-            </nav>
+            {/* Navigation Section */}
+            {isMobile ? (
+                <nav className="px-4 py-4 border-b border-[#1F2937] bg-[#0B1221]">
+                    <div className="relative">
+                        <select 
+                            value={activeTab}
+                            onChange={(e) => setActiveTab(e.target.value)}
+                            className="w-full bg-[#111827] border border-[#1F2937] text-white px-5 py-4 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] outline-none focus:ring-2 focus:ring-blue-500/50 appearance-none cursor-pointer shadow-2xl"
+                        >
+                            {tabs.map((tab) => (
+                                <option key={tab} value={tab}>{tab}</option>
+                            ))}
+                        </select>
+                        <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none text-blue-500">
+                            <ChevronDown size={18} />
+                        </div>
+                    </div>
+                </nav>
+            ) : (
+                <nav className="flex items-center px-8 border-b border-[#1F2937] bg-[#0B1221] overflow-x-auto no-scrollbar">
+                    {tabs.map((tab) => (
+                        <button
+                            key={tab}
+                            onClick={() => setActiveTab(tab)}
+                            className={`px-6 py-4 text-[10px] font-black uppercase tracking-[0.25em] transition-all relative whitespace-nowrap ${activeTab === tab ? 'text-blue-400' : 'text-slate-500 hover:text-slate-300'}`}
+                        >
+                            {tab}
+                            {activeTab === tab && (
+                                <motion.div layoutId="activeTab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.5)]" />
+                            )}
+                        </button>
+                    ))}
+                </nav>
+            )}
 
-            <div className="flex-1 flex overflow-hidden">
-                <main className="flex-1 overflow-y-auto p-10 custom-scrollbar">
+            <div className="flex-1 flex flex-col md:flex-row overflow-y-auto md:overflow-hidden custom-scrollbar bg-[#0B1221]">
+                <main className="w-full md:flex-1 p-4 md:p-10">
                     <AnimatePresence mode="wait">
                         <motion.div
                             key={activeTab}
@@ -386,7 +450,7 @@ export default function CCC_SubjectReviewModule({
                     </AnimatePresence>
                 </main>
 
-                <aside className="w-[320px] bg-[#0B1221]/50 border-l border-[#1F2937] flex flex-col overflow-hidden">
+                <aside className="w-full md:w-[320px] bg-[#0B1221]/50 border-t md:border-t-0 md:border-l border-[#1F2937] flex flex-col shrink-0">
                     <SummaryPanel participant={processedParticipant} setActiveTab={setActiveTab} />
                     <ActionFooter 
                         addToast={addToast} 

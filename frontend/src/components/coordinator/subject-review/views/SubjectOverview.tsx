@@ -92,10 +92,10 @@ export const SubjectOverview: React.FC<SubjectOverviewProps> = ({
                     </button>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-10">
                     {/* PID CARD */}
-                    <div className="flex items-center gap-6">
-                        <div className="w-14 h-14 bg-[#F0F6FF] rounded-2xl shadow-sm border border-[#E3F2FD] flex items-center justify-center text-[#1E88E5] font-black text-xs shrink-0">PID</div>
+                    <div className="flex items-center gap-4 md:gap-6">
+                        <div className="w-10 h-10 md:w-14 md:h-14 bg-[#F0F6FF] rounded-xl md:rounded-2xl shadow-sm border border-[#E3F2FD] flex items-center justify-center text-[#1E88E5] font-black text-[10px] md:text-xs shrink-0">PID</div>
                         <div className="flex-1">
                             <p className="text-[10px] font-bold text-[#1E88E5] uppercase tracking-widest mb-1.5 opacity-70">Clinical ID</p>
                             {isEditingIds ? (
@@ -111,8 +111,8 @@ export const SubjectOverview: React.FC<SubjectOverviewProps> = ({
                     </div>
 
                     {/* SID CARD */}
-                    <div className="flex items-center gap-6">
-                        <div className="w-14 h-14 bg-[#FFF3E0] rounded-2xl shadow-sm border border-[#FFE0B2] flex items-center justify-center text-[#E65100] font-black text-xs shrink-0">SID</div>
+                    <div className="flex items-center gap-4 md:gap-6">
+                        <div className="w-10 h-10 md:w-14 md:h-14 bg-[#FFF3E0] rounded-xl md:rounded-2xl shadow-sm border border-[#FFE0B2] flex items-center justify-center text-[#E65100] font-black text-[10px] md:text-xs shrink-0">SID</div>
                         <div className="flex-1">
                             <p className="text-[10px] font-bold text-[#E65100] uppercase tracking-widest mb-1.5 opacity-70">Study ID</p>
                             {isEditingIds ? (

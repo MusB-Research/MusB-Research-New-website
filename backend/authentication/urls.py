@@ -13,6 +13,7 @@ urlpatterns = [
 
     
     # Auth
+    path('me/', auth.me_view, name='me'),
     path('login/', auth.login_view, name='login'),
     path('verify-2fa-login/', auth.verify_2fa_login, name='verify_2fa_login'),
     path('logout/', auth.logout_view, name='logout'),

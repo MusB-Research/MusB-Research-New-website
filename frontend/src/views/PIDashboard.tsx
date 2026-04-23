@@ -127,6 +127,7 @@ export default function PIDashboard() {
         if (route === 'tasks') return 'TASKS';
         if (route === 'logistics') return 'LOGISTICS';
         if (route === 'participant-tasks') return 'PARTICIPANT_TASKS';
+        if (route === 'invitations') return 'INVITATIONS';
         return 'OVERVIEW';
     });
 
@@ -161,6 +162,7 @@ export default function PIDashboard() {
         else if (route === 'logistics') setActiveModule('LOGISTICS');
         else if (route === 'sponsors') setActiveModule('SPONSORS');
         else if (route === 'participant-tasks') setActiveModule('PARTICIPANT_TASKS');
+        else if (route === 'invitations') setActiveModule('INVITATIONS');
         else setActiveModule('OVERVIEW');
     }, [location.pathname]);
 
@@ -188,7 +190,7 @@ export default function PIDashboard() {
             'TASKS': 'tasks',
             'ANALYTICS': 'analytics',
             'SPONSORS': 'sponsors',
-
+            'INVITATIONS': 'invitations',
             'PARTICIPANT_TASKS': 'participant-tasks'
         };
         const slug = slugs[mod];

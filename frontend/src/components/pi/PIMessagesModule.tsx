@@ -129,6 +129,10 @@ export default function PIMessagesModule() {
     const [loading, setLoading] = useState(true);
     const [fetchedStudies, setFetchedStudies] = useState<any[]>([]);
     const [fetchedParticipants, setFetchedParticipants] = useState<any[]>([]);
+    const [windowWidth, setWindowWidth] = useState(window.innerWidth);
+    const isMobile = windowWidth < 768;
+    const isTablet = windowWidth >= 768 && windowWidth < 1024;
+    const [mobileView, setMobileView] = useState<'list' | 'thread'>('list');
     
     // Refs
     const threadEndRef = useRef<HTMLDivElement>(null);
@@ -229,6 +233,18 @@ export default function PIMessagesModule() {
     }, []);
 
     useEffect(() => {
+        const handleResize = () => setWindowWidth(window.innerWidth);
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
+    useEffect(() => {
+        if (!isMobile && mobileView === 'thread') {
+            setMobileView('list');
+        }
+    }, [isMobile]);
+
+    useEffect(() => {
         threadEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [activeConvId, conversations]);
 
@@ -259,6 +275,7 @@ export default function PIMessagesModule() {
 
     const handleSelectConv = (id: string) => {
         setActiveConvId(id);
+        if (isMobile) setMobileView('thread');
         setConversations(prev => prev.map(c => c.id === id ? { ...c, status: c.status === 'Unread' ? 'Open' : c.status } : c));
     };
 
@@ -401,10 +418,22 @@ export default function PIMessagesModule() {
     return (
         <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', width: '100%', backgroundColor: '#0B101B', color: 'white', overflow: 'hidden' }}>
             {/* TOP BAR */}
-            <header style={{ ...G.glass, padding: '0.4rem 1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', zIndex: 10, gap: '0.75rem' }}>
-                <h1 style={{ ...G.title, whiteSpace: 'nowrap' }}>Messages</h1>
+            <header style={{ 
+                ...G.glass, 
+                padding: isMobile ? '0.75rem' : '0.4rem 1rem', 
+                display: 'flex', 
+                flexDirection: isMobile ? 'column' : 'row',
+                alignItems: isMobile ? 'stretch' : 'center', 
+                justifyContent: 'space-between', 
+                zIndex: 10, 
+                gap: '0.75rem' 
+            }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <h1 style={G.title}>Messages</h1>
+                    {isMobile && <button style={G.btnPrimary} onClick={() => setComposeOpen(true)}><Plus size={13} /> Compose</button>}
+                </div>
 
-                <div style={{ display: 'flex', flex: 1, maxWidth: '400px', backgroundColor: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '6px', padding: '0 0.6rem', alignItems: 'center' }}>
+                <div style={{ display: 'flex', flex: 1, maxWidth: isMobile ? '100%' : '400px', backgroundColor: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '6px', padding: '0 0.6rem', alignItems: 'center' }}>
                     <Search size={13} color="#64748b" />
                     <input 
                         style={{ backgroundColor: 'transparent', border: 'none', color: 'white', padding: '0.45rem 0.5rem', fontSize: '12px', outline: 'none', width: '100%' }}
@@ -414,8 +443,8 @@ export default function PIMessagesModule() {
                     />
                 </div>
 
-                <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center', flexWrap: 'wrap' }}>
-                    <button style={G.btnPrimary} onClick={() => setComposeOpen(true)}><Plus size={13} style={{ marginRight: '4px', verticalAlign: 'middle' }} /> Compose</button>
+                <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center', flexWrap: 'wrap', justifyContent: isMobile ? 'center' : 'flex-end' }}>
+                    {!isMobile && <button style={G.btnPrimary} onClick={() => setComposeOpen(true)}><Plus size={13} style={{ marginRight: '4px', verticalAlign: 'middle' }} /> Compose</button>}
                     {[
                         { label: 'All', count: conversations.length },
                         { label: 'Unread', count: conversations.filter(c => c.status === 'Unread').length },
@@ -424,7 +453,13 @@ export default function PIMessagesModule() {
                     ].map(f => (
                         <button key={f.label} 
                             onClick={() => setFilterStatus(f.label === 'Action' ? 'Requires Action' : f.label)}
-                            style={{ ...G.btnGhost, borderColor: filterStatus.startsWith(f.label) || (f.label === 'Action' && filterStatus === 'Requires Action') ? '#14b8a6' : 'rgba(255,255,255,0.1)', color: filterStatus.startsWith(f.label) || (f.label === 'Action' && filterStatus === 'Requires Action') ? 'white' : '#64748b', padding: '0.3rem 0.6rem' }}>
+                            style={{ 
+                                ...G.btnGhost, 
+                                borderColor: filterStatus.startsWith(f.label) || (f.label === 'Action' && filterStatus === 'Requires Action') ? '#14b8a6' : 'rgba(255,255,255,0.1)', 
+                                color: filterStatus.startsWith(f.label) || (f.label === 'Action' && filterStatus === 'Requires Action') ? 'white' : '#64748b', 
+                                padding: '0.3rem 0.6rem',
+                                fontSize: isMobile ? '10px' : '11px'
+                            }}>
                             {f.label} <span style={{ opacity: 0.5, marginLeft: '3px' }}>{f.count}</span>
                         </button>
                     ))}
@@ -432,10 +467,18 @@ export default function PIMessagesModule() {
             </header>
 
             {/* TWO-PANEL LAYOUT */}
-            <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+            <div style={{ display: 'flex', flex: 1, overflow: 'hidden', position: 'relative' }}>
                 
                 {/* LEFT PANEL: Conversation List */}
-                <div style={{ width: '260px', minWidth: '220px', borderRight: '1px solid rgba(20, 184, 166, 0.2)', display: 'flex', flexDirection: 'column', ...G.glass }}>
+                <div style={{ 
+                    width: isMobile ? '100%' : '260px', 
+                    minWidth: isMobile ? '100%' : '220px', 
+                    borderRight: '1px solid rgba(20, 184, 166, 0.2)', 
+                    display: isMobile && mobileView === 'thread' ? 'none' : 'flex', 
+                    flexDirection: 'column', 
+                    ...G.glass,
+                    zIndex: 5
+                }}>
                     <div style={{ padding: '0.6rem 0.75rem', borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <span style={G.label}>Conversations</span>
                         <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -486,48 +529,63 @@ export default function PIMessagesModule() {
                 </div>
 
                 {/* RIGHT PANEL: Message Thread */}
-                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', backgroundColor: 'rgba(255,255,255,0.01)' }}>
+                <div style={{ 
+                    flex: 1, 
+                    display: isMobile && mobileView === 'list' ? 'none' : 'flex', 
+                    flexDirection: 'column', 
+                    backgroundColor: 'rgba(255,255,255,0.01)',
+                    width: isMobile ? '100%' : 'auto'
+                }}>
                     {activeConv ? (
                         <>
                             {/* THREAD HEADER */}
-                            <div style={{ ...G.glass, borderTop: 'none', borderRight: 'none', padding: '0.5rem 1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem' }}>
-                                <div style={{ minWidth: 0, flex: 1 }}>
-                                    <div style={{ fontSize: '13px', fontWeight: 900, fontStyle: 'italic', textTransform: 'uppercase', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{activeConv.participantId} • <span style={{ color: '#14b8a6' }}>{activeConv.study}</span></div>
-                                    <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.2rem', alignItems: 'center' }}>
-                                        <span style={{ fontSize: '10px', fontWeight: 900, color: '#10b981', backgroundColor: 'rgba(16,185,129,0.1)', padding: '0.1rem 0.4rem', borderRadius: '20px', whiteSpace: 'nowrap' }}>{activeConv.participantStatus} Participant</span>
-                                        <span style={{ fontSize: '10px', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '4px' }}><User size={10} /> {activeConv.assignedCoordinator}</span>
+                            <div style={{ ...G.glass, borderTop: 'none', borderRight: 'none', padding: '0.5rem 1rem', display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'center', justifyContent: 'space-between', gap: '1rem' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                    {isMobile && <button style={{ ...G.btnGhost, padding: '0.4rem' }} onClick={() => setMobileView('list')}><X size={16} /></button>}
+                                    <div style={{ minWidth: 0, flex: 1 }}>
+                                        <div style={{ fontSize: '13px', fontWeight: 900, fontStyle: 'italic', textTransform: 'uppercase', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{activeConv.participantId} • <span style={{ color: '#14b8a6' }}>{activeConv.study}</span></div>
+                                        <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.2rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                                            <span style={{ fontSize: '10px', fontWeight: 900, color: '#10b981', backgroundColor: 'rgba(16,185,129,0.1)', padding: '0.1rem 0.4rem', borderRadius: '20px', whiteSpace: 'nowrap' }}>{activeConv.participantStatus} Participant</span>
+                                            <span style={{ fontSize: '10px', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '4px' }}><User size={10} /> {activeConv.assignedCoordinator}</span>
+                                        </div>
                                     </div>
                                 </div>
-                                <div style={{ display: 'flex', gap: '0.4rem', flexShrink: 0 }}>
-                                    <button style={G.btnGhost} onClick={() => toggleFlag(activeConv.id)}><Bookmark size={12} color={activeConv.flagged ? '#f59e0b' : '#64748b'} fill={activeConv.flagged ? '#f59e0b' : 'none'} style={{ marginRight: '4px' }} /> FLAG</button>
-                                    <button style={G.btnGhost} onClick={() => markResolved(activeConv.id)}><CheckCircle2 size={12} color="#10b981" style={{ marginRight: '4px' }} /> RESOLVE</button>
-                                    <button style={G.btnGhost} onClick={() => setParticipantDrawerOpen(true)}><FileText size={12} style={{ marginRight: '4px' }} /> RECORD</button>
-                                    <button style={G.btnPrimary} onClick={() => setActionPanelOpen(!actionPanelOpen)}>ACTIONS {actionPanelOpen ? <ChevronDown size={12} /> : <ChevronRight size={12} />}</button>
+                                <div style={{ display: 'flex', gap: '0.4rem', flexShrink: 0, overflowX: 'auto', paddingBottom: isMobile ? '0.5rem' : 0 }}>
+                                    <button style={{ ...G.btnGhost, padding: isMobile ? '0.3rem 0.5rem' : '0.4rem 0.8rem' }} onClick={() => toggleFlag(activeConv.id)}><Bookmark size={12} color={activeConv.flagged ? '#f59e0b' : '#64748b'} fill={activeConv.flagged ? '#f59e0b' : 'none'} style={{ marginRight: '4px' }} /> FLAG</button>
+                                    <button style={{ ...G.btnGhost, padding: isMobile ? '0.3rem 0.5rem' : '0.4rem 0.8rem' }} onClick={() => markResolved(activeConv.id)}><CheckCircle2 size={12} color="#10b981" style={{ marginRight: '4px' }} /> RESOLVE</button>
+                                    {!isMobile && <button style={G.btnGhost} onClick={() => setParticipantDrawerOpen(true)}><FileText size={12} style={{ marginRight: '4px' }} /> RECORD</button>}
+                                    <button style={{ ...G.btnPrimary, padding: isMobile ? '0.3rem 0.5rem' : '0.4rem 0.9rem' }} onClick={() => setActionPanelOpen(!actionPanelOpen)}>ACTIONS {actionPanelOpen ? <ChevronDown size={12} /> : <ChevronRight size={12} />}</button>
                                 </div>
                             </div>
 
                             {/* DYNAMIC ACTION PANEL */}
                             {actionPanelOpen && (
-                                <div style={{ backgroundColor: 'rgba(255,255,255,0.02)', borderBottom: '1px solid rgba(255,255,255,0.06)', padding: '0.4rem 1rem' }}>
-                                    <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                            <span style={{ ...G.label, whiteSpace: 'nowrap' }}>Clinical:</span>
-                                            <button style={{ ...G.btnGhost, padding: '0.3rem 0.6rem' }} onClick={() => handleAction('Info Request', 'PI has requested more information. Please update details.', 'General')}>More Info</button>
-                                            <button style={{ ...G.btnGhost, padding: '0.3rem 0.6rem' }} onClick={() => handleAction('Deviation', 'Marked as study deviation by PI.', 'Protocol')}>Deviation</button>
-                                            <button style={{ ...G.btnGhost, padding: '0.3rem 0.6rem', borderColor: '#ef444430', color: '#ef4444' }} onClick={() => handleAction('Escalation', 'Escalated to safety event by PI. Immediate review required.', 'Safety', true)}>Escalate</button>
+                                <div style={{ backgroundColor: 'rgba(255,255,255,0.02)', borderBottom: '1px solid rgba(255,255,255,0.06)', padding: '0.6rem 1rem' }}>
+                                    <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: isMobile ? '1rem' : '1.5rem', flexWrap: 'wrap', alignItems: isMobile ? 'stretch' : 'center' }}>
+                                        <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'center', gap: '0.5rem' }}>
+                                            <span style={{ ...G.label, whiteSpace: 'nowrap', marginBottom: isMobile ? '0.2rem' : 0 }}>Clinical:</span>
+                                            <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+                                                <button style={{ ...G.btnGhost, padding: '0.3rem 0.6rem', flex: isMobile ? 1 : 'none' }} onClick={() => handleAction('Info Request', 'PI has requested more information. Please update details.', 'General')}>More Info</button>
+                                                <button style={{ ...G.btnGhost, padding: '0.3rem 0.6rem', flex: isMobile ? 1 : 'none' }} onClick={() => handleAction('Deviation', 'Marked as study deviation by PI.', 'Protocol')}>Deviation</button>
+                                                <button style={{ ...G.btnGhost, padding: '0.3rem 0.6rem', borderColor: '#ef444430', color: '#ef4444', flex: isMobile ? 1 : 'none' }} onClick={() => handleAction('Escalation', 'Escalated to safety event by PI. Immediate review required.', 'Safety', true)}>Escalate</button>
+                                            </div>
                                         </div>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                            <span style={{ ...G.label, whiteSpace: 'nowrap' }}>Workflow:</span>
-                                            <select 
-                                                style={{ ...G.btnGhost, padding: '0.3rem 0.6rem', outline: 'none', backgroundColor: '#0B101B' }}
-                                                onChange={(e) => executeSystemAction('Assignment', `Assigned to coordinator ${e.target.value} by PI`, 'General')}
-                                            >
-                                                <option>Assign to...</option>
-                                                {COORDINATORS.map(c => <option key={c} value={c}>{c}</option>)}
-                                            </select>
-                                            {['Open', 'In Progress', 'Resolved'].map(s => (
-                                                <button key={s} onClick={() => markResolved(activeConv.id)} style={{ ...G.btnGhost, padding: '0.3rem 0.6rem', border: activeConv.status === s ? '1px solid #10b981' : '1px solid rgba(255,255,255,0.1)' }}>{s}</button>
-                                            ))}
+                                        <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'center', gap: '0.5rem' }}>
+                                            <span style={{ ...G.label, whiteSpace: 'nowrap', marginBottom: isMobile ? '0.2rem' : 0 }}>Workflow:</span>
+                                            <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+                                                <select 
+                                                    style={{ ...G.btnGhost, padding: '0.3rem 0.6rem', outline: 'none', backgroundColor: '#0B101B', flex: isMobile ? 1 : 'none' }}
+                                                    onChange={(e) => executeSystemAction('Assignment', `Assigned to coordinator ${e.target.value} by PI`, 'General')}
+                                                >
+                                                    <option>Assign to...</option>
+                                                    {COORDINATORS.map(c => <option key={c} value={c}>{c}</option>)}
+                                                </select>
+                                                <div style={{ display: 'flex', gap: '0.4rem', flex: isMobile ? 1 : 'none' }}>
+                                                    {['Open', 'In Progress', 'Resolved'].map(s => (
+                                                        <button key={s} onClick={() => markResolved(activeConv.id)} style={{ ...G.btnGhost, padding: '0.3rem 0.4rem', flex: 1, border: activeConv.status === s ? '1px solid #14b8a6' : '1px solid rgba(255,255,255,0.1)', fontSize: '10px' }}>{s}</button>
+                                                    ))}
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -574,22 +632,22 @@ export default function PIMessagesModule() {
                             </div>
 
                             {/* INPUT AREA */}
-                            <div style={{ ...G.glass, borderRight: 'none', borderBottom: 'none', padding: '0.5rem 0.75rem' }}>
+                            <div style={{ ...G.glass, borderRight: 'none', borderBottom: 'none', padding: isMobile ? '0.75rem' : '0.5rem 0.75rem' }}>
                                 <div style={{ display: 'flex', gap: '0.4rem', marginBottom: '0.4rem', flexWrap: 'wrap', alignItems: 'center' }}>
-                                    <button style={{ ...G.btnGhost, padding: '0.25rem 0.5rem', fontSize: '10px' }} onClick={() => {
+                                    <button style={{ ...G.btnGhost, padding: '0.25rem 0.5rem', fontSize: '10px', flex: isMobile ? 1 : 'none' }} onClick={() => {
                                         const t = TEMPLATES[0];
                                         setMessageInput(t.text.replace('[ID]', activeConv.participantId));
                                     }}>Template: Eligibility</button>
-                                    <button style={{ ...G.btnGhost, padding: '0.25rem 0.5rem', fontSize: '10px' }} onClick={() => {
+                                    <button style={{ ...G.btnGhost, padding: '0.25rem 0.5rem', fontSize: '10px', flex: isMobile ? 1 : 'none' }} onClick={() => {
                                         const t = TEMPLATES[1];
                                         setMessageInput(t.text);
                                     }}>Template: AE Follow-up</button>
-                                    <div style={{ flex: 1 }} />
-                                    <div style={{ display: 'flex', backgroundColor: 'rgba(255,255,255,0.03)', padding: '2px', borderRadius: '4px' }}>
+                                    {!isMobile && <div style={{ flex: 1 }} />}
+                                    <div style={{ display: 'flex', backgroundColor: 'rgba(255,255,255,0.03)', padding: '2px', borderRadius: '4px', width: isMobile ? '100%' : 'auto', overflowX: 'auto' }}>
                                         {['General', 'Safety', 'Eligibility', 'Protocol'].map(t => (
                                             <button key={t} 
                                                 onClick={() => setSelectedTag(t as any)}
-                                                style={{ border: 'none', background: selectedTag === t ? 'rgba(99,102,241,0.2)' : 'transparent', color: selectedTag === t ? '#14b8a6' : '#64748b', padding: '0.25rem 0.5rem', fontSize: '10px', fontWeight: 900, textTransform: 'uppercase', borderRadius: '4px', cursor: 'pointer' }}>
+                                                style={{ border: 'none', background: selectedTag === t ? 'rgba(20,184,166,0.2)' : 'transparent', color: selectedTag === t ? '#14b8a6' : '#64748b', padding: '0.25rem 0.5rem', fontSize: '10px', fontWeight: 900, textTransform: 'uppercase', borderRadius: '4px', cursor: 'pointer', flex: 1 }}>
                                                 {t}
                                             </button>
                                         ))}
@@ -598,23 +656,25 @@ export default function PIMessagesModule() {
                                 <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-end' }}>
                                     <div style={{ flex: 1, position: 'relative' }}>
                                         {attachedFile && (
-                                            <div style={{ position: 'absolute', top: '-32px', left: 0, padding: '0.25rem 0.6rem', backgroundColor: 'rgba(99,102,241,0.1)', borderRadius: '20px', border: '1px solid #14b8a6', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                            <div style={{ position: 'absolute', top: '-32px', left: 0, padding: '0.25rem 0.6rem', backgroundColor: 'rgba(20,184,166,0.1)', borderRadius: '20px', border: '1px solid #14b8a6', display: 'flex', alignItems: 'center', gap: '0.5rem', zIndex: 5 }}>
                                                 <Paperclip size={10} color="#14b8a6" />
-                                                <span style={{ fontSize: '10px', fontWeight: 900, color: '#14b8a6' }}>{attachedFile.name}</span>
+                                                <span style={{ fontSize: '10px', fontWeight: 900, color: '#14b8a6', maxWidth: '100px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{attachedFile.name}</span>
                                                 <X size={10} color="#14b8a6" style={{ cursor: 'pointer' }} onClick={() => setAttachedFile(null)} />
                                             </div>
                                         )}
                                         <textarea 
-                                            style={{ width: '100%', backgroundColor: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '6px', color: 'white', padding: '0.5rem 0.75rem', fontSize: '13px', outline: 'none', minHeight: '52px', resize: 'vertical' }}
+                                            style={{ width: '100%', backgroundColor: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '6px', color: 'white', padding: '0.5rem 0.75rem', fontSize: '13px', outline: 'none', minHeight: isMobile ? '44px' : '52px', resize: 'vertical' }}
                                             placeholder="Compose clinical feedback..."
                                             value={messageInput}
                                             onChange={e => setMessageInput(e.target.value)}
                                         />
                                     </div>
                                     <input type="file" ref={fileInputRef} hidden onChange={e => setAttachedFile(e.target.files?.[0] || null)} />
-                                    <button style={{ ...G.btnGhost, padding: '0.5rem' }} onClick={() => fileInputRef.current?.click()}><Paperclip size={15} /></button>
-                                    <button style={{ ...G.btnGhost, padding: '0.5rem' }} onClick={handleSaveDraft}><Save size={15} /></button>
-                                    <button style={{ ...G.btnPrimary, height: '52px', padding: '0 1rem' }} onClick={handleSendMessage}><Send size={15} /></button>
+                                    <div style={{ display: 'flex', gap: '0.3rem' }}>
+                                        <button style={{ ...G.btnGhost, padding: isMobile ? '0.4rem' : '0.5rem' }} onClick={() => fileInputRef.current?.click()}><Paperclip size={isMobile ? 13 : 15} /></button>
+                                        {!isMobile && <button style={{ ...G.btnGhost, padding: '0.5rem' }} onClick={handleSaveDraft}><Save size={15} /></button>}
+                                        <button style={{ ...G.btnPrimary, height: isMobile ? '44px' : '52px', padding: isMobile ? '0 0.75rem' : '0 1rem' }} onClick={handleSendMessage}><Send size={15} /></button>
+                                    </div>
                                 </div>
                             </div>
                         </>
@@ -630,11 +690,11 @@ export default function PIMessagesModule() {
 
             {/* COMPOSE MODAL */}
             {composeOpen && (
-                <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: isMobile ? '1rem' : 0 }}>
                     <div style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(10px)' }} onClick={() => setComposeOpen(false)} />
-                    <div style={{ ...G.glass, width: '720px', padding: '3rem', position: 'relative', borderRadius: '12px' }}>
-                        <h2 style={G.title}>Compose New Message</h2>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', marginTop: '2.5rem' }}>
+                    <div style={{ ...G.glass, width: isMobile ? '100%' : '720px', maxWidth: '100%', padding: isMobile ? '1.5rem' : '3rem', position: 'relative', borderRadius: '12px', maxHeight: '90vh', overflowY: 'auto' }}>
+                        <h2 style={{ ...G.title, fontSize: isMobile ? '1rem' : '1.25rem' }}>Compose New Message</h2>
+                        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: isMobile ? '1rem' : '2rem', marginTop: isMobile ? '1.5rem' : '2.5rem' }}>
                             <div>
                                 <label style={G.label}>Participant ID / To</label>
                                 <select style={{ ...G.btnGhost, width: '100%', padding: '1rem', marginTop: '0.5rem', backgroundColor: '#0B101B', textTransform: 'uppercase' }}>
@@ -654,11 +714,11 @@ export default function PIMessagesModule() {
                                 </select>
                             </div>
                         </div>
-                        <div style={{ marginTop: '2rem' }}>
+                        <div style={{ marginTop: isMobile ? '1.5rem' : '2rem' }}>
                             <label style={G.label}>Clinical Assessment / Message</label>
-                            <textarea style={{ ...G.glass, width: '100%', padding: '1.5rem', marginTop: '0.5rem', minHeight: '200px', fontSize: '16px', color: 'white', outline: 'none' }} placeholder="Detail assessment..." />
+                            <textarea style={{ ...G.glass, width: '100%', padding: isMobile ? '1rem' : '1.5rem', marginTop: '0.5rem', minHeight: isMobile ? '120px' : '200px', fontSize: isMobile ? '14px' : '16px', color: 'white', outline: 'none' }} placeholder="Detail assessment..." />
                         </div>
-                        <div style={{ display: 'flex', gap: '1rem', marginTop: '3rem', justifyContent: 'flex-end' }}>
+                        <div style={{ display: 'flex', gap: '1rem', marginTop: isMobile ? '2rem' : '3rem', justifyContent: 'flex-end' }}>
                             <button style={G.btnGhost} onClick={() => setComposeOpen(false)}>CANCEL</button>
                             <button style={G.btnPrimary} onClick={() => { setComposeOpen(false); addToast('Message started'); }}>SEND MESSAGE</button>
                         </div>
@@ -683,27 +743,39 @@ export default function PIMessagesModule() {
 
             {/* RECORD DRAWER */}
             {participantDrawerOpen && (
-                <div style={{ position: 'fixed', top: 0, right: 0, width: '480px', height: '100vh', ...G.glass, zIndex: 500, boxShadow: '-50px 0 100px rgba(0,0,0,0.8)', padding: '3rem' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '3rem' }}>
+                <div style={{ 
+                    position: 'fixed', 
+                    top: 0, 
+                    right: 0, 
+                    width: isMobile ? '100%' : '480px', 
+                    height: '100vh', 
+                    ...G.glass, 
+                    zIndex: 500, 
+                    boxShadow: '-50px 0 100px rgba(0,0,0,0.8)', 
+                    padding: isMobile ? '1.5rem' : '3rem',
+                    display: 'flex',
+                    flexDirection: 'column'
+                }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: isMobile ? '1.5rem' : '3rem' }}>
                         <h2 style={G.title}>Participant Record</h2>
                         <button style={G.btnGhost} onClick={() => setParticipantDrawerOpen(false)}><X size={24} /></button>
                     </div>
                     {activeConv && (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-                            <div style={{ padding: '2rem', backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', overflowY: 'auto' }}>
+                            <div style={{ padding: '1.5rem', backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)' }}>
                                 <span style={G.label}>Primary ID</span>
-                                <div style={{ fontSize: '24px', fontWeight: 900, fontStyle: 'italic', marginTop: '0.5rem' }}>{activeConv.participantId}</div>
+                                <div style={{ fontSize: isMobile ? '20px' : '24px', fontWeight: 900, fontStyle: 'italic', marginTop: '0.5rem' }}>{activeConv.participantId}</div>
                             </div>
                             <div>
                                 <span style={G.label}>Clinical Status</span>
-                                <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#10b981', marginTop: '0.5rem' }}>{activeConv.participantStatus}</div>
+                                <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#10b981', marginTop: '0.5rem' }}>{activeConv.participantStatus}</div>
                             </div>
                             <div>
                                 <span style={G.label}>Active Study</span>
-                                <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#14b8a6', marginTop: '0.5rem' }}>{activeConv.study}</div>
+                                <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#14b8a6', marginTop: '0.5rem' }}>{activeConv.study}</div>
                             </div>
-                            <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '2rem' }}>
-                                <button style={{ ...G.btnPrimary, width: '100%' }}>OPEN FULL RECORD</button>
+                            <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '1.5rem', marginTop: 'auto' }}>
+                                <button style={{ ...G.btnPrimary, width: '100%', padding: '1rem' }}>OPEN FULL RECORD</button>
                             </div>
                         </div>
                     )}

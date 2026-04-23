@@ -8,7 +8,7 @@ from .models import (
     StudyInquiry, ClinicalConversation, ClinicalMessage,
     DosingLog, AEReport, Document, Notification, ProgressReport,
     StudyActionRequest, DailyMedicationLog, AssignedForm, SponsorOrganization,
-    QuestionnaireTemplate, StudyQuestionnaire, QuestionnaireScheduleInstance,
+    StudyKit, QuestionnaireTemplate, StudyQuestionnaire, QuestionnaireScheduleInstance,
     Technology, InnovationPageSettings, SponsorInquiry
 )
 from authentication.models import User, Invitation
@@ -57,24 +57,34 @@ class SanitizedModelSerializer(serializers.ModelSerializer):
         ret = super().to_representation(instance)
         
         # 1. Targeted Sanitization (Only if keys exist)
-        # Avoid full recursion where possible. Most models only have 'id' as ObjectId.
         for k, v in ret.items():
             if type(v).__name__ == 'ObjectId':
                 ret[k] = str(v)
             elif isinstance(v, (list, dict)):
                  ret[k] = self.sanitize_data(v)
 
-        # 2. Optimized Decryption Search (Avoid str(ret) which is slow)
+        # Optimization: Early exit if decryption is skipped via context
+        if self.context.get('skip_decryption'):
+            return ret
+
+        # Performance: Only run this if we are not in a list view or if explicitly authorized
         request = self.context.get('request')
         user = request.user if request else None
+        
+        # Optimization: Early exit if user is not staff/authorized for PII
+        # PI and Coordinators are authorized. Participants are authorized for their own data.
         is_authorized = user and user.is_authenticated and (user.role or '').upper() in ['SUPER_ADMIN', 'ADMIN', 'PI', 'COORDINATOR']
         
-        # Determine if we even need to check for decryption
         for key, value in ret.items():
             if isinstance(value, str) and value.startswith('gAAAA'):
+                # Redundancy check: if the serializer already has a 'decrypted_' version of this field, skip it
+                if f"decrypted_{key}" in ret or key in ['phone_number', 'full_address', 'npi', 'qualifications']:
+                    # We usually want to keep the raw encrypted value in the DB field and use the decrypted_ field for UI
+                    continue
+
                 can_decrypt = is_authorized
                 if not can_decrypt and user and user.is_authenticated:
-                    # Check if user is the resource owner
+                    # Resource owner check
                     iid = str(instance.pk) if hasattr(instance, 'pk') else None
                     uid = str(user.pk) if hasattr(user, 'pk') else None
                     if iid and uid and iid == uid:
@@ -85,7 +95,6 @@ class SanitizedModelSerializer(serializers.ModelSerializer):
                             can_decrypt = True
                 
                 if can_decrypt:
-                    from authentication.security import decrypt_data
                     try:
                         decrypted = decrypt_data(value)
                         if decrypted != value:
@@ -173,11 +182,9 @@ class UserSerializer(SanitizedModelSerializer):
             return value.upper()
         return value
         
-    def validate_affiliation(self, value):
-        if value:
-            return value.upper()
-        return value
-
+    def to_representation(self, instance):
+        ret = super().to_representation(instance)
+        
         # 2. Targeted Decryption
         for field, val in ret.items():
             if isinstance(val, str) and val.startswith('gAAAA'):
@@ -191,12 +198,12 @@ class UserSerializer(SanitizedModelSerializer):
         # Explicit priority for decrypted properties to ensure UI consistency
         if hasattr(instance, 'decrypted_phone') and instance.decrypted_phone:
              ret['decrypted_phone'] = instance.decrypted_phone
-             if ret.get('mobile_number').startswith('gAAAA'):
+             if ret.get('mobile_number') and str(ret.get('mobile_number')).startswith('gAAAA'):
                  ret['mobile_number'] = instance.decrypted_phone
         
         if hasattr(instance, 'decrypted_address') and instance.decrypted_address:
              ret['decrypted_address'] = instance.decrypted_address
-             if ret.get('full_address').startswith('gAAAA'):
+             if ret.get('full_address') and str(ret.get('full_address')).startswith('gAAAA'):
                  ret['full_address'] = instance.decrypted_address
                     
         return ret
@@ -222,7 +229,6 @@ class UserSerializer(SanitizedModelSerializer):
             return "N/A"
         return obj.date_joined.strftime('%b %d, %Y %H:%M')
 
-
     def create(self, validated_data):
         password = validated_data.pop('password', None)
         user = User.objects.create_user(**validated_data)
@@ -230,6 +236,14 @@ class UserSerializer(SanitizedModelSerializer):
             user.set_password(password)
             user.save()
         return user
+
+class UserBriefSerializer(SanitizedModelSerializer):
+    """High-Performance light-weight user serializer for dashboard lists."""
+    class Meta:
+        model = User
+        fields = ['id', 'email', 'full_name', 'role', 'status', 'affiliation', 'profile_picture']
+
+
 
 class DocumentSerializer(SanitizedModelSerializer):
     file_url = serializers.SerializerMethodField()
@@ -538,6 +552,13 @@ class AssignedFormSerializer(SanitizedModelSerializer):
         model = AssignedForm
         fields = ['id', 'study', 'form', 'form_details', 'participant', 'participant_name', 'status', 'participant_signature', 'participant_signed_at', 'coordinator_signature', 'coordinator_signed_at', 'coordinator_user', 'pi_signature', 'pi_signed_at', 'pi_user', 'data', 'signed_pdf', 'signed_pdf_url', 'due_date', 'created_at', 'updated_at']
         read_only_fields = ['participant_signed_at', 'coordinator_signed_at', 'pi_signed_at']
+
+class AssignedFormBriefSerializer(SanitizedModelSerializer):
+    participant_name = serializers.CharField(source='participant.user.full_name', read_only=True)
+    form_name = serializers.CharField(source='form.name', read_only=True)
+    class Meta:
+        model = AssignedForm
+        fields = ['id', 'study', 'participant', 'participant_name', 'form_name', 'status', 'due_date', 'created_at']
 
     def get_signed_pdf_url(self, obj):
         if not obj.signed_pdf: return None
@@ -934,6 +955,8 @@ class ParticipantSerializer(SanitizedModelSerializer):
     lab_results = LabResultSerializer(many=True, read_only=True)
     consent_records = ConsentSerializer(many=True, read_only=True)
     age = serializers.SerializerMethodField()
+    condition = serializers.CharField(source='study.condition', read_only=True, allow_null=True)
+    study_type = serializers.CharField(source='study.study_type', read_only=True, allow_null=True)
     
     reviewer_name = serializers.CharField(source='reviewed_by.full_name', read_only=True, allow_null=True)
     participant_status = serializers.CharField(source='status', read_only=True)
@@ -943,6 +966,7 @@ class ParticipantSerializer(SanitizedModelSerializer):
         fields = [
             'id', 'participant_sid', 'participant_status', 'user', 'user_details', 'study', 'study_name', 'protocol_id',
             'coordinator_name', 'gender', 'dob', 'age', 'status', 'assigned_arm', 'completion_date',
+            'condition', 'study_type', 'eligibility_data',
             'created_at', 'updated_at', 'reviewed_at', 'reviewed_by', 'reviewer_name',
             'visits', 'ae_reports', 'daily_logs', 'lab_results', 'consent_records',
             'coordinator_approved', 'coordinator_approved_at', 'coordinator_signature',
@@ -986,7 +1010,7 @@ class ParticipantSerializer(SanitizedModelSerializer):
 class ParticipantBriefSerializer(SanitizedModelSerializer):
     """Senior Developer: Light-weight serializer for dashboard lists to prevent 15s loading delays."""
     id = serializers.CharField(read_only=True)
-    user_details = UserSerializer(source='user', read_only=True)
+    user_details = UserBriefSerializer(source='user', read_only=True)
     study_name = serializers.CharField(source='study.title', read_only=True)
     protocol_id = serializers.CharField(source='study.protocol_id', read_only=True)
     # Removed nested heavy relations (visits, ae_reports) from brief list view to fix 1.6s delay
@@ -1080,6 +1104,30 @@ class QuestionnaireTemplateSerializer(SanitizedModelSerializer):
             if sq.study
         ]
 
+class QuestionnaireTemplateBriefSerializer(SanitizedModelSerializer):
+    class Meta:
+        model = QuestionnaireTemplate
+        fields = ['id', 'name', 'created_at']
+
+class QuestionnaireScheduleInstanceBriefSerializer(SanitizedModelSerializer):
+    """High-Performance light-weight serializer for schedule lists."""
+    template_details = serializers.SerializerMethodField()
+    participant_details = serializers.SerializerMethodField()
+    protocol_id = serializers.CharField(source='study_questionnaire.study.protocol_id', read_only=True)
+
+    class Meta:
+        model = QuestionnaireScheduleInstance
+        fields = [
+            'id', 'template_details', 'participant_details', 'protocol_id', 
+            'scheduled_date', 'status', 'completed_at'
+        ]
+
+    def get_template_details(self, obj):
+        return {'name': obj.study_questionnaire.template.name if obj.study_questionnaire and obj.study_questionnaire.template else 'Instrument'}
+
+    def get_participant_details(self, obj):
+        return {'full_name': obj.participant.user.full_name if obj.participant and obj.participant.user else 'Subject'}
+
 
 class QuestionnaireScheduleInstanceSerializer(SanitizedModelSerializer):
     class Meta:
@@ -1102,7 +1150,7 @@ class SponsorInquirySerializer(SanitizedModelSerializer):
         fields = '__all__'
 
 class StudyQuestionnaireSerializer(SanitizedModelSerializer):
-    template_details = QuestionnaireTemplateSerializer(source='template', read_only=True)
+    template_details = QuestionnaireTemplateBriefSerializer(source='template', read_only=True)
     class Meta:
         model = StudyQuestionnaire
         fields = '__all__'
@@ -1132,3 +1180,18 @@ class InvitationSerializer(SanitizedModelSerializer):
             'created_at', 'expires_at'
         ]
         read_only_fields = ['id', 'is_accepted', 'created_at', 'invited_by', 'expires_at']
+class StudyKitSerializer(serializers.ModelSerializer):
+    participant_name = serializers.CharField(source='participant.user.get_full_name', read_only=True)
+    participant_id = serializers.CharField(source='participant.participant_sid', read_only=True)
+    protocol_id = serializers.CharField(source='study.protocol_id', read_only=True)
+
+    class Meta:
+        model = StudyKit
+        fields = [
+            'id', 'kit_number', 'kit_type', 'status', 'carrier', 
+            'tracking_number', 'address', 'shipping_label_url', 
+            'return_label_url', 'last_updated', 'created_at',
+            'participant_name', 'participant_id', 'protocol_id',
+            'study', 'participant'
+        ]
+        read_only_fields = ['last_updated', 'created_at']

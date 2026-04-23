@@ -448,6 +448,16 @@ export default function StaffTasksModule({ primaryColor = 'indigo', onRefresh, p
         t.task_type === 'CONSENT_COORDINATOR_SIGN' ||
         t.task_type === 'FORM_SIGNATURE';
 
+    const [windowWidth, setWindowWidth] = useState(window.innerWidth);
+    const isMobile = windowWidth < 768;
+    const isTablet = windowWidth >= 768 && windowWidth < 1024;
+
+    useEffect(() => {
+        const handleResize = () => setWindowWidth(window.innerWidth);
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
     const fetchTasks = async () => {
         try {
             const res = await authFetch(`${API}/api/staff-tasks/`);
@@ -498,7 +508,7 @@ export default function StaffTasksModule({ primaryColor = 'indigo', onRefresh, p
 
 
     return (
-        <div className="space-y-10">
+        <div className="space-y-6 md:space-y-10">
             {/* Consent Review Modal */}
             <AnimatePresence>
                 {reviewTask && (
@@ -512,24 +522,24 @@ export default function StaffTasksModule({ primaryColor = 'indigo', onRefresh, p
             </AnimatePresence>
 
             {/* Premium SaaS Header Section */}
-            <div className="flex items-end justify-between pb-8 border-b border-white/[0.07] mb-4">
-                <div className="flex flex-col gap-2">
-                    <h2 className="text-4xl font-black text-white tracking-tighter uppercase italic leading-none">My Tasks</h2>
-                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.2em]">Outstanding Actions and Signatures</p>
+            <div className={`flex ${isMobile ? 'flex-col gap-4' : 'items-end justify-between'} pb-6 md:pb-8 border-b border-white/[0.07] mb-4`}>
+                <div className="flex flex-col gap-1 md:gap-2">
+                    <h2 className={`${isMobile ? 'text-3xl' : 'text-4xl'} font-black text-white tracking-tighter uppercase italic leading-none`}>My Tasks</h2>
+                    <p className="text-[9px] md:text-[10px] text-slate-500 font-bold uppercase tracking-[0.2em]">Outstanding Actions and Signatures</p>
                 </div>
                 
-                <div className="flex items-center gap-4 text-slate-500/50 pb-1.5 transition-opacity hover:opacity-100 opacity-60">
-                    <div className="w-12 h-px bg-white/10 hidden md:block" />
-                    <span className="text-[10px] font-black uppercase tracking-[0.2em] whitespace-nowrap">Completed History</span>
+                <div className={`flex items-center gap-4 text-slate-500/50 pb-1.5 transition-opacity hover:opacity-100 ${isMobile ? 'opacity-100' : 'opacity-60'}`}>
+                    <div className="w-8 md:w-12 h-px bg-white/10 hidden md:block" />
+                    <span className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] whitespace-nowrap">Completed History</span>
                 </div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                 {/* Pending Tasks */}
                 <div className="lg:col-span-7 space-y-5">
-                    <h3 className="text-lg font-black text-white flex items-center gap-3 uppercase tracking-tighter italic">
+                    <h3 className="text-base md:text-lg font-black text-white flex items-center gap-3 uppercase tracking-tighter italic px-2">
                         Pending Tasks
-                        <span className="text-xs font-black text-slate-400 bg-white/5 px-2.5 py-1 rounded-lg border border-white/5">
+                        <span className="text-[10px] md:text-xs font-black text-slate-400 bg-white/5 px-2 py-0.5 md:px-2.5 md:py-1 rounded-lg border border-white/5">
                             {pendingTasks.length.toString().padStart(2, '0')}
                         </span>
                     </h3>
@@ -537,7 +547,7 @@ export default function StaffTasksModule({ primaryColor = 'indigo', onRefresh, p
                     <div className="space-y-3">
                         {loading ? (
                             Array.from({ length: 4 }).map((_, i) => (
-                                <div key={i} className="p-5 rounded-2xl border border-white/5 bg-white/[0.03] space-y-4">
+                                <div key={i} className="p-5 rounded-[2rem] border border-white/5 bg-white/[0.03] space-y-4">
                                     <div className="flex items-start gap-3">
                                         <Skeleton variant="circle" size="w-9 h-9" dark={true} className="rounded-xl" />
                                         <div className="flex-1 space-y-2">
@@ -552,9 +562,9 @@ export default function StaffTasksModule({ primaryColor = 'indigo', onRefresh, p
                                 </div>
                             ))
                         ) : pendingTasks.length === 0 ? (
-                            <div className="py-12 text-center">
-                                <CheckCircle2 className="w-7 h-7 text-slate-700 mx-auto mb-4 opacity-40" />
-                                <p className="text-sm text-slate-500 font-black uppercase tracking-widest opacity-60">No pending tasks</p>
+                            <div className="py-16 text-center bg-white/[0.02] border border-white/5 border-dashed rounded-[2.5rem]">
+                                <CheckCircle2 className="w-8 h-8 text-slate-700 mx-auto mb-4 opacity-40" />
+                                <p className="text-[11px] text-slate-500 font-black uppercase tracking-widest opacity-60">Zero pending tasks detected</p>
                             </div>
                         ) : (
                             pendingTasks.map(task => {
@@ -564,56 +574,65 @@ export default function StaffTasksModule({ primaryColor = 'indigo', onRefresh, p
                                         key={task.id}
                                         initial={{ opacity: 0, y: 8 }}
                                         animate={{ opacity: 1, y: 0 }}
-                                        className={`p-5 rounded-2xl border transition-all group ${
+                                        className={`p-6 rounded-[2.5rem] border transition-all group ${
                                             isConsent
                                                 ? `bg-${accent}-500/[0.04] border-${accent}-500/20 hover:bg-${accent}-500/[0.07]`
                                                 : 'bg-white/[0.03] border-white/5 hover:bg-white/[0.05]'
                                         }`}
                                     >
-                                        <div className="flex items-start justify-between gap-4">
-                                            <div className="flex items-start gap-3 flex-1 min-w-0">
+                                        <div className={`flex ${(isMobile || isTablet) ? 'flex-col' : 'items-start justify-between'} gap-6`}>
+                                            <div className="flex items-start gap-4 flex-1 min-w-0">
                                                 {/* Icon */}
-                                                <div className={`mt-0.5 w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
+                                                <div className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 shadow-lg ${
                                                     isConsent
-                                                        ? `bg-${accent}-500/10 border border-${accent}-500/20`
-                                                        : 'bg-white/5 border border-white/10'
+                                                        ? `bg-${accent}-500/10 border border-${accent}-500/20 text-${accent}-400`
+                                                        : 'bg-white/5 border border-white/10 text-slate-500'
                                                 }`}>
                                                     {isConsent
-                                                        ? <ShieldCheck className={`w-4 h-4 text-${accent}-400`} />
-                                                        : <Clock className="w-4 h-4 text-slate-500" />
+                                                        ? <ShieldCheck className="w-5 h-5" />
+                                                        : <Clock className="w-5 h-5" />
                                                     }
                                                 </div>
                                                 <div className="flex-1 min-w-0">
                                                     <div className="flex items-center gap-2 flex-wrap">
-                                                        <h4 className="text-sm font-black text-white uppercase tracking-tight">{task.title}</h4>
+                                                        <h4 className="text-sm md:text-base font-black text-white uppercase tracking-tight leading-tight">{task.title}</h4>
                                                         {isConsent && (
-                                                            <span className={`text-[9px] font-black text-${accent}-400 bg-${accent}-500/10 border border-${accent}-500/20 px-2 py-0.5 rounded-full uppercase tracking-widest`}>
-                                                                Consent Review
+                                                            <span className={`text-[8px] md:text-[9px] font-black text-${accent}-400 bg-${accent}-500/10 border border-${accent}-500/20 px-2 py-0.5 rounded-full uppercase tracking-widest`}>
+                                                                Clinical Audit
                                                             </span>
                                                         )}
                                                     </div>
-                                                    <p className="text-xs text-slate-400 leading-relaxed font-bold opacity-80 mt-1">{task.description}</p>
-                                                    <p className="text-[10px] text-slate-600 mt-2.5 font-black uppercase tracking-widest">
-                                                        {new Intl.DateTimeFormat('en-US', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(task.created_at))}
-                                                    </p>
+                                                    <p className="text-[11px] md:text-xs text-slate-400 leading-relaxed font-bold opacity-80 mt-1.5">{task.description}</p>
+                                                    
+                                                    <div className="flex items-center gap-3 mt-4">
+                                                        <div className="px-3 py-1 bg-white/5 border border-white/5 rounded-full">
+                                                            <p className="text-[9px] text-slate-500 font-black uppercase tracking-widest leading-none">
+                                                                {new Intl.DateTimeFormat('en-US', { dateStyle: 'medium' }).format(new Date(task.created_at))}
+                                                            </p>
+                                                        </div>
+                                                        <div className="w-1 h-1 rounded-full bg-slate-800" />
+                                                        <p className="text-[9px] text-slate-600 font-black uppercase tracking-widest">
+                                                            {new Intl.DateTimeFormat('en-US', { timeStyle: 'short' }).format(new Date(task.created_at))}
+                                                        </p>
+                                                    </div>
                                                 </div>
                                             </div>
                                             {/* Actions */}
-                                            <div className="flex items-center gap-2 shrink-0">
+                                            <div className={`flex ${(isMobile || isTablet) ? 'flex-col mt-2' : 'items-center'} gap-2 shrink-0`}>
                                                 {isConsent ? (
                                                     <button
                                                         onClick={() => setReviewTask(task)}
-                                                        className={`px-5 py-2.5 bg-${accent}-600 hover:bg-${accent}-500 text-white rounded-xl text-xs font-black flex items-center gap-2 transition-all active:scale-95 shadow-lg shadow-${accent}-900/20 uppercase tracking-widest`}
+                                                        className={`px-6 py-4 bg-${accent}-600 hover:bg-${accent}-500 text-white rounded-[1.25rem] text-[11px] font-black flex items-center justify-center gap-2 transition-all active:scale-95 shadow-xl shadow-${accent}-900/20 uppercase tracking-widest ${(isMobile || isTablet) ? 'w-full' : ''}`}
                                                     >
                                                         <Eye className="w-3.5 h-3.5" />
-                                                        Review & Co-Sign
+                                                        Review Record
                                                     </button>
                                                 ) : (
                                                     <button
                                                         onClick={() => markComplete(task.id)}
-                                                        className="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-black flex items-center gap-2 shrink-0 transition-all active:scale-95 shadow-lg shadow-blue-900/20 uppercase tracking-widest"
+                                                        className={`px-6 py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-[1.25rem] text-[11px] font-black flex items-center justify-center gap-2 shrink-0 transition-all active:scale-95 shadow-xl shadow-blue-900/20 uppercase tracking-widest ${(isMobile || isTablet) ? 'w-full' : ''}`}
                                                     >
-                                                        Complete <ChevronRight className="w-4 h-4" />
+                                                        Finalize <ChevronRight className="w-4 h-4" />
                                                     </button>
                                                 )}
                                             </div>

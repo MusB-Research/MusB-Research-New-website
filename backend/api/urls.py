@@ -43,6 +43,7 @@ router.register(r'clinical-conversations', views.ClinicalConversationViewSet)
 router.register(r'notifications', views.NotificationViewSet, basename='notification')
 router.register(r'questionnaire-templates', views.QuestionnaireTemplateViewSet)
 router.register(r'study-questionnaires', views.StudyQuestionnaireViewSet)
+router.register(r'kits', views.StudyKitViewSet)
 router.register(r'questionnaire-schedules', views.QuestionnaireScheduleInstanceViewSet)
 router.register(r'innovation/technologies', views.TechnologyViewSet)
 

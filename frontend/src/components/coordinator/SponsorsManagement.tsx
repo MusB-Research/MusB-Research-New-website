@@ -33,6 +33,16 @@ export default function SponsorsManagement({ onRefresh, selectedStudyId, preload
   const [allStudies, setAllStudies] = useState<any[]>(preloadedStudies || []);
   const [dataLoading, setDataLoading] = useState(true);
 
+  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
+  const isMobile = windowWidth < 768;
+  const isTablet = windowWidth >= 768 && windowWidth < 1024;
+
+  useEffect(() => {
+    const handleResize = () => setWindowWidth(window.innerWidth);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   const fetchSponsorData = useCallback(async () => {
     setDataLoading(true);
     try {
@@ -151,178 +161,270 @@ export default function SponsorsManagement({ onRefresh, selectedStudyId, preload
   const totalActive = sponsors.filter(s => s.status === 'Active').length;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {/* ── Header Row ─────────────────────────────────────── */}
-      <div className="flex items-center justify-between gap-4">
+      <div className={`flex ${isMobile ? 'flex-col gap-6' : 'items-center justify-between'} gap-4`}>
         <div>
-          <h1 className="text-xl font-black text-white italic uppercase tracking-tighter">
+          <h1 className={`${isMobile ? 'text-2xl' : 'text-3xl'} font-black text-white italic uppercase tracking-tighter`}>
             Research <span className="text-cyan-400">Sponsors</span>
           </h1>
-          <p className="text-[10px] text-slate-500 uppercase tracking-[0.15em] font-bold mt-0.5">
+          <p className="text-[10px] text-slate-500 uppercase tracking-[0.15em] font-bold mt-1">
             Delegate platform access & study funding credentials
           </p>
         </div>
-        <div className="flex items-center gap-2 shrink-0">
+        <div className={`flex items-center ${isMobile ? 'w-full' : ''} gap-2 shrink-0`}>
           <button
             onClick={fetchSponsorData}
-            className="p-2 bg-white/5 border border-white/10 rounded-lg text-slate-500 hover:text-white transition-all"
+            className="p-3 bg-white/5 border border-white/10 rounded-xl text-slate-500 hover:text-white transition-all shadow-xl"
             title="Refresh"
           >
             <RefreshCw className={`w-4 h-4 ${dataLoading ? 'animate-spin' : ''}`} />
           </button>
           <button
             onClick={() => setShowCreateModal(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-cyan-600 text-white rounded-lg font-black text-[11px] uppercase tracking-wider shadow-lg shadow-cyan-500/20 hover:bg-cyan-500 transition-all"
+            className={`flex-1 flex items-center justify-center gap-2 ${isMobile ? 'py-4' : 'px-6 py-3'} bg-cyan-600 text-white rounded-xl font-black text-[11px] uppercase tracking-wider shadow-xl shadow-cyan-600/20 hover:bg-cyan-500 transition-all active:scale-95`}
           >
-            <UserPlus className="w-3.5 h-3.5" /> Generate Sponsor Account
+            <UserPlus className="w-4 h-4" /> Generate Sponsor Account
           </button>
         </div>
       </div>
 
       {/* ── Stats Strip ────────────────────────────────────── */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className={`grid ${isMobile ? 'grid-cols-1' : 'grid-cols-3'} gap-4`}>
         {[
           { label: 'Total Sponsors', val: sponsors.length },
           { label: 'Active', val: totalActive },
           { label: 'Pending Reset', val: sponsors.filter(s => s.mustChangePassword).length },
         ].map((stat, i) => (
-          <div key={i} className="bg-white/[0.03] border border-white/5 rounded-xl px-4 py-2.5 flex items-center justify-between">
+          <div key={i} className="bg-white/[0.03] border border-white/5 rounded-2xl px-6 py-4 flex items-center justify-between shadow-xl">
             <span className="text-[10px] text-slate-500 font-black uppercase tracking-wider">{stat.label}</span>
-            <span className="text-base font-black text-white italic">{stat.val}</span>
+            <span className={`text-2xl font-black text-white italic ${i === 1 ? 'text-emerald-400' : ''}`}>{stat.val}</span>
           </div>
         ))}
       </div>
 
       {/* ── Search ─────────────────────────────────────────── */}
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-600" />
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600" />
         <input
           type="text"
           placeholder="Filter by name, company, or email..."
-          className="w-full bg-[#0a0b1a] border border-white/5 rounded-xl pl-9 pr-4 py-2.5 text-[12px] text-white outline-none focus:border-cyan-500/30 font-bold uppercase tracking-wider placeholder:text-slate-700"
+          className="w-full bg-[#0a0b1a]/80 border border-white/5 rounded-2xl pl-12 pr-4 py-4 text-[13px] text-white outline-none focus:border-cyan-500/30 font-bold uppercase tracking-wider placeholder:text-slate-700 shadow-inner"
           value={searchTerm}
           onChange={e => setSearchTerm(e.target.value)}
         />
       </div>
 
-      {/* ── Table ──────────────────────────────────────────── */}
-      <div className="bg-[#0f1133]/60 border border-white/5 rounded-2xl overflow-hidden">
+      {/* ── Table / Cards ──────────────────────────────────── */}
+      <div className="bg-[#0f1133]/40 border border-white/5 rounded-[2rem] overflow-hidden shadow-2xl">
         <div className="overflow-x-auto">
-          <table className="w-full text-left">
-            <thead>
-              <tr className="border-b border-white/5 bg-white/[0.02]">
-                {['Sponsor Personnel', 'Company', 'Portfolio', 'Registered', 'Access', 'Actions'].map((h, i) => (
-                  <th key={i} className="px-4 py-3 text-[10px] font-black text-slate-600 uppercase tracking-wider whitespace-nowrap">
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-white/[0.04]">
+          {isMobile ? (
+            <div className="p-4 space-y-4">
               {dataLoading ? (
-                Array.from({ length: 5 }).map((_, i) => (
-                  <tr key={i} className="border-b border-white/5">
-                    <td colSpan={6} className="px-4 py-6">
-                      <div className="flex items-center gap-4">
-                        <Skeleton variant="circle" size="w-10 h-10" dark={true} />
+                Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} className="p-6 bg-white/[0.02] border border-white/5 rounded-[2rem] space-y-4">
+                     <div className="flex items-center gap-4">
+                        <Skeleton variant="circle" size="w-12 h-12" dark={true} />
                         <div className="flex-1 space-y-2">
-                          <Skeleton variant="text" className="w-1/3 h-3" dark={true} />
-                          <Skeleton variant="text" className="w-1/4 h-2 opacity-50" dark={true} />
+                          <Skeleton variant="text" className="w-1/2 h-3" dark={true} />
+                          <Skeleton variant="text" className="w-1/3 h-2 opacity-50" dark={true} />
                         </div>
-                        <div className="flex gap-4">
-                          <Skeleton variant="text" className="w-20 h-4" dark={true} />
-                          <Skeleton variant="text" className="w-20 h-4" dark={true} />
-                        </div>
-                      </div>
-                    </td>
-                  </tr>
+                     </div>
+                     <Skeleton variant="text" className="w-full h-12 rounded-xl" dark={true} />
+                  </div>
                 ))
               ) : filteredSponsors.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="px-4 py-12 text-center">
-                    <Building2 className="w-8 h-8 text-slate-700 mx-auto mb-3" />
-                    <p className="text-[11px] text-slate-600 font-black uppercase tracking-wider">
-                      {searchTerm ? 'No sponsors match your search' : 'No sponsor records found'}
-                    </p>
-                  </td>
-                </tr>
+                <div className="py-20 text-center">
+                   <Building2 className="w-12 h-12 text-slate-700 mx-auto mb-4" />
+                   <p className="text-[12px] text-slate-600 font-black uppercase tracking-widest">No sponsors found</p>
+                </div>
               ) : (
                 filteredSponsors.map(s => (
-                  <tr key={s.id} className="hover:bg-white/[0.02] transition-colors group">
-                    {/* Sponsor Info */}
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 shrink-0">
-                          <Building2 className="w-4 h-4" />
+                  <div key={s.id} className="p-6 bg-white/[0.02] border border-white/5 rounded-[2rem] space-y-4 shadow-xl">
+                     <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                           <div className="w-12 h-12 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400">
+                              <Building2 className="w-6 h-6" />
+                           </div>
+                           <div>
+                              <p className="text-sm font-black text-white italic uppercase tracking-tight">{s.name}</p>
+                              <p className="text-[10px] text-slate-500 font-bold tracking-wider">{s.email}</p>
+                           </div>
                         </div>
-                        <div className="min-w-0">
-                          <p className="text-[12px] font-black text-white italic truncate uppercase tracking-tight leading-none">{s.name}</p>
-                          <p className="text-[10px] text-slate-500 font-bold tracking-wider mt-0.5 truncate">{s.email}</p>
+                        <button onClick={() => setSelectedSponsor(s)} className="p-2 bg-white/5 rounded-xl text-slate-500">
+                           <Eye size={18} />
+                        </button>
+                     </div>
+
+                     <div className="space-y-3 py-4 border-y border-white/5">
+                        <div className="grid grid-cols-2 gap-4">
+                           <div className="space-y-1">
+                              <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Company</p>
+                              <p className="text-[11px] font-black text-white uppercase truncate">{s.company}</p>
+                           </div>
+                           <div className="space-y-1 text-right">
+                              <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Registered</p>
+                              <p className="text-[11px] font-black text-white uppercase">{s.registeredDate}</p>
+                           </div>
                         </div>
-                      </div>
-                    </td>
-                    {/* Company */}
-                    <td className="px-4 py-3">
-                      <span className="text-[11px] text-slate-400 font-bold uppercase tracking-wider">{s.company}</span>
-                    </td>
-                    {/* Portfolio */}
-                    <td className="px-4 py-3">
-                      {s.studies.length === 0 ? (
-                        <span className="text-[10px] text-slate-700 italic font-bold uppercase">None</span>
-                      ) : (
-                        <div className="flex flex-wrap gap-1 max-w-[160px]">
-                          {s.studies.slice(0, 2).map((st, i) => (
-                            <span key={i} className="px-2 py-0.5 bg-white/5 border border-white/10 rounded text-[9px] font-black text-slate-500 uppercase tracking-wider truncate max-w-[140px]">{st}</span>
-                          ))}
-                          {s.studies.length > 2 && (
-                            <span className="px-2 py-0.5 bg-cyan-500/10 border border-cyan-500/20 rounded text-[9px] font-black text-cyan-500 uppercase tracking-wider">+{s.studies.length - 2}</span>
-                          )}
+                        
+                        <div className="space-y-1.5">
+                           <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Research Portfolio</p>
+                           <div className="flex flex-wrap gap-1.5">
+                              {s.studies.length === 0 ? (
+                                 <span className="text-[10px] text-slate-600 italic font-bold uppercase">No studies linked</span>
+                              ) : (
+                                 s.studies.slice(0, 3).map((st, i) => (
+                                    <span key={i} className="px-2 py-0.5 bg-white/5 border border-white/10 rounded text-[9px] font-black text-slate-400 uppercase tracking-wider truncate max-w-[120px]">{st}</span>
+                                 ))
+                              )}
+                              {s.studies.length > 3 && (
+                                 <span className="px-2 py-0.5 bg-cyan-500/10 border border-cyan-500/20 rounded text-[9px] font-black text-cyan-500 uppercase tracking-wider">+{s.studies.length - 3}</span>
+                              )}
+                           </div>
                         </div>
-                      )}
-                    </td>
-                    {/* Registered */}
-                    <td className="px-4 py-3">
-                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider whitespace-nowrap">{s.registeredDate}</span>
-                    </td>
-                    {/* Access status */}
-                    <td className="px-4 py-3">
-                      <div className="flex flex-col gap-1">
+                     </div>
+
+                     <div className="flex items-center justify-between pt-2">
                         <button
                           onClick={() => handleToggleStatus(s)}
                           disabled={updatingId === s.id}
-                          className={`px-2.5 py-1 rounded-md text-[9px] font-black uppercase tracking-wider border flex items-center gap-1.5 transition-all disabled:opacity-50 w-fit ${
+                          className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all ${
                             s.status === 'Active'
-                              ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20'
-                              : 'bg-red-500/10 text-red-400 border-red-500/20 hover:bg-red-500/20'
+                              ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                              : 'bg-red-500/10 text-red-400 border-red-500/20'
                           }`}
                         >
-                          {updatingId === s.id && <Loader2 className="w-2.5 h-2.5 animate-spin" />}
                           {s.status === 'Active' ? 'AUTHORIZED' : 'DISABLED'}
                         </button>
+                        
                         {s.mustChangePassword && (
-                          <button
-                            onClick={() => handleResendCredentials(s.id, s.email)}
-                            className="px-2.5 py-1 rounded-md text-[9px] font-black uppercase tracking-wider border border-indigo-500/20 bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20 transition-all flex items-center gap-1.5 w-fit"
-                          >
-                            <Mail className="w-2.5 h-2.5" /> RESEND
-                          </button>
+                           <button onClick={() => handleResendCredentials(s.id, s.email)} className="px-4 py-2 bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 rounded-xl text-[10px] font-black uppercase tracking-widest">
+                              Resend
+                           </button>
                         )}
-                      </div>
-                    </td>
-                    {/* Actions */}
-                    <td className="px-4 py-3">
-                      <button
-                        onClick={() => setSelectedSponsor(s)}
-                        className="p-1.5 bg-white/5 border border-white/5 rounded-lg text-slate-600 hover:text-cyan-400 hover:border-cyan-500/30 transition-all"
-                      >
-                        <Eye className="w-3.5 h-3.5" />
-                      </button>
-                    </td>
-                  </tr>
+                     </div>
+                  </div>
                 ))
               )}
-            </tbody>
-          </table>
+            </div>
+          ) : (
+            <table className="w-full text-left">
+              <thead>
+                <tr className="border-b border-white/5 bg-white/[0.02]">
+                  {['Sponsor Personnel', 'Company', 'Portfolio', 'Registered', 'Access', 'Actions'].map((h, i) => (
+                    <th key={i} className="px-6 py-5 text-[10px] font-black text-slate-600 uppercase tracking-wider whitespace-nowrap">
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/[0.04]">
+                {dataLoading ? (
+                  Array.from({ length: 5 }).map((_, i) => (
+                    <tr key={i} className="border-b border-white/5">
+                      <td colSpan={6} className="px-6 py-8">
+                        <div className="flex items-center gap-4">
+                          <Skeleton variant="circle" size="w-10 h-10" dark={true} />
+                          <div className="flex-1 space-y-2">
+                            <Skeleton variant="text" className="w-1/3 h-3" dark={true} />
+                            <Skeleton variant="text" className="w-1/4 h-2 opacity-50" dark={true} />
+                          </div>
+                          <div className="flex gap-4">
+                            <Skeleton variant="text" className="w-20 h-4" dark={true} />
+                            <Skeleton variant="text" className="w-20 h-4" dark={true} />
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                ) : filteredSponsors.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="px-6 py-20 text-center">
+                      <Building2 className="w-12 h-12 text-slate-700 mx-auto mb-4" />
+                      <p className="text-[12px] text-slate-600 font-black uppercase tracking-wider">
+                        {searchTerm ? 'No sponsors match your search' : 'No sponsor records found'}
+                      </p>
+                    </td>
+                  </tr>
+                ) : (
+                  filteredSponsors.map(s => (
+                    <tr key={s.id} className="hover:bg-white/[0.02] transition-colors group">
+                      {/* Sponsor Info */}
+                      <td className="px-6 py-5">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 shrink-0">
+                            <Building2 className="w-5 h-5" />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-[13px] font-black text-white italic truncate uppercase tracking-tight leading-none">{s.name}</p>
+                            <p className="text-[11px] text-slate-500 font-bold tracking-wider mt-1 truncate">{s.email}</p>
+                          </div>
+                        </div>
+                      </td>
+                      {/* Company */}
+                      <td className="px-6 py-5">
+                        <span className="text-[12px] text-slate-400 font-bold uppercase tracking-wider">{s.company}</span>
+                      </td>
+                      {/* Portfolio */}
+                      <td className="px-6 py-5">
+                        {s.studies.length === 0 ? (
+                          <span className="text-[11px] text-slate-700 italic font-bold uppercase">None</span>
+                        ) : (
+                          <div className="flex flex-wrap gap-1.5 max-w-[200px]">
+                            {s.studies.slice(0, 2).map((st, i) => (
+                              <span key={i} className="px-2.5 py-1 bg-white/5 border border-white/10 rounded-lg text-[10px] font-black text-slate-500 uppercase tracking-wider truncate max-w-[160px]">{st}</span>
+                            ))}
+                            {s.studies.length > 2 && (
+                              <span className="px-2.5 py-1 bg-cyan-500/10 border border-cyan-500/20 rounded-lg text-[10px] font-black text-cyan-500 uppercase tracking-wider">+{s.studies.length - 2}</span>
+                            )}
+                          </div>
+                        )}
+                      </td>
+                      {/* Registered */}
+                      <td className="px-6 py-5">
+                        <span className="text-[11px] text-slate-400 font-bold uppercase tracking-wider whitespace-nowrap">{s.registeredDate}</span>
+                      </td>
+                      {/* Access status */}
+                      <td className="px-6 py-5">
+                        <div className="flex flex-col gap-1.5">
+                          <button
+                            onClick={() => handleToggleStatus(s)}
+                            disabled={updatingId === s.id}
+                            className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider border flex items-center gap-2 transition-all disabled:opacity-50 w-fit ${
+                              s.status === 'Active'
+                                ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20'
+                                : 'bg-red-500/10 text-red-400 border-red-500/20 hover:bg-red-500/20'
+                            }`}
+                          >
+                            {updatingId === s.id && <Loader2 className="w-3 h-3 animate-spin" />}
+                            {s.status === 'Active' ? 'AUTHORIZED' : 'DISABLED'}
+                          </button>
+                          {s.mustChangePassword && (
+                            <button
+                              onClick={() => handleResendCredentials(s.id, s.email)}
+                              className="px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider border border-indigo-500/20 bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20 transition-all flex items-center gap-2 w-fit"
+                            >
+                              <Mail className="w-3 h-3" /> RESEND
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                      {/* Actions */}
+                      <td className="px-6 py-5">
+                        <button
+                          onClick={() => setSelectedSponsor(s)}
+                          className="p-2.5 bg-white/5 border border-white/10 rounded-xl text-slate-600 hover:text-cyan-400 hover:border-cyan-500/30 transition-all shadow-xl"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          )}
         </div>
       </div>
 

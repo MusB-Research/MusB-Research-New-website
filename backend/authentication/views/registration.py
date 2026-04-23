@@ -90,7 +90,8 @@ def invite_team_member(request):
             title="Team Invitation (Updated)",
             body=f"You have been re-invited to join <strong>{organization}</strong> as a <strong>{role}</strong>. Click below to finalize your secure credentials and access your clinical research dashboard.",
             button_text="Set Up Credentials",
-            button_url=setup_link
+            button_url=setup_link,
+            qr_url=setup_link
         )
         
         if success:
@@ -123,7 +124,8 @@ def invite_team_member(request):
         title="Welcome to MusB Research",
         body=f"You have been invited to join <strong>{organization}</strong> as a <strong>{role}</strong>. Secure your account and access your specialized dashboard by clicking the button below.",
         button_text="Accept Invitation",
-        button_url=setup_link
+        button_url=setup_link,
+        qr_url=setup_link
     )
     
     if success:
@@ -365,7 +367,8 @@ def resend_invitation(request, invitation_id):
         title="Invitation Reminder",
         body=f"This is a reminder that you have been invited to join <strong>{org}</strong> as a <strong>{invitation.role}</strong>. Please complete your account setup by clicking the button below.",
         button_text="Set Up Credentials",
-        button_url=setup_link
+        button_url=setup_link,
+        qr_url=setup_link
     )
     
     if success:

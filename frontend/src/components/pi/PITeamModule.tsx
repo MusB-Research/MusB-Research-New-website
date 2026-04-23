@@ -78,7 +78,7 @@ export default function PITeamModule({
     // State
     const [officeTeam, setOfficeTeam] = useState<TeamMember[]>([]);
     const [musbTeam, setMusbTeam] = useState<TeamMember[]>([]);
-    const [activeTab, setActiveTab] = useState<'MusB' | 'Office' | 'All'>('Office');
+    const [activeTab, setActiveTab] = useState<'MusB' | 'Office' | 'All'>('MusB');
     const [searchQuery, setSearchQuery] = useState('');
     const [filterStatus, setFilterStatus] = useState('All');
 
@@ -388,11 +388,11 @@ export default function PITeamModule({
         },
         header: {
             display: 'flex',
-            alignItems: 'center',
+            flexDirection: isMobile ? 'column' as const : 'row' as const,
+            alignItems: isMobile ? 'center' as const : 'center' as const,
             justifyContent: 'space-between',
-            padding: isMobile ? '1rem' : '0.5rem 1.5rem',
-            flexWrap: 'wrap',
-            gap: '0.75rem',
+            padding: isMobile ? '1.5rem 1rem' : '0.5rem 1.5rem',
+            gap: isMobile ? '1rem' : '0.75rem',
             borderBottom: '1px solid rgba(20, 184, 166, 0.1)',
             backgroundColor: 'rgba(7, 10, 19, 0.4)',
             backdropFilter: 'blur(40px)',
@@ -423,13 +423,15 @@ export default function PITeamModule({
             boxShadow: '0 4px 15px rgba(20, 184, 166, 0.2)'
         },
         kpiStrip: {
-            display: 'flex',
+            display: isMobile ? 'grid' : 'flex',
+            gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'none',
             backgroundColor: 'rgba(255,255,255,0.02)',
             borderBottom: '1px solid rgba(255,255,255,0.06)',
             flexWrap: isMobile ? 'nowrap' as const : 'wrap' as const,
-            overflowX: isMobile ? 'auto' as const : 'visible' as const,
+            overflowX: isMobile ? 'visible' as const : 'visible' as const,
             flexShrink: 0,
-            backdropFilter: 'blur(10px)'
+            backdropFilter: 'blur(10px)',
+            padding: isMobile ? '0.5rem' : '0'
         },
         kpiItem: {
             flex: isMobile ? '0 0 auto' : isTablet ? '1 1 20%' : '1',
@@ -450,12 +452,12 @@ export default function PITeamModule({
             letterSpacing: '-0.02em',
         },
         kpiLabel: {
-            fontSize: '11px',
+            fontSize: isMobile ? '9px' : '11px',
             fontWeight: 900,
             textTransform: 'uppercase' as const,
             letterSpacing: '0.15em',
             color: '#14b8a6',
-            marginTop: '4px',
+            marginTop: '2px',
             opacity: 0.8
         },
         navRow: {
@@ -471,17 +473,19 @@ export default function PITeamModule({
             borderBottom: '1px solid rgba(255,255,255,0.03)'
         },
         tabBtn: (active: boolean) => ({
-            padding: '0.6rem 1.25rem',
-            backgroundColor: active ? '#14b8a6' : 'transparent',
+            padding: isMobile ? '0.6rem 0.5rem' : '0.6rem 1.25rem',
+            flex: isMobile ? 1 : 'none',
+            backgroundColor: active ? '#14b8a6' : 'rgba(255,255,255,0.03)',
             color: active ? 'white' : '#94a3b8',
-            border: active ? 'none' : '1px solid rgba(255,255,255,0.1)',
+            border: active ? 'none' : '1px solid rgba(255,255,255,0.05)',
             borderRadius: '4px',
-            fontSize: '11px',
+            fontSize: isMobile ? '9px' : '11px',
             fontWeight: 900,
             textTransform: 'uppercase' as const,
             letterSpacing: '0.1em',
             cursor: 'pointer',
-            transition: 'all 0.2s'
+            transition: 'all 0.2s',
+            textAlign: 'center' as const
         }),
         searchBox: {
             display: 'flex',
@@ -615,13 +619,23 @@ export default function PITeamModule({
             fontWeight: 900,
             textTransform: 'uppercase' as const,
             letterSpacing: '0.05em',
-            backgroundColor: 'rgba(20, 184, 166, 0.05)',
-            color: '#14b8a6',
-            border: '1px solid rgba(20, 184, 166, 0.15)',
+            backgroundColor: status === 'Active' ? 'rgba(20, 184, 166, 0.05)' : 'rgba(245, 158, 11, 0.05)',
+            color: status === 'Active' ? '#14b8a6' : '#f59e0b',
+            border: status === 'Active' ? '1px solid rgba(20, 184, 166, 0.15)' : '1px solid rgba(245, 158, 11, 0.15)',
             display: 'inline-flex',
             alignItems: 'center',
             gap: '0.5rem'
-        })
+        }),
+        mobileCard: {
+            backgroundColor: 'rgba(255,255,255,0.02)',
+            border: '1px solid rgba(255,255,255,0.05)',
+            borderRadius: '16px',
+            padding: '1.25rem',
+            marginBottom: '1rem',
+            display: 'flex',
+            flexDirection: 'column' as const,
+            gap: '1rem'
+        }
     } as Record<string, any>;
 
     // --- RENDER HELPERS ---
@@ -678,13 +692,11 @@ export default function PITeamModule({
 
             {/* NAVIGATION / SEARCH */}
             <div style={S.navRow}>
-                <div className="custom-scrollbar-horizontal" style={{ 
+                <div style={{ 
                     display: 'flex', 
-                    flexDirection: 'row', 
+                    flexDirection: 'row',
                     gap: '0.5rem', 
-                    width: isMobile ? '100%' : 'auto',
-                    overflowX: isMobile ? 'auto' : 'visible',
-                    paddingBottom: isMobile ? '0.75rem' : '0',
+                    width: '100%',
                     flexShrink: 0
                 }}>
                     <button style={S.tabBtn(activeTab === 'MusB')} onClick={() => setActiveTab('MusB')}>MusB Team</button>
@@ -694,28 +706,37 @@ export default function PITeamModule({
                 <div style={{ 
                     display: 'flex', 
                     flexDirection: isMobile ? 'column' : 'row', 
-                    gap: isMobile ? '1.25rem' : '1.5rem',
+                    gap: isMobile ? '0.75rem' : '1.5rem',
                     flex: 1,
                     justifyContent: 'flex-end',
                     width: '100%'
                 }}>
                     {activeTab === 'MusB' && (
-                        <div className="custom-scrollbar-horizontal" style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', overflowX: isMobile ? 'auto' : 'visible', paddingBottom: isMobile ? '0.5rem' : '0' }}>
-                            <span style={S.label}>Filter:</span>
+                        <div className="custom-scrollbar-horizontal" style={{ 
+                            display: 'flex', 
+                            gap: '0.4rem', 
+                            alignItems: 'center', 
+                            overflowX: 'auto', 
+                            paddingBottom: isMobile ? '0.25rem' : '0',
+                            width: isMobile ? '100%' : 'auto'
+                        }}>
+                            {!isMobile && <span style={S.label}>Filter:</span>}
                             {['All', 'Available', 'Assigned', 'Active'].map(f => (
                                 <button key={f}
                                     onClick={() => setFilterStatus(f)}
                                     style={{
                                         ...S.tabBtn(filterStatus === f),
-                                        padding: '0.4rem 0.6rem',
-                                        backgroundColor: filterStatus === f ? 'rgba(99,102,241,0.1)' : 'transparent',
+                                        padding: isMobile ? '0.4rem 0.6rem' : '0.4rem 0.8rem',
+                                        flex: isMobile ? '1 0 auto' : 'none',
+                                        backgroundColor: filterStatus === f ? 'rgba(20, 184, 166, 0.1)' : 'transparent',
                                         border: filterStatus === f ? '1px solid #14b8a6' : '1px solid rgba(255,255,255,0.06)',
-                                        color: filterStatus === f ? '#14b8a6' : '#475569'
+                                        color: filterStatus === f ? '#14b8a6' : '#475569',
+                                        minWidth: isMobile ? '70px' : 'auto'
                                     }}>{f}</button>
                             ))}
                         </div>
                     )}
-                    <div style={S.searchBox}>
+                    <div style={{...S.searchBox, width: '100%'}}>
                         <Search size={14} color="#475569" />
                         <input
                             style={S.searchInput}
@@ -726,96 +747,170 @@ export default function PITeamModule({
                     </div>
                 </div>
             </div>
-
             {/* TABLE AREA */}
-            <div style={S.tableArea} className="custom-scrollbar-horizontal">
-                <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'auto' }}>
-                    <thead>
-                        <tr>
-                            <th style={S.th}>Team Member</th>
-                            <th style={S.th}>Role</th>
-                            <th style={S.th}>Assigned Studies</th>
-                            <th style={{ ...S.th, textAlign: 'center' }}>Status</th>
-                            <th style={{ ...S.th, textAlign: 'right', paddingRight: '2rem' }}>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
+            <div style={S.tableArea} className="custom-scrollbar-horizontal pb-20">
+                {isMobile ? (
+                    <div className="space-y-4">
                         {getVisibleTeam().map(m => (
-                            <tr key={m.id} className="group-row">
-                                <td style={S.td}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                                        <div style={{ width: '40px', height: '40px', borderRadius: '4px', backgroundColor: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                            <User size={20} color="#475569" />
+                            <div key={m.id} style={S.mobileCard}>
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center">
+                                            <User size={18} color="#14b8a6" />
                                         </div>
                                         <div>
                                             <div style={S.name}>{m.name}</div>
-                                            <div style={{ fontSize: '13px', color: '#94a3b8', fontWeight: 'bold', letterSpacing: '0.05em' }}>{m.email}</div>
+                                            <div className="text-[11px] text-slate-500 font-bold tracking-tight lowercase">{m.email}</div>
                                         </div>
                                     </div>
-                                </td>
-                                <td style={S.td}>
-                                    <div style={{ fontSize: '11px', fontWeight: 900, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{m.role}</div>
-                                    {m.expertise && <div style={{ fontSize: '10px', color: '#14b8a6', marginTop: '2px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{m.expertise}</div>}
-                                </td>
-                                <td style={S.td}>
-                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
-                                        {m.assignedStudies.length > 0 ? m.assignedStudies.map(s => (
-                                            <span key={s} style={{ fontSize: '11px', fontWeight: 900, color: '#14b8a6', backgroundColor: 'rgba(99,102,241,0.05)', padding: '0.25rem 0.5rem', borderRadius: '4px', border: '1px solid rgba(99,102,241,0.1)' }}>{s}</span>
-                                        )) : <span style={{ fontSize: '11px', color: '#475569', fontWeight: 900, letterSpacing: '0.05em' }}>NO ASSIGNMENTS</span>}
-                                    </div>
-                                </td>
-                                <td style={{ ...S.td, textAlign: 'center' }}>
                                     <span style={S.statusBadge(m.status)}>{m.status}</span>
-                                </td>
-                                <td style={{ ...S.td, textAlign: 'right' }}>
-                                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+                                </div>
+                                <div className="grid grid-cols-2 gap-4 py-3 border-y border-white/5">
+                                    <div className="space-y-1">
+                                        <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Role</p>
+                                        <p className="text-[10px] font-black text-white uppercase tracking-tight">{m.role}</p>
+                                    </div>
+                                    <div className="space-y-1">
+                                        <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Affiliation</p>
+                                        <p className="text-[10px] font-black text-teal-400 uppercase tracking-tight">{m.type}</p>
+                                    </div>
+                                </div>
+                                <div className="space-y-2">
+                                    <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Assignments</p>
+                                    <div className="flex flex-wrap gap-2">
+                                        {m.assignedStudies.length > 0 ? m.assignedStudies.map(s => (
+                                            <span key={s} className="px-2 py-1 bg-white/5 border border-white/10 rounded-lg text-[9px] font-black text-teal-400 uppercase tracking-tight">
+                                                {s}
+                                            </span>
+                                        )) : <span className="text-[10px] font-bold text-slate-600 italic">None</span>}
+                                    </div>
+                                </div>
+                                <div className="flex items-center justify-between pt-2 border-t border-white/5">
+                                    <div className="flex items-center gap-2">
+                                        <button className="p-2.5 bg-white/5 border border-white/10 rounded-xl text-slate-400">
+                                            <Mail className="w-4 h-4" />
+                                        </button>
+                                        <button className="p-2.5 bg-white/5 border border-white/10 rounded-xl text-slate-400">
+                                            <Phone className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                    <div className="flex items-center gap-2">
                                         {m.type === 'Office' && (
                                             <button 
-                                                title="Edit Personnel"
-                                                style={{ ...S.btnGhost, padding: '0.6rem', color: '#14b8a6', borderColor: 'rgba(99,102,241,0.2)' }} 
                                                 onClick={() => {
                                                     setPanelMode('edit');
                                                     setEditedMember({ ...m });
                                                     setSelectedMember(m);
                                                     setPanelOpen(true);
                                                 }}
+                                                className="px-4 py-2 bg-white/5 border border-white/10 text-white rounded-xl text-[10px] font-black uppercase tracking-widest"
                                             >
-                                                <Edit2 size={16} />
+                                                Edit
                                             </button>
                                         )}
-
                                         <button 
-                                            title={m.status === 'Inactive' ? "Activate" : "Lock Access"}
-                                            style={{ ...S.btnGhost, padding: '0.6rem', color: m.status === 'Inactive' ? '#10b981' : '#f59e0b', borderColor: 'rgba(255,255,255,0.1)' }} 
                                             onClick={() => handleInactivateToggle(m)}
+                                            className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all ${
+                                                m.status === 'Inactive' 
+                                                ? 'bg-emerald-600 text-white border-emerald-500' 
+                                                : 'bg-rose-500/10 text-rose-500 border-rose-500/20'
+                                            }`}
                                         >
-                                            {m.status === 'Inactive' ? <Unlock size={16} /> : <Lock size={16} />}
+                                            {m.status === 'Inactive' ? 'Activate' : 'Lock'}
                                         </button>
-
-                                        {m.type === 'Office' ? (
-                                            <button 
-                                                title="Remove Member"
-                                                style={{ ...S.btnGhost, padding: '0.6rem', color: '#ef4444', borderColor: 'rgba(239,68,68,0.1)' }} 
-                                                onClick={() => handleDelete(m)}
-                                            >
-                                                <Trash2 size={16} />
-                                            </button>
-                                        ) : (
-                                            <button 
-                                                title="MUSB NETWORK USER"
-                                                style={{ ...S.btnGhost, padding: '0.6rem' }} 
-                                                onClick={() => addToast('MUSB PROFILE MANAGED BY ADMIN', 'warning')}
-                                            >
-                                                <Shield size={16} />
-                                            </button>
-                                        )}
                                     </div>
-                                </td>
-                            </tr>
+                                </div>
+                            </div>
                         ))}
+                    </div>
+                ) : (
+                    <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'auto' }}>
+                        <thead>
+                            <tr>
+                                <th style={S.th}>Team Member</th>
+                                <th style={S.th}>Role</th>
+                                <th style={S.th}>Assigned Studies</th>
+                                <th style={{ ...S.th, textAlign: 'center' }}>Status</th>
+                                <th style={{ ...S.th, textAlign: 'right', paddingRight: '2rem' }}>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {getVisibleTeam().map(m => (
+                                <tr key={m.id} className="group-row">
+                                    <td style={S.td}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                            <div style={{ width: '40px', height: '40px', borderRadius: '4px', backgroundColor: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                <User size={20} color="#475569" />
+                                            </div>
+                                            <div>
+                                                <div style={S.name}>{m.name}</div>
+                                                <div style={{ fontSize: '13px', color: '#94a3b8', fontWeight: 'bold', letterSpacing: '0.05em' }}>{m.email}</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td style={S.td}>
+                                        <div style={{ fontSize: '11px', fontWeight: 900, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{m.role}</div>
+                                        {m.expertise && <div style={{ fontSize: '10px', color: '#14b8a6', marginTop: '2px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{m.expertise}</div>}
+                                    </td>
+                                    <td style={S.td}>
+                                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+                                            {m.assignedStudies.length > 0 ? m.assignedStudies.map(s => (
+                                                <span key={s} style={{ fontSize: '11px', fontWeight: 900, color: '#14b8a6', backgroundColor: 'rgba(99,102,241,0.05)', padding: '0.25rem 0.5rem', borderRadius: '4px', border: '1px solid rgba(99,102,241,0.1)' }}>{s}</span>
+                                            )) : <span style={{ fontSize: '11px', color: '#475569', fontWeight: 900, letterSpacing: '0.05em' }}>NO ASSIGNMENTS</span>}
+                                        </div>
+                                    </td>
+                                    <td style={{ ...S.td, textAlign: 'center' }}>
+                                        <span style={S.statusBadge(m.status)}>{m.status}</span>
+                                    </td>
+                                    <td style={{ ...S.td, textAlign: 'right' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+                                            {m.type === 'Office' && (
+                                                <button 
+                                                    title="Edit Personnel"
+                                                    style={{ ...S.btnGhost, padding: '0.6rem', color: '#14b8a6', borderColor: 'rgba(99,102,241,0.2)' }} 
+                                                    onClick={() => {
+                                                        setPanelMode('edit');
+                                                        setEditedMember({ ...m });
+                                                        setSelectedMember(m);
+                                                        setPanelOpen(true);
+                                                    }}
+                                                >
+                                                    <Edit2 size={16} />
+                                                </button>
+                                            )}
 
-                    </tbody>
-                </table>
+                                            <button 
+                                                title={m.status === 'Inactive' ? "Activate" : "Lock Access"}
+                                                style={{ ...S.btnGhost, padding: '0.6rem', color: m.status === 'Inactive' ? '#10b981' : '#f59e0b', borderColor: 'rgba(255,255,255,0.1)' }} 
+                                                onClick={() => handleInactivateToggle(m)}
+                                            >
+                                                {m.status === 'Inactive' ? <Unlock size={16} /> : <Lock size={16} />}
+                                            </button>
+
+                                            {m.type === 'Office' ? (
+                                                <button 
+                                                    title="Remove Member"
+                                                    style={{ ...S.btnGhost, padding: '0.6rem', color: '#ef4444', borderColor: 'rgba(239,68,68,0.1)' }} 
+                                                    onClick={() => handleDelete(m)}
+                                                >
+                                                    <Trash2 size={16} />
+                                                </button>
+                                            ) : (
+                                                <button 
+                                                    title="MUSB NETWORK USER"
+                                                    style={{ ...S.btnGhost, padding: '0.6rem' }} 
+                                                    onClick={() => addToast('MUSB PROFILE MANAGED BY ADMIN', 'warning')}
+                                                >
+                                                    <Shield size={16} />
+                                                </button>
+                                            )}
+                                        </div>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                )}
             </div>
 
             {/* SLIDE-IN PANEL */}
