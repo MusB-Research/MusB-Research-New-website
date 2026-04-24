@@ -7,7 +7,7 @@ import {
     AlertCircle, History, CheckSquare, TrendingUp,
     ShieldCheck, Microscope, UserPlus, FileCheck, Layers,
     Briefcase, Plus, Calendar, Award, DollarSign,
-    Building2, Search, Building, Check, ExternalLink, MousePointer2, Save, Tag
+    Building2, Search, Building, Check, ExternalLink, MousePointer2, Save, Tag, Info
 } from 'lucide-react';
 import { authFetch, API, revealValue } from '../../utils/auth';
 import QuestionnaireBuilder from './QuestionnaireBuilder';
@@ -186,7 +186,6 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
         endDate: initialData?.endDate || initialData?.end_date || '',
         full_title: initialData?.full_title || '',
         title: initialData?.title || '',
-        indication: initialData?.indication || initialData?.primary_indication || '',
         brief_description: initialData?.brief_description || initialData?.description || '',
         category: initialData?.condition || initialData?.category || 'Other',
         overview: initialData?.overview || '',
@@ -509,7 +508,7 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
     }, []);
 
     const validation = useMemo(() => {
-        const required = ['startDate', 'full_title', 'title', 'indication', 'brief_description'];
+        const required = ['startDate', 'full_title', 'title', 'brief_description'];
         const missingFields = required.filter(f => !formData[f as keyof typeof formData]);
         const hasPI = Array.isArray(formData.pi_id) && formData.pi_id.length > 0;
         const hasCC = Array.isArray(formData.coordinator_id) && formData.coordinator_id.length > 0;
@@ -539,11 +538,10 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
         if (!isDraft && (!validation?.isValid || !onSave || isSubmitting)) return;
         if (isDraft && !onSave) return;
 
-        const { pi_id, coordinator_id, assigned_sponsors, startDate, endDate, execution_type, indication, brief_description, masking, category, ...baseData } = formData;
+        const { pi_id, coordinator_id, assigned_sponsors, startDate, endDate, execution_type, brief_description, masking, category, ...baseData } = formData;
         const studyStatus = isDraft ? 'DRAFT' : 'RECRUITING';
         const payload = {
             ...baseData,
-            primary_indication: indication,
             condition: category || 'Other',
             description: brief_description,
             study_type: execution_type,
@@ -824,15 +822,9 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
                                             className="w-full min-h-[96px] bg-white/5 border border-white/10 rounded-xl px-5 py-4 text-base text-white font-bold outline-none focus:border-emerald-500/50 resize-none placeholder:opacity-20 italic leading-snug shadow-inner overflow-hidden" 
                                         />
                                     </div>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                        <div className="space-y-3">
-                                            <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest ml-1">Public Short Title</label>
-                                            <input type="text" name="title" value={formData.title} onChange={handleChange} className="w-full bg-white/5 border border-white/10 rounded-xl px-5 py-4 text-base text-white font-bold outline-none focus:border-emerald-500/50 shadow-inner" />
-                                        </div>
-                                        <div className="space-y-3">
-                                            <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest ml-1">Therapeutic Indication</label>
-                                            <input type="text" name="indication" value={formData.indication} onChange={handleChange} className="w-full bg-white/5 border border-white/10 rounded-xl px-5 py-4 text-base text-white font-bold outline-none focus:border-emerald-500/50 italic shadow-inner" />
-                                        </div>
+                                    <div className="space-y-3">
+                                        <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest ml-1">Public Short Title</label>
+                                        <input type="text" name="title" value={formData.title} onChange={handleChange} className="w-full bg-white/5 border border-white/10 rounded-xl px-5 py-4 text-base text-white font-bold outline-none focus:border-emerald-500/50 shadow-inner" />
                                     </div>
 
                                     {/* Study Category Selector */}
@@ -941,14 +933,21 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
                                         </div>
                                     </div>
 
-                                    <div className="space-y-3">
-                                        <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest ml-1">Brief Summary Overview</label>
+                                     <div className="space-y-4">
+                                        <div className="flex items-center justify-between">
+                                            <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest ml-1">Brief Summary Overview</label>
+                                            <div className="flex items-center gap-2 text-[9px] font-bold text-slate-600 uppercase tracking-widest italic">
+                                                <Info className="w-3 h-3" />
+                                                Use * for bullets, CAPITAL for headings, and blank lines for spacing
+                                            </div>
+                                        </div>
                                         <textarea 
                                             name="brief_description" 
                                             ref={descriptionRef}
                                             value={formData.brief_description} 
                                             onChange={handleChange} 
-                                            className="w-full min-h-[96px] bg-white/5 border border-white/10 rounded-xl px-5 py-4 text-sm text-white/80 font-medium outline-none focus:border-emerald-500/50 resize-none leading-relaxed shadow-inner overflow-hidden" 
+                                            placeholder={`WHO CAN JOIN? \n* Adults 18-65 years old\n* Experience bloating once a week\n\nABOUT THE STUDY\nJoin our clinical trial for Olly supplement...`}
+                                            className="w-full min-h-[200px] bg-white/5 border border-white/10 rounded-2xl px-6 py-5 text-sm text-white/80 font-medium outline-none focus:border-emerald-500/50 resize-none leading-relaxed shadow-inner overflow-hidden hover:bg-white/[0.07] transition-all" 
                                         />
                                     </div>
                                 </div>

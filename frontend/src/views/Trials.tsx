@@ -110,6 +110,51 @@ export default function Trials() {
         return matchesCondition && matchesType && matchesSearch && matchesCompletion;
     });
 
+    const renderDescription = (text: string) => {
+        if (!text) return null;
+        
+        const lines = text.split('\n');
+        let inList = false;
+        
+        return lines.map((line, idx) => {
+            const trimmedLine = line.trim();
+            if (!trimmedLine) {
+                inList = false;
+                return <div key={idx} className="h-4" />;
+            }
+            
+            // Bullet Point Detection
+            if (trimmedLine.startsWith('*') || trimmedLine.startsWith('-') || trimmedLine.startsWith('•')) {
+                inList = true;
+                return (
+                    <div key={idx} className="flex gap-3 mb-2.5 ml-1 group/item">
+                        <span className="text-cyan-500 font-black mt-1 shrink-0 text-[10px]">•</span>
+                        <span className="text-slate-400 font-medium leading-relaxed text-[13px]">{trimmedLine.substring(1).trim()}</span>
+                    </div>
+                );
+            }
+            
+            // Heading Detection (All caps, more than 5 chars, doesn't start with bullet)
+            const isHeading = trimmedLine.length > 5 && trimmedLine === trimmedLine.toUpperCase();
+            if (isHeading) {
+                inList = false;
+                return (
+                    <h4 key={idx} className={`text-white font-black uppercase text-[11px] tracking-[0.2em] mb-4 flex items-center gap-3 ${idx > 0 ? 'mt-8' : 'mt-2'}`}>
+                        <div className="w-2 h-2 rounded-full bg-cyan-500 shadow-[0_0_10px_rgba(6,182,212,0.5)]" />
+                        <span className="border-b border-white/10 pb-1">{trimmedLine}</span>
+                    </h4>
+                );
+            }
+
+            inList = false;
+            return (
+                <p key={idx} className="text-slate-400 font-medium mb-4 leading-relaxed text-[13px]">
+                    {trimmedLine}
+                </p>
+            );
+        });
+    };
+
     const faqs = [
         {
             q: "Can I join a MusB™ Research study from home?",
@@ -377,7 +422,9 @@ export default function Trials() {
                                             ))}
                                         </div>
                                     </div>
-                                    <p className="text-slate-400 font-medium mb-10 flex-grow leading-relaxed">{study.description}</p>
+                                    <div className="mb-10 flex-grow scrollbar-hide max-h-[400px] overflow-y-auto pr-4">
+                                        {renderDescription(study.description)}
+                                    </div>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
                                         <div className="bg-white/2 rounded-2xl p-4 border border-white/5 flex items-center gap-4">
                                             <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-slate-500 group-hover:text-cyan-400 transition-colors shrink-0">
