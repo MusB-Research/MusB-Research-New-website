@@ -83,9 +83,8 @@ export default function StudyScreener() {
 
     // ── Dynamic Steps Logic ──────────────────────────────────────────────
     const [steps, setSteps] = useState<StepConfig[]>([
-        { id: 'STEP1', title: 'BASICS & LOCATION', type: 'auto', editable: true, required: true },
         { id: 'STEP2', title: 'ELIGIBILITY CRITERIA', type: 'user_input', editable: true, required: true },
-        { id: 'STEP3', title: 'CONTACT & AVAILABILITY', type: 'auto', editable: true, required: true }
+        { id: 'STEP3', title: 'CONTACT & LOCATION', type: 'auto', editable: true, required: true }
     ]);
 
     useEffect(() => {
@@ -120,14 +119,15 @@ export default function StudyScreener() {
                     // Dynamic Steps from Config or Default
                     let enrichedSteps: StepConfig[] = [];
                     if (data.screener_config?.steps) {
-                        enrichedSteps = data.screener_config.steps.map((s: any) => ({
-                            ...s,
-                            title: s.title || (
-                                s.id === 'STEP1' ? 'BASICS & LOCATION' :
+                        enrichedSteps = data.screener_config.steps
+                            .filter((s: any) => s.id !== 'STEP1')
+                            .map((s: any) => ({
+                                ...s,
+                                title: s.title || (
                                     s.id === 'STEP2' ? 'ELIGIBILITY CRITERIA' :
-                                        s.id === 'STEP3' ? 'CONTACT & AVAILABILITY' : s.title
-                            )
-                        }));
+                                        s.id === 'STEP3' ? 'CONTACT & LOCATION' : s.title
+                                )
+                            }));
                         setSteps(enrichedSteps);
                     } else {
                         // Default Fallback
@@ -284,11 +284,10 @@ export default function StudyScreener() {
         const stepCfg = steps[index];
         if (!stepCfg) return true;
 
-        if (stepCfg.id === 'STEP1') {
-            return formData.location;
-        }
+
         if (stepCfg.id === 'STEP2') {
             const hasTrialsCheck = !!formData.trialsInLast30Days;
+            const hasLocation = !!formData.location;
 
             // Check dynamic questions in the configuration
             const dynamicQs = (stepCfg as any).questions || [];
@@ -298,7 +297,7 @@ export default function StudyScreener() {
                 return !!formData[fid];
             });
 
-            return hasTrialsCheck && allDynamicFilled;
+            return hasTrialsCheck && hasLocation && allDynamicFilled;
         }
         if (stepCfg.id === 'STEP3') {
             return formData.fullName && formData.email && formData.phone && formData.cvConsent && formData.availability;
@@ -521,42 +520,39 @@ export default function StudyScreener() {
                                 </div>
 
                                 <div className="min-h-[350px] space-y-8">
-                                    {currentStep.id === 'STEP1' && (
-                                        <div className="space-y-6">
-                                            <div className="space-y-4">
-                                                <label className="text-lg font-black italic tracking-tight text-white">
-                                                    Zip / Postal code
-                                                </label>
-                                                <div className="relative">
-                                                    <input
-                                                        type="text"
-                                                        readOnly={isStepReadOnly}
-                                                        value={formData.zipCode}
-                                                        onChange={(e) => handleZipChange(e.target.value)}
-                                                        className={`w-full bg-[#161f35] border border-white/10 rounded-2xl px-8 py-5 text-white text-xl outline-none focus:border-[#00ADEF]/80 ${isStepReadOnly ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                                        placeholder="e.g. 90210"
-                                                    />
-                                                    {isLocating && <Loader2 className="absolute right-6 top-6 w-5 h-5 text-[#00ADEF] animate-spin" />}
-                                                </div>
-                                            </div>
-                                            <div className="space-y-4">
-                                                <label className={`text-lg font-black italic tracking-tight ${isFieldInvalid('location') ? 'text-red-500' : 'text-white'}`}>
-                                                    Current city, state, country
-                                                </label>
-                                                <input
-                                                    type="text"
-                                                    readOnly={isStepReadOnly}
-                                                    value={formData.location}
-                                                    onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                                                    className={`w-full bg-[#161f35] border rounded-2xl px-8 py-5 text-white text-xl outline-none transition-all ${isFieldInvalid('location') ? 'border-red-500/50' : 'border-white/10 focus:border-[#00ADEF]/80'} ${isStepReadOnly ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                                    placeholder="Auto-filled from zip code or enter manually"
-                                                />
-                                            </div>
-                                        </div>
-                                    )}
+
 
                                     {currentStep.id === 'STEP2' && (
                                         <div className="space-y-12">
+                                            {/* Location Section Moved to Step 2 (Eligibility) */}
+                                            <div className="space-y-8 bg-white/[0.02] p-8 rounded-[2rem] border border-white/5 shadow-2xl shadow-black/20">
+                                                <div className="space-y-4">
+                                                    <label className="text-lg font-black italic tracking-tight text-white block">Zip / Postal code</label>
+                                                    <div className="relative">
+                                                        <input
+                                                            type="text"
+                                                            readOnly={isStepReadOnly}
+                                                            value={formData.zipCode}
+                                                            onChange={(e) => handleZipChange(e.target.value)}
+                                                            className={`w-full bg-[#161f35] border border-white/10 rounded-2xl px-8 py-5 text-white text-xl outline-none focus:border-[#00ADEF]/50 ${isStepReadOnly ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                                            placeholder="Enter Zip Code"
+                                                        />
+                                                        {isLocating && <Loader2 className="absolute right-6 top-6 w-5 h-5 text-[#00ADEF] animate-spin" />}
+                                                    </div>
+                                                </div>
+                                                <div className="space-y-4">
+                                                    <label className={`text-lg font-black italic tracking-tight block ${isFieldInvalid('location') ? 'text-red-500' : 'text-white'}`}>Current city, state, country</label>
+                                                    <input
+                                                        type="text"
+                                                        readOnly={isStepReadOnly}
+                                                        value={formData.location}
+                                                        onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                                                        className={`w-full bg-[#161f35] border rounded-2xl px-8 py-5 text-white text-lg outline-none transition-all ${isFieldInvalid('location') ? 'border-red-500/50' : 'border-white/10 focus:border-[#00ADEF]/80'} ${isStepReadOnly ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                                        placeholder="Auto-filled or enter manually"
+                                                    />
+                                                </div>
+                                            </div>
+
                                             {/* Section A: Quick Eligibility Check (Fixed) */}
                                             <div className="space-y-6 bg-white/[0.02] p-8 rounded-[2rem] border border-white/5 shadow-2xl shadow-black/20">
                                                 <div className="space-y-2">
