@@ -57,6 +57,9 @@ export const clearAuth = () => {
     localStorage.removeItem('access_token');
     localStorage.removeItem('refresh_token');
     localStorage.removeItem('user');
+    localStorage.removeItem('access'); // Legacy
+    localStorage.removeItem('role');   // Legacy
+    localStorage.removeItem('userRole'); // Legacy
     deleteCookie('access_token');
     deleteCookie('refresh_token');
 };
@@ -67,19 +70,20 @@ export const getRefreshToken = () => localStorage.getItem('refresh_token');
 
 export const getUser = (): User | null => {
     const u = localStorage.getItem('user');
-    const token = localStorage.getItem('access_token');
+    const token = getAccessToken();
+    
+    if (!token || !u) return null;
+
     try {
-        const parsedNode = u ? JSON.parse(u) : null;
-        if (parsedNode && token) {
-            // Reconstruct ID from token payload without needing a full logout cycle
-            try {
-                const payload = JSON.parse(atob(token.split('.')[1]));
-                if (payload && payload.sub) {
-                    parsedNode.id = payload.sub;
-                }
-            } catch (e) {
-                // Ignore silent parsing failures
+        const parsedNode = JSON.parse(u);
+        // Reconstruct ID from token payload without needing a full logout cycle
+        try {
+            const payload = JSON.parse(atob(token.split('.')[1]));
+            if (payload && payload.sub) {
+                parsedNode.id = payload.sub;
             }
+        } catch (e) {
+            // Ignore silent parsing failures
         }
         return parsedNode;
     } catch (e) {

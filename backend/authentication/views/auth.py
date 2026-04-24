@@ -429,3 +429,47 @@ def google_login(request):
 def me_view(request):
     """Returns data for the currently authenticated user."""
     return Response(get_user_data_dict(request.user))
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def check_email(request):
+    """Checks if email exists and returns relevant options (Login, Reset, etc)."""
+    from ..models import Invitation
+    
+    email = request.data.get('email', '').strip().lower()
+    if not email:
+        return Response({'error': 'Email is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+    user = User.objects.filter(email=email).first()
+    if user:
+        role_label = user.role.upper() if user.role else 'PARTICIPANT'
+        return Response({
+            'exists': True,
+            'type': 'USER',
+            'role': role_label,
+            'message': 'This email is already registered in our database.',
+            'options': [
+                {'id': 'LOGIN', 'label': 'Login to your account'},
+                {'id': 'RESET_PASSWORD', 'label': 'Reset your password'},
+                {'id': 'FIND_ROLE', 'label': f'Continue as {role_label}'}
+            ]
+        })
+
+    # Check for pending invitation
+    invitation = Invitation.objects.filter(email=email, is_accepted=False).first()
+    if invitation:
+        return Response({
+            'exists': True,
+            'type': 'INVITATION',
+            'role': invitation.role.upper(),
+            'message': f'You have a pending invitation as a {invitation.role}.',
+            'options': [
+                {'id': 'ACCEPT_INVITATION', 'label': 'Accept your invitation'},
+                {'id': 'LOGIN', 'label': 'Login if you have another account'}
+            ]
+        })
+
+    return Response({
+        'exists': False,
+        'message': 'Email is available for registration.'
+    })

@@ -1418,6 +1418,55 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
                                     </div>
                                 )}
 
+                                {/* Current Eligibility Screener Preview */}
+                                {formData.screener_questions && formData.screener_questions.length > 0 && (
+                                    <div className="bg-white/[0.02] border border-pink-500/20 rounded-2xl p-6 mb-8 relative overflow-hidden group">
+                                        <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity"><MousePointer2 className="w-32 h-32 text-pink-500" /></div>
+                                        <div className="flex items-center justify-between mb-6 relative z-10">
+                                            <div>
+                                                <h3 className="text-sm font-black text-pink-400 uppercase italic flex items-center gap-2">
+                                                    <ShieldCheck className="w-4 h-4" /> Current Eligibility Screener
+                                                </h3>
+                                                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">
+                                                    {formData.screener_questions.length} Active Questions
+                                                </p>
+                                            </div>
+                                            <button
+                                                onClick={() => setShowScreenerBuilder(true)}
+                                                className="px-4 py-2 bg-pink-500/10 hover:bg-pink-500/20 border border-pink-500/30 text-pink-400 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all shadow-lg active:scale-95 flex items-center gap-2"
+                                            >
+                                                Edit Screener <MousePointer2 className="w-3 h-3" />
+                                            </button>
+                                        </div>
+                                        <div className="space-y-3 relative z-10 max-h-[400px] overflow-y-auto custom-scrollbar pr-2">
+                                            {formData.screener_questions.map((q: any, idx: number) => (
+                                                <div key={idx} className="p-4 bg-black/20 border border-white/5 rounded-xl flex flex-col gap-2 transition-all hover:border-pink-500/30">
+                                                    <span className="text-[12px] font-bold text-white"><span className="text-pink-500 mr-2">{idx + 1}.</span>{q.label}</span>
+                                                    <div className="flex gap-2 items-center">
+                                                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest bg-white/5 px-2 py-0.5 rounded-md">
+                                                            {q.type.replace('_', ' ')}
+                                                        </span>
+                                                        {q.required && <span className="text-[9px] font-black text-pink-400 uppercase tracking-widest bg-pink-500/10 px-2 py-0.5 rounded-md">Required</span>}
+                                                        {q.allow_multiple && <span className="text-[9px] font-black text-indigo-400 uppercase tracking-widest bg-indigo-500/10 px-2 py-0.5 rounded-md">Multiple</span>}
+                                                        {q.options && q.options.length > 0 && (
+                                                            <span className="text-[9px] font-black text-emerald-400 uppercase tracking-widest bg-emerald-500/10 px-2 py-0.5 rounded-md">
+                                                                {q.options.length} Options
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    {q.options && q.options.length > 0 && (
+                                                        <div className="mt-2 pl-6 border-l-2 border-white/5 space-y-1">
+                                                            {q.options.map((opt: string, optIdx: number) => (
+                                                                <p key={optIdx} className="text-[10px] font-medium text-slate-400">{opt}</p>
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
                                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                                     {availableTemplates.map(t => {
                                         const isSelected = formData.study_questionnaires.some((sq: any) => sq.template === t.id);

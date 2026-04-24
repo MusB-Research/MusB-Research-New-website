@@ -24,194 +24,7 @@ import { fetchStudies, Study } from '../data/studies';
 import { authFetch, API, getAccessToken } from '../utils/auth';
 import { Skeleton } from './Participant/SharedComponents'; // Standard highlight: #00ADEF
 
-// ──────────────── BIRTH DATE INPUT COMPONENT ────────────────
-const BirthDateField = ({ value, onChange, isMissing }: { value: string; onChange: (val: string) => void; isMissing: boolean }) => {
-    const [displayValue, setDisplayValue] = useState('');
-    const [showCalendar, setShowCalendar] = useState(false);
-    const containerRef = useRef<HTMLDivElement>(null);
-
-    // Initial value conversion: ISO (YYYY-MM-DD) -> Display (MM / DD / YYYY)
-    useEffect(() => {
-        if (value && value.includes('-')) {
-            const [y, m, d] = value.split('-');
-            setDisplayValue(`${m} / ${d} / ${y}`);
-        } else if (!value) {
-            setDisplayValue('');
-        }
-    }, [value]);
-
-    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        let val = e.target.value.replace(/\D/g, ''); // Numbers only
-        if (val.length > 8) val = val.substring(0, 8);
-
-        // Masking logic: 04122000 -> 04 / 12 / 2000
-        let formatted = '';
-        if (val.length > 0) {
-            formatted += val.substring(0, 2);
-            if (val.length > 2) {
-                formatted += ' / ' + val.substring(2, 4);
-                if (val.length > 4) {
-                    formatted += ' / ' + val.substring(4, 8);
-                }
-            }
-        }
-        setDisplayValue(formatted);
-
-        // Convert to ISO for storage if complete
-        if (val.length === 8) {
-            const m = val.substring(0, 2);
-            const d = val.substring(2, 4);
-            const y = val.substring(4, 8);
-
-            // Basic validation check before saving
-            const date = new Date(`${y}-${m}-${d}`);
-            if (!isNaN(date.getTime()) && date <= new Date() && parseInt(m) <= 12 && parseInt(d) <= 31) {
-                onChange(`${y}-${m}-${d}`);
-            } else {
-                // Even if invalid date (e.g. 99/99), we store the raw input or handle error
-                // For now, only save to state if it's a plausible ISO format
-                onChange('');
-            }
-        } else {
-            onChange('');
-        }
-    };
-
-    // ── CALENDAR LOGIC ──
-    const [viewDate, setViewDate] = useState(new Date());
-    const [viewMode, setViewMode] = useState<'days' | 'months' | 'years'>('days');
-
-    const years = Array.from({ length: 100 }, (_, i) => new Date().getFullYear() - i);
-    const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-
-    const getDaysInMonth = (month: number, year: number) => new Date(year, month + 1, 0).getDate();
-    const getFirstDayOfMonth = (month: number, year: number) => new Date(year, month, 1).getDay();
-
-    const handleDateSelect = (d: number) => {
-        const date = new Date(viewDate.getFullYear(), viewDate.getMonth(), d);
-        const y = date.getFullYear();
-        const m = String(date.getMonth() + 1).padStart(2, '0');
-        const day = String(date.getDate()).padStart(2, '0');
-        onChange(`${y}-${m}-${day}`);
-        setShowCalendar(false);
-    };
-
-    const nextMonth = () => setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() + 1));
-    const prevMonth = () => setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() - 1));
-
-    // Close on click outside
-    useEffect(() => {
-        const handleClickOutside = (e: MouseEvent) => {
-            if (containerRef.current && !containerRef.current.contains(e.target as Node)) setShowCalendar(false);
-        };
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, []);
-
-    return (
-        <div className="relative" ref={containerRef}>
-            <div className="relative group">
-                <input
-                    type="text"
-                    inputMode="numeric"
-                    value={displayValue}
-                    onChange={handleInputChange}
-                    placeholder="MM / DD / YYYY"
-                    className={`w-full bg-[#0d1424] border rounded-2xl py-5 text-white outline-none transition-all px-16 text-center text-xl font-bold ${isMissing ? 'border-red-500/50' : 'border-white/5 focus:border-[#00ADEF]/50'}`}
-                />
-                <button
-                    type="button"
-                    onClick={() => setShowCalendar(!showCalendar)}
-                    className="absolute right-6 top-1/2 -translate-y-1/2 p-2 hover:bg-white/5 rounded-xl transition-all text-slate-500 hover:text-[#00ADEF]"
-                >
-                    <CalendarDays className="w-5 h-5" />
-                </button>
-            </div>
-
-            <AnimatePresence>
-                {showCalendar && (
-                    <motion.div
-                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                        className="absolute z-[100] mt-4 p-8 bg-[#0d1424] border border-white/10 rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.6)] w-[340px] left-1/2 -translate-x-1/2"
-                    >
-                        {/* Header */}
-                        <div className="flex items-center justify-between mb-6">
-                            <button onClick={prevMonth} className="p-2 hover:bg-white/5 rounded-lg text-slate-400"><ChevronLeft className="w-4 h-4" /></button>
-
-                            <div className="flex gap-2">
-                                <button onClick={() => setViewMode('months')} className="text-sm font-black uppercase italic text-white hover:text-[#00ADEF] transition-colors">
-                                    {months[viewDate.getMonth()]}
-                                </button>
-                                <button onClick={() => setViewMode('years')} className="text-sm font-black uppercase italic text-white hover:text-[#00ADEF] transition-colors">
-                                    {viewDate.getFullYear()}
-                                </button>
-                            </div>
-
-                            <button onClick={nextMonth} className="p-2 hover:bg-white/5 rounded-lg text-slate-400"><ChevronRight className="w-4 h-4" /></button>
-                        </div>
-
-                        {/* Calendar View Area */}
-                        <div className="min-h-[210px] max-h-[250px] overflow-y-auto pr-2 custom-scrollbar">
-                            {viewMode === 'days' && (
-                                <>
-                                    <div className="grid grid-cols-7 mb-2">
-                                        {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map(d => (
-                                            <span key={d} className="text-[12px] font-black text-slate-500 text-center uppercase">{d}</span>
-                                        ))}
-                                    </div>
-                                    <div className="grid grid-cols-7 gap-1">
-                                        {Array.from({ length: getFirstDayOfMonth(viewDate.getMonth(), viewDate.getFullYear()) }).map((_, i) => <div key={i} />)}
-                                        {Array.from({ length: getDaysInMonth(viewDate.getMonth(), viewDate.getFullYear()) }).map((_, i) => (
-                                            <button
-                                                key={i}
-                                                onClick={() => handleDateSelect(i + 1)}
-                                                className={`aspect-square rounded-lg flex items-center justify-center text-xs font-bold transition-all hover:bg-[#00ADEF] hover:text-white ${new Date(viewDate.getFullYear(), viewDate.getMonth(), i + 1).toDateString() === new Date().toDateString()
-                                                        ? 'border border-[#00ADEF]/50 text-[#00ADEF]' : 'text-slate-300'
-                                                    }`}
-                                            >
-                                                {i + 1}
-                                            </button>
-                                        ))}
-                                    </div>
-                                </>
-                            )}
-
-                            {viewMode === 'years' && (
-                                <div className="grid grid-cols-3 gap-2">
-                                    {years.map(y => (
-                                        <button
-                                            key={y}
-                                            onClick={() => { setViewDate(new Date(y, viewDate.getMonth())); setViewMode('days'); }}
-                                            className="py-2 text-sm font-black italic text-slate-300 hover:text-[#00ADEF] hover:bg-white/5 rounded-lg"
-                                        >
-                                            {y}
-                                        </button>
-                                    ))}
-                                </div>
-                            )}
-
-                            {viewMode === 'months' && (
-                                <div className="grid grid-cols-2 gap-2">
-                                    {months.map((m, i) => (
-                                        <button
-                                            key={m}
-                                            onClick={() => { setViewDate(new Date(viewDate.getFullYear(), i)); setViewMode('days'); }}
-                                            className="py-2 text-sm font-black italic text-slate-300 hover:text-[#00ADEF] hover:bg-white/5 rounded-lg"
-                                        >
-                                            {m}
-                                        </button>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
-        </div>
-    );
-};
+// ──────────────── (Birth Date Component Removed) ────────────────
 
 type OutcomeType = 'ELIGIBLE' | 'MAYBE' | 'NOT_ELIGIBLE';
 
@@ -245,8 +58,6 @@ export default function StudyScreener() {
 
     // Form Data
     const [formData, setFormData] = useState<any>({
-        age: '',
-        date_of_birth: '',
         zipCode: '',
         location: '',
         trialsInLast30Days: '',
@@ -474,7 +285,7 @@ export default function StudyScreener() {
         if (!stepCfg) return true;
 
         if (stepCfg.id === 'STEP1') {
-            return formData.date_of_birth && formData.location;
+            return formData.location;
         }
         if (stepCfg.id === 'STEP2') {
             const hasTrialsCheck = !!formData.trialsInLast30Days;
@@ -712,25 +523,6 @@ export default function StudyScreener() {
                                 <div className="min-h-[350px] space-y-8">
                                     {currentStep.id === 'STEP1' && (
                                         <div className="space-y-6">
-                                            <div className="space-y-4">
-                                                <label className={`text-lg font-black italic tracking-tight ${isFieldInvalid('date_of_birth') ? 'text-red-500' : 'text-white'}`}>
-                                                    Birth Date <span className="text-[#00ADEF] ml-0.5">*</span>
-                                                </label>
-                                                <BirthDateField
-                                                    value={formData.date_of_birth}
-                                                    onChange={(val) => {
-                                                        const birthDate = new Date(val);
-                                                        const today = new Date();
-                                                        let age = today.getFullYear() - birthDate.getFullYear();
-                                                        const m = today.getMonth() - birthDate.getMonth();
-                                                        if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) age--;
-                                                        setFormData({ ...formData, date_of_birth: val, age: age.toString() });
-                                                    }}
-                                                    isMissing={isFieldInvalid('date_of_birth')}
-                                                />
-                                            </div>
-
-
                                             <div className="space-y-4">
                                                 <label className="text-lg font-black italic tracking-tight text-white">
                                                     Zip / Postal code

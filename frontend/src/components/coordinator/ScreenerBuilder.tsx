@@ -15,6 +15,7 @@ interface Question {
     placeholder: string;
     required: boolean;
     options?: string[];
+    allow_multiple?: boolean;
 }
 
 export default function ScreenerBuilder({ 
@@ -33,6 +34,8 @@ export default function ScreenerBuilder({
     const [isSaving, setIsSaving] = useState(false);
     const [statusMessage, setStatusMessage] = useState<{ text: string, type: 'success' | 'error' } | null>(null);
     const [showImportModal, setShowImportModal] = useState(false);
+    const [showSmartImportModal, setShowSmartImportModal] = useState(false);
+    const [smartImportText, setSmartImportText] = useState('');
 
     useEffect(() => {
         if (!standalone) {
@@ -123,6 +126,54 @@ export default function ScreenerBuilder({
         }
     };
 
+    const handleSmartImport = () => {
+        if (!smartImportText.trim()) return;
+        
+        // Simple heuristic parser for raw text questions and options
+        const blocks = smartImportText.trim().split(/\n\n+/);
+        const newQs: Question[] = [];
+        
+        for (const block of blocks) {
+            const lines = block.split('\n').map(l => l.trim()).filter(Boolean);
+            if (lines.length === 0) continue;
+            
+            // Assume the first line is the question text
+            const label = lines[0].replace(/^\d+[\.\)]\s*/, '').trim();
+            // Assume subsequent lines are options
+            const options = lines.slice(1).map(l => l.replace(/^[A-Za-z0-9][\.\)]\s*/, '').replace(/^-\s*/, '').trim());
+            
+            if (options.length > 0) {
+                newQs.push({
+                    id: `sq_smart_${Math.random().toString(36).substr(2, 9)}`,
+                    type: 'choice',
+                    label,
+                    placeholder: 'Select an option...',
+                    required: true,
+                    options,
+                    allow_multiple: false // Default to single choice
+                });
+            } else {
+                newQs.push({
+                    id: `sq_smart_${Math.random().toString(36).substr(2, 9)}`,
+                    type: 'short_text',
+                    label,
+                    placeholder: 'Enter response...',
+                    required: true
+                });
+            }
+        }
+        
+        if (newQs.length > 0) {
+            setQuestions([...questions, ...newQs]);
+            setStatusMessage({ text: `Smart extracted ${newQs.length} questions.`, type: 'success' });
+        } else {
+            setStatusMessage({ text: 'No questions detected. Please check formatting.', type: 'error' });
+        }
+        
+        setShowSmartImportModal(false);
+        setSmartImportText('');
+    };
+
     const handleSave = async () => {
         if (onSave) {
             onSave(questions);
@@ -206,11 +257,18 @@ export default function ScreenerBuilder({
 
 
                         <button
+                            onClick={() => setShowSmartImportModal(true)}
+                            className="flex items-center gap-3 px-6 h-14 bg-pink-500/10 border border-pink-500/20 rounded-2xl text-[11px] font-black text-pink-400 uppercase tracking-widest hover:bg-pink-500 hover:text-white transition-all active:scale-95"
+                        >
+                            <Terminal className="w-4 h-4" /> AI Extract
+                        </button>
+
+                        <button
                             onClick={() => setShowImportModal(true)}
                             disabled={!selectedStudyId}
                             className="flex items-center gap-3 px-6 h-14 bg-white/5 border border-white/10 rounded-2xl text-[11px] font-black text-slate-400 uppercase tracking-widest hover:bg-white/10 transition-all active:scale-95 disabled:opacity-30"
                         >
-                            <Database className="w-4 h-4" /> Import Questions
+                            <Database className="w-4 h-4" /> Import DB
                         </button>
 
                         <button
@@ -342,7 +400,15 @@ export default function ScreenerBuilder({
                                                              >
                                                                  {q.required ? 'Required' : 'Optional'}
                                                              </button>
-                                                             <span className="text-[10px] font-black text-slate-500 tracking-widest px-3 py-1.5 bg-white/5 rounded-lg border border-white/5">
+                                                             {q.type === 'choice' && (
+                                                                 <button
+                                                                     onClick={() => updateQuestion(q.id, { allow_multiple: !q.allow_multiple })}
+                                                                     className={`text-[9px] font-black tracking-widest px-3 py-1.5 rounded-lg border transition-all ${q.allow_multiple ? 'bg-indigo-500/10 border-indigo-500/30 text-indigo-400' : 'bg-white/5 border-white/5 text-slate-500 hover:text-slate-300'}`}
+                                                                 >
+                                                                     {q.allow_multiple ? 'Multiple Answers' : 'Single Answer'}
+                                                                 </button>
+                                                             )}
+                                                             <span className="text-[10px] font-black text-slate-500 tracking-widest px-3 py-1.5 bg-white/5 rounded-lg border border-white/5 whitespace-nowrap">
                                                                  {q.type.replace('_', ' ')}
                                                              </span>
                                                          </div>
@@ -463,6 +529,64 @@ export default function ScreenerBuilder({
                                 <p className="text-[10px] text-slate-400 font-medium leading-relaxed italic">
                                     Importing will append questions from the source protocol to your current draft. You can then modify or reorder them as needed.
                                 </p>
+                            </div>
+                        </motion.div>
+                    </>
+                )}
+            </AnimatePresence>
+            {/* Smart Import Modal */}
+            <AnimatePresence>
+                {showSmartImportModal && (
+                    <>
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => setShowSmartImportModal(false)}
+                            className="fixed inset-0 bg-black/80 backdrop-blur-md z-[150]"
+                        />
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                            className="fixed inset-0 m-auto w-full max-w-2xl h-fit bg-[#0f172a] border border-white/10 rounded-[2.5rem] p-10 z-[151] shadow-2xl"
+                        >
+                            <div className="flex items-center justify-between mb-8">
+                                <div>
+                                    <h3 className="text-2xl font-black text-white italic tracking-tighter">AI Text Extraction</h3>
+                                    <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest mt-1">Paste questions and options from a PDF or Document</p>
+                                </div>
+                                <button onClick={() => setShowSmartImportModal(false)} className="p-3 text-slate-500 hover:text-white transition-all bg-white/5 rounded-xl"><X /></button>
+                            </div>
+
+                            <textarea
+                                value={smartImportText}
+                                onChange={(e) => setSmartImportText(e.target.value)}
+                                placeholder={`1. Have you ever participated in a clinical trial?
+Yes
+No
+
+2. Which conditions do you have?
+Diabetes
+Hypertension
+Asthma`}
+                                className="w-full h-[300px] bg-[#0d1424] border border-white/10 rounded-2xl p-6 text-sm text-slate-300 outline-none focus:border-pink-500/50 transition-colors mb-6 resize-none custom-scrollbar"
+                            />
+
+                            <div className="flex justify-end gap-4">
+                                <button 
+                                    onClick={() => setShowSmartImportModal(false)}
+                                    className="px-6 py-3 rounded-xl text-xs font-bold text-slate-400 hover:text-white transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleSmartImport}
+                                    disabled={!smartImportText.trim()}
+                                    className="flex items-center gap-2 px-8 py-3 bg-pink-600 text-white rounded-xl text-xs font-black tracking-widest uppercase hover:bg-pink-500 transition-all disabled:opacity-50"
+                                >
+                                    <Terminal className="w-4 h-4" /> Extract & Import
+                                </button>
                             </div>
                         </motion.div>
                     </>

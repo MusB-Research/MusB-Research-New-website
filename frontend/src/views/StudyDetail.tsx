@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 import { fetchStudies, Study } from '../data/studies';
 import { motion } from 'framer-motion';
-import { authFetch } from '../utils/auth';
+import { authFetch, getRole, API } from '../utils/auth';
 import { Skeleton } from './Participant/SharedComponents';
 import SEO from '@/components/SEO';
 
@@ -308,12 +308,29 @@ export default function StudyDetail() {
                                 </div>
                             </div>
 
-                            <Link
-                                to={`/studies/${study.id}/screener`}
-                                className="inline-flex items-center justify-center px-10 py-5 bg-[#00ADEF] text-white rounded-full font-black text-[16px] uppercase tracking-[0.2em] hover:bg-white hover:text-[#00ADEF] hover:shadow-[0_0_30px_rgba(0,173,239,0.4)] hover:-translate-y-0.5 transition-all duration-300 relative z-10"
-                            >
-                                See If You Qualify
-                            </Link>
+                            {getRole() && getRole() !== 'PARTICIPANT' ? (
+                                <div className="space-y-4 w-full">
+                                    <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-2xl flex items-center gap-3 text-amber-500 text-left">
+                                        <Lock className="w-5 h-5 shrink-0" />
+                                        <p className="text-[11px] font-black uppercase tracking-widest leading-relaxed">
+                                            You are logged in as a {getRole().replace('_', ' ')}. This form is for participants only.
+                                        </p>
+                                    </div>
+                                    <button 
+                                        disabled
+                                        className="w-full py-5 bg-white/5 border border-white/10 text-white/30 rounded-full font-black text-[14px] uppercase tracking-[0.2em] cursor-not-allowed"
+                                    >
+                                        Access Restricted
+                                    </button>
+                                </div>
+                            ) : (
+                                <Link
+                                    to={`/studies/${study.id}/screener`}
+                                    className="inline-flex items-center justify-center px-10 py-5 bg-[#00ADEF] text-white rounded-full font-black text-[16px] uppercase tracking-[0.2em] hover:bg-white hover:text-[#00ADEF] hover:shadow-[0_0_30px_rgba(0,173,239,0.4)] hover:-translate-y-0.5 transition-all duration-300 relative z-10"
+                                >
+                                    See If You Qualify
+                                </Link>
+                            )}
 
                             <div className="flex items-center justify-center gap-6 pt-6 border-t border-white/5 w-full relative z-10">
                                 <div className="flex flex-col items-center gap-1">

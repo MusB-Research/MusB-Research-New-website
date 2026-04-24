@@ -30,6 +30,7 @@ export default function InvitationsModule({ allStudies = [] }: InvitationsModule
     const [searchQuery, setSearchQuery] = useState('');
     const [showInviteModal, setShowInviteModal] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [emailCheckResult, setEmailCheckResult] = useState<any>(null);
 
     const [inviteForm, setInviteForm] = useState({
         email: '',
@@ -71,7 +72,24 @@ export default function InvitationsModule({ allStudies = [] }: InvitationsModule
     const handleCreateInvitation = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsSubmitting(true);
+        setEmailCheckResult(null);
         try {
+            // Check if email already exists in system
+            const checkRes = await fetch(`${API}/api/auth/check-email/`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: inviteForm.email })
+            });
+
+            if (checkRes.ok) {
+                const checkData = await checkRes.json();
+                if (checkData.exists && !e.currentTarget.getAttribute('data-confirmed')) {
+                    setEmailCheckResult(checkData);
+                    setIsSubmitting(false);
+                    return;
+                }
+            }
+
             const res = await authFetch(`${API}/api/invitations/`, {
                 method: 'POST',
                 body: JSON.stringify(inviteForm)
@@ -418,19 +436,55 @@ export default function InvitationsModule({ allStudies = [] }: InvitationsModule
                                 </div>
 
                                 <div className="pt-4 border-t border-white/5 space-y-4">
-                                    <div className="flex items-start gap-3 p-4 bg-amber-500/5 border border-amber-500/10 rounded-2xl">
-                                        <AlertCircle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
-                                        <p className="text-[9px] text-amber-500/80 font-bold uppercase leading-relaxed tracking-wider">
-                                            Email dispatch is currently manual. Please share the login credentials securely after creating the invitation record.
-                                        </p>
-                                    </div>
+                                    {emailCheckResult && (
+                                        <div className="p-5 rounded-2xl bg-amber-500/10 border border-amber-500/20 space-y-4 animate-in fade-in zoom-in-95">
+                                            <div className="flex items-center gap-3">
+                                                <AlertCircle className="w-5 h-5 text-amber-500" />
+                                                <p className="text-[11px] font-black text-white uppercase tracking-widest">Email Already Exists</p>
+                                            </div>
+                                            <p className="text-[10px] text-white/60 font-medium leading-relaxed">
+                                                {emailCheckResult.message} Continuing will still send an invitation link which might overwrite their current role access if they accept.
+                                            </p>
+                                            <div className="flex gap-2">
+                                                <button 
+                                                    type="button"
+                                                    onClick={() => setEmailCheckResult(null)}
+                                                    className="flex-1 py-3 bg-white/5 border border-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-white/10 transition-all"
+                                                >
+                                                    Change Email
+                                                </button>
+                                                <button 
+                                                    type="button"
+                                                    onClick={(e) => {
+                                                        const form = e.currentTarget.closest('form');
+                                                        if (form) {
+                                                            form.setAttribute('data-confirmed', 'true');
+                                                            handleCreateInvitation({ preventDefault: () => {}, currentTarget: form } as any);
+                                                        }
+                                                    }}
+                                                    className="flex-1 py-3 bg-amber-500 text-slate-950 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-white transition-all"
+                                                >
+                                                    Invite Anyway
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {!emailCheckResult && (
+                                        <div className="flex items-start gap-3 p-4 bg-amber-500/5 border border-amber-500/10 rounded-2xl">
+                                            <AlertCircle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+                                            <p className="text-[9px] text-amber-500/80 font-bold uppercase leading-relaxed tracking-wider">
+                                                Email dispatch is currently manual. Please share the login credentials securely after creating the invitation record.
+                                            </p>
+                                        </div>
+                                    )}
 
                                     <button 
                                         disabled={isSubmitting}
                                         className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-black uppercase tracking-[0.2em] py-5 rounded-[1.5rem] shadow-xl shadow-indigo-600/20 flex items-center justify-center gap-3 active:scale-[0.98] transition-all"
                                     >
                                         {isSubmitting ? <RefreshCcw className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
-                                        Create Invitation
+                                        {emailCheckResult ? 'Confirm Re-Invitation' : 'Create Invitation'}
                                     </button>
                                 </div>
                             </form>

@@ -337,13 +337,26 @@ export default function ParticipantOversight({
                 body: JSON.stringify({ decision: reviewModal.decision, notes: reviewNotes }),
             });
             if (!res.ok) { const err = await res.json(); throw new Error(err.error || 'Review action failed'); }
+            
+            setParticipants(prev => prev.map(p => 
+                p.id === reviewModal.id 
+                    ? { 
+                        ...p, 
+                        rawStatus: reviewModal.decision === 'ACCEPT' ? 'ENROLLED' : 'INELIGIBLE',
+                        displayStatus: reviewModal.decision === 'ACCEPT' ? 'Enrolled' : 'Not Eligible'
+                      } 
+                    : p
+            ));
+
             showToast(
                 reviewModal.decision === 'ACCEPT'
                     ? `${reviewModal.name} has been enrolled successfully.`
                     : `${reviewModal.name} marked as not eligible.`,
                 'success'
             );
-            setReviewModal(null); setReviewNotes(''); fetchParticipants();
+            setReviewModal(null); setReviewNotes(''); 
+            if (onRefresh) onRefresh();
+            else fetchParticipants();
         } catch (e: any) {
             showToast(e.message || 'Review action failed.', 'error');
         } finally {

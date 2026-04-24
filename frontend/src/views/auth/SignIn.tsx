@@ -30,6 +30,7 @@ export default function SignIn() {
     const [resendCooldown, setResendCooldown] = useState(0);
     const [passwordStrength, setPasswordStrength] = useState({ score: 0, label: 'Weak', color: 'bg-red-500' });
     const [isAttemptingSubmit, setIsAttemptingSubmit] = useState(false);
+    const [emailCheckResult, setEmailCheckResult] = useState<any>(null);
     const googleInitRef = useRef(false);
 
     const navigate = useNavigate();
@@ -76,6 +77,30 @@ export default function SignIn() {
         return checks;
     };
 
+    const handleOptionSelect = (optionId: string) => {
+        setEmailCheckResult(null);
+        setError(null);
+        switch (optionId) {
+            case 'LOGIN':
+                setMode('LOGIN');
+                setStep('INFO');
+                break;
+            case 'RESET_PASSWORD':
+                setMode('FORGOT');
+                setStep('INFO');
+                break;
+            case 'ACCEPT_INVITATION':
+                navigate('/auth/accept-invitation');
+                break;
+            case 'FIND_ROLE':
+                setMode('LOGIN');
+                setStep('INFO');
+                break;
+            default:
+                setMode('LOGIN');
+        }
+    };
+
     // Handlers for Registration
     const handleSendOTP = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -87,6 +112,22 @@ export default function SignIn() {
         setIsLoading(true);
         setError(null);
         try {
+            // Senior Dev Pro-tip: Check if email exists before sending OTP
+            const checkRes = await fetch(`${API}/api/auth/check-email/`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email })
+            });
+            
+            if (checkRes.ok) {
+                const checkData = await checkRes.json();
+                if (checkData.exists) {
+                    setEmailCheckResult(checkData);
+                    setIsLoading(false);
+                    return;
+                }
+            }
+
             const response = await fetch(`${API}/api/auth/request-otp/`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -543,7 +584,44 @@ export default function SignIn() {
                     {/* Unified Card Content Area */}
                     <div className="relative z-10 min-h-[340px] flex flex-col justify-center">
                         <AnimatePresence mode="wait">
-                            {mode === 'FORGOT' ? (
+                            {emailCheckResult ? (
+                                <motion.div
+                                    key="email_exists"
+                                    initial={{ opacity: 0, scale: 0.95 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    exit={{ opacity: 0, scale: 0.95 }}
+                                    className="text-center space-y-8"
+                                >
+                                    <div className="w-20 h-20 bg-amber-500/10 border border-amber-500/20 rounded-[2.5rem] flex items-center justify-center mx-auto">
+                                        <AlertCircle className="w-10 h-10 text-amber-500" />
+                                    </div>
+                                    <div className="space-y-4">
+                                        <h3 className="text-2xl font-black text-white italic uppercase tracking-tighter">Already <span className="text-amber-400">Registered</span></h3>
+                                        <p className="text-[12px] text-slate-500 font-black uppercase tracking-widest leading-relaxed px-4">
+                                            {emailCheckResult.message}
+                                        </p>
+                                    </div>
+                                    <div className="space-y-3 px-4">
+                                        {emailCheckResult.options.map((opt: any) => (
+                                            <button
+                                                key={opt.id}
+                                                type="button"
+                                                onClick={() => handleOptionSelect(opt.id)}
+                                                className="w-full py-4 bg-white/5 border border-white/10 hover:bg-white hover:text-slate-950 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all"
+                                            >
+                                                {opt.label}
+                                            </button>
+                                        ))}
+                                        <button
+                                            type="button"
+                                            onClick={() => setEmailCheckResult(null)}
+                                            className="text-[11px] font-black uppercase tracking-widest text-slate-500 hover:text-white transition-colors pt-4"
+                                        >
+                                            Use different email
+                                        </button>
+                                    </div>
+                                </motion.div>
+                            ) : mode === 'FORGOT' ? (
                                 <motion.form
                                     key="forgot"
                                     initial={{ opacity: 0, x: -20 }}

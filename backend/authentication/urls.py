@@ -21,6 +21,7 @@ urlpatterns = [
     path('refresh/', auth.refresh_token_view, name='refresh'),
     path('verify/', auth.verify_token, name='verify_token'),
     path('google-login/', auth.google_login, name='google_login'),
+    path('check-email/', auth.check_email, name='check_email'),
     
     # Registration & Invitations
     path('register/', registration.register, name='register'),
