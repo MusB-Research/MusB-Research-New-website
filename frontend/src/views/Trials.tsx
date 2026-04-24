@@ -34,6 +34,7 @@ export default function Trials() {
     const [openFaq, setOpenFaq] = useState<number | null>(null);
     const [studies, setStudies] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [showCompleted, setShowCompleted] = useState(false);
 
     useEffect(() => {
         const getStudies = async () => {
@@ -94,7 +95,10 @@ export default function Trials() {
         const matchesType = selectedType === 'All' || study.type === selectedType;
         const matchesSearch = (study.title || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
             (study.description || '').toLowerCase().includes(searchQuery.toLowerCase());
-        return matchesCondition && matchesType && matchesSearch;
+        
+        const matchesCompletion = showCompleted ? study.status === 'Completed' : study.status !== 'Completed';
+        
+        return matchesCondition && matchesType && matchesSearch && matchesCompletion;
     });
 
     const faqs = [
@@ -289,8 +293,12 @@ export default function Trials() {
                 <section id="current-studies" className="pt-24 pb-8 relative z-10 overflow-hidden max-w-[1400px] mx-auto px-4 md:px-12" >
                     <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-16">
                         <div className="space-y-4">
-                            <h2 className="text-3xl md:text-5xl font-black text-white tracking-tight leading-tight uppercase">Currently Recruiting Studies</h2>
-                            <p className="text-lg md:text-xl text-slate-400 font-medium">Explore open studies. Spots can fill quickly.</p>
+                            <h2 className="text-3xl md:text-5xl font-black text-white tracking-tight leading-tight uppercase">
+                                {showCompleted ? 'Completed Studies' : 'Currently Recruiting Studies'}
+                            </h2>
+                            <p className="text-lg md:text-xl text-slate-400 font-medium">
+                                {showCompleted ? 'Explore our past research and findings.' : 'Explore open studies. Spots can fill quickly.'}
+                            </p>
                         </div>
                         <div className="bg-slate-900/40 backdrop-blur-xl p-4 rounded-3xl border border-white/10 flex gap-4">
                             <div className="relative">
@@ -303,6 +311,23 @@ export default function Trials() {
                                     onChange={(e) => setSearchQuery(e.target.value)}
                                 />
                             </div>
+
+                            <div className="h-8 w-px bg-white/10 mx-2 hidden md:block" />
+
+                            <label className="flex items-center gap-3 px-4 py-2 bg-white/5 rounded-2xl border border-white/5 hover:bg-white/10 transition-all cursor-pointer group">
+                                <div className="relative flex items-center justify-center">
+                                    <input
+                                        type="checkbox"
+                                        checked={showCompleted}
+                                        onChange={(e) => setShowCompleted(e.target.checked)}
+                                        className="peer appearance-none w-5 h-5 border-2 border-white/20 rounded-md checked:bg-cyan-500 checked:border-cyan-500 transition-all cursor-pointer"
+                                    />
+                                    <CheckCircle2 className="absolute w-3 h-3 text-slate-900 opacity-0 peer-checked:opacity-100 transition-opacity pointer-events-none" />
+                                </div>
+                                <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest group-hover:text-white transition-colors">
+                                    View Completed Studies
+                                </span>
+                            </label>
                         </div>
                     </div>
 
