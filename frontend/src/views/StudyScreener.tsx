@@ -83,8 +83,8 @@ export default function StudyScreener() {
 
     // ── Dynamic Steps Logic ──────────────────────────────────────────────
     const [steps, setSteps] = useState<StepConfig[]>([
-        { id: 'STEP2', title: 'ELIGIBILITY CRITERIA', type: 'user_input', editable: true, required: true },
-        { id: 'STEP3', title: 'CONTACT & LOCATION', type: 'auto', editable: true, required: true }
+        { id: 'STEP1', title: 'ELIGIBILITY CRITERIA', type: 'user_input', editable: true, required: true },
+        { id: 'STEP2', title: 'CONTACT & LOCATION', type: 'auto', editable: true, required: true }
     ]);
 
     useEffect(() => {
@@ -285,22 +285,12 @@ export default function StudyScreener() {
         if (!stepCfg) return true;
 
 
-        if (stepCfg.id === 'STEP2') {
-            const hasTrialsCheck = !!formData.trialsInLast30Days;
-            const hasLocation = !!formData.location;
-
-            // Check dynamic questions in the configuration
-            const dynamicQs = (stepCfg as any).questions || [];
-            const allDynamicFilled = dynamicQs.every((q: any, i: number) => {
-                if (!q.required) return true;
-                const fid = q.id || `idx_${i}`;
-                return !!formData[fid];
-            });
-
-            return hasTrialsCheck && hasLocation && allDynamicFilled;
+        if (stepCfg.id === 'STEP1') {
+            const allDynamicFilled = ((stepCfg as any).questions || []).every((q: any) => !q.required || formData[q.id || `idx_${steps.indexOf(stepCfg)}`]);
+            return formData.trialsInLast30Days && allDynamicFilled;
         }
-        if (stepCfg.id === 'STEP3') {
-            return formData.fullName && formData.email && formData.phone && formData.cvConsent && formData.availability;
+        if (stepCfg.id === 'STEP2') {
+            return formData.fullName && formData.email && formData.phone && formData.cvConsent && formData.availability && formData.zipCode && formData.location;
         }
         return true;
     };
@@ -522,36 +512,8 @@ export default function StudyScreener() {
                                 <div className="min-h-[350px] space-y-8">
 
 
-                                    {currentStep.id === 'STEP2' && (
+                                    {currentStep.id === 'STEP1' && (
                                         <div className="space-y-12">
-                                            {/* Location Section Moved to Step 2 (Eligibility) */}
-                                            <div className="space-y-8 bg-white/[0.02] p-8 rounded-[2rem] border border-white/5 shadow-2xl shadow-black/20">
-                                                <div className="space-y-4">
-                                                    <label className="text-lg font-black italic tracking-tight text-white block">Zip / Postal code</label>
-                                                    <div className="relative">
-                                                        <input
-                                                            type="text"
-                                                            readOnly={isStepReadOnly}
-                                                            value={formData.zipCode}
-                                                            onChange={(e) => handleZipChange(e.target.value)}
-                                                            className={`w-full bg-[#161f35] border border-white/10 rounded-2xl px-8 py-5 text-white text-xl outline-none focus:border-[#00ADEF]/50 ${isStepReadOnly ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                                            placeholder="Enter Zip Code"
-                                                        />
-                                                        {isLocating && <Loader2 className="absolute right-6 top-6 w-5 h-5 text-[#00ADEF] animate-spin" />}
-                                                    </div>
-                                                </div>
-                                                <div className="space-y-4">
-                                                    <label className={`text-lg font-black italic tracking-tight block ${isFieldInvalid('location') ? 'text-red-500' : 'text-white'}`}>Current city, state, country</label>
-                                                    <input
-                                                        type="text"
-                                                        readOnly={isStepReadOnly}
-                                                        value={formData.location}
-                                                        onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                                                        className={`w-full bg-[#161f35] border rounded-2xl px-8 py-5 text-white text-lg outline-none transition-all ${isFieldInvalid('location') ? 'border-red-500/50' : 'border-white/10 focus:border-[#00ADEF]/80'} ${isStepReadOnly ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                                        placeholder="Auto-filled or enter manually"
-                                                    />
-                                                </div>
-                                            </div>
 
                                             {/* Section A: Quick Eligibility Check (Fixed) */}
                                             <div className="space-y-6 bg-white/[0.02] p-8 rounded-[2rem] border border-white/5 shadow-2xl shadow-black/20">
@@ -657,8 +619,36 @@ export default function StudyScreener() {
                                         </div>
                                     )}
 
-                                    {currentStep.id === 'STEP3' && (
+                                    {currentStep.id === 'STEP2' && (
                                         <div className="space-y-8">
+                                            {/* Location Section Moved to Step 2 (Contact & Location) */}
+                                            <div className="space-y-8 bg-white/[0.02] p-8 rounded-[2rem] border border-white/5 shadow-2xl shadow-black/20">
+                                                <div className="space-y-4">
+                                                    <label className="text-lg font-black italic tracking-tight text-white block">Zip / Postal code</label>
+                                                    <div className="relative">
+                                                        <input
+                                                            type="text"
+                                                            readOnly={isStepReadOnly}
+                                                            value={formData.zipCode}
+                                                            onChange={(e) => handleZipChange(e.target.value)}
+                                                            className={`w-full bg-[#161f35] border border-white/10 rounded-2xl px-8 py-5 text-white text-xl outline-none focus:border-[#00ADEF]/50 ${isStepReadOnly ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                                            placeholder="Enter Zip Code"
+                                                        />
+                                                        {isLocating && <Loader2 className="absolute right-6 top-6 w-5 h-5 text-[#00ADEF] animate-spin" />}
+                                                    </div>
+                                                </div>
+                                                <div className="space-y-4">
+                                                    <label className={`text-lg font-black italic tracking-tight block ${isFieldInvalid('location') ? 'text-red-500' : 'text-white'}`}>Current city, state, country</label>
+                                                    <input
+                                                        type="text"
+                                                        readOnly={isStepReadOnly}
+                                                        value={formData.location}
+                                                        onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                                                        className={`w-full bg-[#161f35] border rounded-2xl px-8 py-5 text-white text-lg outline-none transition-all ${isFieldInvalid('location') ? 'border-red-500/50' : 'border-white/10 focus:border-[#00ADEF]/80'} ${isStepReadOnly ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                                        placeholder="Auto-filled or enter manually"
+                                                    />
+                                                </div>
+                                            </div>
                                             <div className="space-y-4">
                                                 <label className={`text-lg font-bold ${isFieldInvalid('fullName') ? 'text-red-500' : 'text-slate-300'}`}>Full name</label>
                                                 <input
@@ -784,15 +774,13 @@ export default function StudyScreener() {
                                     </div>
                                     <button
                                         onClick={() => {
-                                            if (enrollmentResult?.is_pending_multi_enrollment) {
-                                                navigate('/dashboard/participant');
-                                            } else if (isExistingParticipant) {
+                                            if (isExistingParticipant || getAccessToken()) {
                                                 navigate('/dashboard/participant');
                                             } else {
                                                 // New User Flow: Redirect to signin with data
                                                 navigate('/signin', {
                                                     state: {
-                                                        redirectTo: `/studies/${study.id}/consent`,
+                                                        redirectTo: `/dashboard/participant`,
                                                         email: formData.email,
                                                         fullName: formData.fullName,
                                                         screenerData: formData
@@ -802,9 +790,7 @@ export default function StudyScreener() {
                                         }}
                                         className="w-full py-6 bg-[#00ADEF] text-white rounded-3xl font-bold text-sm tracking-wide hover:bg-white hover:text-[#00ADEF] transition-all shadow-2xl shadow-[#00ADEF]/20 active:scale-[0.98]"
                                     >
-                                        {enrollmentResult?.is_pending_multi_enrollment
-                                            ? 'Back to portal'
-                                            : (isExistingParticipant ? 'Proceed to consent' : 'Proceed to consent')}
+                                        {isExistingParticipant || getAccessToken() ? 'Go to Dashboard' : 'Login or Create Account'}
                                     </button>
                                 </div>
                             )}
@@ -817,7 +803,7 @@ export default function StudyScreener() {
                                     <h1 className="text-3xl font-black text-white italic text-slate-400">Status: Review required</h1>
                                     <div className="bg-slate-950/50 p-8 rounded-3xl border border-white/5">
                                         <p className="text-slate-400 font-medium leading-relaxed">
-                                            Based on your responses, our clinical team will review your profile manually.
+                                            We have received your application. After reviewing, our clinical team will contact you. Please make sure you have provided the correct documents for review.
                                         </p>
                                     </div>
                                     <button
@@ -825,12 +811,19 @@ export default function StudyScreener() {
                                             if (isExistingParticipant || getAccessToken()) {
                                                 navigate('/dashboard/participant');
                                             } else {
-                                                navigate('/trials');
+                                                navigate('/signin', {
+                                                    state: {
+                                                        redirectTo: `/dashboard/participant`,
+                                                        email: formData.email,
+                                                        fullName: formData.fullName,
+                                                        screenerData: formData
+                                                    }
+                                                });
                                             }
                                         }}
                                         className="w-full py-5 bg-[#00ADEF] text-white rounded-2xl font-bold text-[11px] tracking-widest uppercase transition-all shadow-lg shadow-[#00ADEF]/20"
                                     >
-                                        {isExistingParticipant || getAccessToken() ? 'Go to My Dashboard' : 'Explore other trials'}
+                                        {isExistingParticipant || getAccessToken() ? 'Go to Dashboard' : 'Login or Create Account'}
                                     </button>
                                 </div>
                             )}

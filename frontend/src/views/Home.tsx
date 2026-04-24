@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, ChevronLeft, ChevronRight, ChevronDown, Brain, FlaskConical, Activity, TestTube, Microscope, Leaf, Flower, Flower2, ShieldCheck, Zap, Beaker, BarChart, FileText, Stethoscope, Database, Smartphone, Box, CheckCircle2, Building2, Globe, HeartPulse, X, Calendar, Newspaper, Clock } from 'lucide-react';
 import StudyFilterSection from '@/components/StudyFilterSection';
-import { authFetch } from '../utils/auth';
+import { authFetch, API } from '../utils/auth';
+import { getMediaUrl, handleImageError } from '../utils/media';
 import SEO from '@/components/SEO';
 
 const decodeHTML = (html: string) => {
@@ -1407,7 +1408,8 @@ export default function Home() {
                         title: decodeHTML(n.title),
                         excerpt: decodeHTML(n.excerpt || n.content?.substring(0, 150)),
                         date: n.published_at || n.created_at,
-                        displayDate: new Date(n.published_at || n.created_at || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                        displayDate: new Date(n.published_at || n.created_at || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+                        imageUrl: getMediaUrl(n.image_url || n.image)
                     }))];
                 }
                 if (eventsRes.ok) {
@@ -1419,7 +1421,8 @@ export default function Home() {
                         title: decodeHTML(e.title || e.name),
                         excerpt: decodeHTML(e.description || e.excerpt),
                         date: e.date || e.event_date,
-                        displayDate: new Date(e.date || e.event_date || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                        displayDate: new Date(e.date || e.event_date || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+                        imageUrl: getMediaUrl(e.image_url || e.image)
                     }))];
                 }
                 
@@ -1611,8 +1614,8 @@ export default function Home() {
                                     {/* Image Container */}
                                     <div className="relative aspect-[16/10] overflow-hidden bg-slate-900">
                                         <img 
-                                            src={item.image_url || item.image || 'https://images.unsplash.com/photo-1576091160550-217359ece236?q=80&w=2070&auto=format&fit=crop'} 
-                                            onError={(e) => { (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1576091160550-217359ece236?q=80&w=2070&auto=format&fit=crop'; }}
+                                            src={getMediaUrl(item.imageUrl)} 
+                                            onError={handleImageError}
                                             alt={item.title}
                                             className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
                                         />

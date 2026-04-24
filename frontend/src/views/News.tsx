@@ -22,6 +22,7 @@ import { authFetch , API } from '../utils/auth';
 import { Link } from 'react-router-dom';
 import SEO from '@/components/SEO';
 import { SkeletonLoader } from '../components/shared/SkeletonLoader';
+import { getMediaUrl, handleImageError } from '../utils/media';
 
 const categories: (NewsType | 'All')[] = [
     'All',
@@ -128,7 +129,7 @@ export default function News() {
                         title: decodeEntities(n.title || 'Untitled News'),
                         excerpt: stripToPlainText(n.excerpt || n.content || 'No excerpt available.'),
                         date: new Date(n.published_at || n.created_at || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-                        imageUrl: n.image_url || n.image
+                        imageUrl: getMediaUrl(n.image_url || n.image)
                     }))];
                 }
 
@@ -141,7 +142,7 @@ export default function News() {
                         title: decodeEntities(e.title || e.name || 'Untitled Event'),
                         excerpt: stripToPlainText(e.description || e.excerpt || 'No description available.'),
                         date: new Date(e.date || e.event_date || e.created_at || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-                        imageUrl: e.image_url || e.image
+                        imageUrl: getMediaUrl(e.image_url || e.image)
                     }))];
                 }
 
@@ -365,8 +366,14 @@ export default function News() {
                             <section className="relative group">
                                 <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/20 to-indigo-500/20 rounded-[3rem] blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
                                 <div className="relative bg-white/5 border border-white/10 rounded-[3rem] overflow-hidden grid lg:grid-cols-2 shadow-2xl">
-                                    <div className="aspect-[16/9] lg:aspect-auto overflow-hidden bg-slate-900 border-r border-slate-800">
-                                        <div className="w-full h-[400px] bg-gradient-to-br from-cyan-500/20 to-indigo-500/20 group-hover:scale-105 transition-transform duration-1000"></div>
+                                    <div className="aspect-[16/9] lg:aspect-auto overflow-hidden bg-slate-900 border-r border-slate-800 relative">
+                                        <img 
+                                            src={getMediaUrl(featuredItem.imageUrl)} 
+                                            onError={handleImageError}
+                                            alt={featuredItem.title} 
+                                            className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000"
+                                        />
+                                        <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/20 to-indigo-500/20 group-hover:scale-105 transition-transform duration-1000"></div>
                                     </div>
                                     <div className="p-8 md:p-12 flex flex-col justify-center space-y-6">
                                         <div className="flex items-center gap-3">
@@ -423,8 +430,8 @@ export default function News() {
                                                     <div key={item.id} className={`group bg-white/5 border border-white/5 rounded-[2.5rem] overflow-hidden flex flex-col hover:bg-white/10 hover:border-white/10 ${accent.border} transition-all duration-300 shadow-xl`}>
                                                         <div className="aspect-[16/10] overflow-hidden relative">
                                                             <img 
-                                                                src={item.imageUrl || 'https://images.unsplash.com/photo-1576091160550-217359ece236?q=80&w=2070&auto=format&fit=crop'} 
-                                                                onError={(e) => { (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1576091160550-217359ece236?q=80&w=2070&auto=format&fit=crop'; }}
+                                                                src={getMediaUrl(item.imageUrl)} 
+                                                                onError={handleImageError}
                                                                 alt={item.title} 
                                                                 className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                                                             />

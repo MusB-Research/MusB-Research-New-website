@@ -4,6 +4,7 @@ import { ArrowLeft, Calendar, Tag, ExternalLink } from 'lucide-react';
 import { fetchNewsDetail, fetchEventDetail } from '../api';
 import { motion } from 'framer-motion';
 import SEO from '@/components/SEO';
+import { getMediaUrl, handleImageError } from '../utils/media';
 
 /** Decode HTML entities that may have been stored by older sanitizer */
 function decodeEntities(str: string): string {
@@ -163,7 +164,8 @@ export default function NewsDetail() {
                     {item.image_url && (
                         <div className="rounded-2xl overflow-hidden border border-white/10">
                             <img
-                                src={item.image_url}
+                                src={getMediaUrl(item.image_url || item.image)}
+                                onError={handleImageError}
                                 alt={title}
                                 className="w-full h-64 md:h-96 object-cover"
                             />
