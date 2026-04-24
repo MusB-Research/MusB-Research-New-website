@@ -37,7 +37,7 @@ def check_permission(creator, target_role):
     
     if c_role == "coordinator" and c_aff == "musb":
         # Coordinators can manage the medical team and recruitment pool
-        return t_role in ["sponsor", "pi", "participant"]
+        return t_role in ["sponsor", "pi", "coordinator", "participant"]
     
     if c_role == "pi" and c_aff == "musb":
         # MUSB PIs can manage their team and participants
@@ -517,12 +517,9 @@ def admin_list_users(request):
         limit = 100
 
     # Base queryset: Exclude participants from professional team views by default
-    # Also exclude pending/unactivated users so they only appear in the Invitations module
+    # We now INCLUDE pending/unactivated users so they can be assigned to studies immediately after invitation
     users = User.objects.select_related('invited_by').exclude(
-        Q(role__in=['PARTICIPANT', 'participant', 'Participant']) |
-        Q(must_change_password=True) |
-        Q(status__iexact='PENDING') |
-        Q(status__iexact='pending')
+        role__in=['PARTICIPANT', 'participant', 'Participant']
     )
 
     if role:

@@ -13,10 +13,12 @@ import { authFetch, revealValue } from '../../../utils/auth';
 export default function TeamModule({ 
     selectedStudyId, 
     initialUsers,
+    allStudies = [],
     onRefresh
 }: { 
     selectedStudyId?: string, 
     initialUsers?: any[],
+    allStudies?: any[],
     onRefresh?: () => void 
 }) {
     // State
@@ -48,20 +50,20 @@ export default function TeamModule({
     const fetchTeam = useCallback(async () => {
         setLoading(true);
         try {
-            const response = await authFetch('/api/users/');
+            // Using the unified listing endpoint that includes pending invitations
+            const response = await authFetch('/api/auth/list-team-members/');
             if (response.ok) {
                 const data = await response.json();
-                const results = data.results !== undefined ? data.results : data;
-                const membersArray = Array.isArray(results) ? results : [];
+                const membersArray = Array.isArray(data) ? data : [];
                 
                 const formatted: TeamMember[] = membersArray.map((u: any) => ({
                     id: u.id,
-                    name: revealValue(u.full_name, u.decrypted_name) || u.email?.split('@')[0] || 'Unknown User',
+                    name: u.name || revealValue(u.full_name, u.decrypted_name) || u.email?.split('@')[0] || 'Unknown User',
                     email: revealValue(u.email) || u.email || 'unknown@domain',
-                    phone: u.phone_number || 'N/A',
+                    phone: u.phone || u.phone_number || 'N/A',
                     role: u.role === 'PARTICIPANT' ? 'Participant' : u.role || 'Staff',
                     type: (u.affiliation || 'musb').toLowerCase() === 'onsite' ? 'Office' : 'MusB',
-                    status: u.is_active ? 'Active' : 'Inactive',
+                    status: u.status === 'PENDING' ? 'Draft' : (u.is_active !== false ? 'Active' : 'Inactive'),
                     assignedStudies: u.assigned_studies || [],
                     permissionLevel: 'Full',
                     expertise: u.affiliation === 'musb' ? (u.role === 'PI' ? 'Principal Investigator' : 'Clinical Ops') : undefined,
@@ -76,7 +78,6 @@ export default function TeamModule({
                 setMusbTeam(staffOnly.filter(m => m.type === 'MusB'));
                 setOfficeTeam(staffOnly.filter(m => m.type === 'Office'));
             } else {
-                // If status is not 200, log it and show a precise error
                 console.error(`Registry fetch failed: ${response.status}`);
                 addToast(`Sync failed: ${response.status}`, 'error');
             }
@@ -141,35 +142,71 @@ export default function TeamModule({
                 'PI': 'PI'
             };
 
-            const payload = {
-                full_name: editedMember.name,
-                email: editedMember.email,
-                phone_number: editedMember.phone,
-                role: roleMapper[editedMember.role || 'Other'] || 'TEAM_MEMBER',
-                affiliation: editedMember.type === 'Office' ? 'onsite' : 'musb',
-                is_active: editedMember.status === 'Active',
-                assigned_studies: editedMember.assignedStudies || []
-            };
+            const mappedRole = roleMapper[editedMember.role || 'Other'] || 'TEAM_MEMBER';
 
-            const url = panelMode === 'edit' ? `/api/users/${editedMember.id}/` : '/api/users/';
-            const method = panelMode === 'edit' ? 'PATCH' : 'POST';
+            if (panelMode === 'add') {
+                // Use Invitation Endpoint for new members to ensure proper email flow
+                const response = await authFetch('/api/auth/invite-team-member/', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        email: editedMember.email,
+                        role: mappedRole,
+                        organization: editedMember.type === 'Office' ? 'onsite' : 'MusB',
+                        study_ids: editedMember.assignedStudies || []
+                    })
+                });
 
-            const response = await authFetch(url, {
-                method,
-                body: JSON.stringify(payload)
-            });
-
-            if (response.ok) {
-                addToast(panelMode === 'edit' ? 'Clinical record synchronized' : 'Personnel record initialized');
-                if (onRefresh) onRefresh();
-                else fetchTeam();
-                setPanelOpen(false);
+                if (response.ok) {
+                    addToast('Invitation dispatched to team member');
+                    if (onRefresh) onRefresh();
+                    else fetchTeam();
+                    setPanelOpen(false);
+                } else {
+                    const err = await response.json();
+                    addToast(err.error || 'Registry invitation failed', 'error');
+                }
             } else {
-                const err = await response.json();
-                addToast(err.error || 'Registry update failed', 'error');
+                // Update existing User record
+                const response = await authFetch(`/api/users/${editedMember.id}/`, {
+                    method: 'PATCH',
+                    body: JSON.stringify({
+                        full_name: editedMember.name,
+                        email: editedMember.email,
+                        phone_number: editedMember.phone,
+                        role: mappedRole,
+                        affiliation: editedMember.type === 'Office' ? 'onsite' : 'musb',
+                        is_active: editedMember.status === 'Active',
+                        assigned_studies: editedMember.assignedStudies || []
+                    })
+                });
+
+                if (response.ok) {
+                    addToast('Personnel record synchronized');
+                    if (onRefresh) onRefresh();
+                    else fetchTeam();
+                    setPanelOpen(false);
+                } else {
+                    const err = await response.json();
+                    addToast(err.error || 'Registry update failed', 'error');
+                }
             }
         } catch (error) {
             addToast('Terminal connection error', 'error');
+        }
+    };
+
+    const handleResendInvitation = async (member: TeamMember) => {
+        try {
+            const response = await authFetch(`/api/auth/resend-invitation/${member.id}/`, {
+                method: 'POST'
+            });
+            if (response.ok) {
+                addToast('Invitation reminder dispatched');
+            } else {
+                addToast('Failed to resend invitation', 'error');
+            }
+        } catch (error) {
+            addToast('Connection failure', 'error');
         }
     };
 
@@ -390,6 +427,7 @@ export default function TeamModule({
                                             onEdit={(mem) => { setPanelMode('edit'); setEditedMember(mem); setPanelOpen(true); }}
                                             onDelete={handleDeleteMember}
                                             onStatusToggle={handleStatusToggle}
+                                            onResendInvite={handleResendInvitation}
                                             activeRowMenu={activeRowMenu}
                                             setActiveRowMenu={setActiveRowMenu}
                                         />
@@ -416,6 +454,8 @@ export default function TeamModule({
                                             <span className={`px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border ${
                                                 m.status === 'Active' 
                                                 ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' 
+                                                : (m.status === 'Draft' || m.status === 'PENDING')
+                                                ? 'bg-amber-500/10 text-amber-400 border-amber-500/20'
                                                 : 'bg-white/5 text-slate-500 border-white/5'
                                             }`}>
                                                 {m.status}
@@ -447,18 +487,29 @@ export default function TeamModule({
                                     <div className="flex gap-2 pt-4 border-t border-white/5">
                                         {m.type !== 'MusB' ? (
                                             <>
-                                                <button 
-                                                    onClick={() => { setPanelMode('edit'); setEditedMember(m); setPanelOpen(true); }}
-                                                    className="flex-1 py-2.5 bg-white/5 border border-white/5 rounded-xl text-[10px] font-black text-slate-300 uppercase tracking-widest hover:bg-white/10 transition-all flex items-center justify-center gap-2"
-                                                >
-                                                    <Edit2 size={14} className="text-blue-400" /> Edit
-                                                </button>
-                                                <button 
-                                                    onClick={() => handleStatusToggle(m)}
-                                                    className="flex-1 py-2.5 bg-white/5 border border-white/5 rounded-xl text-[10px] font-black text-slate-300 uppercase tracking-widest hover:bg-white/10 transition-all flex items-center justify-center gap-2"
-                                                >
-                                                    {m.status === 'Inactive' ? <Unlock size={14} className="text-emerald-400" /> : <Lock size={14} className="text-amber-400" />} {m.status === 'Inactive' ? 'Activate' : 'Suspend'}
-                                                </button>
+                                                {(m.status === 'Draft' || m.status === 'PENDING') ? (
+                                                    <button 
+                                                        onClick={() => handleResendInvitation(m)}
+                                                        className="flex-1 py-2.5 bg-blue-500/10 border border-blue-500/20 rounded-xl text-[10px] font-black text-blue-400 uppercase tracking-widest hover:bg-blue-500/20 transition-all flex items-center justify-center gap-2"
+                                                    >
+                                                        <RefreshCcw size={14} /> Resend Invite
+                                                    </button>
+                                                ) : (
+                                                    <>
+                                                        <button 
+                                                            onClick={() => { setPanelMode('edit'); setEditedMember(m); setPanelOpen(true); }}
+                                                            className="flex-1 py-2.5 bg-white/5 border border-white/5 rounded-xl text-[10px] font-black text-slate-300 uppercase tracking-widest hover:bg-white/10 transition-all flex items-center justify-center gap-2"
+                                                        >
+                                                            <Edit2 size={14} className="text-blue-400" /> Edit
+                                                        </button>
+                                                        <button 
+                                                            onClick={() => handleStatusToggle(m)}
+                                                            className="flex-1 py-2.5 bg-white/5 border border-white/5 rounded-xl text-[10px] font-black text-slate-300 uppercase tracking-widest hover:bg-white/10 transition-all flex items-center justify-center gap-2"
+                                                        >
+                                                            {m.status === 'Inactive' ? <Unlock size={14} className="text-emerald-400" /> : <Lock size={14} className="text-amber-400" />} {m.status === 'Inactive' ? 'Activate' : 'Suspend'}
+                                                        </button>
+                                                    </>
+                                                )}
                                                 <button 
                                                     onClick={() => handleDeleteMember(m)}
                                                     className="p-2.5 bg-rose-500/10 border border-rose-500/20 rounded-xl text-rose-400 hover:bg-rose-500/20 transition-all"
@@ -485,6 +536,7 @@ export default function TeamModule({
                 mode={panelMode}
                 editedMember={editedMember}
                 setEditedMember={setEditedMember}
+                allStudies={allStudies}
                 handleSave={handleSaveMember}
                 handleActivate={handleActivateUser}
                 triggerUpload={(id) => { activeDocId.current = id; fileInputRef.current?.click(); }}

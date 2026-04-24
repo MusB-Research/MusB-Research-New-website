@@ -8,6 +8,7 @@ interface PersonnelPanelProps {
     mode: 'add' | 'edit';
     editedMember: Partial<TeamMember>;
     setEditedMember: (member: Partial<TeamMember>) => void;
+    allStudies?: any[];
     handleSave: () => void;
     handleActivate: () => void;
     triggerUpload: (docId: string) => void;
@@ -19,6 +20,7 @@ export const PersonnelPanel: React.FC<PersonnelPanelProps> = ({
     mode,
     editedMember,
     setEditedMember,
+    allStudies = [],
     handleSave,
     handleActivate,
     triggerUpload
@@ -109,7 +111,8 @@ export const PersonnelPanel: React.FC<PersonnelPanelProps> = ({
                         <div className="space-y-4">
                             <label className="text-[10px] sm:text-[11px] font-black text-slate-500 uppercase tracking-[0.15em]">Active study assignments</label>
                             <div className="flex flex-wrap gap-1.5 sm:gap-2">
-                                {PROTOCOLS && PROTOCOLS.map(p => {
+                                {allStudies && allStudies.map(study => {
+                                    const p = study.protocol_id || study.id;
                                     const selected = editedMember.assignedStudies?.includes(p);
                                     return (
                                         <button key={p}

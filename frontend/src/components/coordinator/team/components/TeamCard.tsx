@@ -7,6 +7,7 @@ interface TeamCardProps {
     onEdit: (member: TeamMember) => void;
     onDelete: (member: TeamMember) => void;
     onStatusToggle: (member: TeamMember) => void;
+    onResendInvite: (member: TeamMember) => void;
     activeRowMenu: string | null;
     setActiveRowMenu: (id: string | null) => void;
 }
@@ -16,10 +17,12 @@ export const TeamCard: React.FC<TeamCardProps> = ({
     onEdit,
     onDelete,
     onStatusToggle,
+    onResendInvite,
     activeRowMenu,
     setActiveRowMenu
 }) => {
     const isMusB = member.type === 'MusB';
+    const isPending = member.status === 'Draft' || member.status === 'PENDING';
 
     return (
         <tr className="hover:bg-white/[0.03] transition-all group relative">
@@ -49,6 +52,8 @@ export const TeamCard: React.FC<TeamCardProps> = ({
                 <span className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-[0.2em] border ${
                     member.status === 'Active' 
                     ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' 
+                    : isPending
+                    ? 'bg-amber-500/10 text-amber-400 border-amber-500/20'
                     : 'bg-white/5 text-slate-500 border-white/5'
                 }`}>
                     {member.status}
@@ -73,18 +78,31 @@ export const TeamCard: React.FC<TeamCardProps> = ({
                                 <>
                                     <div className="fixed inset-0 z-40" onClick={() => setActiveRowMenu(null)} />
                                     <div className="absolute right-0 top-full mt-2 bg-[#1E293B] border border-white/10 rounded-xl z-50 w-52 shadow-2xl overflow-hidden py-1">
-                                        <button 
-                                            className="w-full px-5 py-4 flex items-center gap-3 text-xs font-black uppercase tracking-widest text-slate-300 hover:bg-white/5 hover:text-white transition-all text-left"
-                                            onClick={() => { onEdit(member); setActiveRowMenu(null); }}
-                                        >
-                                            <Edit2 size={16} className="text-blue-400" /> Edit record
-                                        </button>
-                                        <button 
-                                            className="w-full px-5 py-4 flex items-center gap-3 text-xs font-black uppercase tracking-widest text-slate-300 hover:bg-white/5 hover:text-white transition-all text-left"
-                                            onClick={() => { onStatusToggle(member); setActiveRowMenu(null); }}
-                                        >
-                                            {member.status === 'Inactive' ? <><Unlock size={16} className="text-emerald-400" /> Activate access</> : <><Lock size={16} className="text-amber-400" /> Suspend access</>}
-                                        </button>
+                                        {isPending ? (
+                                            <button 
+                                                className="w-full px-5 py-4 flex items-center gap-3 text-xs font-black uppercase tracking-widest text-slate-300 hover:bg-white/5 hover:text-white transition-all text-left"
+                                                onClick={() => { onResendInvite(member); setActiveRowMenu(null); }}
+                                            >
+                                                <RefreshCcw size={16} className="text-blue-400" /> Resend invitation
+                                            </button>
+                                        ) : (
+                                            <button 
+                                                className="w-full px-5 py-4 flex items-center gap-3 text-xs font-black uppercase tracking-widest text-slate-300 hover:bg-white/5 hover:text-white transition-all text-left"
+                                                onClick={() => { onEdit(member); setActiveRowMenu(null); }}
+                                            >
+                                                <Edit2 size={16} className="text-blue-400" /> Edit record
+                                            </button>
+                                        )}
+                                        
+                                        {!isPending && (
+                                            <button 
+                                                className="w-full px-5 py-4 flex items-center gap-3 text-xs font-black uppercase tracking-widest text-slate-300 hover:bg-white/5 hover:text-white transition-all text-left"
+                                                onClick={() => { onStatusToggle(member); setActiveRowMenu(null); }}
+                                            >
+                                                {member.status === 'Inactive' ? <><Unlock size={16} className="text-emerald-400" /> Activate access</> : <><Lock size={16} className="text-amber-400" /> Suspend access</>}
+                                            </button>
+                                        )}
+                                        
                                         <div className="h-px bg-white/5 mx-2 my-1" />
                                         <button 
                                             className="w-full px-5 py-4 flex items-center gap-3 text-xs font-black uppercase tracking-widest text-rose-400 hover:bg-rose-500/10 transition-all text-left"

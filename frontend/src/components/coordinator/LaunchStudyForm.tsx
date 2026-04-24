@@ -7,7 +7,7 @@ import {
     AlertCircle, History, CheckSquare, TrendingUp,
     ShieldCheck, Microscope, UserPlus, FileCheck, Layers,
     Briefcase, Plus, Calendar, Award, DollarSign,
-    Building2, Search, Building, Check, ExternalLink, MousePointer2
+    Building2, Search, Building, Check, ExternalLink, MousePointer2, Save
 } from 'lucide-react';
 import { authFetch, API, revealValue } from '../../utils/auth';
 import QuestionnaireBuilder from './QuestionnaireBuilder';
@@ -111,13 +111,14 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
 
     // Required for tracking newly invited personnel during the session
     const [invitedSponsors, setInvitedSponsors] = useState<any[]>([]);
+    const [invitedPersonnel, setInvitedPersonnel] = useState<any[]>([]);
     const [fetchedPIs, setFetchedPIs] = useState<any[]>([]);
     const [fetchedCoordinators, setFetchedCoordinators] = useState<any[]>([]);
     const [fetchedSponsorUsers, setFetchedSponsorUsers] = useState<any[]>([]);
 
     const [showInviteSponsorModal, setShowInviteSponsorModal] = useState(false);
     const [showInviteMemberModal, setShowInviteMemberModal] = useState(false);
-    const [inviteMemberRole, setInviteMemberRole] = useState<'PI' | 'COORDINATOR' | 'STUDY_STAFF'>('PI');
+    const [inviteMemberRole, setInviteMemberRole] = useState<'PI' | 'COORDINATOR' | 'TEAM_MEMBER'>('PI');
     const [inviteData, setInviteData] = useState({ name: '', email: '', organization: '' });
     const [inviteLoading, setInviteLoading] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -130,8 +131,17 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
         return s?.screener_config?.questions || s?.screener_config?.steps?.find((st: any) => st.type === 'user_input')?.questions || [];
     }, []);
 
-    const displayPIs = useMemo(() => (availablePIs && availablePIs.length > 0) ? availablePIs : fetchedPIs, [availablePIs, fetchedPIs]);
-    const displayCoordinators = useMemo(() => (availableCoordinators && availableCoordinators.length > 0) ? availableCoordinators : fetchedCoordinators, [availableCoordinators, fetchedCoordinators]);
+    const displayPIs = useMemo(() => {
+        const base = (availablePIs && availablePIs.length > 0) ? availablePIs : fetchedPIs;
+        const invited = invitedPersonnel.filter(u => u.role === 'PI' || u.role === 'pi');
+        return [...base, ...invited];
+    }, [availablePIs, fetchedPIs, invitedPersonnel]);
+
+    const displayCoordinators = useMemo(() => {
+        const base = (availableCoordinators && availableCoordinators.length > 0) ? availableCoordinators : fetchedCoordinators;
+        const invited = invitedPersonnel.filter(u => u.role === 'COORDINATOR' || u.role === 'coordinator');
+        return [...base, ...invited];
+    }, [availableCoordinators, fetchedCoordinators, invitedPersonnel]);
     const displaySponsorUsers = useMemo(() => {
         const base = (availableSponsorUsers && availableSponsorUsers.length > 0) ? availableSponsorUsers : fetchedSponsorUsers;
         return [...base, ...(invitedSponsors || [])];
@@ -176,6 +186,7 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
         screener_questions: initialData?.screener_config?.steps?.find((s: any) => s.type === 'user_input')?.questions || []
     });
 
+    const [uploadedDocs, setUploadedDocs] = useState<DocumentFile[]>([]);
     const [availableTemplates, setAvailableTemplates] = useState<any[]>([]);
     const [existingStudies, setExistingStudies] = useState<any[]>([]);
 
@@ -209,6 +220,57 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
         }
     }, [showQuestionnaireBuilder, fetchTemplates]);
 
+    // Auto-save draft to localStorage
+    useEffect(() => {
+        if (!initialData) { // Only auto-save for new studies
+            const draft = {
+                formData,
+                currentStep,
+                uploadedDocs,
+                timestamp: new Date().toISOString()
+            };
+            localStorage.setItem('musb_study_launch_draft', JSON.stringify(draft));
+            setLastSaved(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+        }
+    }, [formData, currentStep, uploadedDocs, initialData]);
+
+    const [showResumeBanner, setShowResumeBanner] = useState(false);
+
+    useEffect(() => {
+        if (!initialData) {
+            const savedDraft = localStorage.getItem('musb_study_launch_draft');
+            if (savedDraft) {
+                try {
+                    const parsed = JSON.parse(savedDraft);
+                    // Only show if it's not too old (e.g., within 24 hours) or just always show
+                    setShowResumeBanner(true);
+                } catch (e) {
+                    console.error("Failed to parse draft", e);
+                }
+            }
+        }
+    }, [initialData]);
+
+    const handleResumeDraft = () => {
+        const savedDraft = localStorage.getItem('musb_study_launch_draft');
+        if (savedDraft) {
+            try {
+                const parsed = JSON.parse(savedDraft);
+                setFormData(parsed.formData);
+                setCurrentStep(parsed.currentStep);
+                if (parsed.uploadedDocs) setUploadedDocs(parsed.uploadedDocs);
+                setShowResumeBanner(false);
+            } catch (e) {
+                console.error("Failed to resume draft", e);
+            }
+        }
+    };
+
+    const handleClearDraft = () => {
+        localStorage.removeItem('musb_study_launch_draft');
+        setShowResumeBanner(false);
+    };
+
     useEffect(() => {
         const fetchTeamData = async () => {
             try {
@@ -236,7 +298,7 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
         fetchTeamData();
     }, []);
 
-    const [uploadedDocs, setUploadedDocs] = useState<DocumentFile[]>([]);
+
     const [sponsorSearch, setSponsorSearch] = useState('');
     const [showSponsorDropdown, setShowSponsorDropdown] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -244,41 +306,80 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
     const handleInvitePersonnel = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!inviteData.email || !inviteData.name) return;
+        
+        const names = inviteData.name.trim().split(' ');
+        const firstName = names[0];
+        const lastName = names.length > 1 ? names.slice(1).join(' ') : 'Personnel';
+
         setInviteLoading(true);
         try {
             const res = await authFetch('/api/auth/admin/create-user/', {
                 method: 'POST',
                 body: JSON.stringify({
                     email: inviteData.email,
-                    full_name: inviteData.name,
+                    first_name: firstName,
+                    last_name: lastName,
                     role: inviteMemberRole,
                     is_invited: true
                 })
             });
             if (res.ok) {
                 const data = await res.json();
+                setInvitedPersonnel(prev => [...prev, data]);
                 if (inviteMemberRole === 'PI') {
-                    setFormData(prev => ({ ...prev, pi_id: [data.id] }));
+                    setFormData(prev => ({ ...prev, pi_id: [...(prev.pi_id || []), data.id] }));
                 } else {
                     setFormData(prev => ({ ...prev, coordinator_id: [...(prev.coordinator_id || []), data.id] }));
                 }
                 setShowInviteMemberModal(false);
                 setInviteData({ name: '', email: '', organization: '' });
                 alert(`${inviteMemberRole} Invited Successfully!`);
+            } else {
+                const errorData = await res.json();
+                if (res.status === 400 && errorData.existing_user) {
+                    const existing = errorData.existing_user;
+                    const userObj = {
+                        id: existing.id || existing._id,
+                        full_name: existing.name,
+                        email: existing.email,
+                        role: inviteMemberRole,
+                        status: existing.status
+                    };
+                    setInvitedPersonnel(prev => [...prev, userObj]);
+                    
+                    if (inviteMemberRole === 'PI') {
+                        setFormData(prev => ({ ...prev, pi_id: [...(prev.pi_id || []), userObj.id] }));
+                    } else {
+                        setFormData(prev => ({ ...prev, coordinator_id: [...(prev.coordinator_id || []), userObj.id] }));
+                    }
+                    setShowInviteMemberModal(false);
+                    setInviteData({ name: '', email: '', organization: '' });
+                    alert(`This user already exists and has been added to your selection.`);
+                } else {
+                    alert(errorData.error || 'Invitation failed. Please try again.');
+                }
             }
-        } catch (err) { console.error(err); } finally { setInviteLoading(false); }
+        } catch (err) { 
+            console.error(err);
+            alert('A network error occurred. Please try again.');
+        } finally { setInviteLoading(false); }
     };
 
     const handleInviteSponsor = async (e: React.FormEvent) => {
         if (!inviteData.email || !inviteData.email.includes('@')) return alert("Valid email required.");
-        setIsInviting(true);
+        
+        const names = inviteData.name.trim().split(' ');
+        const firstName = names[0];
+        const lastName = names.length > 1 ? names.slice(1).join(' ') : 'Sponsor';
+
+        setInviteLoading(true);
         try {
-            const res = await authFetch(`${API}/api/auth/admin/create-user/`, {
+            const res = await authFetch('/api/auth/admin/create-user/', {
                 method: 'POST',
                 body: JSON.stringify({
                     email: inviteData.email,
-                    first_name: inviteData.name || inviteData.email.split('@')[0],
-                    last_name: 'Sponsor',
+                    first_name: firstName,
+                    last_name: lastName,
                     role: 'SPONSOR'
                 })
             });
@@ -290,8 +391,31 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
                 setInviteData({ name: '', email: '', organization: '' });
                 setShowInviteSponsorModal(false);
                 alert(`Invitation sent to ${inviteData.email}.`);
+            } else {
+                const errorData = await res.json();
+                if (res.status === 400 && errorData.existing_user) {
+                    const existing = errorData.existing_user;
+                    const newUser = {
+                        id: existing.id || existing._id,
+                        full_name: existing.name,
+                        email: existing.email,
+                        role: 'SPONSOR',
+                        status: existing.status
+                    };
+                    setInvitedSponsors(prev => [...prev, newUser]);
+                    const currentAssigned = Array.isArray(formData.assigned_sponsors) ? formData.assigned_sponsors : [];
+                    setFormData({ ...formData, assigned_sponsors: [...currentAssigned, newUser.id] });
+                    setInviteData({ name: '', email: '', organization: '' });
+                    setShowInviteSponsorModal(false);
+                    alert(`This sponsor already exists and has been added to your selection.`);
+                } else {
+                    alert(errorData.error || 'Invitation failed. Please try again.');
+                }
             }
-        } catch (e) { console.error(e); } finally { setIsInviting(false); }
+        } catch (e) { 
+            console.error(e);
+            alert('A network error occurred. Please try again.');
+        } finally { setInviteLoading(false); }
     };
 
     const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -371,10 +495,17 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
         return mixedSponsors.filter(s => s.displayName.toLowerCase().includes(query));
     }, [mixedSponsors, sponsorSearch]);
 
-    const handleSubmit = useCallback(async () => {
-        if (!validation?.isValid || !onSave || isSubmitting) return;
+    const handleSubmit = useCallback(async (options?: { isDraft?: boolean }) => {
+        const isDraft = options?.isDraft ?? false;
+        
+        // Validation only required for final launch, not for draft
+        if (!isDraft && (!validation?.isValid || !onSave || isSubmitting)) return;
+        if (isDraft && !onSave) return;
 
         const { pi_id, coordinator_id, assigned_sponsors, startDate, endDate, execution_type, indication, brief_description, masking, ...baseData } = formData;
+        
+        const studyStatus = isDraft ? 'DRAFT' : 'RECRUITING';
+        
         const payload = {
             ...baseData,
             primary_indication: indication,
@@ -386,10 +517,11 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
             is_double_blind: masking === 'DOUBLE_BLIND' || masking === 'TRIPLE_BLIND' || masking === 'QUADRUPLE_BLIND',
             masking_strategy: masking,
             has_placebo_control: formData.trial_model === 'RCT',
-            pi_ids: Array.isArray(pi_id) ? pi_id : [],
-            coordinator_ids: Array.isArray(coordinator_id) ? coordinator_id : [],
-            status: 'RECRUITING',
-            stage: 'RECRUITING',
+            pi_ids: Array.isArray(pi_id) ? pi_id : (pi_id ? [pi_id] : []),
+            coordinator_ids: Array.isArray(coordinator_id) ? coordinator_id : (coordinator_id ? [coordinator_id] : []),
+            sponsor_ids: Array.isArray(assigned_sponsors) ? assigned_sponsors : (assigned_sponsors ? [assigned_sponsors] : []),
+            status: studyStatus,
+            stage: studyStatus,
             operational_artifacts: uploadedDocs.map(d => ({
                 name: d.name,
                 category: d.category,
@@ -414,8 +546,13 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
         try {
             const result = await onSave(payload);
             if (result !== false) {
-                alert("PROTOCOL SYNCED: Study registered successfully.");
-                window.location.reload();
+                localStorage.removeItem('musb_study_launch_draft');
+                if (isDraft) {
+                    alert("Draft Progress Synchronized: You can resume this setup later from the study directory.");
+                } else {
+                    alert("PROTOCOL SYNCED: Study registered and launched successfully.");
+                    window.location.reload();
+                }
             }
         } catch (err) {
             console.error("Study launch failed:", err);
@@ -423,7 +560,7 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
         } finally {
             setIsSubmitting(false);
         }
-    }, [formData, isSubmitting, onSave, validation?.isValid]);
+    }, [formData, isSubmitting, onSave, validation?.isValid, uploadedDocs]);
 
     return (
         <div className="flex flex-col min-h-full pb-32 w-full px-4 lg:px-8 2xl:px-12 max-w-[2800px] mx-auto">
@@ -448,6 +585,44 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
                     </div>
                 </div>
             </div>
+
+            {/* Resume Draft Banner */}
+            <AnimatePresence>
+                {showResumeBanner && (
+                    <motion.div 
+                        initial={{ opacity: 0, height: 0, marginBottom: 0 }} 
+                        animate={{ opacity: 1, height: 'auto', marginBottom: 24 }} 
+                        exit={{ opacity: 0, height: 0, marginBottom: 0 }}
+                        className="overflow-hidden"
+                    >
+                        <div className="bg-indigo-600/10 border border-indigo-500/20 rounded-3xl p-6 flex flex-col md:flex-row items-center justify-between gap-6">
+                            <div className="flex items-center gap-4">
+                                <div className="p-3 bg-indigo-600 rounded-2xl shadow-lg shadow-indigo-600/20">
+                                    <History className="w-5 h-5 text-white" />
+                                </div>
+                                <div>
+                                    <h4 className="text-[11px] font-black text-indigo-400 uppercase tracking-widest leading-none">Draft Protocol Detected</h4>
+                                    <p className="text-[13px] text-white font-bold mt-1.5 uppercase tracking-tight italic">You have an unsaved setup in progress. Would you like to resume?</p>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-3 w-full md:w-auto">
+                                <button 
+                                    onClick={handleResumeDraft}
+                                    className="flex-1 md:flex-none px-8 py-3 bg-indigo-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-indigo-500 transition-all shadow-xl shadow-indigo-600/10"
+                                >
+                                    Resume Setup
+                                </button>
+                                <button 
+                                    onClick={handleClearDraft}
+                                    className="flex-1 md:flex-none px-6 py-3 bg-white/5 border border-white/10 text-slate-500 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-white/10 transition-all"
+                                >
+                                    Clear
+                                </button>
+                            </div>
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
             {/* Stepper Progress Node */}
             <div className="sticky top-0 z-40 bg-[#0B1120]/80 backdrop-blur-xl border border-white/10 rounded-3xl py-4 px-6 mb-12 shadow-2xl overflow-x-auto scrollbar-hide">
@@ -859,9 +1034,17 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
                                 <div className="space-y-12 relative z-10">
                                     {/* PI Section */}
                                     <div className="space-y-6">
-                                        <div className="flex items-center gap-3 ml-1">
-                                            <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 shadow-[0_0_10px_rgba(99,102,241,0.5)]" />
-                                            <label className="text-[14px] font-black text-white/60 uppercase tracking-[0.2em] italic">Principal Investigators (PI)</label>
+                                        <div className="flex items-center justify-between ml-1">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 shadow-[0_0_10px_rgba(99,102,241,0.5)]" />
+                                                <label className="text-[14px] font-black text-white/60 uppercase tracking-[0.2em] italic">Principal Investigators (PI)</label>
+                                            </div>
+                                            <button 
+                                                onClick={() => { setInviteMemberRole('PI'); setShowInviteMemberModal(true); }}
+                                                className="px-4 py-2 bg-indigo-500/10 border border-indigo-500/20 rounded-xl text-[9px] font-black uppercase text-indigo-400 hover:bg-indigo-500 hover:text-white transition-all flex items-center gap-2"
+                                            >
+                                                <UserPlus className="w-3 h-3" /> Invite PI
+                                            </button>
                                         </div>
                                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 2xl:grid-cols-6 gap-5">
                                             {displayPIs.map(pi => (
@@ -886,7 +1069,12 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
                                                     </div>
                                                     <div className="w-full overflow-hidden">
                                                         <p className="text-[13px] font-black text-white uppercase tracking-tighter leading-tight truncate px-2 w-full">{pi?.full_name || pi?.name || 'Unknown'}</p>
-                                                        <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mt-1">Primary Investigator</p>
+                                                        <div className="flex flex-col items-center gap-1 mt-1">
+                                                            <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Primary Investigator</p>
+                                                            {(pi?.status === 'PENDING' || pi?.invitation_status === 'Pending') && (
+                                                                <span className="px-2 py-0.5 bg-amber-500/10 border border-amber-500/20 rounded-full text-[8px] font-black text-amber-500 uppercase tracking-widest">Pending</span>
+                                                            )}
+                                                        </div>
                                                     </div>
                                                 </div>
                                             ))}
@@ -895,9 +1083,17 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
 
                                     {/* CRC Section */}
                                     <div className="space-y-6">
-                                        <div className="flex items-center gap-3 ml-1">
-                                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]" />
-                                            <label className="text-[14px] font-black text-white/60 uppercase tracking-[0.2em] italic">Research Coordinators (CRC)</label>
+                                        <div className="flex items-center justify-between ml-1">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]" />
+                                                <label className="text-[14px] font-black text-white/60 uppercase tracking-[0.2em] italic">Research Coordinators (CRC)</label>
+                                            </div>
+                                            <button 
+                                                onClick={() => { setInviteMemberRole('COORDINATOR'); setShowInviteMemberModal(true); }}
+                                                className="px-4 py-2 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-[9px] font-black uppercase text-emerald-400 hover:bg-emerald-500 hover:text-white transition-all flex items-center gap-2"
+                                            >
+                                                <UserPlus className="w-3 h-3" /> Invite CRC
+                                            </button>
                                         </div>
                                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 2xl:grid-cols-6 gap-5">
                                             {displayCoordinators.map(crc => (
@@ -922,7 +1118,12 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
                                                     </div>
                                                     <div className="w-full overflow-hidden">
                                                         <p className="text-[13px] font-black text-white uppercase tracking-tighter leading-tight truncate px-2 w-full">{crc?.full_name || crc?.name || 'Unknown'}</p>
-                                                        <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mt-1">Study Coordinator</p>
+                                                        <div className="flex flex-col items-center gap-1 mt-1">
+                                                            <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Study Coordinator</p>
+                                                            {(crc?.status === 'PENDING' || crc?.invitation_status === 'Pending') && (
+                                                                <span className="px-2 py-0.5 bg-amber-500/10 border border-amber-500/20 rounded-full text-[8px] font-black text-amber-500 uppercase tracking-widest">Pending</span>
+                                                            )}
+                                                        </div>
                                                     </div>
                                                 </div>
                                             ))}
@@ -931,9 +1132,17 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
 
                                     {/* Sponsor Section */}
                                     <div className="space-y-6">
-                                        <div className="flex items-center gap-3 ml-1">
-                                            <div className="w-1.5 h-1.5 rounded-full bg-cyan-500 shadow-[0_0_10px_rgba(6,182,212,0.5)]" />
-                                            <label className="text-[14px] font-black text-white/60 uppercase tracking-[0.2em] italic">Sponsor Personnel</label>
+                                        <div className="flex items-center justify-between ml-1">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-1.5 h-1.5 rounded-full bg-cyan-500 shadow-[0_0_10px_rgba(6,182,212,0.5)]" />
+                                                <label className="text-[14px] font-black text-white/60 uppercase tracking-[0.2em] italic">Sponsor Personnel</label>
+                                            </div>
+                                            <button 
+                                                onClick={() => { setShowSponsorDropdown(false); setShowInviteSponsorModal(true); }}
+                                                className="px-4 py-2 bg-cyan-500/10 border border-cyan-500/20 rounded-xl text-[9px] font-black uppercase text-cyan-400 hover:bg-cyan-500 hover:text-white transition-all flex items-center gap-2"
+                                            >
+                                                <UserPlus className="w-3 h-3" /> Invite Sponsor
+                                            </button>
                                         </div>
                                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 2xl:grid-cols-6 gap-5">
                                             {displaySponsorUsers.map(sp => (
@@ -958,7 +1167,12 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
                                                     </div>
                                                     <div className="w-full overflow-hidden">
                                                         <p className="text-[13px] font-black text-white uppercase tracking-tighter leading-tight truncate px-2 w-full">{sp?.full_name || sp?.name || sp?.email || 'Unknown'}</p>
-                                                        <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mt-1">Study Sponsor</p>
+                                                        <div className="flex flex-col items-center gap-1 mt-1">
+                                                            <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Study Sponsor</p>
+                                                            {(sp?.status === 'PENDING' || sp?.invitation_status === 'Pending') && (
+                                                                <span className="px-2 py-0.5 bg-amber-500/10 border border-amber-500/20 rounded-full text-[8px] font-black text-amber-500 uppercase tracking-widest">Pending</span>
+                                                            )}
+                                                        </div>
                                                     </div>
                                                 </div>
                                             ))}
@@ -969,15 +1183,8 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
                                     <div className="pt-10 border-t border-white/5 flex flex-col md:flex-row items-center justify-between gap-6">
                                         <div>
                                             <h4 className="text-[13px] font-black text-white uppercase tracking-widest italic">Team Permissions</h4>
-                                            <p className="text-[11px] text-slate-500 uppercase font-bold mt-2 italic tracking-widest">Assign people to this study</p>
+                                            <p className="text-[11px] text-slate-500 uppercase font-bold mt-2 italic tracking-widest">Selected personnel will be automatically assigned to this study upon launch.</p>
                                         </div>
-                                        <button 
-                                            onClick={() => { setInviteMemberRole('PI'); setShowInviteMemberModal(true); }} 
-                                            className="px-8 py-4 bg-[#0B101B] border border-white/10 rounded-2xl text-[11px] font-black uppercase tracking-[0.2em] text-white hover:text-indigo-400 hover:border-indigo-500/50 hover:bg-indigo-500/5 transition-all flex items-center gap-3 shadow-2xl active:scale-95"
-                                        >
-                                            <UserPlus className="w-4 h-4" /> 
-                                            Invite Member
-                                        </button>
                                     </div>
                                 </div>
                             </div>
@@ -1380,6 +1587,17 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
                 </div>
 
                 <div className="flex items-center gap-6">
+                    {formData.title && (
+                        <button 
+                            onClick={() => handleSubmit({ isDraft: true })}
+                            disabled={isSubmitting}
+                            className="hidden md:flex px-6 py-4 h-12 bg-white/5 border border-white/10 text-emerald-400 rounded-2xl items-center gap-3 hover:bg-white/10 transition-all group"
+                        >
+                            <Save className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                            <span className="text-[11px] font-black uppercase tracking-[0.2em]">Save Progress</span>
+                        </button>
+                    )}
+
                     <button onClick={onClose} className="px-6 py-4 text-slate-500 hover:text-white transition-all text-[11px] font-black uppercase tracking-widest italic group h-12 flex items-center">
                         Discard <span className="opacity-0 group-hover:opacity-100 transition-opacity ml-1">Study</span>
                     </button>
@@ -1391,7 +1609,7 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
                         </button>
                     ) : (
                         <button
-                            onClick={handleSubmit}
+                            onClick={() => handleSubmit()}
                             disabled={!validation?.isValid || isSubmitting}
                             className={`px-10 md:px-14 py-4 h-12 rounded-2xl flex items-center gap-3 transition-all ${validation?.isValid && !isSubmitting ? 'bg-indigo-600 text-white shadow-xl hover:scale-[1.05] active:scale-95' : 'bg-slate-800 text-slate-600 opacity-50 cursor-not-allowed border border-white/5'}`}
                         >
@@ -1471,7 +1689,7 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
                                 
                                 <div className="flex items-center justify-between relative z-10">
                                     <h3 className="text-2xl font-black text-white italic uppercase tracking-tighter">
-                                        {showInviteSponsorModal ? 'Invite Sponsor' : `Invite ${inviteMemberRole}`}
+                                        {showInviteSponsorModal ? 'Invite Sponsor' : `Invite ${inviteMemberRole === 'TEAM_MEMBER' ? 'Staff Member' : inviteMemberRole}`}
                                     </h3>
                                     <button 
                                         onClick={() => { setShowInviteMemberModal(false); setShowInviteSponsorModal(false); }} 

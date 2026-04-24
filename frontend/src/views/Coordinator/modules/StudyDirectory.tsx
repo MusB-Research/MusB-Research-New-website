@@ -66,6 +66,8 @@ export const StudyDirectory: React.FC<StudyDirectoryProps> = ({
                 return 'bg-blue-500/10 text-blue-400 border-blue-500/20';
             case 'PAUSED':
                 return 'bg-amber-500/10 text-amber-400 border-amber-500/20';
+            case 'DRAFT':
+                return 'bg-slate-500/10 text-slate-400 border-white/5 italic';
             default:
                 return 'bg-white/5 text-slate-400 border-white/10';
         }

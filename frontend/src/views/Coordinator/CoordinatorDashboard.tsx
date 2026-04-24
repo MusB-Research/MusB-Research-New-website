@@ -880,6 +880,7 @@ export default function CoordinatorDashboard() {
                             <CCC_TeamModule 
                                 selectedStudyId={globalSelectedStudyId} 
                                 initialUsers={users}
+                                allStudies={studies}
                                 onRefresh={fetchCoordinatorContent}
                             />
                         )}

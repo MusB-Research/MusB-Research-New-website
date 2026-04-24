@@ -300,7 +300,7 @@ def complete_profile(request):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def list_team_members(request):
-    """Retrieve all users and pending invites for the sponsor's organization."""
+    """Retrieve all users and pending invites for the sponsor's organization or affiliation."""
     admin = request.user
     # Use SAME fallback logic as invite_team_member
     org = admin.organization or getattr(admin, 'affiliation', None) or 'MusB'
@@ -308,8 +308,11 @@ def list_team_members(request):
     if not org:
         return Response([], status=200)
 
-    # Get registered team members
-    users = User.objects.filter(organization=org).exclude(id=admin.id)
+    from django.db.models import Q
+    # Get registered team members matching organization or affiliation
+    users = User.objects.filter(
+        Q(organization=org) | Q(affiliation=org)
+    ).exclude(id=admin.id)
     
     # Get pending invitations
     invites = Invitation.objects.filter(organization=org, is_accepted=False)
@@ -319,12 +322,14 @@ def list_team_members(request):
     # Add active users
     for u in users:
         members.append({
-            'name': f"{decrypt_data(u.first_name)} {decrypt_data(u.last_name)}".strip() if (u.first_name or u.last_name) else u.email.split('@')[0],
+            'name': f"{decrypt_data(u.first_name)} {decrypt_data(u.last_name)}".strip() if (u.first_name or u.last_name) else (u.full_name or u.email.split('@')[0]),
             'email': u.email,
-            'role': u.role or 'Sponsor Member',
+            'role': u.role or 'Staff',
             'status': 'ACTIVE',
             'id': str(u.id),
-            'date': u.date_joined.strftime('%Y-%m-%d')
+            'date': u.date_joined.strftime('%Y-%m-%d'),
+            'affiliation': u.affiliation or 'MUSB',
+            'phone': u.decrypted_phone if hasattr(u, 'decrypted_phone') else '',
         })
         
     # Add pending invites
@@ -335,7 +340,8 @@ def list_team_members(request):
             'role': i.role,
             'status': 'PENDING',
             'id': f"inv-{i.id}",
-            'date': i.created_at.strftime('%Y-%m-%d')
+            'date': i.created_at.strftime('%Y-%m-%d'),
+            'affiliation': i.organization or 'MUSB'
         })
         
     return Response(members)
@@ -358,7 +364,8 @@ def resend_invitation(request, invitation_id):
     invitation.expires_at = now() + timedelta(days=7)
     invitation.save()
     
-    setup_link = f"{os.getenv('FRONTEND_URL', 'http://localhost:5173')}/setup-credentials?token={invitation.token}"
+    frontend_url = os.getenv('FRONTEND_URL', 'https://musbhealth.com')
+    setup_link = f"{frontend_url}/setup-credentials?token={invitation.token}"
     
     from ..utils import send_mail_premium
     success = send_mail_premium(
