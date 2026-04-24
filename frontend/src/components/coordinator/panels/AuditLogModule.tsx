@@ -301,6 +301,6 @@ export default function AuditLogModule({ selectedStudyId }: { selectedStudyId?: 
         </motion.div>
     );
 }
-}
+
 
 

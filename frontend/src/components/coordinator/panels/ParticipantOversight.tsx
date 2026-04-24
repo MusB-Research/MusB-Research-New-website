@@ -701,7 +701,7 @@ export default function ParticipantOversight({
                                                 <div className="flex items-center gap-2 px-3 py-2">
                                                     <Clock className="w-3 h-3 text-slate-500" />
                                                     <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
-                                                        Submitted: <span className="text-white">{p.submitted}</span>
+                                                        Submitted: <span className="text-white">{p.submittedAt}</span>
                                                     </p>
                                                 </div>
                                             </div>

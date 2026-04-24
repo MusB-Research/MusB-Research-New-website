@@ -2,7 +2,7 @@ import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react'
 import { 
     Users, Shield, CheckCircle2, Building2, AlertTriangle, 
     Search, Plus, X, Globe, User, Briefcase, RefreshCcw,
-    Check, ChevronRight
+    Check, ChevronRight, Edit2, Unlock, Lock, Trash2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { COLORS, TeamMember, TeamDocument, ROLE_DOCS, PROTOCOLS } from './TeamConstants';

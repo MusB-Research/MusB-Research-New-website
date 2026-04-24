@@ -216,6 +216,6 @@ export default function ConsentOversight() {
         </motion.div>
     );
 }
-}
+
 
 

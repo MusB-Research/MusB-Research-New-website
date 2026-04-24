@@ -675,6 +675,8 @@ export default function SuperAdminDashboard() {
   const [studies, setStudies] = useState<any[]>([]);
   const [participants, setParticipants] = useState<any[]>([]);
   const [studyInquiries, setStudyInquiries] = useState<any[]>([]);
+  const [participantLeads, setParticipantLeads] = useState<any[]>([]);
+  const [facilityInquiries, setFacilityInquiries] = useState<any[]>([]);
   const [announcements, setAnnouncements] = useState<any[]>([]);
   const [activities, setActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
@@ -742,11 +744,13 @@ export default function SuperAdminDashboard() {
     if (isInitial) setLoading(true);
     try {
       const apiUrl = API || 'http://localhost:8000';
-      const [uRes, sRes, pRes, iRes, nRes] = await Promise.all([
+      const [uRes, sRes, pRes, iRes, lRes, fRes, nRes] = await Promise.all([
         authFetch(`${apiUrl}/api/users/?limit=100`),
         authFetch(`${apiUrl}/api/studies/?limit=50`),
         authFetch(`${apiUrl}/api/participants/?limit=100`),
         authFetch(`${apiUrl}/api/study-inquiries/?limit=50`),
+        authFetch(`${apiUrl}/api/leads/?limit=50`),
+        authFetch(`${apiUrl}/api/facilities-inquiry/?limit=50`),
         authFetch(`${apiUrl}/api/news/?limit=50`),
       ]);
       if (uRes.ok) {
@@ -782,6 +786,14 @@ export default function SuperAdminDashboard() {
       if (iRes.ok) {
         const raw = await iRes.json();
         setStudyInquiries(Array.isArray(raw) ? raw : (raw.results || []));
+      }
+      if (lRes.ok) {
+        const raw = await lRes.json();
+        setParticipantLeads(Array.isArray(raw) ? raw : (raw.results || []));
+      }
+      if (fRes.ok) {
+        const raw = await fRes.json();
+        setFacilityInquiries(Array.isArray(raw) ? raw : (raw.results || []));
       }
       if (nRes.ok) {
         const raw = await nRes.json();
@@ -1618,9 +1630,11 @@ export default function SuperAdminDashboard() {
   // PAGE: INQUIRIES
   // ═══════════════════════════════════════════
 
-  const InquiriesPage = ({ studyInquiries, studies, authFetch, API, fetchData, handlePageChange }: any) => (
+  const InquiriesPage = ({ studyInquiries, participantLeads, facilityInquiries, studies, authFetch, API, fetchData, handlePageChange }: any) => (
     <StudyInquiriesModule 
       studyInquiries={studyInquiries}
+      participantLeads={participantLeads}
+      facilityInquiries={facilityInquiries}
       studies={studies}
       authFetch={authFetch}
       API={API}
@@ -2158,6 +2172,8 @@ export default function SuperAdminDashboard() {
           {currentPage === 'INQUIRIES' && (
             <InquiriesPage
               studyInquiries={studyInquiries}
+              participantLeads={participantLeads}
+              facilityInquiries={facilityInquiries}
               studies={studies}
               authFetch={authFetch}
               API={API}
