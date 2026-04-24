@@ -29,7 +29,7 @@ export interface TeamMember {
     phone: string;
     role: string;
     type: 'MusB' | 'Office';
-    status: 'Active' | 'Inactive' | 'Draft';
+    status: 'Active' | 'Inactive' | 'Draft' | 'PENDING';
     assignedStudies: string[];
     permissionLevel: 'Full' | 'Limited' | 'Read-only';
     documents: TeamDocument[];

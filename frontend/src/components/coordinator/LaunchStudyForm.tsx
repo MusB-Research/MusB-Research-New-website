@@ -544,14 +544,16 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
 
         setIsSubmitting(true);
         try {
-            const result = await onSave(payload);
-            if (result !== false) {
-                localStorage.removeItem('musb_study_launch_draft');
-                if (isDraft) {
-                    alert("Draft Progress Synchronized: You can resume this setup later from the study directory.");
-                } else {
-                    alert("PROTOCOL SYNCED: Study registered and launched successfully.");
-                    window.location.reload();
+            if (onSave) {
+                const result = await onSave(payload);
+                if (result !== false) {
+                    localStorage.removeItem('musb_study_launch_draft');
+                    if (isDraft) {
+                        alert("Draft Progress Synchronized: You can resume this setup later from the study directory.");
+                    } else {
+                        alert("PROTOCOL SYNCED: Study registered and launched successfully.");
+                        window.location.reload();
+                    }
                 }
             }
         } catch (err) {

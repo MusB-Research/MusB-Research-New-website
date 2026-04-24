@@ -1,5 +1,5 @@
 import React from 'react';
-import { User, Shield, Edit2, Lock, Unlock, Trash2, MoreVertical, ChevronRight } from 'lucide-react';
+import { User, Shield, Edit2, Lock, Unlock, Trash2, MoreVertical, ChevronRight, RefreshCcw } from 'lucide-react';
 import { COLORS, TeamMember } from '../TeamConstants';
 
 interface TeamCardProps {
