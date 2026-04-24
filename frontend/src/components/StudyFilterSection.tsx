@@ -4,13 +4,14 @@ import { Search, ChevronDown, ArrowRight, Clock, ShieldCheck, DollarSign } from 
 import { fetchStudies, Study } from '../data/studies';
 import { Condition } from '../types';
 
-const conditions: Condition[] = ['Gut Health', 'Brain Health', 'Metabolic Health', 'Aging', 'Women’s Health', 'Cancer Support'];
+
 
 export default function StudyFilterSection() {
     const [selectedCondition, setSelectedCondition] = useState<Condition | 'All'>('All');
     const [selectedType, setSelectedType] = useState<'All' | 'Paid Studies' | 'Free Testing'>('All');
     const [studies, setStudies] = useState<Study[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [dynamicConditions, setDynamicConditions] = useState<string[]>([]);
     useEffect(() => {
         setIsLoading(true);
         fetchStudies().then((data) => {
@@ -25,6 +26,8 @@ export default function StudyFilterSection() {
                 filtered = filtered.filter(s => s.is_free_testing);
             }
             setStudies(filtered as any[]);
+            const cats = Array.from(new Set(data.map(s => s.condition).filter(Boolean)));
+            setDynamicConditions(cats);
             setIsLoading(false);
         });
     }, [selectedCondition, selectedType]);
@@ -57,7 +60,7 @@ export default function StudyFilterSection() {
                                 className="appearance-none bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl px-6 py-4 pr-12 text-slate-200 font-bold focus:ring-2 focus:ring-cyan-500 cursor-pointer outline-none transition-all w-full md:w-64"
                             >
                                 <option value="All" className="bg-slate-900 text-white">All Conditions</option>
-                                {conditions.map(c => (
+                                {dynamicConditions.map(c => (
                                     <option key={c} value={c} className="bg-slate-900 text-white">{c}</option>
                                 ))}
                             </select>
@@ -94,8 +97,9 @@ export default function StudyFilterSection() {
                                     study.condition === 'Brain Health' ? 'bg-purple-500/10 text-purple-400' :
                                         study.condition === 'Metabolic Health' ? 'bg-orange-500/10 text-orange-400' :
                                             study.condition === 'Aging' ? 'bg-blue-500/10 text-blue-400' :
-                                                study.condition === 'Women’s Health' ? 'bg-pink-500/10 text-pink-400' :
-                                                    'bg-cyan-500/10 text-cyan-400'
+                                                study.condition === "Women's Health" ? 'bg-pink-500/10 text-pink-400' :
+                                                    study.condition === 'Skin' ? 'bg-rose-500/10 text-rose-400' :
+                                                        'bg-cyan-500/10 text-cyan-400'
                                     }`}>
                                     {study.condition}
                                 </div>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     Plus, Save, Layout, FileText, List, Calendar,
@@ -64,6 +64,21 @@ export default function QuestionnaireBuilder({ initialTemplate, initialTab }: Qu
     const [instructions, setInstructions] = useState('');
     const [questions, setQuestions] = useState<Question[]>([]);
     const [isSaving, setIsSaving] = useState(false);
+
+    // Auto-expansion ref
+    const instructionsRef = useRef<HTMLTextAreaElement>(null);
+
+    const autoExpand = useCallback((el: HTMLTextAreaElement | null) => {
+        if (!el) return;
+        el.style.height = 'auto';
+        el.style.height = `${el.scrollHeight}px`;
+    }, []);
+
+    useEffect(() => {
+        if (viewMode === 'BUILDER') {
+            autoExpand(instructionsRef.current);
+        }
+    }, [viewMode, instructions, autoExpand]);
 
     const fetchTemplates = async () => {
         try {
@@ -458,10 +473,14 @@ export default function QuestionnaireBuilder({ initialTemplate, initialTab }: Qu
                             <div className="mb-8">
                                 <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3 block">Global Instructions & Protocol Header</label>
                                 <textarea
+                                    ref={instructionsRef}
                                     value={instructions}
-                                    onChange={e => setInstructions(e.target.value)}
+                                    onChange={e => {
+                                        setInstructions(e.target.value);
+                                        autoExpand(e.target);
+                                    }}
                                     placeholder="Enter instructions for the participant (e.g. Please read this first...)"
-                                    className="w-full bg-white/[0.02] border border-white/5 rounded-2xl p-6 text-slate-300 font-bold outline-none focus:border-indigo-500/30 transition-all min-h-[120px]"
+                                    className="w-full bg-white/[0.02] border border-white/5 rounded-2xl p-6 text-slate-300 font-bold outline-none focus:border-indigo-500/30 transition-all min-h-[120px] overflow-hidden"
                                 />
                             </div>
 

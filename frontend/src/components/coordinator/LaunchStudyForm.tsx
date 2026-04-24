@@ -7,7 +7,7 @@ import {
     AlertCircle, History, CheckSquare, TrendingUp,
     ShieldCheck, Microscope, UserPlus, FileCheck, Layers,
     Briefcase, Plus, Calendar, Award, DollarSign,
-    Building2, Search, Building, Check, ExternalLink, MousePointer2, Save
+    Building2, Search, Building, Check, ExternalLink, MousePointer2, Save, Tag
 } from 'lucide-react';
 import { authFetch, API, revealValue } from '../../utils/auth';
 import QuestionnaireBuilder from './QuestionnaireBuilder';
@@ -38,6 +38,18 @@ export const CURRENCY_SYMBOLS: Record<string, string> = {
     'AED': 'DH',
     'SAR': 'SR',
 };
+
+export const STUDY_CATEGORIES = [
+    'Gut Health',
+    'Metabolic Health',
+    'Aging',
+    "Women's Health",
+    'Brain Health',
+    'Skin',
+    'Other'
+] as const;
+
+export type StudyCategory = typeof STUDY_CATEGORIES[number];
 
 interface LaunchStudyFormProps {
     onClose?: () => void;
@@ -127,6 +139,21 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
     const [showScreenerBuilder, setShowScreenerBuilder] = useState(false);
     const [previewScreener, setPreviewScreener] = useState<any>(null);
 
+    // Auto-expansion refs
+    const titleRef = useRef<HTMLTextAreaElement>(null);
+    const descriptionRef = useRef<HTMLTextAreaElement>(null);
+
+    // Custom Category States
+    const [sessionCategories, setSessionCategories] = useState<string[]>([]);
+    const [isAddingCustom, setIsAddingCustom] = useState(false);
+    const [customInput, setCustomInput] = useState('');
+
+    const autoExpand = useCallback((el: HTMLTextAreaElement | null) => {
+        if (!el) return;
+        el.style.height = 'auto';
+        el.style.height = `${el.scrollHeight}px`;
+    }, []);
+
     const getScreenerQuestions = useCallback((s: any) => {
         return s?.screener_config?.questions || s?.screener_config?.steps?.find((st: any) => st.type === 'user_input')?.questions || [];
     }, []);
@@ -161,6 +188,7 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
         title: initialData?.title || '',
         indication: initialData?.indication || initialData?.primary_indication || '',
         brief_description: initialData?.brief_description || initialData?.description || '',
+        category: initialData?.condition || initialData?.category || 'Other',
         overview: initialData?.overview || '',
         execution_type: initialData?.execution_type || initialData?.study_type || 'IN_PERSON',
         trial_model: initialData?.trial_model || 'RCT',
@@ -298,7 +326,12 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
         fetchTeamData();
     }, []);
 
-
+    useEffect(() => {
+        if (currentStep === 1) {
+            autoExpand(titleRef.current);
+            autoExpand(descriptionRef.current);
+        }
+    }, [currentStep, formData.full_title, formData.brief_description, autoExpand]);
     const [sponsorSearch, setSponsorSearch] = useState('');
     const [showSponsorDropdown, setShowSponsorDropdown] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -459,7 +492,11 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
     const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
-    }, []);
+
+        if (e.target instanceof HTMLTextAreaElement) {
+            autoExpand(e.target);
+        }
+    }, [autoExpand]);
 
     const toggleMultiSelect = useCallback((field: 'pi_id' | 'coordinator_id' | 'consent_collection', val: string) => {
         setFormData(prev => {
@@ -502,14 +539,12 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
         if (!isDraft && (!validation?.isValid || !onSave || isSubmitting)) return;
         if (isDraft && !onSave) return;
 
-        const { pi_id, coordinator_id, assigned_sponsors, startDate, endDate, execution_type, indication, brief_description, masking, ...baseData } = formData;
-        
+        const { pi_id, coordinator_id, assigned_sponsors, startDate, endDate, execution_type, indication, brief_description, masking, category, ...baseData } = formData;
         const studyStatus = isDraft ? 'DRAFT' : 'RECRUITING';
-        
         const payload = {
             ...baseData,
             primary_indication: indication,
-            condition: indication,
+            condition: category || 'Other',
             description: brief_description,
             study_type: execution_type,
             start_date: startDate || null,
@@ -780,7 +815,14 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
                                 <div className="space-y-6">
                                     <div className="space-y-3">
                                         <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest ml-1">Official Full Title</label>
-                                        <textarea name="full_title" value={formData.full_title} onChange={handleChange} placeholder="As stated on the clinical trial registry..." className="w-full h-24 bg-white/5 border border-white/10 rounded-xl px-5 py-4 text-base text-white font-bold outline-none focus:border-emerald-500/50 resize-none placeholder:opacity-20 italic leading-snug shadow-inner" />
+                                        <textarea 
+                                            name="full_title" 
+                                            ref={titleRef}
+                                            value={formData.full_title} 
+                                            onChange={handleChange} 
+                                            placeholder="As stated on the clinical trial registry..." 
+                                            className="w-full min-h-[96px] bg-white/5 border border-white/10 rounded-xl px-5 py-4 text-base text-white font-bold outline-none focus:border-emerald-500/50 resize-none placeholder:opacity-20 italic leading-snug shadow-inner overflow-hidden" 
+                                        />
                                     </div>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                         <div className="space-y-3">
@@ -792,9 +834,122 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
                                             <input type="text" name="indication" value={formData.indication} onChange={handleChange} className="w-full bg-white/5 border border-white/10 rounded-xl px-5 py-4 text-base text-white font-bold outline-none focus:border-emerald-500/50 italic shadow-inner" />
                                         </div>
                                     </div>
+
+                                    {/* Study Category Selector */}
+                                    <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-6 space-y-4">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
+                                                <Tag className="w-4 h-4 text-emerald-400" />
+                                            </div>
+                                            <div>
+                                                <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest block">Study Category</label>
+                                                <p className="text-[9px] text-slate-600 font-bold uppercase tracking-widest mt-0.5">Determines how this study appears in public filters</p>
+                                            </div>
+                                        </div>
+                                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                                            {[...STUDY_CATEGORIES, ...sessionCategories].map((cat) => (
+                                                <button
+                                                    key={cat}
+                                                    type="button"
+                                                    onClick={() => setFormData(prev => ({ ...prev, category: cat }))}
+                                                    className={`relative px-4 py-3.5 rounded-xl border text-left transition-all duration-200 group/cat ${
+                                                        formData.category === cat 
+                                                            ? 'bg-emerald-500/15 border-emerald-500/50 shadow-lg shadow-emerald-500/10' 
+                                                            : 'bg-white/[0.03] border-white/5 hover:border-emerald-500/20 hover:bg-emerald-500/5'
+                                                    }`}
+                                                >
+                                                    <div className="flex items-center justify-between gap-2">
+                                                        <span className={`text-[11px] font-black uppercase tracking-widest transition-colors ${
+                                                            formData.category === cat ? 'text-emerald-400' : 'text-slate-500 group-hover/cat:text-slate-300'
+                                                        }`}>
+                                                            {cat}
+                                                        </span>
+                                                        {formData.category === cat && (
+                                                            <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                                                        )}
+                                                    </div>
+                                                </button>
+                                            ))}
+
+                                            {isAddingCustom ? (
+                                                <div className="col-span-2 flex items-center gap-2 p-1.5 bg-emerald-500/5 border border-emerald-500/20 rounded-xl">
+                                                    <input
+                                                        autoFocus
+                                                        type="text"
+                                                        value={customInput}
+                                                        onChange={(e) => setCustomInput(e.target.value)}
+                                                        placeholder="Category name..."
+                                                        className="flex-1 bg-transparent border-none outline-none text-[10px] font-black uppercase tracking-widest text-emerald-400 placeholder:text-emerald-500/30 px-2"
+                                                        onKeyDown={(e) => {
+                                                            if (e.key === 'Enter') {
+                                                                e.preventDefault();
+                                                                if (customInput.trim()) {
+                                                                    const newCat = customInput.trim();
+                                                                    if (!STUDY_CATEGORIES.includes(newCat as any) && !sessionCategories.includes(newCat)) {
+                                                                        setSessionCategories(prev => [...prev, newCat]);
+                                                                    }
+                                                                    setFormData(prev => ({ ...prev, category: newCat }));
+                                                                    setIsAddingCustom(false);
+                                                                    setCustomInput('');
+                                                                }
+                                                            } else if (e.key === 'Escape') {
+                                                                setIsAddingCustom(false);
+                                                                setCustomInput('');
+                                                            }
+                                                        }}
+                                                    />
+                                                    <div className="flex items-center gap-1">
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                if (customInput.trim()) {
+                                                                    const newCat = customInput.trim();
+                                                                    if (!STUDY_CATEGORIES.includes(newCat as any) && !sessionCategories.includes(newCat)) {
+                                                                        setSessionCategories(prev => [...prev, newCat]);
+                                                                    }
+                                                                    setFormData(prev => ({ ...prev, category: newCat }));
+                                                                    setIsAddingCustom(false);
+                                                                    setCustomInput('');
+                                                                }
+                                                            }}
+                                                            className="p-2 rounded-lg bg-emerald-500 text-slate-900 hover:bg-white transition-colors"
+                                                        >
+                                                            <Check className="w-3 h-3" />
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                setIsAddingCustom(false);
+                                                                setCustomInput('');
+                                                            }}
+                                                            className="p-2 rounded-lg bg-white/5 text-slate-400 hover:text-white transition-colors"
+                                                        >
+                                                            <X className="w-3 h-3" />
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setIsAddingCustom(true)}
+                                                    className="px-4 py-3.5 rounded-xl border border-dashed border-white/10 bg-transparent hover:border-emerald-500/30 hover:bg-emerald-500/5 transition-all flex items-center justify-center gap-2 group/add"
+                                                >
+                                                    <Plus className="w-3 h-3 text-slate-500 group-hover/add:text-emerald-400 transition-colors" />
+                                                    <span className="text-[11px] font-black uppercase tracking-widest text-slate-500 group-hover/add:text-emerald-400">Add</span>
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+
                                     <div className="space-y-3">
                                         <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest ml-1">Brief Summary Overview</label>
-                                        <textarea name="brief_description" value={formData.brief_description} onChange={handleChange} className="w-full h-24 bg-white/5 border border-white/10 rounded-xl px-5 py-4 text-sm text-white/80 font-medium outline-none focus:border-emerald-500/50 resize-none leading-relaxed shadow-inner" />
+                                        <textarea 
+                                            name="brief_description" 
+                                            ref={descriptionRef}
+                                            value={formData.brief_description} 
+                                            onChange={handleChange} 
+                                            className="w-full min-h-[96px] bg-white/5 border border-white/10 rounded-xl px-5 py-4 text-sm text-white/80 font-medium outline-none focus:border-emerald-500/50 resize-none leading-relaxed shadow-inner overflow-hidden" 
+                                        />
                                     </div>
                                 </div>
                             </div>

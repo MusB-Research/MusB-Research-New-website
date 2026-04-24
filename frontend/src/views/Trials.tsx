@@ -84,7 +84,8 @@ export default function Trials() {
         getStudies();
     }, []);
 
-    const conditions = ["All", "Gut Health", "Metabolic Health", "Aging", "Women’s Health", "Brain Health", "Skin", "Other"];
+    // Derive filter categories dynamically from actual published studies
+    const conditions = ['All', ...Array.from(new Set(studies.map((s: any) => s.condition).filter(Boolean)))];
     const types = ["All", "Virtual", "On-site", "Hybrid"];
 
     const filteredStudies = studies.filter((study: any) => {

@@ -4,15 +4,20 @@ import { Filter, Check, ChevronDown, ArrowRight, Clock } from 'lucide-react';
 import { fetchStudies } from '../data/studies';
 import { Condition } from '../types';
 
-const conditions: Condition[] = ['Gut Health', 'Brain Health', 'Metabolic Health', 'Aging', 'Women’s Health', 'Cancer Support'];
+
 
 export default function ClinicalStudyFinder() {
     const [selectedCondition, setSelectedCondition] = useState<Condition | ''>('');
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const [studies, setStudies] = useState<any[]>([]);
+    const [dynamicConditions, setDynamicConditions] = useState<string[]>([]);
     const dropdownRef = useRef<HTMLDivElement>(null);
     useEffect(() => {
-        fetchStudies().then(setStudies);
+        fetchStudies().then((data) => {
+            setStudies(data);
+            const cats = Array.from(new Set(data.map(s => s.condition).filter(Boolean)));
+            setDynamicConditions(cats);
+        });
     }, []);
 
 
@@ -66,7 +71,7 @@ export default function ClinicalStudyFinder() {
                                         >
                                             All Conditions
                                         </button>
-                                        {conditions.map(condition => (
+                                        {dynamicConditions.map(condition => (
                                             <button
                                                 key={condition}
                                                 onClick={() => { setSelectedCondition(condition); setIsDropdownOpen(false); }}

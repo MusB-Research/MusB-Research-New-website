@@ -14,12 +14,14 @@ import {
     ExternalLink,
     Send,
     BookOpen,
-    GraduationCap
+    GraduationCap,
+    Loader2
 } from 'lucide-react';
 import { NewsItem, NewsType } from '@/types';
 import { authFetch , API } from '../utils/auth';
 import { Link } from 'react-router-dom';
 import SEO from '@/components/SEO';
+import { SkeletonLoader } from '../components/shared/SkeletonLoader';
 
 const categories: (NewsType | 'All')[] = [
     'All',
@@ -83,6 +85,7 @@ export default function News() {
     const [email, setEmail] = useState('');
     const [submitting, setSubmitting] = useState(false);
     const [subscribeStatus, setSubscribeStatus] = useState<'idle' | 'success' | 'error'>('idle');
+    const [isLoading, setIsLoading] = useState(true);
 
     const handleSubscribe = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -101,6 +104,7 @@ export default function News() {
     };
     useEffect(() => {
         const fetchData = async () => {
+            setIsLoading(true);
             try {
                 const apiUrl = API || 'http://localhost:8000';
                 
@@ -188,6 +192,8 @@ export default function News() {
             } catch (e) {
                 console.error("Failed to fetch news", e);
                 setNewsItems(HARDCODED_NEWS);
+            } finally {
+                setIsLoading(false);
             }
         };
         fetchData();
@@ -535,6 +541,33 @@ export default function News() {
                         )}
                     </main>
                 </>
+            ) : isLoading ? (
+                <main className="max-w-[1700px] mx-auto px-4 md:px-12 py-32 space-y-16">
+                    <div className="flex flex-col items-center justify-center text-center space-y-4 mb-12">
+                        <div className="relative">
+                            <div className="w-16 h-16 rounded-2xl bg-cyan-500/10 flex items-center justify-center">
+                                <Loader2 className="w-8 h-8 text-cyan-400 animate-spin" />
+                            </div>
+                            <div className="absolute -inset-4 bg-cyan-500/20 blur-2xl rounded-full opacity-50 animate-pulse"></div>
+                        </div>
+                        <p className="text-[12px] font-black uppercase tracking-[0.4em] text-cyan-400/60 animate-pulse">
+                            Synchronizing Global Feed
+                        </p>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                        {Array.from({ length: 3 }).map((_, i) => (
+                            <div key={i} className="bg-white/5 border border-white/5 rounded-[2.5rem] p-8 space-y-6">
+                                <div className="aspect-[16/10] bg-white/5 rounded-2xl animate-pulse" />
+                                <div className="space-y-3">
+                                    <div className="h-4 w-24 bg-white/5 rounded animate-pulse" />
+                                    <div className="h-8 w-full bg-white/5 rounded animate-pulse" />
+                                    <div className="h-4 w-2/3 bg-white/5 rounded animate-pulse" />
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </main>
             ) : (
                 <main className="max-w-[1700px] mx-auto px-4 md:px-12 py-32 min-h-[40vh] flex flex-col items-center justify-center text-center">
                     <div className="w-24 h-24 rounded-full bg-cyan-500/10 flex items-center justify-center text-cyan-400 mb-8">
