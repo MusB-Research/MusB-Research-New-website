@@ -52,7 +52,13 @@ export default function Trials() {
                     'RECRUITING': 'Recruiting',
                     'UPCOMING': 'Upcoming',
                     'PAUSED': 'Paused',
-                    'COMPLETED': 'Completed'
+                    'ACTIVE': 'Active',
+                    'RECRUITMENT_COMPLETED': 'Recruitment Completed',
+                    'ANALYSIS_UNDERWAY': 'Analysis Underway',
+                    'PROGRESS_REPORT_DRAFT': 'Progress Report Draft',
+                    'FINAL_REPORT_SENT': 'Final Report Sent',
+                    'COMPLETED': 'Completed',
+                    'CLOSED_ARCHIVED': 'Closed / Archived'
                 };
 
                 const mappedStudies = studyList.map((s: any) => {
@@ -84,6 +90,8 @@ export default function Trials() {
 
         getStudies();
     }, []);
+    
+    const completedStatuses = ['Completed', 'Recruitment Completed', 'Analysis Underway', 'Progress Report Draft', 'Final Report Sent', 'Closed / Archived'];
 
     // Derive filter categories dynamically from actual published studies
     const conditions = ['All', ...Array.from(new Set(studies.map((s: any) => s.condition).filter(Boolean)))];
@@ -96,7 +104,8 @@ export default function Trials() {
         const matchesSearch = (study.title || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
             (study.description || '').toLowerCase().includes(searchQuery.toLowerCase());
         
-        const matchesCompletion = showCompleted ? study.status === 'Completed' : study.status !== 'Completed';
+        const isStudyCompleted = completedStatuses.includes(study.status);
+        const matchesCompletion = showCompleted ? isStudyCompleted : !isStudyCompleted;
         
         return matchesCondition && matchesType && matchesSearch && matchesCompletion;
     });
@@ -354,8 +363,9 @@ export default function Trials() {
                                         <div className="space-y-4">
                                             <div className={`inline-block px-4 py-1.5 rounded-full text-[12px] font-black uppercase tracking-widest ${study.status === 'Recruiting' ? 'bg-cyan-500/10 text-cyan-400' :
                                                     study.status === 'Upcoming' ? 'bg-emerald-500/10 text-emerald-400' :
-                                                        study.status === 'Paused' ? 'bg-cyan-500/10 text-cyan-400' :
-                                                            'bg-slate-500/10 text-slate-400 opacity-50'
+                                                        study.status === 'Paused' ? 'bg-amber-500/10 text-amber-400' :
+                                                            completedStatuses.includes(study.status) ? 'bg-slate-500/10 text-slate-400 opacity-60' :
+                                                                'bg-cyan-500/10 text-cyan-400'
                                                 }`}>
                                                 {study.status}
                                             </div>

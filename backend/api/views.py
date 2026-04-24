@@ -625,14 +625,6 @@ class PublicStudyViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [permissions.AllowAny]
     lookup_field = 'protocol_id'
 
-    def get_queryset(self):
-        # CRITICAL: Always show studies in chronological order (Oldest First / Appended to bottom)
-        # NEVER CHANGE THIS ORDERING. USER REQUIREMENT IS "FIRST CREATED = TOP OF LIST".
-        VISIBLE_STATUSES = ['RECRUITING', 'ACTIVE', 'UPCOMING']
-        return Study.objects.filter(
-            status__in=VISIBLE_STATUSES,
-            is_archived=False
-        ).order_by('created_at')
 
     def list(self, request, *args, **kwargs):
         # HARD-CODE FORCE SORT TO BYPASS ANY SYSTEM OVERRIDES
@@ -664,7 +656,19 @@ class PublicStudyViewSet(viewsets.ReadOnlyModelViewSet):
         # Admins/Super Admins see everything (needed for building screeners before launch)
         if user.is_authenticated and (user.role or '').strip().upper() in ['ADMIN', 'SUPER_ADMIN']:
             return Study.objects.all().distinct().order_by('-created_at')
-        return Study.objects.filter(approval_status='approved', status__in=['RECRUITING', 'ACTIVE']).distinct().order_by('-created_at')
+        
+        # Include all statuses that should be visible publicly (either as recruiting or as completed/past studies)
+        VISIBLE_STATUSES = [
+            'RECRUITING', 'ACTIVE', 'UPCOMING', 'PAUSED',
+            'RECRUITMENT_COMPLETED', 'ANALYSIS_UNDERWAY', 
+            'PROGRESS_REPORT_DRAFT', 'FINAL_REPORT_SENT', 'COMPLETED',
+            'CLOSED_ARCHIVED'
+        ]
+        return Study.objects.filter(
+            approval_status='approved', 
+            status__in=VISIBLE_STATUSES,
+            is_archived=False
+        ).distinct().order_by('-created_at')
 
     @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
     def enroll(self, request, **kwargs):
