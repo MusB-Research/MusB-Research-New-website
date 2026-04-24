@@ -24,7 +24,7 @@ import { fetchStudies, Study } from '../data/studies';
 import { authFetch, API, getAccessToken } from '../utils/auth';
 import { Skeleton } from './Participant/SharedComponents'; // Standard highlight: #00ADEF
 
-// ──────────────── (Birth Date Component Removed) ────────────────
+
 
 type OutcomeType = 'ELIGIBLE' | 'MAYBE' | 'NOT_ELIGIBLE';
 
@@ -83,8 +83,8 @@ export default function StudyScreener() {
 
     // ── Dynamic Steps Logic ──────────────────────────────────────────────
     const [steps, setSteps] = useState<StepConfig[]>([
-        { id: 'STEP1', title: 'ELIGIBILITY CRITERIA', type: 'user_input', editable: true, required: true },
-        { id: 'STEP2', title: 'CONTACT & LOCATION', type: 'auto', editable: true, required: true }
+        { id: 'STEP2', title: 'ELIGIBILITY CRITERIA', type: 'user_input', editable: true, required: true },
+        { id: 'STEP3', title: 'CONTACT & LOCATION', type: 'auto', editable: true, required: true }
     ]);
 
     useEffect(() => {
@@ -285,12 +285,12 @@ export default function StudyScreener() {
         if (!stepCfg) return true;
 
 
-        if (stepCfg.id === 'STEP1') {
+        if (stepCfg.id === 'STEP2') {
             const allDynamicFilled = ((stepCfg as any).questions || []).every((q: any) => !q.required || formData[q.id || `idx_${steps.indexOf(stepCfg)}`]);
             return formData.trialsInLast30Days && allDynamicFilled;
         }
-        if (stepCfg.id === 'STEP2') {
-            return formData.fullName && formData.email && formData.phone && formData.cvConsent && formData.availability && formData.zipCode && formData.location;
+        if (stepCfg.id === 'STEP3') {
+            return formData.fullName && formData.email && formData.phone && formData.cvConsent && formData.availability && formData.location;
         }
         return true;
     };
@@ -347,9 +347,6 @@ export default function StudyScreener() {
         const durations = finalStepDurations || stepDurations;
         const totalDuration = (Date.now() - startTime) / 1000;
 
-        // Logic check
-        const ageNum = parseInt(formData.age || '0');
-        if (ageNum < 18) finalOutcome = 'NOT_ELIGIBLE';
 
         // Simple mock eligibility check (can be improved by study.eligibility_criteria in DB)
         if (formData.trialsInLast30Days === 'Yes') finalOutcome = 'MAYBE';
@@ -512,7 +509,7 @@ export default function StudyScreener() {
                                 <div className="min-h-[350px] space-y-8">
 
 
-                                    {currentStep.id === 'STEP1' && (
+                                    {currentStep.id === 'STEP2' && (
                                         <div className="space-y-12">
 
                                             {/* Section A: Quick Eligibility Check (Fixed) */}
@@ -562,10 +559,11 @@ export default function StudyScreener() {
                                                                         placeholder={q.placeholder || "Enter response..."}
                                                                     />
                                                                 ) : q.type === 'date' ? (
-                                                                    <BirthDateField
+                                                                    <input
+                                                                        type="date"
+                                                                        className={`w-full bg-[#161f35] border rounded-2xl px-8 py-5 text-white text-xl outline-none transition-all ${isMissing ? 'border-red-500/50' : 'border-white/10 focus:border-[#00ADEF]/80'}`}
                                                                         value={formData[fid] || ""}
-                                                                        onChange={(val) => setFormData({ ...formData, [fid]: val })}
-                                                                        isMissing={isMissing}
+                                                                        onChange={(e) => setFormData({ ...formData, [fid]: e.target.value })}
                                                                     />
                                                                 ) : q.type === 'dropdown' ? (
                                                                     <div className="relative group/select">
@@ -619,7 +617,7 @@ export default function StudyScreener() {
                                         </div>
                                     )}
 
-                                    {currentStep.id === 'STEP2' && (
+                                    {currentStep.id === 'STEP3' && (
                                         <div className="space-y-8">
                                             {/* Location Section Moved to Step 2 (Contact & Location) */}
                                             <div className="space-y-8 bg-white/[0.02] p-8 rounded-[2rem] border border-white/5 shadow-2xl shadow-black/20">
@@ -771,6 +769,11 @@ export default function StudyScreener() {
                                                 ? `You are currently enrolled in another study. Your application for ${study.title} has been submitted for PI review.`
                                                 : `You criteria matches the recruitment profile for ${study.title}.`}
                                         </p>
+                                        {(!isExistingParticipant && !getAccessToken()) && (
+                                            <p className="text-cyan-400 text-sm font-bold mt-4 animate-pulse">
+                                                Please create an account or login with Gmail to complete your enrollment.
+                                            </p>
+                                        )}
                                     </div>
                                     <button
                                         onClick={() => {
