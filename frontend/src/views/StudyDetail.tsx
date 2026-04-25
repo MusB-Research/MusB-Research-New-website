@@ -230,19 +230,23 @@ export default function StudyDetail() {
                                         Overview
                                     </h2>
                                     {customContent ? (
-                                        <ul className="space-y-4 text-slate-300 text-xl leading-relaxed font-medium list-disc pl-5">
+                                        <div className="space-y-4">
                                             {customContent.overviewBullets.map((bullet: string, idx: number) => (
-                                                <li key={idx}>{bullet}</li>
+                                                <div key={idx} className="flex gap-4 group/item">
+                                                    <div className="w-1.5 h-1.5 rounded-full bg-[#00ADEF] mt-3 shrink-0 shadow-[0_0_10px_rgba(0,173,239,0.5)]" />
+                                                    <span className="text-slate-300 text-xl leading-relaxed font-medium">{bullet}</span>
+                                                </div>
                                             ))}
-                                        </ul>
+                                        </div>
                                     ) : (
-                                        <div className="space-y-4 text-slate-300 text-xl leading-relaxed font-medium">
-                                            {study.overview.split('\n').map((line, idx) => (
-                                                line.trim().startsWith('*') ? (
-                                                    <li key={idx} className="list-disc ml-5">{line.trim().substring(1).trim()}</li>
-                                                ) : (
-                                                    <p key={idx}>{line}</p>
-                                                )
+                                        <div className="space-y-4">
+                                            {study.overview.split('\n').filter(line => line.trim()).map((line, idx) => (
+                                                <div key={idx} className="flex gap-4 group/item">
+                                                    <div className="w-1.5 h-1.5 rounded-full bg-[#00ADEF] mt-3 shrink-0 shadow-[0_0_10px_rgba(0,173,239,0.5)]" />
+                                                    <span className="text-slate-300 text-xl leading-relaxed font-medium">
+                                                        {line.trim().startsWith('*') ? line.trim().substring(1).trim() : line.trim()}
+                                                    </span>
+                                                </div>
                                             ))}
                                         </div>
                                     )}
@@ -267,19 +271,23 @@ export default function StudyDetail() {
                                         Benefits for Participants
                                     </h2>
                                     {customContent ? (
-                                        <ul className="space-y-4 text-slate-300 text-xl leading-relaxed font-medium list-disc pl-5">
+                                        <div className="space-y-4">
                                             {customContent.benefitsBullets.map((bullet: string, idx: number) => (
-                                                <li key={idx}>{bullet}</li>
+                                                <div key={idx} className="flex gap-4 group/item">
+                                                    <div className="w-1.5 h-1.5 rounded-full bg-[#00ADEF] mt-3 shrink-0 shadow-[0_0_10px_rgba(0,173,239,0.5)]" />
+                                                    <span className="text-slate-300 text-xl leading-relaxed font-medium">{bullet}</span>
+                                                </div>
                                             ))}
-                                        </ul>
+                                        </div>
                                     ) : (
-                                        <div className="space-y-4 text-slate-300 text-xl leading-relaxed font-medium">
-                                            {study.benefit.split('\n').map((line, idx) => (
-                                                line.trim().startsWith('*') ? (
-                                                    <li key={idx} className="list-disc ml-5">{line.trim().substring(1).trim()}</li>
-                                                ) : (
-                                                    <p key={idx}>{line}</p>
-                                                )
+                                        <div className="space-y-4">
+                                            {study.benefit.split('\n').filter(line => line.trim()).map((line, idx) => (
+                                                <div key={idx} className="flex gap-4 group/item">
+                                                    <div className="w-1.5 h-1.5 rounded-full bg-[#00ADEF] mt-3 shrink-0 shadow-[0_0_10px_rgba(0,173,239,0.5)]" />
+                                                    <span className="text-slate-300 text-xl leading-relaxed font-medium">
+                                                        {line.trim().startsWith('*') ? line.trim().substring(1).trim() : line.trim()}
+                                                    </span>
+                                                </div>
                                             ))}
                                         </div>
                                     )}

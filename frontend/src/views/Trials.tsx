@@ -129,8 +129,8 @@ export default function Trials() {
             if (trimmedLine.startsWith('*') || trimmedLine.startsWith('-') || trimmedLine.startsWith('•')) {
                 inList = true;
                 return (
-                    <div key={idx} className="flex gap-3 mb-2.5 ml-1 group/item">
-                        <span className="text-cyan-500 font-black mt-1 shrink-0 text-[10px]">•</span>
+                    <div key={idx} className="flex gap-4 mb-3 ml-1 group/item">
+                        <div className="w-1.5 h-1.5 rounded-full bg-cyan-500 mt-1.5 shrink-0 shadow-[0_0_10px_rgba(6,182,212,0.5)]" />
                         <span className="text-slate-400 font-medium leading-relaxed text-[13px]">{trimmedLine.substring(1).trim()}</span>
                     </div>
                 );
