@@ -154,7 +154,8 @@ export default function News() {
                         type: 'Partnership',
                         title: decodeEntities(p.name || p.partner_name || p.title || 'New Partnership'),
                         excerpt: stripToPlainText(p.description || p.collaboration_details || 'Partnership details not provided.'),
-                        date: new Date(p.announcement_date || p.created_at || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                        date: new Date(p.announcement_date || p.created_at || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+                        imageUrl: getMediaUrl(p.logo_url || p.logo)
                     }))];
                 }
 
@@ -166,7 +167,8 @@ export default function News() {
                         type: 'Publication',
                         title: decodeEntities(p.title || 'Untitled Publication'),
                         excerpt: stripToPlainText(p.abstract || p.summary || 'No abstract available.'),
-                        date: new Date(p.publication_date || p.created_at || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                        date: new Date(p.publication_date || p.created_at || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+                        imageUrl: getMediaUrl(p.image_url || p.image)
                     }))];
                 }
 
@@ -178,21 +180,16 @@ export default function News() {
                         type: 'Educational Material',
                         title: decodeEntities(e.title || 'Untitled Material'),
                         excerpt: stripToPlainText(e.content || e.description || e.summary || 'No description available.'),
-                        date: new Date(e.created_at || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                        date: new Date(e.created_at || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+                        imageUrl: getMediaUrl(e.file_url || e.file || e.attachment)
                     }))];
                 }
 
-                // If we got real data, use it; otherwise fallback to hardcoded
-                if (combined.length > 0) {
-                    // Sort descending by date
-                    combined.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-                    setNewsItems(combined);
-                } else {
-                    setNewsItems(HARDCODED_NEWS);
-                }
-            } catch (e) {
-                console.error("Failed to fetch news", e);
-                setNewsItems(HARDCODED_NEWS);
+                // Sort all by date descending
+                combined.sort((a, b) => new Date(b.published_at || b.date || b.created_at).getTime() - new Date(a.published_at || a.date || a.created_at).getTime());
+                setNewsItems(combined);
+            } catch (error) {
+                console.error('Failed to fetch news feed:', error);
             } finally {
                 setIsLoading(false);
             }
@@ -200,474 +197,222 @@ export default function News() {
         fetchData();
     }, []);
 
-
     const filteredItems = useMemo(() => {
         return newsItems.filter(item => {
             const matchesCategory = activeCategory === 'All' || item.type === activeCategory;
-
             const matchesSearch = item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                 item.excerpt.toLowerCase().includes(searchQuery.toLowerCase());
-
             return matchesCategory && matchesSearch;
         });
-    }, [activeCategory, searchQuery, newsItems]);
+    }, [newsItems, activeCategory, searchQuery]);
 
-    const featuredItem = useMemo(() => {
-        return newsItems.find(item => item.isFeatured);
+    // Group items by category for the grid/section view
+    const itemsByCategory = useMemo(() => {
+        const grouped: Record<string, any[]> = {};
+        newsItems.forEach(item => {
+            if (!grouped[item.type]) grouped[item.type] = [];
+            grouped[item.type].push(item);
+        });
+        return grouped;
     }, [newsItems]);
 
-    const getTypeIcon = (type: NewsType) => {
-        switch (type) {
-            case 'News': return Newspaper;
-            case 'Event': return Calendar;
-            case 'Partnership': return Users;
-            case 'Publication': return BookOpen;
-            case 'Educational Material': return GraduationCap;
-            default: return Newspaper;
-        }
-    };
-
-    const getAccentColor = (type: NewsType) => {
-        switch (type) {
-            case 'News': return 'cyan';
-            case 'Event': return 'indigo';
-            case 'Partnership': return 'purple';
-            case 'Publication': return 'emerald';
-            case 'Educational Material': return 'amber';
-            default: return 'cyan';
-        }
-    };
-
-    // Group items by type for section-based layout
-    const groupedItems = useMemo(() => {
-        const groups: Record<string, NewsItem[]> = {};
-        filteredItems.forEach(item => {
-            if (item.id === featuredItem?.id && activeCategory === 'All' && !searchQuery) return;
-            if (!groups[item.type]) groups[item.type] = [];
-            groups[item.type].push(item);
-        });
-        return groups;
-    }, [filteredItems, featuredItem, activeCategory, searchQuery]);
-
-    const accentClasses: Record<string, { badge: string; border: string; heading: string }> = {
-        cyan: {
-            badge: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20',
-            border: 'hover:border-cyan-400/30',
-            heading: 'text-cyan-400',
-        },
-        indigo: {
-            badge: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20',
-            border: 'hover:border-indigo-400/30',
-            heading: 'text-indigo-400',
-        },
-        purple: {
-            badge: 'bg-purple-500/10 text-purple-400 border-purple-500/20',
-            border: 'hover:border-purple-400/30',
-            heading: 'text-purple-400',
-        },
-        emerald: {
-            badge: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
-            border: 'hover:border-emerald-400/30',
-            heading: 'text-emerald-400',
-        },
-        amber: {
-            badge: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
-            border: 'hover:border-amber-400/30',
-            heading: 'text-amber-400',
-        },
-    };
-
     return (
-        <div className="min-h-screen font-sans text-slate-200 relative overflow-x-hidden">
+        <div className="min-h-screen bg-[#050505] text-white pt-24 pb-20">
             <SEO 
-                title="Clinical Trial News & Medical Research Updates | MUSB Health"
-                description="Stay updated with the latest in musculoskeletal research, clinical trial progress, and medical education from MUSB Health."
-                canonical="https://www.musbhealth.com/news"
+                title="News & Insights" 
+                description="Stay updated with the latest clinical research news, upcoming events, and breakthroughs at MusB Research."
             />
-            {/* Atmospheric Background Layers */}
-            <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
-                <div className="absolute top-[-10%] left-[-10%] w-[70%] h-[70%] bg-blue-600/10 blur-[120px] rounded-full"></div>
-                <div className="absolute bottom-[-10%] right-[-10%] w-[80%] h-[80%] bg-indigo-600/10 blur-[150px] rounded-full"></div>
-                <div className="absolute top-[20%] right-[10%] w-[40%] h-[40%] bg-cyan-600/10 blur-[100px] rounded-full"></div>
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-[radial-gradient(circle_at_center,rgba(6,182,212,0.03)_0%,transparent_100%)]"></div>
+            
+            {/* Background Decorative Elements */}
+            <div className="fixed inset-0 overflow-hidden pointer-events-none">
+                <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-cyan-500/5 rounded-full blur-[120px]" />
+                <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-indigo-500/5 rounded-full blur-[120px]" />
             </div>
 
-            {/* SECTION 1: PAGE HEADER (Hero) */}
-            <section className="relative pt-40 pb-20 overflow-hidden">
-                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full bg-[radial-gradient(circle_at_center,rgba(6,182,212,0.12)_0%,transparent_70%)]"></div>
-                <div className="max-w-[1700px] mx-auto px-4 md:px-12 relative z-10 text-center">
-                    <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-white mb-6 tracking-tight">
-                        News & <span className="text-cyan-400">Events</span>
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+                {/* Header */}
+                <div className="text-center mb-16">
+                    <h1 className="text-4xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-white via-cyan-200 to-white bg-clip-text text-transparent">
+                        Insights & Updates
                     </h1>
-                    <p className="text-lg md:text-xl text-slate-400 max-w-2xl mx-auto leading-relaxed font-medium">
-                        Stay updated on MusB™ Research's latest scientific advances, publications, partnerships, and educational resources.
+                    <p className="text-gray-400 text-lg max-w-2xl mx-auto">
+                        Exploring the frontiers of clinical research and bringing the latest medical advancements to our community.
                     </p>
                 </div>
-            </section>
 
-            {/* SECTION 2: FILTER & SEARCH BAR */}
-            {newsItems.length > 0 ? (
-                <>
-                    <section className="sticky top-20 z-40 bg-slate-950/80 backdrop-blur-md border-y border-white/5 py-6">
-                        <div className="max-w-[1700px] mx-auto px-4 md:px-12 flex flex-col lg:flex-row items-center justify-between gap-8">
-                            {/* Filter Chips */}
-                            <div className="flex flex-wrap items-center justify-center lg:justify-start gap-3">
-                                {categories.map((cat) => (
-                                    <button
-                                        key={cat}
-                                        onClick={() => setActiveCategory(cat)}
-                                        className={`px-5 py-2.5 rounded-full text-sm font-bold transition-all border ${activeCategory === cat
-                                            ? 'bg-cyan-500 border-cyan-500 text-slate-950 shadow-lg shadow-cyan-500/20'
-                                            : 'bg-white/5 border-white/10 text-slate-400 hover:border-white/20 hover:text-white'
-                                            }`}
-                                    >
-                                        {cat}
-                                    </button>
-                                ))}
-                            </div>
-
-                            {/* Search & Toggle */}
-                            <div className="flex items-center gap-4 w-full lg:w-auto">
-                                <div className="relative flex-grow lg:flex-grow-0 lg:w-80">
-                                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                                    <input
-                                        type="text"
-                                        placeholder="Search news & events..."
-                                        value={searchQuery}
-                                        onChange={(e) => setSearchQuery(e.target.value)}
-                                        className="w-full bg-white/5 border border-white/10 rounded-2xl py-3 pl-12 pr-4 text-sm font-medium focus:outline-none focus:border-cyan-500/50 transition-all text-white placeholder:text-slate-600"
-                                    />
-                                </div>
-                                <div className="flex bg-white/5 border border-white/10 rounded-2xl p-1">
-                                    <button
-                                        onClick={() => setViewMode('grid')}
-                                        className={`p-2 rounded-xl transition-all ${viewMode === 'grid' ? 'bg-cyan-500 text-slate-950 shadow-lg' : 'text-slate-500 hover:text-white'}`}
-                                        title="Grid View"
-                                    >
-                                        <Grid className="w-5 h-5" />
-                                    </button>
-                                    <button
-                                        onClick={() => setViewMode('calendar')}
-                                        className={`p-2 rounded-xl transition-all ${viewMode === 'calendar' ? 'bg-cyan-500 text-slate-950 shadow-lg' : 'text-slate-500 hover:text-white'}`}
-                                        title="Calendar View"
-                                    >
-                                        <Calendar className="w-5 h-5" />
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </section>
-
-                    <main className="max-w-[1700px] mx-auto px-4 md:px-12 py-16">
-                {viewMode === 'grid' ? (
-                    <div className="space-y-20">
-                        {/* SECTION 3: FEATURED STORY */}
-                        {featuredItem && activeCategory === 'All' && !searchQuery && (
-                            <section className="relative group">
-                                <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/20 to-indigo-500/20 rounded-[3rem] blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
-                                <div className="relative bg-white/5 border border-white/10 rounded-[3rem] overflow-hidden grid lg:grid-cols-2 shadow-2xl">
-                                    <div className="aspect-[16/9] lg:aspect-auto overflow-hidden bg-slate-900 border-r border-slate-800 relative">
-                                        <img 
-                                            src={getMediaUrl(featuredItem.imageUrl)} 
-                                            onError={handleImageError}
-                                            alt={featuredItem.title} 
-                                            className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000"
-                                        />
-                                        <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/20 to-indigo-500/20 group-hover:scale-105 transition-transform duration-1000"></div>
-                                    </div>
-                                    <div className="p-8 md:p-12 flex flex-col justify-center space-y-6">
-                                        <div className="flex items-center gap-3">
-                                            <span className="px-4 py-1.5 rounded-full bg-cyan-500/10 text-cyan-400 text-[12px] font-black uppercase tracking-widest border border-cyan-500/20">
-                                                Featured: {featuredItem.type}
-                                            </span>
-                                            <span className="text-slate-500 text-sm font-bold">{featuredItem.date}</span>
-                                        </div>
-                                        <h2 className="text-3xl md:text-5xl font-black text-white leading-tight">
-                                            {featuredItem.title}
-                                        </h2>
-                                        <p className="text-xl text-slate-400 leading-relaxed font-medium">
-                                            {featuredItem.excerpt}
-                                        </p>
-                                        <Link
-                                            to={`/news/${featuredItem.id}`}
-                                            className="inline-flex items-center gap-3 bg-white text-slate-950 px-8 py-4 rounded-2xl font-black uppercase tracking-widest hover:bg-cyan-500 transition-all self-start"
-                                        >
-                                            Read More <ArrowRight className="w-5 h-5" />
-                                        </Link>
-                                    </div>
-                                </div>
-                            </section>
-                        )}
-
-                        {/* SECTION 4: SEPARATE ROWS PER CATEGORY */}
-                        {sectionDefinitions
-                            .filter(sec => activeCategory === 'All' || activeCategory === sec.type)
-                            .map(sec => {
-                                const items = groupedItems[sec.type];
-                                if (!items || items.length === 0) return null;
-                                const accent = accentClasses[sec.accent] || accentClasses.cyan;
-                                const SectionIcon = getTypeIcon(sec.type);
-
-                                return (
-                                    <section key={sec.type} className="space-y-8">
-                                        {/* Section Header */}
-                                        <div className="flex items-center gap-4">
-                                            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${accent.badge} border`}>
-                                                <SectionIcon className="w-6 h-6" />
-                                            </div>
-                                            <h2 className={`text-3xl md:text-4xl font-black tracking-tight ${accent.heading}`}>
-                                                {sec.label}
-                                            </h2>
-                                            <div className="flex-grow h-px bg-white/10"></div>
-                                            <span className="text-slate-500 text-sm font-bold">{items.length} {items.length === 1 ? 'item' : 'items'}</span>
-                                        </div>
-
-                                        {/* Section Grid */}
-                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                                            {items.map(item => {
-                                                const Icon = getTypeIcon(item.type);
-                                                return (
-                                                    <div key={item.id} className={`group bg-white/5 border border-white/5 rounded-[2.5rem] overflow-hidden flex flex-col hover:bg-white/10 hover:border-white/10 ${accent.border} transition-all duration-300 shadow-xl`}>
-                                                        <div className="aspect-[16/10] overflow-hidden relative">
-                                                            <img 
-                                                                src={getMediaUrl(item.imageUrl)} 
-                                                                onError={handleImageError}
-                                                                alt={item.title} 
-                                                                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-                                                            />
-                                                            <div className="absolute top-4 left-4">
-                                                                <span className={`flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-950/80 backdrop-blur-md text-[12px] font-black uppercase tracking-widest border border-white/10 ${accent.badge}`}>
-                                                                    <Icon className="w-3 h-3" />
-                                                                    {item.type}
-                                                                </span>
-                                                            </div>
-                                                        </div>
-                                                        <div className="p-8 flex flex-col flex-grow space-y-4">
-                                                            <div className="text-slate-500 text-[12px] font-bold uppercase tracking-widest">{item.date}</div>
-                                                            <h3 className="text-xl font-bold text-white group-hover:text-cyan-400 transition-colors line-clamp-2">
-                                                                {item.title}
-                                                            </h3>
-                                                            <p className="text-slate-400 text-sm font-medium leading-relaxed line-clamp-2">
-                                                                {item.excerpt}
-                                                            </p>
-                                                            <Link
-                                                                to={`/news/${item.id}`}
-                                                                className="inline-flex items-center gap-2 text-white font-black text-[12px] uppercase tracking-[0.2em] pt-4 group-hover:text-cyan-400 transition-colors mt-auto"
-                                                            >
-                                                                Read More <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                                                            </Link>
-                                                        </div>
-                                                    </div>
-                                                );
-                                            })}
-                                        </div>
-                                    </section>
-                                );
-                            })}
-
-                        {/* No results state */}
-                        {Object.keys(groupedItems).length === 0 && (searchQuery || activeCategory !== 'All') && (
-                            <div className="py-20 flex flex-col items-center justify-center text-center space-y-6">
-                                <div className="w-20 h-20 rounded-full bg-white/5 flex items-center justify-center text-slate-600">
-                                    <SearchX className="w-10 h-10" />
-                                </div>
-                                <div className="space-y-2">
-                                    <h3 className="text-2xl font-black text-white">No results found</h3>
-                                    <p className="text-slate-500 font-medium">Try adjusting your filters or search keywords.</p>
-                                </div>
-                                <button
-                                    onClick={() => { setActiveCategory('All'); setSearchQuery(''); }}
-                                    className="text-cyan-400 font-black uppercase tracking-widest text-[12px] border-b-2 border-cyan-400 pb-1 hover:text-white hover:border-white transition-colors"
-                                >
-                                    Clear All Filters
-                                </button>
-                            </div>
-                        )}
+                {/* Controls */}
+                <div className="flex flex-col md:flex-row gap-6 items-center justify-between mb-12 bg-white/5 p-4 rounded-2xl border border-white/10 backdrop-blur-md">
+                    {/* Search */}
+                    <div className="relative w-full md:w-96">
+                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
+                        <input
+                            type="text"
+                            placeholder="Search news, events..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="w-full bg-black/40 border border-white/10 rounded-xl py-3 pl-12 pr-4 text-white placeholder:text-gray-600 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 transition-all"
+                        />
                     </div>
-                ) : (
-                    /* SECTION 5: EVENTS CALENDAR VIEW */
-                    <div className="max-w-4xl mx-auto space-y-6">
-                        {(filteredItems as NewsItem[]).filter(item => item.type === 'Event').length > 0 ? (
-                            (filteredItems as NewsItem[]).filter(item => item.type === 'Event').map(event => (
-                                <div key={event.id} className="group bg-white/5 border border-white/5 rounded-3xl p-8 hover:bg-white/10 transition-all flex flex-col md:flex-row items-center gap-8">
-                                    <div className="w-full md:w-32 h-32 rounded-2xl bg-slate-900 border border-white/10 flex flex-col items-center justify-center text-center p-4">
-                                        <div className="text-cyan-400 font-black text-2xl leading-none">{event.date.split(' ')[0]}</div>
-                                        <div className="text-white text-sm font-bold uppercase tracking-widest mt-1">{event.date.split(' ')[1]?.replace(',', '')}</div>
-                                    </div>
-                                    <div className="flex-grow space-y-3">
-                                        <div className="flex items-center gap-3">
-                                            <span className="text-[12px] font-black uppercase tracking-widest text-cyan-400 px-2 py-0.5 rounded-md bg-cyan-400/10 border border-cyan-400/20">{event.type}</span>
-                                            {event.locationType && (
-                                                <span className="flex items-center gap-1.5 text-[12px] font-black uppercase tracking-widest text-slate-500">
-                                                    <MapPin className="w-3 h-3" /> {event.locationType}
-                                                </span>
-                                            )}
-                                        </div>
-                                        <h3 className="text-2xl font-black text-white group-hover:text-cyan-400 transition-colors uppercase italic">{event.title}</h3>
-                                        <div className="flex flex-wrap gap-6 text-sm font-bold text-slate-400">
-                                            {event.startTime && (
-                                                <div className="flex items-center gap-2">
-                                                    <Clock className="w-4 h-4 text-slate-600" />
-                                                    {event.startTime} - {event.endTime}
-                                                </div>
-                                            )}
-                                            {event.location && (
-                                                <div className="flex items-center gap-2">
-                                                    <MapPin className="w-4 h-4 text-slate-600" />
-                                                    {event.location}
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                    <Link
-                                        to={event.registrationLink || '#'}
-                                        className="w-full md:w-auto px-8 py-4 rounded-2xl bg-white text-slate-950 font-black uppercase tracking-widest text-[12px] hover:bg-cyan-500 transition-all text-center"
-                                    >
-                                        Register
-                                    </Link>
-                                </div>
-                            ))
-                        ) : (
-                            <div className="py-20 flex flex-col items-center justify-center text-center space-y-6">
-                                <div className="w-20 h-20 rounded-full bg-white/5 flex items-center justify-center text-slate-600">
-                                    <Calendar className="w-10 h-10" />
-                                </div>
-                                <div className="space-y-2">
-                                    <h3 className="text-2xl font-black text-white">No upcoming events</h3>
-                                    <p className="text-slate-500 font-medium">Check back later or view all news updates.</p>
-                                </div>
-                                <button
-                                    onClick={() => setViewMode('grid')}
-                                    className="text-cyan-400 font-black uppercase tracking-widest text-[12px] border-b-2 border-cyan-400 pb-1 hover:text-white hover:border-white transition-colors"
-                                >
-                                    Return to Feed
-                                </button>
-                            </div>
-                        )}
+
+                    {/* View Switch */}
+                    <div className="flex bg-black/40 p-1 rounded-xl border border-white/10">
+                        <button
+                            onClick={() => setViewMode('grid')}
+                            className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${viewMode === 'grid' ? 'bg-cyan-500 text-white shadow-lg shadow-cyan-500/20' : 'text-gray-400 hover:text-white'}`}
+                        >
+                            <Grid className="w-4 h-4" />
+                            <span className="text-sm font-medium">Grid</span>
+                        </button>
+                        <button
+                            onClick={() => setViewMode('calendar')}
+                            className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${viewMode === 'calendar' ? 'bg-cyan-500 text-white shadow-lg shadow-cyan-500/20' : 'text-gray-400 hover:text-white'}`}
+                        >
+                            <Calendar className="w-4 h-4" />
+                            <span className="text-sm font-medium">Calendar</span>
+                        </button>
                     </div>
-                        )}
-                    </main>
-                </>
-            ) : isLoading ? (
-                <main className="max-w-[1700px] mx-auto px-4 md:px-12 py-32 space-y-16">
-                    <div className="flex flex-col items-center justify-center text-center space-y-4 mb-12">
-                        <div className="relative">
-                            <div className="w-16 h-16 rounded-2xl bg-cyan-500/10 flex items-center justify-center">
-                                <Loader2 className="w-8 h-8 text-cyan-400 animate-spin" />
-                            </div>
-                            <div className="absolute -inset-4 bg-cyan-500/20 blur-2xl rounded-full opacity-50 animate-pulse"></div>
-                        </div>
-                        <p className="text-[12px] font-black uppercase tracking-[0.4em] text-cyan-400/60 animate-pulse">
-                            Synchronizing Global Feed
-                        </p>
-                    </div>
-                    
+                </div>
+
+                {/* Categories */}
+                <div className="flex flex-wrap justify-center gap-3 mb-16">
+                    {categories.map((cat) => (
+                        <button
+                            key={cat}
+                            onClick={() => setActiveCategory(cat)}
+                            className={`px-6 py-2.5 rounded-full text-sm font-medium transition-all border ${
+                                activeCategory === cat
+                                    ? 'bg-cyan-500 border-cyan-400 text-white shadow-lg shadow-cyan-500/20'
+                                    : 'bg-white/5 border-white/10 text-gray-400 hover:bg-white/10 hover:text-white'
+                            }`}
+                        >
+                            {cat}
+                        </button>
+                    ))}
+                </div>
+
+                {isLoading ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                        {Array.from({ length: 3 }).map((_, i) => (
-                            <div key={i} className="bg-white/5 border border-white/5 rounded-[2.5rem] p-8 space-y-6">
-                                <div className="aspect-[16/10] bg-white/5 rounded-2xl animate-pulse" />
-                                <div className="space-y-3">
-                                    <div className="h-4 w-24 bg-white/5 rounded animate-pulse" />
-                                    <div className="h-8 w-full bg-white/5 rounded animate-pulse" />
-                                    <div className="h-4 w-2/3 bg-white/5 rounded animate-pulse" />
-                                </div>
-                            </div>
+                        {[1, 2, 3, 4, 5, 6].map((i) => (
+                            <SkeletonLoader key={i} className="h-[450px] rounded-2xl" />
                         ))}
                     </div>
-                </main>
-            ) : (
-                <main className="max-w-[1700px] mx-auto px-4 md:px-12 py-32 min-h-[40vh] flex flex-col items-center justify-center text-center">
-                    <div className="w-24 h-24 rounded-full bg-cyan-500/10 flex items-center justify-center text-cyan-400 mb-8">
-                        <Clock className="w-12 h-12" />
+                ) : filteredItems.length > 0 ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                        {filteredItems.map((item, idx) => (
+                            <NewsCard key={idx} item={item} />
+                        ))}
                     </div>
-                    <h2 className="text-5xl md:text-7xl font-black text-white tracking-widest uppercase italic">
-                        COMING SOON
-                    </h2>
-                    <p className="text-xl text-slate-400 font-medium mt-6">
-                        We are preparing exciting news and events. Stay tuned!
-                    </p>
-                </main>
-            )}
-
-            {/* SECTION 6: CALL TO ACTION (Contextual) */}
-            <section className="max-w-[1700px] mx-auto px-4 md:px-12 py-16">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    {/* For Sponsors / Partners */}
-                    <div className="p-8 md:p-10 rounded-[3rem] bg-gradient-to-br from-slate-900 to-slate-950 border border-white/5 flex flex-col items-start space-y-6 group">
-                        <div className="w-14 h-14 rounded-2xl bg-cyan-500/10 flex items-center justify-center text-cyan-400">
-                            <Users className="w-7 h-7" />
-                        </div>
-                        <h3 className="text-3xl font-black text-white leading-tight">Interested in collaborating or staying informed?</h3>
-                        <Link to="/contact?type=general" className="inline-flex items-center gap-3 text-sm font-black uppercase tracking-widest text-white border-b-2 border-cyan-500 pb-2 group-hover:gap-5 transition-all">
-                            Contact Our Team <ArrowRight className="w-5 h-5 text-cyan-400" />
-                        </Link>
+                ) : (
+                    <div className="text-center py-20 bg-white/5 rounded-3xl border border-dashed border-white/10">
+                        <SearchX className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+                        <h3 className="text-xl font-semibold mb-2">No results found</h3>
+                        <p className="text-gray-500">Try adjusting your search or category filter</p>
                     </div>
+                )}
 
-                    {/* For Participants */}
-                    <div className="p-8 md:p-10 rounded-[3rem] bg-gradient-to-br from-slate-900 to-slate-950 border border-white/5 flex flex-col items-start space-y-6 group">
-                        <div className="w-14 h-14 rounded-2xl bg-indigo-500/10 flex items-center justify-center text-indigo-400">
-                            <Lightbulb className="w-7 h-7" />
-                        </div>
-                        <h3 className="text-3xl font-black text-white leading-tight">Looking for ongoing or upcoming clinical studies?</h3>
-                        <Link to="/trials" className="inline-flex items-center gap-3 text-sm font-black uppercase tracking-widest text-white border-b-2 border-indigo-400 pb-2 group-hover:gap-5 transition-all">
-                            Find a clinical study <ArrowRight className="w-5 h-5 text-indigo-400" />
-                        </Link>
-                    </div>
-                </div>
-            </section>
-
-            {/* SECTION 7: NEWSLETTER SIGN-UP */}
-            <section className="max-w-[1700px] mx-auto px-4 md:px-12 pb-20 pt-16">
-                <div className="relative p-8 md:p-24 rounded-[4.5rem] bg-white/5 border border-white/10 backdrop-blur-3xl text-white overflow-hidden text-center space-y-12">
-                    <div className="absolute top-0 right-0 w-64 h-64 bg-cyan-400/10 blur-3xl rounded-full"></div>
-                    <div className="space-y-6 max-w-2xl mx-auto">
-                        <h2 className="text-4xl md:text-6xl font-black tracking-tight leading-none uppercase italic">Research Digests<br />Weekly Update</h2>
-                        <p className="text-lg font-bold text-slate-400">Get MusB™ Research updates delivered to your inbox.</p>
-                    </div>
-
-                    <form className="flex flex-col md:flex-row gap-6 max-w-3xl mx-auto relative z-10" onSubmit={handleSubscribe}>
-                        <div className="flex-grow flex flex-col md:flex-row gap-4">
+                {/* Newsletter Section */}
+                <div className="mt-32 relative overflow-hidden">
+                    <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/20 to-indigo-500/20 blur-[100px] -z-10" />
+                    <div className="bg-white/5 border border-white/10 backdrop-blur-md rounded-3xl p-8 md:p-16 text-center">
+                        <h2 className="text-3xl md:text-4xl font-bold mb-4">Stay at the Forefront</h2>
+                        <p className="text-gray-400 mb-10 max-w-2xl mx-auto">
+                            Join our newsletter to receive the latest research updates, upcoming clinical trials, and medical insights delivered to your inbox.
+                        </p>
+                        <form onSubmit={handleSubscribe} className="flex flex-col sm:flex-row gap-4 max-w-lg mx-auto">
                             <input
                                 type="email"
-                                placeholder="Your Email Address"
+                                required
+                                placeholder="Enter your email"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
-                                className="flex-grow bg-slate-950/50 border border-white/10 rounded-2xl px-6 py-4 outline-none focus:ring-2 focus:ring-cyan-500 font-bold text-white placeholder:text-slate-600"
-                                required
+                                className="flex-1 bg-black/40 border border-white/10 rounded-xl py-4 px-6 text-white placeholder:text-gray-600 focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
                             />
-                            {/* Role selection is visual only for now as backend only accepts email */}
-                            <div className="flex bg-slate-950/50 rounded-2xl p-1 border border-white/10">
-                                <label className="flex-1 px-4 py-3 cursor-pointer has-[:checked]:bg-cyan-500 has-[:checked]:text-slate-950 has-[:checked]:shadow-sm rounded-xl transition-all">
-                                    <input type="radio" name="describe" value="business" className="sr-only" defaultChecked />
-                                    <span className="text-[12px] font-black uppercase tracking-widest block text-center">Business</span>
-                                </label>
-                                <label className="flex-1 px-4 py-3 cursor-pointer has-[:checked]:bg-cyan-500 has-[:checked]:text-slate-950 has-[:checked]:shadow-sm rounded-xl transition-all">
-                                    <input type="radio" name="describe" value="researcher" className="sr-only" />
-                                    <span className="text-[12px] font-black uppercase tracking-widest block text-center">Researcher</span>
-                                </label>
-                                <label className="flex-1 px-4 py-3 cursor-pointer has-[:checked]:bg-cyan-500 has-[:checked]:text-slate-950 has-[:checked]:shadow-sm rounded-xl transition-all">
-                                    <input type="radio" name="describe" value="participant" className="sr-only" />
-                                    <span className="text-[12px] font-black uppercase tracking-widest block text-center">Individual</span>
-                                </label>
-                            </div>
-                        </div>
-                        <button
-                            type="submit"
-                            disabled={submitting || subscribeStatus === 'success'}
-                            className={`bg-cyan-500 text-slate-950 px-10 py-4 rounded-2xl font-black uppercase tracking-[0.2em] hover:bg-white transition-all shadow-xl shadow-cyan-500/10 flex items-center justify-center gap-2 ${submitting ? 'opacity-70 cursor-wait' : ''}`}
-                        >
-                            {submitting ? 'Sending...' : subscribeStatus === 'success' ? 'Subscribed!' : 'Subscribe'}
-                            {!submitting && subscribeStatus !== 'success' && <Send className="w-4 h-4" />}
-                        </button>
-                    </form>
-                    {subscribeStatus === 'error' && (
-                        <p className="text-red-400 font-bold">Failed to subscribe. Please try again.</p>
-                    )}
-                    <p className="text-[12px] font-black uppercase tracking-widest text-slate-400">Join 2,500+ leaders in musculoskeletal research.</p>
+                            <button
+                                type="submit"
+                                disabled={submitting}
+                                className="bg-cyan-500 hover:bg-cyan-400 text-black font-bold py-4 px-8 rounded-xl transition-all flex items-center justify-center gap-2 disabled:opacity-50 group"
+                            >
+                                {submitting ? (
+                                    <Loader2 className="w-5 h-5 animate-spin" />
+                                ) : (
+                                    <>
+                                        Subscribe
+                                        <Send className="w-4 h-4 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
+                                    </>
+                                )}
+                            </button>
+                        </form>
+                        {subscribeStatus === 'success' && (
+                            <p className="text-cyan-400 mt-4 animate-fade-in">Thank you! You've been subscribed successfully.</p>
+                        )}
+                    </div>
                 </div>
-            </section>
+            </div>
         </div>
     );
 }
 
+function NewsCard({ item }: { item: any }) {
+    const isEvent = item.type === 'Event';
+    
+    return (
+        <div className="group bg-white/5 border border-white/10 rounded-2xl overflow-hidden hover:bg-white/[0.08] transition-all hover:-translate-y-2 hover:shadow-2xl hover:shadow-cyan-500/10">
+            {/* Image Section */}
+            <div className="relative h-56 overflow-hidden">
+                <img
+                    src={item.imageUrl}
+                    alt={item.title}
+                    onError={handleImageError}
+                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                />
+                <div className="absolute top-4 left-4">
+                    <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider backdrop-blur-md border ${
+                        isEvent ? 'bg-indigo-500/80 border-indigo-400 text-white' : 'bg-cyan-500/80 border-cyan-400 text-white'
+                    }`}>
+                        {item.type}
+                    </span>
+                </div>
+            </div>
 
+            {/* Content Section */}
+            <div className="p-6">
+                <div className="flex items-center gap-4 text-xs text-gray-500 mb-4">
+                    <div className="flex items-center gap-1">
+                        <Clock className="w-3.5 h-3.5" />
+                        {item.date}
+                    </div>
+                    {item.location && (
+                        <div className="flex items-center gap-1">
+                            <MapPin className="w-3.5 h-3.5" />
+                            {item.location}
+                        </div>
+                    )}
+                </div>
+
+                <h3 className="text-xl font-bold mb-3 group-hover:text-cyan-400 transition-colors line-clamp-2">
+                    {item.title}
+                </h3>
+
+                <p className="text-gray-400 text-sm mb-6 line-clamp-3 leading-relaxed">
+                    {item.excerpt}
+                </p>
+
+                <div className="flex items-center justify-between">
+                    <Link
+                        to={`/news/${item.id}`}
+                        className="flex items-center gap-2 text-sm font-bold text-cyan-500 hover:text-cyan-400 transition-colors group/link"
+                    >
+                        Read More
+                        <ArrowRight className="w-4 h-4 group-hover/link:translate-x-1 transition-transform" />
+                    </Link>
+                    
+                    {isEvent && (
+                        <button className="p-2 rounded-lg bg-white/5 text-gray-400 hover:text-white transition-colors">
+                            <Calendar className="w-5 h-5" />
+                        </button>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+}
