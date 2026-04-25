@@ -3,6 +3,8 @@ from django.conf import settings
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from authentication.security import encrypt_data, decrypt_data
+from django.utils import timezone
+import datetime
 
 class BaseMongoModel(models.Model):
     class Meta:
@@ -729,20 +731,31 @@ class ParticipantTask(BaseMongoModel):
                 title=f"ALERT: Task Overdue for {self.participant.participant_sid}",
                 description=f"Task '{self.task.title}' reached its deadline and has been locked for security.",
                 task_type='OVERDUE_ALERT',
-                reference_id=str(self.id)
+                reference_id=str(self.id),
+                due_date=timezone.now() + timezone.timedelta(hours=48),
+                status='NEW'
             )
             return True
         return False
 
 class StaffTask(BaseMongoModel):
     """Tasks assigned to Staff members (PIs, Coordinators)"""
+    STATUS_CHOICES = [
+        ('NEW', 'New'),
+        ('IN_PROGRESS', 'In Progress'),
+        ('ADDRESSED', 'Addressed'),
+        ('OVERDUE', 'Overdue'),
+    ]
+
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='staff_tasks')
     study = models.ForeignKey(Study, on_delete=models.CASCADE, null=True, blank=True)
     title = models.CharField(max_length=255)
     description = models.TextField(blank=True)
     task_type = models.CharField(max_length=50, default='CONSENT_SIGNATURE')
     reference_id = models.CharField(max_length=100, blank=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='NEW')
     is_completed = models.BooleanField(default=False)
+    due_date = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     completed_at = models.DateTimeField(null=True, blank=True)
 

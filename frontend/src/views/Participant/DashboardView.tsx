@@ -4,14 +4,16 @@ import {
     Calendar, Clock, ArrowRight, Activity,
     FileText, CheckCircle2, AlertCircle,
     MessageSquare, History, ClipboardList,
-    Search, MapPin, DollarSign, Globe, ShieldCheck
+    Search, MapPin, DollarSign, Globe, ShieldCheck,
+    Package, Truck, Zap
 } from 'lucide-react';
 import { Card, Badge, ProgressBar, CircularProgress, Skeleton } from './SharedComponents';
 
 const DashboardView = ({
     firstName, onAction, tasks, study, participant,
     visits = [], conversations = [], isLoading = false,
-    allStudies = [], selectedStudyIndex = 0, onStudySwitch
+    allStudies = [], selectedStudyIndex = 0, onStudySwitch,
+    kits = []
 }: any) => {
 
     // ──────────────── DATA CALCULATIONS ────────────────
@@ -52,6 +54,20 @@ const DashboardView = ({
     }, [visits]);
 
     const latestConv = conversations?.[0] || null;
+
+    const activeKit = React.useMemo(() => {
+        if (!kits || kits.length === 0) return null;
+        // Find most relevant kit (active or latest)
+        return [...kits].sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime())[0];
+    }, [kits]);
+
+    const kitStep = React.useMemo(() => {
+        if (!activeKit) return 0;
+        const s = (activeKit.status || '').toUpperCase();
+        if (s.includes('RECEIVED')) return 3;
+        if (s.includes('SHIPPED')) return 2;
+        return 1;
+    }, [activeKit]);
 
     // ──────────────── LOADING STATE ────────────────
     if (isLoading) {
@@ -322,28 +338,92 @@ const DashboardView = ({
                 </Card>
             )}
 
+            {/* SHIPPING TRACKER BAR (3-Step Simplified Flow) */}
+            {activeKit && (
+                <Card 
+                    className="p-4 hover:border-[#1E88E5]/30 transition-all flex flex-col bg-white border-l-4 border-l-[#1E88E5] cursor-pointer group"
+                    onClick={() => onAction('Study Kit')}
+                >
+                    <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                        <div className="flex items-center gap-4 text-center sm:text-left">
+                            <div className="w-10 h-10 bg-[#E3F2FD] rounded-xl flex items-center justify-center text-[#1E88E5] border border-[#BBDEFB] shrink-0">
+                                <Package className="w-5 h-5" />
+                            </div>
+                            <div>
+                                <h4 className="text-sm font-black text-[#1A2B49] tracking-tight uppercase leading-none">Clinical Supply Tracker</h4>
+                                <p className="text-[11px] font-bold text-[#5F6F89] uppercase tracking-widest leading-none mt-1">
+                                    {activeKit.kit_type} · <span className="font-mono">{activeKit.kit_number}</span>
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* 3-Step Visual Flow */}
+                        <div className="flex items-center gap-2 sm:gap-6 w-full sm:w-auto px-4 sm:px-0">
+                            {[
+                                { id: 1, label: 'Prepare', icon: ClipboardList },
+                                { id: 2, label: 'Ship', icon: Truck },
+                                { id: 3, label: 'Receive', icon: CheckCircle2 }
+                            ].map((step, idx, arr) => (
+                                <React.Fragment key={step.id}>
+                                    <div className="flex flex-col items-center gap-1.5">
+                                        <div className={`w-7 h-7 rounded-full flex items-center justify-center border-2 transition-all ${
+                                            kitStep >= step.id 
+                                                ? 'bg-[#1E88E5] border-[#1E88E5] text-white shadow-md' 
+                                                : 'bg-white border-[#E3ECF5] text-[#B0BCCF]'
+                                        }`}>
+                                            <step.icon className="w-3.5 h-3.5" />
+                                        </div>
+                                        <span className={`text-[9px] font-black uppercase tracking-tighter ${
+                                            kitStep >= step.id ? 'text-[#1E88E5]' : 'text-[#B0BCCF]'
+                                        }`}>{step.label}</span>
+                                    </div>
+                                    {idx < arr.length - 1 && (
+                                        <div className={`h-0.5 flex-1 min-w-[20px] sm:min-w-[40px] rounded-full transition-all ${
+                                            kitStep > step.id ? 'bg-[#1E88E5]' : 'bg-[#E3ECF5]'
+                                        }`} />
+                                    )}
+                                </React.Fragment>
+                            ))}
+                        </div>
+
+                        <div className="shrink-0 flex items-center gap-2 text-[#1E88E5] font-black text-[10px] uppercase tracking-widest group-hover:translate-x-1 transition-transform">
+                            Details <ArrowRight className="w-3 h-3" />
+                        </div>
+                    </div>
+                </Card>
+            )}
+
             {/* MESSAGES BAR */}
-            <Card className="p-4 hover:border-[#1E88E5]/30 transition-all flex flex-col sm:flex-row items-center justify-between gap-4 bg-white">
+
+            {/* WEARABLE INTEGRATION BAR */}
+            <Card className="p-4 hover:border-[#4CAF50]/30 transition-all flex flex-col sm:flex-row items-center justify-between gap-4 bg-white border-l-4 border-l-[#4CAF50]">
                 <div className="flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left">
-                    <div className="w-10 h-10 bg-[#F0F6FF] rounded-xl flex items-center justify-center text-[#1E88E5] border border-[#E3F2FD] shrink-0">
-                        <MessageSquare className="w-5 h-5" />
+                    <div className="w-10 h-10 bg-[#E8F5E9] rounded-xl flex items-center justify-center text-[#2E7D32] border border-[#C8E6C9] shrink-0">
+                        <Activity className="w-5 h-5" />
                     </div>
                     <div className="min-w-0">
-                        <h4 className="text-sm font-bold text-[#1A2B49] tracking-tight uppercase leading-none">Support & Communication</h4>
+                        <h4 className="text-sm font-bold text-[#1A2B49] tracking-tight uppercase leading-none">Wearable & Health Data</h4>
                         <p className="text-[11px] font-bold text-[#5F6F89] uppercase tracking-widest leading-none mt-1 truncate max-w-[260px]">
-                            {latestConv?.last_message_preview
-                                ? <>LATEST: <span className="text-[#1A2B49]">"{latestConv.last_message_preview.substring(0, 40)}..."</span></>
-                                : "Message your clinical study team directly."}
+                            {participant?.wearable_linked ? "System synchronized with real-time biometric telemetry." : "Connect Fitbit or Apple Health for protocol monitoring."}
                         </p>
                     </div>
                 </div>
-                <button
-                    onClick={() => onAction('Messages')}
-                    className="px-5 py-2.5 bg-[#F8FBFF] hover:bg-[#E3F2FD] border border-[#E3ECF5] text-[#1E88E5] text-[11px] font-bold uppercase tracking-widest rounded-xl transition-all flex items-center gap-2 shadow-sm hover:shadow active:scale-95 shrink-0"
-                >
-                    Open Messages Hub
-                    <ArrowRight className="w-3.5 h-3.5" />
-                </button>
+                <div className="flex gap-2 shrink-0">
+                    <button
+                        onClick={() => onAction('Connect Wearable', { platform: 'fitbit' })}
+                        className={`px-4 py-2.5 border rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all flex items-center gap-2 ${participant?.fitbit_linked ? 'bg-[#E8F5E9] border-[#C8E6C9] text-[#2E7D32]' : 'bg-[#F8FBFF] border-[#E3ECF5] text-[#1E88E5] hover:bg-[#E3F2FD]'}`}
+                    >
+                        {participant?.fitbit_linked ? <CheckCircle2 className="w-3 h-3" /> : <Zap className="w-3 h-3" />}
+                        Fitbit
+                    </button>
+                    <button
+                        onClick={() => onAction('Connect Wearable', { platform: 'apple' })}
+                        className={`px-4 py-2.5 border rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all flex items-center gap-2 ${participant?.apple_linked ? 'bg-[#E8F5E9] border-[#C8E6C9] text-[#2E7D32]' : 'bg-[#F8FBFF] border-[#E3ECF5] text-[#1E88E5] hover:bg-[#E3F2FD]'}`}
+                    >
+                        {participant?.apple_linked ? <CheckCircle2 className="w-3 h-3" /> : <Activity className="w-3 h-3" />}
+                        Apple Health
+                    </button>
+                </div>
             </Card>
 
             {/* REGULATORY FOOTER */}

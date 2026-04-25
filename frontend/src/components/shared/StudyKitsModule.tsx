@@ -57,12 +57,10 @@ export default function StudyKitsModule({ selectedStudyId, preloadedStudies, pre
 
     const getStatusStyle = (status: string) => {
         switch (status) {
+            case 'RECEIVED': return 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20 shadow-emerald-500/10';
             case 'DELIVERED': return 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20 shadow-emerald-500/10';
             case 'SHIPPED': return 'text-amber-400 bg-amber-500/10 border-amber-500/20 shadow-amber-500/10';
-            case 'RETURN_SHIPPED': return 'text-blue-400 bg-blue-500/10 border-blue-500/20 shadow-blue-500/10';
-            case 'RECEIVED': return 'text-indigo-400 bg-indigo-500/10 border-indigo-500/20 shadow-indigo-500/10';
-            case 'PREPARING': return 'text-slate-400 bg-white/5 border-white/10';
-            case 'ASSIGNED': return 'text-red-400 bg-red-500/5 border-red-500/10 shadow-red-500/10';
+            case 'ASSIGNED': return 'text-blue-400 bg-blue-500/5 border-blue-500/10 shadow-blue-500/10';
             default: return 'text-slate-400 bg-white/5 border-white/10';
         }
     };
@@ -383,83 +381,69 @@ export default function StudyKitsModule({ selectedStudyId, preloadedStudies, pre
                                             <option value="USPS">USPS</option>
                                         </select>
                                     </div>
-                                    <div className="space-y-2">
-                                        <p className="text-[9px] md:text-[10px] font-black text-slate-600 uppercase tracking-widest italic">Tracking ID</p>
-                                        <input 
-                                            type="text" 
-                                            value={kit.tracking_number}
-                                            placeholder="AWAITING..."
-                                            onChange={(e) => {
-                                                const val = e.target.value;
-                                                setKits(prev => prev.map(k => k.id === kit.id ? { ...k, tracking_number: val } : k));
-                                            }}
-                                            onBlur={(e) => handleUpdateKit(kit.id, { tracking_number: e.target.value })}
-                                            className="w-full bg-white/5 px-3 py-3 rounded-xl border border-white/10 text-[10px] font-black text-white italic truncate tracking-tighter font-mono outline-none focus:border-blue-500/40"
-                                        />
+                                {kit.status === 'ASSIGNED' || kit.status === 'PREPARING' ? (
+                                    <div className="space-y-4 pt-4 border-t border-white/5">
+                                        <div className="bg-blue-500/5 border border-blue-500/10 rounded-2xl p-5 space-y-4">
+                                            <div className="flex items-center gap-2 text-[10px] font-black text-blue-400 uppercase tracking-widest italic">
+                                                <Truck className="w-3.5 h-3.5" /> Initialize Dispatch Protocol
+                                            </div>
+                                            <div className="flex gap-3">
+                                                <input 
+                                                    type="text" 
+                                                    placeholder="CARRIER TRACKING #" 
+                                                    className="flex-1 bg-[#0B101B] border border-white/10 rounded-xl px-4 py-3.5 text-[12px] text-white font-mono outline-none focus:border-blue-500/50 transition-all placeholder:text-slate-800"
+                                                    onKeyDown={(e: any) => {
+                                                        if (e.key === 'Enter' && e.target.value) {
+                                                            handleUpdateKit(kit.id, { status: 'SHIPPED', tracking_number: e.target.value.trim() });
+                                                        }
+                                                    }}
+                                                />
+                                                <button 
+                                                    onClick={(e: any) => {
+                                                        const input = e.currentTarget.previousSibling as HTMLInputElement;
+                                                        if (input.value) {
+                                                            handleUpdateKit(kit.id, { status: 'SHIPPED', tracking_number: input.value.trim() });
+                                                        }
+                                                    }}
+                                                    className="px-6 bg-blue-600 text-white rounded-xl text-[11px] font-black uppercase tracking-widest hover:scale-[1.03] active:scale-95 transition-all shadow-xl shadow-blue-600/20"
+                                                >
+                                                    Ship
+                                                </button>
+                                            </div>
+                                        </div>
                                     </div>
-                                </div>
-
-                                {kit.tracking_number && (
-                                    <a 
-                                        href={
-                                            kit.carrier === 'FedEx' ? `https://www.fedex.com/fedextrack/?trknbr=${kit.tracking_number}` :
-                                            kit.carrier === 'UPS' ? `https://www.ups.com/track?tracknum=${kit.tracking_number}` :
-                                            kit.carrier === 'DHL' ? `https://www.dhl.com/en/express/tracking.html?AWB=${kit.tracking_number}` :
-                                            kit.carrier === 'USPS' ? `https://tools.usps.com/go/TrackConfirmAction?tLabels=${kit.tracking_number}` : '#'
-                                        }
-                                        target="_blank" rel="noopener noreferrer"
-                                        className="flex items-center gap-2 text-[9px] font-black text-blue-400 hover:text-white transition-colors uppercase tracking-[0.2em] italic bg-blue-500/5 p-3 rounded-xl border border-blue-500/10"
-                                    >
-                                        <ExternalLink className="w-3.5 h-3.5" /> LIVE PROTOCOL TELEMETRY
-                                    </a>
+                                ) : (
+                                    <div className="space-y-4 pt-4 border-t border-white/5">
+                                        <div className={`p-5 rounded-2xl border flex items-center justify-between transition-all ${kit.status === 'SHIPPED' ? 'bg-amber-500/5 border-amber-500/10' : 'bg-emerald-500/5 border-emerald-500/10'}`}>
+                                            <div className="space-y-1">
+                                                <div className={`text-[10px] font-black uppercase tracking-widest italic ${kit.status === 'SHIPPED' ? 'text-amber-400' : 'text-emerald-400'}`}>
+                                                    {kit.status === 'SHIPPED' ? 'Active Inbound Transit' : 'Material Received'}
+                                                </div>
+                                                <div className="text-[12px] font-black text-white font-mono tracking-tighter uppercase">{kit.tracking_number || 'Internal Transfer'}</div>
+                                            </div>
+                                            {kit.tracking_number && (
+                                                <button 
+                                                    onClick={() => window.open(`https://www.google.com/search?q=${kit.tracking_number}+tracking`, '_blank')}
+                                                    className="p-3 bg-white/5 rounded-xl text-slate-400 hover:text-white hover:bg-white/10 transition-all shadow-xl"
+                                                >
+                                                    <ExternalLink className="w-4 h-4" />
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
                                 )}
 
-                                <div className="space-y-2">
-                                    <p className="text-[9px] md:text-[10px] font-black text-slate-600 uppercase tracking-widest italic leading-none">Logistics Status Override</p>
-                                    <div className="bg-white/5 p-1 rounded-2xl border border-white/10">
-                                        <select 
-                                            value={kit.status}
-                                            onChange={(e) => handleUpdateKit(kit.id, { status: e.target.value as any })}
-                                            className={`bg-transparent text-[11px] font-black uppercase tracking-widest outline-none cursor-pointer w-full px-4 py-3 italic ${getStatusStyle(kit.status).split(' ')[0]}`}
-                                        >
-                                            <option value="ASSIGNED" className="bg-[#0B101B]">ASSIGNED FOR DISPATCH</option>
-                                            <option value="PREPARING" className="bg-[#0B101B]">READY FOR DISPATCH</option>
-                                            <option value="SHIPPED" className="bg-[#0B101B]">IN TRANSIT (OUTBOUND)</option>
-                                            <option value="DELIVERED" className="bg-[#0B101B]">DELIVERED TO SITE</option>
-                                            <option value="RETURN_SHIPPED" className="bg-[#0B101B]">IN TRANSIT (RETURN)</option>
-                                            <option value="RECEIVED" className="bg-[#0B101B]">RECEIVED AT LAB</option>
-                                            <option value="DAMAGED" className="bg-[#0B101B]">PROTOCOL VOID / DAMAGED</option>
-                                        </select>
-                                    </div>
+                                <div className="flex gap-2 pt-4">
+                                    <button onClick={() => downloadLabel(kit, 'SHIPPING')} className="flex-1 py-4 bg-white/5 border border-white/10 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-400 hover:bg-white/10 hover:text-white transition-all flex items-center justify-center gap-2">
+                                        <Truck className="w-4 h-4" /> Shipping
+                                    </button>
+                                    <button onClick={() => downloadLabel(kit, 'RETURN')} className="flex-1 py-4 bg-white/5 border border-white/10 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-400 hover:bg-white/10 hover:text-white transition-all flex items-center justify-center gap-2">
+                                        <Package className="w-4 h-4" /> Return
+                                    </button>
+                                    <button onClick={() => alert(`Operational Audit Flagged`)} className="p-4 bg-white/5 border border-white/10 rounded-2xl text-slate-400 hover:text-red-400 hover:bg-red-600/10 transition-all shadow-xl" title="Audit Flag">
+                                        <AlertCircle className="w-4 h-4" />
+                                    </button>
                                 </div>
-
-                                <div className="flex flex-col gap-2.5 pt-2">
-                                    {(kit.status === 'ASSIGNED' || kit.status === 'PREPARING') ? (
-                                        <button 
-                                            onClick={() => {
-                                                const tracking = prompt("Enter Carrier Tracking Number:", kit.tracking_number || "");
-                                                if (tracking) handleUpdateKit(kit.id, { status: 'SHIPPED', tracking_number: tracking.trim() });
-                                            }}
-                                            className="w-full py-4 bg-amber-600 hover:bg-amber-500 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest shadow-xl shadow-amber-900/20 active:scale-[0.98] transition-all"
-                                        >
-                                            Begin Dispatch Protocol
-                                        </button>
-                                    ) : (
-                                        <button className="w-full py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest shadow-xl active:scale-[0.98] transition-all">
-                                            Sync Clinical Telemetry
-                                        </button>
-                                    )}
-                                    <div className="flex gap-2">
-                                        <button onClick={() => downloadLabel(kit, 'SHIPPING')} className="flex-1 py-3 bg-white/5 border border-white/10 rounded-xl text-[9px] font-black uppercase tracking-widest text-slate-400 hover:bg-white/10 transition-all flex items-center justify-center gap-2">
-                                            <Truck className="w-3.5 h-3.5" /> Label
-                                        </button>
-                                        <button onClick={() => downloadLabel(kit, 'RETURN')} className="flex-1 py-3 bg-white/5 border border-white/10 rounded-xl text-[9px] font-black uppercase tracking-widest text-slate-400 hover:bg-white/10 transition-all flex items-center justify-center gap-2">
-                                            <Package className="w-3.5 h-3.5" /> Return
-                                        </button>
-                                        <button onClick={() => alert(`Operational Audit Flagged`)} className="p-3 bg-white/5 border border-white/10 rounded-xl text-slate-400 hover:text-red-400 hover:bg-red-600/10 transition-all" title="Audit Flag">
-                                            <AlertCircle className="w-4 h-4" />
-                                        </button>
-                                    </div>
                                 </div>
                             </div>
                         ))}

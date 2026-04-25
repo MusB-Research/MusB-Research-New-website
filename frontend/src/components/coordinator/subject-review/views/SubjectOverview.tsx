@@ -146,13 +146,16 @@ export const SubjectOverview: React.FC<SubjectOverviewProps> = ({
                     { l: 'Participant Age', v: formatVal(participant.age) },
                     { l: 'Sex', v: formatVal(participant.gender || participant.sex) },
                     { l: 'Assigned Study Arm', v: formatVal(participant.assigned_arm_name || participant.assigned_arm?.name || 'Default') },
+                    { l: 'Contact Email', v: formatVal(participant.display_email) },
+                    { l: 'Phone Number', v: formatVal(participant.display_phone) },
+                    { l: 'Home Address / Location', v: formatVal(participant.display_address) },
                     { l: 'Enrollment Date', v: participant.reviewed_at ? new Date(participant.reviewed_at).toLocaleDateString() : (participant.status === 'ENROLLED' ? new Date(participant.created_at).toLocaleDateString() : 'Pending Review') },
                     { l: 'Primary Condition', v: participant.condition || 'General' },
                     { l: 'Assigned Coordinator', v: formatVal(participant.coordinator_name || 'Unassigned') }
                 ].map((item, i) => (
                     <div key={i} style={S.card} className="group hover:border-indigo-500/30 transition-colors">
                         <label style={S.label}>{item.l}</label>
-                        <div className="text-lg font-bold text-white mt-1">{item.v}</div>
+                        <div className="text-base font-bold text-white mt-1 break-words">{item.v}</div>
                     </div>
                 ))}
             </div>

@@ -8,6 +8,8 @@ interface ParticipantRecord {
   internal_id: string;
   name: string;
   email: string;
+  phone: string;
+  address: string;
   registeredDate: string;
   status: string;
   enrolledStudies: {
@@ -35,8 +37,10 @@ export default function ParticipantsManagement({ allParticipants = [], allStudie
       id: p.participant_sid || p.id || 'N/A',
       internal_id: p.id,
       raw: p.user_details ? { ...p.user_details, id: p.id, role: 'PARTICIPANT' } : { id: p.id, role: 'PARTICIPANT', name: 'Anonymous' },
-      name: revealValue(p.user_details?.full_name, p.user_details?.decrypted_name) || p.user_details?.name || 'Anonymous',
-      email: p.user_details?.email || 'N/A',
+      name: p.display_name || revealValue(p.user_details?.full_name, p.user_details?.decrypted_name) || p.user_details?.name || 'Anonymous',
+      email: p.display_email || p.user_details?.email || 'N/A',
+      phone: p.display_phone || 'N/A',
+      address: p.display_address || 'N/A',
       registeredDate: p.created_at ? new Date(p.created_at).toLocaleString('en-US', { month: 'short', day: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'N/A',
       status: p.status || 'NEW',
       enrolledStudies: allStudies
@@ -153,7 +157,8 @@ export default function ParticipantsManagement({ allParticipants = [], allStudie
                         </div>
                         <div>
                           <p className="text-base font-black text-white italic group-hover:text-green-400 transition-colors uppercase tracking-tight">{p.name}</p>
-                          <p className="text-[12px] text-[#555a7a] font-black uppercase tracking-widest mt-1.5">{p.email} • ID: {p.id}</p>
+                          <p className="text-[12px] text-[#555a7a] font-black uppercase tracking-widest mt-1.5">{p.email} • {p.phone}</p>
+                          <p className="text-[10px] text-[#3d4263] font-bold uppercase tracking-widest mt-1">{p.address} • ID: {p.id}</p>
                         </div>
                       </div>
                     </td>

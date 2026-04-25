@@ -613,6 +613,32 @@ export default function VisitsModule({ selectedStudyId, preloadedParticipants, p
                     <button onClick={() => setIsScheduleOpen(true)} className="whitespace-nowrap px-4 py-1.5 bg-indigo-600/10 border border-indigo-600/20 text-indigo-400 rounded-xl text-[10px] font-black tracking-widest hover:bg-indigo-600 hover:text-white transition-all italic">
                         + SCHEDULE
                     </button>
+                    <button 
+                        onClick={() => {
+                            const client = window.google?.accounts?.oauth2?.initTokenClient({
+                                client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
+                                scope: 'https://www.googleapis.com/auth/calendar.events',
+                                callback: async (response: any) => {
+                                    if (response.access_token) {
+                                        await authFetch(`${API}/api/auth/save-google-token/`, {
+                                            method: 'POST',
+                                            body: JSON.stringify({
+                                                access_token: response.access_token,
+                                                expires_in: response.expires_in,
+                                                scope: response.scope
+                                            })
+                                        });
+                                        alert("Google Calendar Synchronized! Your appointments will now appear in your Google Calendar.");
+                                    }
+                                },
+                            });
+                            client?.requestAccessToken();
+                        }}
+                        className={`whitespace-nowrap px-4 py-1.5 border rounded-xl text-[10px] font-black tracking-widest transition-all italic flex items-center gap-2 ${getUser()?.google_calendar_linked ? 'bg-emerald-600/20 border-emerald-500/40 text-emerald-400' : 'bg-white/5 border-white/10 text-slate-400 hover:bg-emerald-600 hover:text-white'}`}
+                    >
+                        <Calendar className="w-3 h-3" /> 
+                        {getUser()?.google_calendar_linked ? 'CALENDAR LINKED' : 'SYNC GOOGLE'}
+                    </button>
                     <button onClick={() => setIsProblemModalOpen(true)} className="whitespace-nowrap px-4 py-1.5 bg-rose-500/10 border border-rose-500/20 text-rose-400 rounded-xl text-[10px] font-black tracking-widest hover:bg-rose-500 hover:text-white transition-all italic">
                         + REPORT
                     </button>
@@ -1059,6 +1085,44 @@ export default function VisitsModule({ selectedStudyId, preloadedParticipants, p
                                         <label className="text-xs text-slate-400 font-semibold tracking-wide">Local Time</label>
                                         <input type="time" value={scheduleData.time} onChange={e => setScheduleData(prev => ({ ...prev, time: e.target.value }))} className="w-full bg-[#0f172a] border border-white/10 rounded-lg p-3 text-white text-sm focus:border-indigo-500" />
                                     </div>
+                                </div>
+
+                                {/* Google Calendar Handshake Button Inside Modal */}
+                                <div className="pt-2">
+                                    <button 
+                                        type="button"
+                                        onClick={() => {
+                                            const client = window.google?.accounts?.oauth2?.initTokenClient({
+                                                client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
+                                                scope: 'https://www.googleapis.com/auth/calendar.events',
+                                                callback: async (response: any) => {
+                                                    if (response.access_token) {
+                                                        await authFetch(`${API}/api/auth/save-google-token/`, {
+                                                            method: 'POST',
+                                                            body: JSON.stringify({
+                                                                access_token: response.access_token,
+                                                                expires_in: response.expires_in,
+                                                                scope: response.scope
+                                                            })
+                                                        });
+                                                        alert("Google Calendar Synchronized!");
+                                                    }
+                                                },
+                                            });
+                                            client?.requestAccessToken();
+                                        }}
+                                        className={`w-full py-2.5 rounded-lg text-[11px] font-black uppercase tracking-widest flex items-center justify-center gap-3 transition-all border ${
+                                            getUser()?.google_calendar_linked 
+                                            ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' 
+                                            : 'bg-white/5 border-white/10 text-white hover:bg-white/10'
+                                        }`}
+                                    >
+                                        <Calendar className="w-4 h-4" />
+                                        {getUser()?.google_calendar_linked ? 'Calendar Linked' : 'Connect Google Calendar'}
+                                    </button>
+                                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-2 text-center opacity-60">
+                                        Syncing allows participants to receive calendar invites automatically.
+                                    </p>
                                 </div>
                                 <button onClick={handleScheduleConfirm} className="w-full mt-2 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-bold tracking-wide transition-colors">
                                     Confirm Schedule

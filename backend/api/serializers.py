@@ -573,7 +573,15 @@ class FormResponseSerializer(SanitizedModelSerializer):
 class AssignedFormSerializer(SanitizedModelSerializer):
     form_details = FormSerializer(source='form', read_only=True)
     signed_pdf_url = serializers.SerializerMethodField()
-    participant_name = serializers.CharField(source='participant.user.full_name', read_only=True)
+    participant_name = serializers.SerializerMethodField()
+
+    def get_participant_name(self, obj):
+        if not obj.participant: return "N/A"
+        p = obj.participant
+        if p.user:
+            return getattr(p.user, 'decrypted_name', None) or p.user.full_name
+        data = p.eligibility_data or {}
+        return data.get('fullName') or data.get('full_name') or data.get('name') or p.participant_sid
 
     class Meta:
         model = AssignedForm
@@ -581,8 +589,17 @@ class AssignedFormSerializer(SanitizedModelSerializer):
         read_only_fields = ['participant_signed_at', 'coordinator_signed_at', 'pi_signed_at']
 
 class AssignedFormBriefSerializer(SanitizedModelSerializer):
-    participant_name = serializers.CharField(source='participant.user.full_name', read_only=True)
+    participant_name = serializers.SerializerMethodField()
     form_name = serializers.CharField(source='form.name', read_only=True)
+
+    def get_participant_name(self, obj):
+        if not obj.participant: return "N/S"
+        p = obj.participant
+        if p.user:
+            return getattr(p.user, 'decrypted_name', None) or p.user.full_name
+        data = p.eligibility_data or {}
+        return data.get('fullName') or data.get('full_name') or data.get('name') or p.participant_sid
+
     class Meta:
         model = AssignedForm
         fields = ['id', 'study', 'participant', 'participant_name', 'form_name', 'status', 'due_date', 'created_at']
@@ -606,18 +623,20 @@ class ParticipantTaskSerializer(SanitizedModelSerializer):
     participant_name = serializers.SerializerMethodField()
     protocol_id = serializers.SerializerMethodField()
 
+    def get_participant_name(self, obj):
+        if not obj.participant: return "Anonymous"
+        p = obj.participant
+        if p.user:
+            return getattr(p.user, 'decrypted_name', None) or p.user.full_name
+        data = p.eligibility_data or {}
+        return data.get('fullName') or data.get('full_name') or data.get('name') or p.participant_sid
+
     def get_study(self, obj):
         """Expose the participant's study ID so the frontend can filter tasks per-study."""
         try:
             return str(obj.participant.study_id)
         except Exception:
             return None
-
-    def get_participant_name(self, obj):
-        try:
-            return obj.participant.user.full_name
-        except Exception:
-            return "Anonymous"
 
     def get_protocol_id(self, obj):
         try:
@@ -988,12 +1007,53 @@ class ParticipantSerializer(SanitizedModelSerializer):
     reviewer_name = serializers.CharField(source='reviewed_by.full_name', read_only=True, allow_null=True)
     participant_status = serializers.CharField(source='status', read_only=True)
 
+    # Identity Resolution Fields (Fallbacks for guest/anonymous participants)
+    display_name = serializers.SerializerMethodField()
+    display_email = serializers.SerializerMethodField()
+    display_phone = serializers.SerializerMethodField()
+    display_address = serializers.SerializerMethodField()
+
+    def get_display_name(self, obj):
+        if obj.user:
+            # Senior Developer: Use the existing decrypted_name or full_name
+            name = getattr(obj.user, 'decrypted_name', None) or obj.user.full_name
+            if name: return name
+        
+        # Fallback to eligibility data (Screener)
+        data = obj.eligibility_data or {}
+        return data.get('fullName') or data.get('full_name') or data.get('name') or obj.participant_sid
+
+    def get_display_email(self, obj):
+        if obj.user:
+            return obj.user.email
+        
+        # Fallback to eligibility data
+        data = obj.eligibility_data or {}
+        return data.get('email') or 'N/A'
+
+    def get_display_phone(self, obj):
+        if obj.user:
+            return getattr(obj.user, 'decrypted_phone', None) or obj.user.phone_number
+        
+        # Fallback to eligibility data
+        data = obj.eligibility_data or {}
+        return data.get('phone') or data.get('phoneNumber') or 'N/A'
+
+    def get_display_address(self, obj):
+        if obj.user:
+            return getattr(obj.user, 'decrypted_address', None) or obj.user.full_address or obj.user.zip_code
+        
+        # Fallback to eligibility data
+        data = obj.eligibility_data or {}
+        return data.get('location') or data.get('address') or data.get('zipCode') or 'N/A'
+
     class Meta:
         model = Participant
         fields = [
             'id', 'participant_sid', 'participant_status', 'user', 'user_details', 'study', 'study_name', 'protocol_id',
             'coordinator_name', 'gender', 'dob', 'age', 'status', 'assigned_arm', 'completion_date',
             'condition', 'study_type', 'eligibility_data',
+            'display_name', 'display_email', 'display_phone', 'display_address',
             'created_at', 'updated_at', 'reviewed_at', 'reviewed_by', 'reviewer_name',
             'visits', 'ae_reports', 'daily_logs', 'lab_results', 'consent_records',
             'coordinator_approved', 'coordinator_approved_at', 'coordinator_signature',
@@ -1040,12 +1100,40 @@ class ParticipantBriefSerializer(SanitizedModelSerializer):
     user_details = UserBriefSerializer(source='user', read_only=True)
     study_name = serializers.CharField(source='study.title', read_only=True)
     protocol_id = serializers.CharField(source='study.protocol_id', read_only=True)
+    
+    display_name = serializers.SerializerMethodField()
+    display_email = serializers.SerializerMethodField()
+    display_phone = serializers.SerializerMethodField()
+    display_address = serializers.SerializerMethodField()
+
+    def get_display_name(self, obj):
+        if obj.user:
+            name = getattr(obj.user, 'decrypted_name', None) or obj.user.full_name
+            if name: return name
+        data = obj.eligibility_data or {}
+        return data.get('fullName') or data.get('full_name') or data.get('name') or obj.participant_sid
+
+    def get_display_email(self, obj):
+        if obj.user: return obj.user.email
+        data = obj.eligibility_data or {}
+        return data.get('email') or 'N/A'
+
+    def get_display_phone(self, obj):
+        if obj.user: return getattr(obj.user, 'decrypted_phone', None) or obj.user.phone_number
+        data = obj.eligibility_data or {}
+        return data.get('phone') or data.get('phoneNumber') or 'N/A'
+
+    def get_display_address(self, obj):
+        if obj.user: return getattr(obj.user, 'decrypted_address', None) or obj.user.full_address or obj.user.zip_code
+        data = obj.eligibility_data or {}
+        return data.get('location') or data.get('address') or data.get('zipCode') or 'N/A'
     # Removed nested heavy relations (visits, ae_reports) from brief list view to fix 1.6s delay
     class Meta:
         model = Participant
         fields = [
             'id', 'study', 'study_name', 'protocol_id', 'user', 'user_details',
-            'participant_sid', 'status', 'created_at', 'reviewed_at'
+            'participant_sid', 'status', 'created_at', 'reviewed_at',
+            'display_name', 'display_email', 'display_phone', 'display_address'
         ]
 
 class DeIdentifiedParticipantSerializer(SanitizedModelSerializer):

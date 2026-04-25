@@ -64,6 +64,18 @@ class User(AbstractBaseUser, PermissionsMixin):
     profile_completed = models.BooleanField(default=False)
     is_screener_completed = models.BooleanField(default=False)
     google_auth = models.BooleanField(default=False) # Legacy flag
+    google_access_token = models.TextField(null=True, blank=True)
+    google_refresh_token = models.TextField(null=True, blank=True)
+    google_token_expiry = models.DateTimeField(null=True, blank=True)
+    google_calendar_scope = models.TextField(null=True, blank=True)
+    google_calendar_linked = models.BooleanField(default=False)
+
+    # Wearable Integration
+    fitbit_access_token = models.TextField(null=True, blank=True)
+    fitbit_refresh_token = models.TextField(null=True, blank=True)
+    fitbit_user_id = models.CharField(max_length=255, null=True, blank=True)
+    apple_health_linked = models.BooleanField(default=False)
+
     is_2fa_enabled = models.BooleanField(default=False)
     totp_secret = models.CharField(max_length=64, null=True, blank=True)
     temp_password_sent = models.BooleanField(default=False)

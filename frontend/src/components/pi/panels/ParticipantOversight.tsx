@@ -125,6 +125,22 @@ function CompensationModal({
                     <span className="text-[13px] font-black text-teal-400 uppercase">{participant.study}</span>
                 </div>
 
+                {/* Contact Information */}
+                <div className="px-4 py-3 bg-teal-500/5 border border-teal-500/10 rounded-2xl space-y-2">
+                    <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Email:</span>
+                        <span className="text-[11px] font-bold text-white lowercase">{(participant as any).email}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Phone:</span>
+                        <span className="text-[11px] font-bold text-white">{(participant as any).phone}</span>
+                    </div>
+                    <div className="flex flex-col gap-1">
+                        <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Address:</span>
+                        <span className="text-[11px] font-bold text-white/70">{(participant as any).address || 'N/A'}</span>
+                    </div>
+                </div>
+
                 {/* Amount */}
                 <div className="space-y-1.5">
                     <label className="text-[13px] font-black text-slate-500 uppercase tracking-widest">Amount (USD)</label>
@@ -249,7 +265,10 @@ export default function ParticipantOversight({
             const results = preloadedData.participant_tracking;
             const mapped: ParticipantRow[] = results.map((p: any) => ({
                 id: p.id,
-                name: p.sid || p.name || 'Unknown Subject',
+                name: p.display_name || p.sid || p.name || 'Unknown Subject',
+                email: p.display_email || 'N/A',
+                phone: p.display_phone || 'N/A',
+                address: p.display_address || 'N/A',
                 study: preloadedData.study?.protocol_id || 'Assigned Study',
                 study_id: preloadedData.study?.id || '',
                 rawStatus: p.status,
@@ -293,7 +312,10 @@ export default function ParticipantOversight({
 
             const mapped: ParticipantRow[] = results.map((p: any) => ({
                 id: p.id,
-                name: p.user_details?.full_name || p.user_details?.decrypted_name || p.participant_sid || 'Unknown Subject',
+                name: p.display_name || p.user_details?.full_name || p.user_details?.decrypted_name || p.participant_sid || 'Unknown Subject',
+                email: p.display_email || p.user_details?.email || 'N/A',
+                phone: p.display_phone || 'N/A',
+                address: p.display_address || 'N/A',
                 study: p.protocol_id || p.study_name || 'Assigned Study',
                 study_id: String(p.study?.id || p.study || ''),
                 rawStatus: p.status,
@@ -664,7 +686,10 @@ export default function ParticipantOversight({
                                                     </div>
                                                     <div>
                                                         <p className="text-[13px] font-black text-white italic uppercase tracking-tight">{p.name}</p>
-                                                        <p className="text-[9px] text-white/30 font-black tracking-widest mt-0.5 uppercase">{p.study}</p>
+                                                        <p className="text-[9px] text-teal-400 font-black tracking-widest mt-0.5 uppercase">{(p as any).email}</p>
+                                                        <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest">{(p as any).phone}</p>
+                                                        <p className="text-[9px] text-white/10 font-black tracking-widest mt-0.5 uppercase line-clamp-1">{(p as any).address}</p>
+                                                        <p className="text-[9px] text-white/5 font-black tracking-widest mt-0.5 uppercase">{p.study}</p>
                                                     </div>
                                                 </div>
                                                 <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[9px] font-black uppercase tracking-widest ${getStatusStyle(p.rawStatus)}`}>
@@ -758,6 +783,8 @@ export default function ParticipantOversight({
                         <thead>
                             <tr className="bg-white/[0.02] border-b border-white/5 whitespace-nowrap">
                                 <th className="px-4 py-3 text-[11px] font-black text-white/60 uppercase tracking-widest italic border-r border-white/5">Subject</th>
+                                <th className="px-4 py-3 text-[11px] font-black text-white/60 uppercase tracking-widest italic border-r border-white/5">Contact</th>
+                                <th className="px-4 py-3 text-[11px] font-black text-white/60 uppercase tracking-widest italic border-r border-white/5">Address</th>
                                 <th className="px-4 py-3 text-[11px] font-black text-white/60 uppercase tracking-widest italic border-r border-white/5">Status</th>
                                 <th className="px-4 py-3 text-[11px] font-black text-white/60 uppercase tracking-widest italic border-r border-white/5">Tasks</th>
                                 <th className="px-4 py-3 text-[11px] font-black text-white/60 uppercase tracking-widest italic border-r border-white/5">Progress</th>
@@ -788,6 +815,19 @@ export default function ParticipantOversight({
                                                         <p className="text-[10px] text-white/30 font-black tracking-widest mt-0.5 uppercase font-mono">{p.study}</p>
                                                     </div>
                                                 </div>
+                                            </td>
+
+                                            {/* Contact */}
+                                            <td className="px-4 py-3 align-middle border-r border-white/5">
+                                                <div className="flex flex-col gap-0.5">
+                                                    <p className="text-[11px] font-bold text-white lowercase">{(p as any).email}</p>
+                                                    <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest italic">{(p as any).phone}</p>
+                                                </div>
+                                            </td>
+
+                                            {/* Address */}
+                                            <td className="px-4 py-3 align-middle border-r border-white/5 max-w-[180px]">
+                                                <p className="text-[10px] font-bold text-white/30 uppercase tracking-widest italic line-clamp-2">{(p as any).address || 'N/A'}</p>
                                             </td>
 
                                             {/* Status */}

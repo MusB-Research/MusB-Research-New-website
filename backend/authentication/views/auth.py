@@ -424,6 +424,69 @@ def google_login(request):
         return Response({'error': f"{e} - {traceback.format_exc()}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def save_google_token(request):
+    """Saves Google OAuth tokens to the user profile for Calendar sync."""
+    access_token = request.data.get('access_token')
+    refresh_token = request.data.get('refresh_token')
+    expires_in = request.data.get('expires_in')
+    scope = request.data.get('scope')
+    
+    if not access_token:
+        return Response({'error': 'Access token is required'}, status=status.HTTP_400_BAD_REQUEST)
+    
+    user = request.user
+    user.google_access_token = access_token
+    if refresh_token:
+        user.google_refresh_token = refresh_token
+    
+    if expires_in:
+        user.google_token_expiry = now() + datetime.timedelta(seconds=int(expires_in))
+    
+    user.google_calendar_scope = scope
+    user.google_calendar_linked = True
+    user.save()
+    
+    AuditLog.log('GOOGLE_TOKEN_SAVED', user_email=user.email, request=request)
+    
+    return Response({
+        'message': 'Google Calendar connection successful!',
+        'scope': scope,
+        'linked': True
+    })
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def save_wearable_token(request):
+    """Saves Wearable/Fitbit OAuth tokens to the user profile."""
+    platform = request.data.get('platform', 'fitbit')
+    access_token = request.data.get('access_token')
+    refresh_token = request.data.get('refresh_token')
+    user_id = request.data.get('user_id')
+    
+    if not access_token:
+        return Response({'error': 'Access token is required'}, status=status.HTTP_400_BAD_REQUEST)
+    
+    user = request.user
+    if platform == 'fitbit':
+        user.fitbit_access_token = access_token
+        user.fitbit_refresh_token = refresh_token
+        user.fitbit_user_id = user_id
+        user.save(update_fields=['fitbit_access_token', 'fitbit_refresh_token', 'fitbit_user_id'])
+    elif platform == 'apple':
+        user.apple_health_linked = True
+        user.save(update_fields=['apple_health_linked'])
+    
+    AuditLog.log('WEARABLE_LINKED', user_email=user.email, request=request, detail=f"Platform: {platform}")
+    
+    return Response({
+        'message': f'{platform.capitalize()} connection successful!',
+        'platform': platform
+    })
+
+
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def me_view(request):

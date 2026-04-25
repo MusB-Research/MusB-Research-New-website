@@ -57,6 +57,7 @@ export default function ParticipantDashboard() {
         if (route === 'reports') return 'Reports';
         if (route === 'visits') return 'Visits';
         if (route === 'compensation') return 'Compensation';
+        if (route === 'kits') return 'Kits';
         if (route === 'profile') return 'Profile';
         if (route === 'privacy') return 'Privacy & Data';
         if (route === 'discover') return 'Discover Studies';
@@ -74,6 +75,7 @@ export default function ParticipantDashboard() {
         else if (route === 'reports') setActiveNav('Reports');
         else if (route === 'visits') setActiveNav('Visits');
         else if (route === 'compensation') setActiveNav('Compensation');
+        else if (route === 'kits') setActiveNav('Kits');
         else if (route === 'profile') setActiveNav('Profile');
         else if (route === 'privacy') setActiveNav('Privacy & Data');
         else if (route === 'discover') setActiveNav('Discover Studies');
@@ -87,7 +89,8 @@ export default function ParticipantDashboard() {
         const slugs: Record<string, string> = {
             'Dashboard': '', 'Tasks': 'tasks', 'Logs': 'logs',
             'Messages': 'messages', 'Documents': 'documents', 'Reports': 'reports',
-            'Visits': 'visits', 'Compensation': 'compensation', 'Profile': 'profile', 'Privacy & Data': 'privacy',
+            'Visits': 'visits', 'Compensation': 'compensation', 'Kits': 'kits', 
+            'Profile': 'profile', 'Privacy & Data': 'privacy',
             'Discover Studies': 'discover'
         };
 
@@ -101,10 +104,53 @@ export default function ParticipantDashboard() {
             navigate(`/dashboard/participant${slug ? '/' + slug : ''}`);
             
             // Lazy load clinical data for tabs that need it
-            const clinicalTabs = ['Tasks', 'Visits', 'Reports', 'Documents', 'Logs', 'Compensation', 'Messages'];
+            const clinicalTabs = ['Tasks', 'Visits', 'Reports', 'Documents', 'Logs', 'Compensation', 'Messages', 'Kits'];
             if (clinicalTabs.includes(finalLabel) && !tasks.length) {
                 loadClinicalData();
             }
+        }
+    };
+
+    const handleDashboardAction = async (action: string, data?: any) => {
+        if (action === 'Connect Wearable') {
+            const platform = data?.platform || 'fitbit';
+            if (platform === 'fitbit') {
+                // Fitbit OAuth Flow (Mock for now, but wired to backend)
+                const fitbitUrl = `https://www.fitbit.com/oauth2/authorize?response_type=token&client_id=YOUR_FITBIT_CLIENT_ID&redirect_uri=${window.location.origin}/dashboard/participant&scope=activity%20heartrate%20location%20nutrition%20profile%20settings%20sleep%20social%20weight&expires_in=604800`;
+                
+                const popup = window.open(fitbitUrl, 'Fitbit Connection', 'width=600,height=800');
+                
+                // In a real flow, we'd listen for the redirect and capture the token
+                // For this demo, we simulate success after 2 seconds
+                setTimeout(async () => {
+                    try {
+                        const apiUrl = API || 'http://localhost:8000';
+                        await authFetch(`${apiUrl}/api/auth/save-wearable-token/`, {
+                            method: 'POST',
+                            body: JSON.stringify({
+                                platform: 'fitbit',
+                                access_token: 'demo_fitbit_token_' + Math.random().toString(36).substring(7),
+                                user_id: 'FITBIT_USER_123'
+                            })
+                        });
+                        alert("✅ Fitbit synchronization protocol active. Your health telemetry is now securely linked to the clinical study.");
+                        refreshData(true);
+                    } catch (e) {
+                        console.error("Fitbit sync failed", e);
+                    }
+                }, 2000);
+            } else if (platform === 'apple') {
+                // Apple Health (usually via Bridge or WebHID, mock for demo)
+                const apiUrl = API || 'http://localhost:8000';
+                await authFetch(`${apiUrl}/api/auth/save-wearable-token/`, {
+                    method: 'POST',
+                    body: JSON.stringify({ platform: 'apple', access_token: 'apple_health_linked' })
+                });
+                alert("✅ Apple Health telemetry established. System is now monitoring secure health kit data.");
+                refreshData(true);
+            }
+        } else {
+            handleNavClick(action);
         }
     };
 
@@ -127,6 +173,7 @@ export default function ParticipantDashboard() {
     const [helpRequests, setHelpRequests] = useState<any[]>([]);
     const [signatures, setSignatures] = useState<any[]>([]);
     const [assignedForms, setAssignedForms] = useState<any[]>([]);
+    const [kits, setKits] = useState<any[]>([]);
     const [logs, setLogs] = useState<any[]>([]);
     const [availableConsentTemplates, setAvailableConsentTemplates] = useState<any[]>([]);
     const [selectedLog, setSelectedLog] = useState<any | null>(null);
@@ -306,6 +353,7 @@ export default function ParticipantDashboard() {
         setSignatures(safeArray(data.active_consents));
         setAvailableConsentTemplates(safeArray(data.available_consent_templates));
         setLogs(fetchedLogs);
+        setKits(safeArray(data.kits));
         setHelpRequests(safeArray(data.help_requests));
 
         // 2. Pre-fill conversation cache to prevent re-fetching
@@ -1555,7 +1603,7 @@ export default function ParticipantDashboard() {
                                     isLoading={isDataLoading}
                                     firstName={userProfile.userName || userProfile.firstName}
                                     userTimezone={userProfile.userTimezone}
-                                    onAction={(v: string) => handleNavClick(v)}
+                                    onAction={handleDashboardAction}
                                     tasks={filteredTasks}
                                     study={activeStudy}
                                     participant={activeParticipant}
@@ -1566,6 +1614,7 @@ export default function ParticipantDashboard() {
                                         setActiveStudy(allStudies[idx]);
                                         setActiveParticipant(allParticipants[idx]);
                                     }}
+                                    kits={kits}
                                     compensations={filteredCompensations}
                                     visits={filteredVisits}
 

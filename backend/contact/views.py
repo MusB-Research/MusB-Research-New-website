@@ -16,6 +16,8 @@ from api.utils.cache_utils import cache_api_response
 from api.utils.resend_utils import safe_resend_send
 from django.utils.html import strip_tags
 from authentication.security import encrypt_data, decrypt_data
+from django.utils import timezone
+from datetime import timedelta
 
 class ContactPageSettingsView(generics.RetrieveAPIView):
     serializer_class = ContactPageSettingsSerializer
@@ -321,6 +323,21 @@ Phone: {submission.phone or 'Not Provided'}
                             user=user_obj,
                             participant_sid=p_sid,
                             status='PENDING_REVIEW'
+                        )
+                    
+                    # Create StaffTask for Coordinator (SLA tracking)
+                    from api.models import StaffTask
+                    coordinator = study.coordinator or study.pi
+                    if coordinator:
+                        StaffTask.objects.create(
+                            user=coordinator,
+                            study=study,
+                            title=f"New Screening Review: {submission.name}",
+                            description=f"Automated Alert: A new clinical screening form has been submitted for {study.protocol_id}. Please review and update status.",
+                            task_type='SCREENER_REVIEW',
+                            reference_id=str(participant.pk),
+                            status='NEW',
+                            due_date=timezone.now() + timedelta(hours=48)
                         )
                     
                     # Always update eligibility data and timestamp

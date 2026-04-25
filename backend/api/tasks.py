@@ -108,3 +108,59 @@ def check_missed_visits():
         
     logger.info(f"Background check complete: Marked {missed_count} visits as MISSED.")
     return missed_count
+
+@shared_task
+def check_staff_sla():
+    """
+    Background worker: Periodically checks for StaffTasks that have passed their due_date
+    without being completed or addressed.
+    """
+    from django.utils.timezone import now
+    from .models import StaffTask, Notification
+    
+    overdue_tasks = StaffTask.objects.filter(
+        status__in=['NEW', 'IN_PROGRESS'],
+        due_date__lt=now(),
+        is_completed=False
+    ).select_related('user', 'study', 'study__pi')
+    
+    count = overdue_tasks.count()
+    if count == 0:
+        return 0
+        
+    for task in overdue_tasks:
+        task.status = 'OVERDUE'
+        task.save()
+        
+        # Notify Coordinator (the owner)
+        Notification.objects.create(
+            user=task.user,
+            title="SLA Escalation: Overdue Task",
+            message=f"Task '{task.title}' for {task.study.protocol_id if task.study else 'N/A'} is now OVERDUE.",
+            type="ERROR",
+            link="/dashboard/coordinator/alerts"
+        )
+        
+        # Notify PI and Super Admin
+        recipients = []
+        if task.study and task.study.pi:
+            recipients.append(task.study.pi)
+            
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        super_admins = User.objects.filter(role='SUPER_ADMIN')
+        for admin in super_admins:
+            if admin not in recipients:
+                recipients.append(admin)
+                
+        for recipient in recipients:
+            Notification.objects.create(
+                user=recipient,
+                title="Overdue Clinical Task",
+                message=f"Coordinator task '{task.title}' has exceeded the 48h SLA window.",
+                type="WARNING",
+                link="/dashboard/admin/alerts" if recipient.role == 'SUPER_ADMIN' else "/dashboard/pi/alerts"
+            )
+            
+    logger.info(f"SLA Escalation complete: Marked {count} staff tasks as OVERDUE.")
+    return count
