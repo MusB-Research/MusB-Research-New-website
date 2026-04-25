@@ -148,6 +148,7 @@ class Study(BaseMongoModel):
     safety_info = models.TextField(blank=True)
     privacy_standards = models.JSONField(default=list, blank=True)
     remote_participation = models.BooleanField(default=False)
+    participation_message = models.TextField(blank=True, null=True)
     
     start_date = models.DateField(null=True, blank=True)
     end_date = models.DateField(null=True, blank=True)

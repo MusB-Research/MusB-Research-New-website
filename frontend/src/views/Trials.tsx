@@ -67,11 +67,13 @@ export default function Trials() {
                         id: s.protocol_id || s.id,
                         db_id: s.id, // Needed for chronological sort
                         title: s.title,
-                        description: s.description || s.primary_indication || "Standard research protocol",
+                        description: s.description || '',
+                        overview: s.overview || '',
+                        benefit: s.benefit || '',
+                        participation_message: s.participation_message || '',
                         condition: s.condition || s.primary_indication || "Other",
                         type: mappedType,
                         status: statusMap[s.status] || 'Paused',
-                        benefit: s.benefit || (s.trial_model === 'RCT' ? 'Placebo-Controlled' : 'Standard Product'),
                         duration: s.duration || s.time_commitment || "4-12 Weeks",
                         compensation: s.compensation || "Varies by study",
                         tags: [s.trial_model, mappedType].filter(Boolean)

@@ -392,7 +392,7 @@ class StudySerializer(SanitizedModelSerializer):
             'primary_indication', 'trial_model', 'phase', 'masking_strategy', 'is_double_blind', 'has_placebo_control',
             'has_screening_log', 'shipment_mode', 'consent_mode', 'condition',
             'trial_format', 'benefit', 'duration', 'tags', 'compensation', 'compensation_currency', 'location',
-            'time_commitment', 'overview', 'timeline', 'safety_info',
+            'time_commitment', 'overview', 'participation_message', 'timeline', 'safety_info',
             'privacy_standards', 'remote_participation', 'start_date', 'end_date',
             'launch_date', 'irb_status', 'target_subjects', 'target_screened', 'actual_screened',
             'proposal_source', 'proposal_submitted_date', 'agreement_signed_date',
@@ -420,7 +420,7 @@ class StudySerializer(SanitizedModelSerializer):
         }
         FRONTEND_ONLY_FIELDS = {
             'reward_amount', 'rct_design', 'masking', 'consent_collection', 'medication_supply',
-            'compensation_currency', 'brief_description', 'indication', 'execution_type',
+            'indication', 'execution_type',
             'startDate', 'endDate',
             # Also strip these if frontend accidentally sends them (they are read-only relations)
             'consent_templates', 'documents', 'assigned_pis', 'assigned_coordinators', 'assigned_sponsors'
@@ -451,7 +451,8 @@ class PublicStudySerializer(SanitizedModelSerializer):
         fields = [
             'id', 'title', 'protocol_id', 'description', 'condition', 
             'duration', 'location', 'compensation', 'status', 'stage', 
-            'tags', 'created_at', 'screener_config'
+            'tags', 'created_at', 'screener_config',
+            'overview', 'benefit', 'participation_message'
         ]
         ordering = ['created_at']
 

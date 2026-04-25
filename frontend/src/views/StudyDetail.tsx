@@ -213,80 +213,101 @@ export default function StudyDetail() {
                         </div>
 
                         {/* Overview Card */}
-                        <motion.section
-                            initial={{ opacity: 0, y: 30 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 0.2 }}
-                            className="bg-[#0f172a]/40 backdrop-blur-[40px] rounded-[3.5rem] p-10 md:p-14 border border-white/10 shadow-2xl relative overflow-hidden group"
-                        >
-                            <div className="absolute top-0 right-0 w-64 h-64 bg-[#00ADEF]/5 blur-[80px] rounded-full -mr-20 -mt-20"></div>
+                        {(customContent || study.overview) && (
+                            <motion.section
+                                initial={{ opacity: 0, y: 30 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.2 }}
+                                className="bg-[#0f172a]/40 backdrop-blur-[40px] rounded-[3.5rem] p-10 md:p-14 border border-white/10 shadow-2xl relative overflow-hidden group"
+                            >
+                                <div className="absolute top-0 right-0 w-64 h-64 bg-[#00ADEF]/5 blur-[80px] rounded-full -mr-20 -mt-20"></div>
 
-                            <div className="relative z-10 space-y-8">
-                                <h2 className="text-3xl font-black text-white uppercase italic tracking-tight flex items-center gap-4">
-                                    <div className="w-10 h-10 rounded-full bg-[#00ADEF]/10 flex items-center justify-center border border-[#00ADEF]/20">
-                                        <Info className="w-5 h-5 text-[#00ADEF]" />
-                                    </div>
-                                    Overview
-                                </h2>
-                                {customContent ? (
-                                    <ul className="space-y-4 text-slate-300 text-xl leading-relaxed font-medium list-disc pl-5">
-                                        {customContent.overviewBullets.map((bullet: string, idx: number) => (
-                                            <li key={idx}>{bullet}</li>
-                                        ))}
-                                    </ul>
-                                ) : (
-                                    <p className="text-slate-300 text-xl leading-relaxed font-medium">
-                                        {study.overview}
-                                    </p>
-                                )}
-                            </div>
-                        </motion.section>
+                                <div className="relative z-10 space-y-8">
+                                    <h2 className="text-3xl font-black text-white uppercase italic tracking-tight flex items-center gap-4">
+                                        <div className="w-10 h-10 rounded-full bg-[#00ADEF]/10 flex items-center justify-center border border-[#00ADEF]/20">
+                                            <Info className="w-5 h-5 text-[#00ADEF]" />
+                                        </div>
+                                        Overview
+                                    </h2>
+                                    {customContent ? (
+                                        <ul className="space-y-4 text-slate-300 text-xl leading-relaxed font-medium list-disc pl-5">
+                                            {customContent.overviewBullets.map((bullet: string, idx: number) => (
+                                                <li key={idx}>{bullet}</li>
+                                            ))}
+                                        </ul>
+                                    ) : (
+                                        <div className="space-y-4 text-slate-300 text-xl leading-relaxed font-medium">
+                                            {study.overview.split('\n').map((line, idx) => (
+                                                line.trim().startsWith('*') ? (
+                                                    <li key={idx} className="list-disc ml-5">{line.trim().substring(1).trim()}</li>
+                                                ) : (
+                                                    <p key={idx}>{line}</p>
+                                                )
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            </motion.section>
+                        )}
 
-                        {/* Additional info for custom studies */}
-                        {customContent && (
-                            <>
-                                <motion.section
-                                    initial={{ opacity: 0, y: 30 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    transition={{ delay: 0.3 }}
-                                    className="bg-[#0f172a]/40 backdrop-blur-[40px] rounded-[3.5rem] p-10 md:p-14 border border-white/10 shadow-2xl relative overflow-hidden group"
-                                >
-                                    <div className="absolute top-0 right-0 w-64 h-64 bg-[#00ADEF]/5 blur-[80px] rounded-full -mr-20 -mt-20"></div>
-                                    <div className="relative z-10 space-y-8">
-                                        <h2 className="text-3xl font-black text-white uppercase italic tracking-tight flex items-center gap-4">
-                                            <div className="w-10 h-10 rounded-full bg-[#00ADEF]/10 flex items-center justify-center border border-[#00ADEF]/20">
-                                                <CheckCircle2 className="w-5 h-5 text-[#00ADEF]" />
-                                            </div>
-                                            Benefits for Participants
-                                        </h2>
+                        {/* Benefits Section */}
+                        {(customContent || study.benefit) && (
+                            <motion.section
+                                initial={{ opacity: 0, y: 30 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.3 }}
+                                className="bg-[#0f172a]/40 backdrop-blur-[40px] rounded-[3.5rem] p-10 md:p-14 border border-white/10 shadow-2xl relative overflow-hidden group"
+                            >
+                                <div className="absolute top-0 right-0 w-64 h-64 bg-[#00ADEF]/5 blur-[80px] rounded-full -mr-20 -mt-20"></div>
+                                <div className="relative z-10 space-y-8">
+                                    <h2 className="text-3xl font-black text-white uppercase italic tracking-tight flex items-center gap-4">
+                                        <div className="w-10 h-10 rounded-full bg-[#00ADEF]/10 flex items-center justify-center border border-[#00ADEF]/20">
+                                            <CheckCircle2 className="w-5 h-5 text-[#00ADEF]" />
+                                        </div>
+                                        Benefits for Participants
+                                    </h2>
+                                    {customContent ? (
                                         <ul className="space-y-4 text-slate-300 text-xl leading-relaxed font-medium list-disc pl-5">
                                             {customContent.benefitsBullets.map((bullet: string, idx: number) => (
                                                 <li key={idx}>{bullet}</li>
                                             ))}
                                         </ul>
-                                    </div>
-                                </motion.section>
+                                    ) : (
+                                        <div className="space-y-4 text-slate-300 text-xl leading-relaxed font-medium">
+                                            {study.benefit.split('\n').map((line, idx) => (
+                                                line.trim().startsWith('*') ? (
+                                                    <li key={idx} className="list-disc ml-5">{line.trim().substring(1).trim()}</li>
+                                                ) : (
+                                                    <p key={idx}>{line}</p>
+                                                )
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            </motion.section>
+                        )}
 
-                                <motion.section
-                                    initial={{ opacity: 0, y: 30 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    transition={{ delay: 0.4 }}
-                                    className="bg-[#0f172a]/40 backdrop-blur-[40px] rounded-[3.5rem] p-10 md:p-14 border border-white/10 shadow-2xl relative overflow-hidden group"
-                                >
-                                    <div className="absolute top-0 right-0 w-64 h-64 bg-[#00ADEF]/5 blur-[80px] rounded-full -mr-20 -mt-20"></div>
-                                    <div className="relative z-10 space-y-8">
-                                        <h2 className="text-2xl font-black text-white uppercase italic tracking-tight flex items-center gap-4">
-                                            <div className="w-10 h-10 rounded-full bg-[#00ADEF]/10 flex items-center justify-center border border-[#00ADEF]/20">
-                                                <Microscope className="w-5 h-5 text-[#00ADEF]" />
-                                            </div>
-                                            Join a MusB Research Study Today
-                                        </h2>
-                                        <p className="text-slate-300 text-xl leading-relaxed font-medium">
-                                            {customContent.ctaText}
-                                        </p>
-                                    </div>
-                                </motion.section>
-                            </>
+                        {/* Community Impact / CTA Section */}
+                        {(customContent || study.participation_message) && (
+                            <motion.section
+                                initial={{ opacity: 0, y: 30 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.4 }}
+                                className="bg-[#0f172a]/40 backdrop-blur-[40px] rounded-[3.5rem] p-10 md:p-14 border border-white/10 shadow-2xl relative overflow-hidden group"
+                            >
+                                <div className="absolute top-0 right-0 w-64 h-64 bg-[#00ADEF]/5 blur-[80px] rounded-full -mr-20 -mt-20"></div>
+                                <div className="relative z-10 space-y-8">
+                                    <h2 className="text-2xl font-black text-white uppercase italic tracking-tight flex items-center gap-4">
+                                        <div className="w-10 h-10 rounded-full bg-[#00ADEF]/10 flex items-center justify-center border border-[#00ADEF]/20">
+                                            <Microscope className="w-5 h-5 text-[#00ADEF]" />
+                                        </div>
+                                        {customContent ? "Join a MusB Research Study Today" : "Community Impact"}
+                                    </h2>
+                                    <p className="text-slate-300 text-xl leading-relaxed font-medium">
+                                        {customContent ? customContent.ctaText : study.participation_message}
+                                    </p>
+                                </div>
+                            </motion.section>
                         )}
                     </div>
 

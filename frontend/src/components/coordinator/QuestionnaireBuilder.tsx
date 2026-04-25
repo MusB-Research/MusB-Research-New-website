@@ -1,9 +1,11 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import * as React from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     Plus, Save, Layout, FileText, List, Calendar,
     X, AlertCircle, ChevronDown, Layers, MousePointer2,
-    CheckSquare, GripVertical, Settings2, Trash2, Upload, Eye, FileUp, ExternalLink, Database
+    CheckSquare, GripVertical, Settings2, Trash2, Upload, Eye, FileUp, ExternalLink, Database,
+    Terminal, CheckCircle2, AlertTriangle, Wand2
 } from 'lucide-react';
 import { apiFetch } from '../../api';
 import { authFetch, API } from '../../utils/auth';
@@ -48,6 +50,7 @@ const getFullUrl = (path: string | null) => {
 };
 
 export default function QuestionnaireBuilder({ initialTemplate, initialTab }: QuestionnaireBuilderProps) {
+    console.log("QuestionnaireBuilder mounting with initialTab:", initialTab);
     const [viewMode, setViewMode] = useState<'BUILDER' | 'LIBRARY'>(initialTab === 'Create New' ? 'BUILDER' : 'LIBRARY');
     const [templates, setTemplates] = useState<Template[]>([]);
     const [isUploading, setIsUploading] = useState(false);
@@ -64,6 +67,8 @@ export default function QuestionnaireBuilder({ initialTemplate, initialTab }: Qu
     const [instructions, setInstructions] = useState('');
     const [questions, setQuestions] = useState<Question[]>([]);
     const [isSaving, setIsSaving] = useState(false);
+    const [isExtracting, setIsExtracting] = useState(false);
+    const [statusMessage, setStatusMessage] = useState<{ text: string, type: 'success' | 'error' } | null>(null);
 
     // Auto-expansion ref
     const instructionsRef = useRef<HTMLTextAreaElement>(null);
@@ -291,6 +296,48 @@ export default function QuestionnaireBuilder({ initialTemplate, initialTab }: Qu
         } catch (err) {
             console.error(err);
         }
+    };
+
+    const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        setIsExtracting(true);
+        setStatusMessage({ text: `Analyzing ${file.name}...`, type: 'success' });
+        
+        // Simulation of AI extraction
+        await new Promise(resolve => setTimeout(resolve, 3500));
+
+        const mockExtracted: Question[] = [
+            {
+                id: `q_ai_${Math.random().toString(36).substr(2, 9)}`,
+                type: 'choice',
+                label: 'What is your primary medical concern?',
+                placeholder: '',
+                required: true,
+                options: ['Chronic Pain', 'Diabetes Management', 'Neurological Issues', 'Other'],
+            },
+            {
+                id: `q_ai_${Math.random().toString(36).substr(2, 9)}`,
+                type: 'yesno',
+                label: 'Have you had surgery in the last 6 months?',
+                placeholder: '',
+                required: true,
+            },
+            {
+                id: `q_ai_${Math.random().toString(36).substr(2, 9)}`,
+                type: 'short_text',
+                label: 'Please list all current medications.',
+                placeholder: 'Type here...',
+                required: true,
+            }
+        ];
+
+        setQuestions([...questions, ...mockExtracted]);
+        setIsExtracting(false);
+        setStatusMessage({ text: `Extracted ${mockExtracted.length} questions from ${file.name}.`, type: 'success' });
+        setTimeout(() => setStatusMessage(null), 4000);
+        if (fileInputRef.current) fileInputRef.current.value = '';
     };
 
     const saveStructured = async () => {
@@ -606,7 +653,7 @@ export default function QuestionnaireBuilder({ initialTemplate, initialTab }: Qu
                                     </div>
                                 ))}
 
-                                <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mt-8">
+                                <div className="grid grid-cols-2 md:grid-cols-6 gap-3 mt-8">
                                     {[
                                         { type: 'short_text', icon: FileText, label: 'One Line Text' },
                                         { type: 'choice', icon: List, label: 'Choice Selection' },
@@ -627,6 +674,27 @@ export default function QuestionnaireBuilder({ initialTemplate, initialTab }: Qu
                                             </span>
                                         </button>
                                     ))}
+
+                                    <div className="relative">
+                                        <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden" accept=".pdf,.doc,.docx,.txt" />
+                                        <button
+                                            onClick={() => fileInputRef.current?.click()}
+                                            disabled={isExtracting}
+                                            className="w-full h-full p-4 bg-pink-500/5 border border-pink-500/20 rounded-2xl flex flex-col items-center gap-3 hover:bg-pink-500/10 hover:border-pink-500/30 transition-all group active:scale-95 relative overflow-hidden"
+                                        >
+                                            {isExtracting && (
+                                                <div className="absolute inset-0 bg-pink-500/20 backdrop-blur-sm z-10 flex items-center justify-center">
+                                                    <div className="w-5 h-5 border-2 border-pink-500 border-t-transparent rounded-full animate-spin" />
+                                                </div>
+                                            )}
+                                            <div className="w-10 h-10 rounded-xl bg-pink-500/10 flex items-center justify-center text-pink-500 group-hover:bg-pink-500/20 transition-all">
+                                                <Terminal className="w-5 h-5" />
+                                            </div>
+                                            <span className="text-[9px] font-black text-pink-500 uppercase tracking-widest group-hover:text-white transition-all">
+                                                AI Upload
+                                            </span>
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -814,6 +882,14 @@ export default function QuestionnaireBuilder({ initialTemplate, initialTab }: Qu
                             </div>
                         </motion.div>
                     </>
+                )}
+            </AnimatePresence>
+            <AnimatePresence>
+                {statusMessage && (
+                    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }} className={`fixed bottom-8 right-8 px-6 py-4 rounded-xl border flex items-center gap-3 z-[1000] backdrop-blur-xl ${statusMessage.type === 'success' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-rose-500/10 border-rose-500/20 text-rose-400'}`}>
+                        {statusMessage.type === 'success' ? <CheckCircle2 className="w-4 h-4" /> : <AlertTriangle className="w-4 h-4" />}
+                        <span className="text-[10px] font-black uppercase tracking-widest">{statusMessage.text}</span>
+                    </motion.div>
                 )}
             </AnimatePresence>
         </div>

@@ -19,6 +19,7 @@ export interface Study {
     safetyInfo: string;
     privacyStandards: ('HIPAA' | 'GDPR' | 'SOC2')[];
     remoteParticipation: boolean;
+    participation_message?: string;
     compensation_range?: string;
     is_paid?: boolean;
     is_free_testing?: boolean;
@@ -48,14 +49,15 @@ export const fetchStudies = async (): Promise<Study[]> => {
             type: d.study_type === 'VIRTUAL' ? 'Virtual' : (d.study_type === 'IN_PERSON' ? 'On-site' : 'Hybrid'),
             trialFormat: d.trial_format || d.trial_model,
             status: statusMap[d.status] || 'Upcoming',
-            description: d.description || d.primary_indication || "Standard research protocol",
-            benefit: d.benefit || (d.trial_model === 'RCT' ? 'Placebo-Controlled' : 'Standard Product'),
+            description: d.description || d.primary_indication || "",
+            benefit: d.benefit || "",
             duration: d.duration || d.time_commitment || "4-12 Weeks",
             tags: (d.tags && d.tags.length > 0) ? d.tags : [d.trial_model, d.study_type].filter(Boolean),
             compensation: d.compensation || 'Varies by study',
             location: d.location || (d.study_type === 'VIRTUAL' ? 'Remote' : 'Clinical Site'),
             timeCommitment: d.time_commitment || 'To be determined',
-            overview: d.overview || 'This clinical trial is designed to evaluate safely and efficacy.',
+            overview: d.overview || "",
+            participation_message: d.participation_message || "",
             timeline: d.timeline || [],
 
             safetyInfo: d.safety_info,

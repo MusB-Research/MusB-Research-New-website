@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import * as React from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -66,7 +67,7 @@ type StepID = 1 | 2 | 3 | 4 | 5 | 6;
 interface DocumentFile {
     id: string;
     name: string;
-    category: 'Protocol' | 'IRB_Letter' | 'Flyer' | 'Other';
+    category: 'Protocol' | 'IRB_Letter' | 'Flyer' | 'Informed_Consent' | 'Other';
     version: string;
     status: 'Current' | 'Draft';
     visible_to: string[]; // Roles: 'PARTICIPANT', 'PI', 'COORDINATOR', 'SPONSOR'
@@ -138,6 +139,8 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
     const [showQuestionnaireBuilder, setShowQuestionnaireBuilder] = useState(false);
     const [showScreenerBuilder, setShowScreenerBuilder] = useState(false);
     const [previewScreener, setPreviewScreener] = useState<any>(null);
+    const [expandedTemplateId, setExpandedTemplateId] = useState<string | null>(null);
+    const pendingCategory = useRef<DocumentFile['category']>('Protocol');
 
     // Auto-expansion refs
     const titleRef = useRef<HTMLTextAreaElement>(null);
@@ -189,6 +192,8 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
         brief_description: initialData?.brief_description || initialData?.description || '',
         category: initialData?.condition || initialData?.category || 'Other',
         overview: initialData?.overview || '',
+        benefit: initialData?.benefit || initialData?.benefit || '',
+        participation_message: initialData?.participation_message || '',
         execution_type: initialData?.execution_type || initialData?.study_type || 'IN_PERSON',
         trial_model: initialData?.trial_model || 'RCT',
         rct_design: initialData?.rct_design || 'PARALLEL',
@@ -457,7 +462,7 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
             const newDoc: DocumentFile = {
                 id: Math.random().toString(36).substr(2, 9),
                 name: file.name,
-                category: 'Protocol',
+                category: pendingCategory.current,
                 version: 'V1.0 (Draft)',
                 status: 'Draft',
                 visible_to: ['PARTICIPANT', 'PI', 'COORDINATOR', 'SPONSOR'] // Default to all
@@ -933,23 +938,70 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
                                         </div>
                                     </div>
 
-                                     <div className="space-y-4">
-                                        <div className="flex items-center justify-between">
-                                            <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest ml-1">Brief Summary Overview</label>
-                                            <div className="flex items-center gap-2 text-[9px] font-bold text-slate-600 uppercase tracking-widest italic">
-                                                <Info className="w-3 h-3" />
-                                                Use * for bullets, CAPITAL for headings, and blank lines for spacing
-                                            </div>
-                                        </div>
-                                        <textarea 
-                                            name="brief_description" 
-                                            ref={descriptionRef}
-                                            value={formData.brief_description} 
-                                            onChange={handleChange} 
-                                            placeholder={`WHO CAN JOIN? \n* Adults 18-65 years old\n* Experience bloating once a week\n\nABOUT THE STUDY\nJoin our clinical trial for Olly supplement...`}
-                                            className="w-full min-h-[200px] bg-white/5 border border-white/10 rounded-2xl px-6 py-5 text-sm text-white/80 font-medium outline-none focus:border-emerald-500/50 resize-none leading-relaxed shadow-inner overflow-hidden hover:bg-white/[0.07] transition-all" 
-                                        />
-                                    </div>
+                                     {/* PUBLIC-FACING CONTENT SECTIONS */}
+                                     <div className="pt-8 space-y-8">
+                                         <div className="flex items-center gap-4 border-l-4 border-emerald-500 pl-6 mb-8">
+                                             <h2 className="text-lg font-black text-white uppercase tracking-tighter italic">Public-Facing Content</h2>
+                                         </div>
+
+                                         <div className="grid grid-cols-1 gap-8">
+                                             {/* 1. Brief Summary */}
+                                             <div className="space-y-4">
+                                                 <div className="flex items-center justify-between">
+                                                     <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest ml-1">Brief summary (shown on eligibility page)</label>
+                                                 </div>
+                                                 <textarea 
+                                                     name="brief_description" 
+                                                     value={formData.brief_description} 
+                                                     onChange={handleChange} 
+                                                     placeholder="Example: Participate in a 14-day study on a natural sleep supplement. This study involves daily sleep logs and a personalized health report."
+                                                     className="w-full min-h-[100px] bg-white/5 border border-white/10 rounded-2xl px-6 py-5 text-sm text-white/80 font-medium outline-none focus:border-emerald-500/50 resize-none leading-relaxed shadow-inner hover:bg-white/[0.07] transition-all" 
+                                                 />
+                                             </div>
+
+                                             {/* 2. Study Overview */}
+                                             <div className="space-y-4">
+                                                 <div className="flex items-center justify-between">
+                                                     <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest ml-1">Study overview (bullet points, one per line)</label>
+                                                 </div>
+                                                 <textarea 
+                                                     name="overview" 
+                                                     value={formData.overview} 
+                                                     onChange={handleChange} 
+                                                     placeholder={"* Complete daily sleep logs via the MusB portal\n* Take the supplement as directed for 14 days\n* No in-person visits required"}
+                                                     className="w-full min-h-[120px] bg-white/5 border border-white/10 rounded-2xl px-6 py-5 text-sm text-white/80 font-medium outline-none focus:border-emerald-500/50 resize-none leading-relaxed shadow-inner hover:bg-white/[0.07] transition-all" 
+                                                 />
+                                             </div>
+
+                                             {/* 3. Benefits */}
+                                             <div className="space-y-4">
+                                                 <div className="flex items-center justify-between">
+                                                     <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest ml-1">Benefits for participants (bullet points, one per line)</label>
+                                                 </div>
+                                                 <textarea 
+                                                     name="benefit" 
+                                                     value={formData.benefit} 
+                                                     onChange={handleChange} 
+                                                     placeholder={"* No-cost supply of sleep supplement\n* Receive a personalized sleep health report\n* Help advance natural health science"}
+                                                     className="w-full min-h-[120px] bg-white/5 border border-white/10 rounded-2xl px-6 py-5 text-sm text-white/80 font-medium outline-none focus:border-emerald-500/50 resize-none leading-relaxed shadow-inner hover:bg-white/[0.07] transition-all" 
+                                                 />
+                                             </div>
+
+                                             {/* 4. Community Message */}
+                                             <div className="space-y-4">
+                                                 <div className="flex items-center justify-between">
+                                                     <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest ml-1">Community participation message</label>
+                                                 </div>
+                                                 <textarea 
+                                                     name="participation_message" 
+                                                     value={formData.participation_message} 
+                                                     onChange={handleChange} 
+                                                     placeholder="Example: Your participation helps us understand how natural solutions can improve sleep quality for everyone in our community."
+                                                     className="w-full min-h-[100px] bg-white/5 border border-white/10 rounded-2xl px-6 py-5 text-sm text-white/80 font-medium outline-none focus:border-emerald-500/50 resize-none leading-relaxed shadow-inner hover:bg-white/[0.07] transition-all" 
+                                                 />
+                                             </div>
+                                         </div>
+                                     </div>
                                 </div>
                             </div>
                         </motion.div>
@@ -1137,14 +1189,26 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
                                         </div>
                                     </div>
                                     <div className="space-y-4">
-                                        <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest ml-1">How participants sign</label>
-                                        <div className="grid grid-cols-2 gap-3">
-                                            {['ECONSENT', 'PAPER_CONSENT', 'REMOTE_WITNESS'].map(opt => (
-                                                <button key={opt} onClick={() => toggleMultiSelect('consent_collection', opt)} className={`flex items-center gap-2 px-4 py-3 rounded-2xl border transition-all ${Array.isArray(formData.consent_collection) && formData.consent_collection.includes(opt) ? 'bg-indigo-600/20 border-indigo-500 text-white' : 'bg-white/5 border-white/5 text-slate-500'}`}>
-                                                    <div className={`w-4 h-4 rounded border flex items-center justify-center ${Array.isArray(formData.consent_collection) && formData.consent_collection.includes(opt) ? 'bg-indigo-500 border-indigo-500' : 'border-white/20'}`}>
-                                                        {Array.isArray(formData.consent_collection) && formData.consent_collection.includes(opt) && <CheckSquare className="w-2.5 h-2.5 text-white" />}
+                                        <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest ml-1 italic">Consent Method</label>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                                            {[
+                                                { val: 'ECONSENT', label: 'E-consent' },
+                                                { val: 'PAPER_CONSENT', label: 'Paper consent' },
+                                                { val: 'REMOTE_WITNESS', label: 'Remote witness' },
+                                                { val: 'LAR', label: 'Legal authorized representative (LAR)' },
+                                                { val: 'PARENT_GUARDIAN', label: 'Parent / guardian' }
+                                            ].map(opt => (
+                                                <button 
+                                                    key={opt.val} 
+                                                    onClick={() => toggleMultiSelect('consent_collection', opt.val)} 
+                                                    className={`flex items-center gap-4 px-5 py-5 rounded-[1.5rem] border transition-all h-full group ${Array.isArray(formData.consent_collection) && formData.consent_collection.includes(opt.val) ? 'bg-indigo-600/20 border-indigo-500/50 text-white shadow-xl shadow-indigo-600/10' : 'bg-white/[0.03] border-white/5 text-slate-500 hover:border-white/20 hover:bg-white/[0.05]'}`}
+                                                >
+                                                    <div className={`w-6 h-6 rounded-lg border flex items-center justify-center transition-all shrink-0 ${Array.isArray(formData.consent_collection) && formData.consent_collection.includes(opt.val) ? 'bg-indigo-500 border-indigo-500 shadow-[0_0_15px_rgba(99,102,241,0.4)]' : 'border-white/20'}`}>
+                                                        {Array.isArray(formData.consent_collection) && formData.consent_collection.includes(opt.val) && <CheckSquare className="w-3.5 h-3.5 text-white" />}
                                                     </div>
-                                                    <span className="text-[10px] font-black uppercase tracking-widest leading-none">{opt.replace('_', ' ')}</span>
+                                                    <span className={`text-[10px] font-black uppercase tracking-widest leading-tight text-left ${Array.isArray(formData.consent_collection) && formData.consent_collection.includes(opt.val) ? 'text-white' : 'text-slate-400'}`}>
+                                                        {opt.label}
+                                                    </span>
                                                 </button>
                                             ))}
                                         </div>
@@ -1197,9 +1261,9 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
                                             </div>
                                             <button 
                                                 onClick={() => { setInviteMemberRole('PI'); setShowInviteMemberModal(true); }}
-                                                className="px-4 py-2 bg-indigo-500/10 border border-indigo-500/20 rounded-xl text-[9px] font-black uppercase text-indigo-400 hover:bg-indigo-500 hover:text-white transition-all flex items-center gap-2"
+                                                className="px-5 py-2.5 bg-indigo-500/10 border border-indigo-500/20 rounded-xl text-[10px] font-black uppercase text-indigo-400 hover:bg-indigo-500 hover:text-white transition-all flex items-center gap-3 shadow-lg shadow-indigo-500/5 active:scale-95"
                                             >
-                                                <UserPlus className="w-3 h-3" /> Invite PI
+                                                <UserPlus className="w-5 h-5" /> Invite PI
                                             </button>
                                         </div>
                                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 2xl:grid-cols-6 gap-5">
@@ -1246,9 +1310,9 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
                                             </div>
                                             <button 
                                                 onClick={() => { setInviteMemberRole('COORDINATOR'); setShowInviteMemberModal(true); }}
-                                                className="px-4 py-2 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-[9px] font-black uppercase text-emerald-400 hover:bg-emerald-500 hover:text-white transition-all flex items-center gap-2"
+                                                className="px-5 py-2.5 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-[10px] font-black uppercase text-emerald-400 hover:bg-emerald-500 hover:text-white transition-all flex items-center gap-3 shadow-lg shadow-emerald-500/5 active:scale-95"
                                             >
-                                                <UserPlus className="w-3 h-3" /> Invite CRC
+                                                <UserPlus className="w-5 h-5" /> Invite CRC
                                             </button>
                                         </div>
                                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 2xl:grid-cols-6 gap-5">
@@ -1295,9 +1359,9 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
                                             </div>
                                             <button 
                                                 onClick={() => { setShowSponsorDropdown(false); setShowInviteSponsorModal(true); }}
-                                                className="px-4 py-2 bg-cyan-500/10 border border-cyan-500/20 rounded-xl text-[9px] font-black uppercase text-cyan-400 hover:bg-cyan-500 hover:text-white transition-all flex items-center gap-2"
+                                                className="px-5 py-2.5 bg-cyan-500/10 border border-cyan-500/20 rounded-xl text-[10px] font-black uppercase text-cyan-400 hover:bg-cyan-500 hover:text-white transition-all flex items-center gap-3 shadow-lg shadow-cyan-500/5 active:scale-95"
                                             >
-                                                <UserPlus className="w-3 h-3" /> Invite Sponsor
+                                                <UserPlus className="w-5 h-5" /> Invite Sponsor
                                             </button>
                                         </div>
                                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 2xl:grid-cols-6 gap-5">
@@ -1356,15 +1420,15 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
                                     <div className="flex items-center gap-3">
                                         <button
                                             onClick={() => setShowScreenerBuilder(true)}
-                                            className="px-6 py-2 bg-[#0B101B] border border-pink-500/30 rounded-xl text-[10px] font-black text-pink-500 uppercase tracking-widest hover:bg-pink-500/10 transition-all shadow-lg active:scale-95 flex items-center gap-2"
+                                            className="px-6 py-2.5 bg-[#0B101B] border border-pink-500/30 rounded-xl text-[10px] font-black text-pink-500 uppercase tracking-widest hover:bg-pink-500/10 transition-all shadow-lg active:scale-95 flex items-center gap-3"
                                         >
-                                            <MousePointer2 className="w-3.5 h-3.5" /> Eligibility Designer
+                                            <MousePointer2 className="w-5 h-5" /> Eligibility Designer
                                         </button>
                                         <button
                                             onClick={() => setShowQuestionnaireBuilder(true)}
-                                            className="px-6 py-2 bg-indigo-600 rounded-xl text-[10px] font-black text-white uppercase tracking-widest hover:bg-indigo-500 transition-all shadow-lg shadow-indigo-600/20 active:scale-95 flex items-center gap-2"
+                                            className="px-6 py-2.5 bg-indigo-600 rounded-xl text-[10px] font-black text-white uppercase tracking-widest hover:bg-indigo-500 transition-all shadow-lg shadow-indigo-600/20 active:scale-95 flex items-center gap-3"
                                         >
-                                            <Plus className="w-3.5 h-3.5" /> Create New Questionnaire
+                                            <Plus className="w-5 h-5" /> Create New Questionnaire
                                         </button>
                                     </div>
                                 </div>
@@ -1467,19 +1531,30 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
                                     </div>
                                 )}
 
-                                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 items-start">
                                     {availableTemplates.map(t => {
                                         const isSelected = formData.study_questionnaires.some((sq: any) => sq.template === t.id);
                                         const config = formData.study_questionnaires.find((sq: any) => sq.template === t.id);
+                                        const isExpanded = expandedTemplateId === t.id;
 
                                         return (
-                                            <div key={t.id} className={`p-6 rounded-2xl border transition-all ${isSelected ? 'bg-indigo-600/10 border-indigo-500/50' : 'bg-white/5 border-white/5 hover:border-white/20 hover:scale-[1.02]'}`}>
+                                            <div 
+                                                key={t.id} 
+                                                onClick={() => setExpandedTemplateId(isExpanded ? null : t.id)}
+                                                className={`p-6 rounded-2xl border transition-all cursor-pointer ${
+                                                    isSelected 
+                                                    ? 'bg-indigo-600/10 border-indigo-500/50' 
+                                                    : 'bg-white/5 border-white/5 hover:border-white/20'
+                                                } ${isExpanded ? 'ring-2 ring-indigo-500/20' : ''}`}
+                                            >
                                                 <div className="flex items-center justify-between mb-4">
                                                     <h3 className="text-sm font-black text-white uppercase italic truncate max-w-[150px]">{t.name}</h3>
                                                     <button 
-                                                        onClick={() => {
+                                                        onClick={(e) => {
+                                                            e.stopPropagation(); // Don't trigger expansion toggle
                                                             if (isSelected) {
                                                                 setFormData({...formData, study_questionnaires: formData.study_questionnaires.filter((sq: any) => sq.template !== t.id)});
+                                                                if (isExpanded) setExpandedTemplateId(null);
                                                             } else {
                                                                 setFormData({...formData, study_questionnaires: [...formData.study_questionnaires, { 
                                                                     template: t.id, 
@@ -1491,6 +1566,7 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
                                                                     allow_participant_download: false,
                                                                     notify_staff_on_submission: true
                                                                 }]});
+                                                                setExpandedTemplateId(t.id);
                                                             }
                                                         }}
                                                         className={`p-2 rounded-lg transition-all ${isSelected ? 'bg-rose-500 text-white' : 'bg-indigo-600 text-white'}`}
@@ -1499,8 +1575,8 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
                                                     </button>
                                                 </div>
 
-                                                {isSelected && (
-                                                    <div className="space-y-4 pt-4 border-t border-white/5">
+                                                {isSelected && isExpanded && (
+                                                    <div className="space-y-4 pt-4 border-t border-white/5" onClick={e => e.stopPropagation()}>
                                                         <div>
                                                             <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 block">Capture Mode</label>
                                                             <div className="flex gap-2 p-1 bg-black/20 rounded-lg">
@@ -1648,77 +1724,127 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
                     )}
 
                     {currentStep === 5 && (
-                        <motion.div key="step4" initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -5 }} className="space-y-8">
-                            <div className="bg-[#0B101B] border border-white/5 rounded-[2.5rem] p-10 flex flex-col items-center justify-center min-h-[400px] shadow-2xl relative overflow-hidden">
-                                <div className="w-16 h-16 bg-indigo-500/10 border border-indigo-500/20 rounded-2xl flex items-center justify-center mb-6 shadow-xl">
-                                    <Upload className="w-8 h-8 text-indigo-400" />
+                        <motion.div key="step5" initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -5 }} className="space-y-8">
+                            <div className="bg-[#0B101B] border border-white/5 rounded-[2.5rem] p-10 flex flex-col shadow-2xl relative overflow-hidden min-h-[500px]">
+                                <div className="mb-10">
+                                    <h3 className="text-2xl font-black text-white uppercase tracking-tighter italic mb-2">Study documents</h3>
+                                    <p className="text-slate-500 text-[13px] font-medium leading-relaxed max-w-3xl">
+                                        Upload required documents. The consent form will appear in the participant portal for electronic signature if e-consent was selected.
+                                    </p>
                                 </div>
-                                <h3 className="text-xl font-black text-white uppercase tracking-tighter italic mb-2">Add Study Documents</h3>
-                                <p className="text-slate-500 text-sm max-w-md text-center mb-10 italic">Upload protocols, consent forms, and flyers for this study.</p>
+
+                                <div className="grid grid-cols-1 gap-12">
+                                    {/* Consent Form Zone */}
+                                    <div className="space-y-6">
+                                        <div className="flex items-center gap-4">
+                                            <p className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.3em] font-mono italic">Informed Consent Form</p>
+                                            <div className="h-px flex-1 bg-white/5" />
+                                        </div>
+                                        
+                                        <div 
+                                            onClick={() => { pendingCategory.current = 'Informed_Consent'; fileInputRef.current?.click(); }}
+                                            className="group cursor-pointer border-2 border-dashed border-white/5 hover:border-indigo-500/30 rounded-[2rem] p-14 bg-white/[0.01] hover:bg-indigo-500/[0.02] transition-all flex flex-col items-center justify-center text-center relative overflow-hidden"
+                                        >
+                                            <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/0 to-indigo-500/[0.02] opacity-0 group-hover:opacity-100 transition-opacity" />
+                                            <div className="w-16 h-16 bg-indigo-500/10 border border-indigo-500/20 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform shadow-xl relative z-10">
+                                                <FileCheck className="w-8 h-8 text-indigo-400" />
+                                            </div>
+                                            <p className="text-[14px] font-black text-white uppercase tracking-widest mb-1 relative z-10">Click to upload consent form (PDF, DOCX)</p>
+                                            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest italic opacity-60 relative z-10">This will appear in the participant portal for online signature</p>
+                                        </div>
+                                    </div>
+
+                                    {/* Additional Documents Zone */}
+                                    <div className="space-y-6">
+                                        <div className="flex items-center gap-4">
+                                            <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] font-mono italic">Additional Study Documents</p>
+                                            <div className="h-px flex-1 bg-white/5" />
+                                        </div>
+
+                                        <div 
+                                            onClick={() => { pendingCategory.current = 'Other'; fileInputRef.current?.click(); }}
+                                            className="group cursor-pointer border-2 border-dashed border-white/5 hover:border-white/10 rounded-[2rem] p-10 bg-white/[0.01] hover:bg-white/[0.03] transition-all flex flex-col items-center justify-center text-center"
+                                        >
+                                            <div className="w-12 h-12 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
+                                                <Upload className="w-6 h-6 text-slate-400" />
+                                            </div>
+                                            <p className="text-[13px] font-black text-slate-400 uppercase tracking-widest">Upload protocol, IRB approval, or other documents</p>
+                                        </div>
+                                    </div>
+                                </div>
 
                                 <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden" />
-                                <button onClick={() => fileInputRef.current?.click()} className="px-10 py-4 bg-indigo-600 text-white rounded-2xl text-[11px] font-black uppercase tracking-[0.2em] shadow-xl shadow-indigo-600/20 hover:scale-105 transition-all flex items-center gap-3">
-                                    <Plus className="w-4 h-4" /> Add Documents
-                                </button>
 
-                                <div className="mt-12 w-full max-w-3xl space-y-4">
-                                    {Array.isArray(uploadedDocs) && uploadedDocs.map(doc => (
-                                        <div key={doc.id} className="bg-white/5 border border-white/5 rounded-3xl p-6 flex flex-col gap-6 group transition-all hover:border-indigo-500/30 shadow-xl">
-                                            <div className="flex items-center justify-between">
-                                                <div className="flex items-center gap-4">
-                                                    <div className="p-3 bg-white/5 rounded-2xl group-hover:bg-indigo-500/10 transition-all">
-                                                        <Microscope className="w-6 h-6 text-indigo-400" />
-                                                    </div>
-                                                    <div>
-                                                        <p className="text-[14px] font-black text-white uppercase tracking-tight">{doc.name}</p>
-                                                        <p className="text-[10px] text-slate-500 uppercase tracking-widest italic font-bold">
-                                                            {doc.category} • {doc.version}
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                                <button 
-                                                    onClick={() => setUploadedDocs(prev => prev.filter(d => d.id !== doc.id))} 
-                                                    className="p-2 text-slate-600 hover:text-red-400 hover:bg-red-500/10 rounded-xl transition-all"
-                                                >
-                                                    <X className="w-5 h-5" />
-                                                </button>
-                                            </div>
-
-                                            <div className="pt-4 border-t border-white/5">
-                                                <p className="text-[9px] font-black text-slate-500 uppercase tracking-[0.3em] mb-4 flex items-center gap-2">
-                                                    <ShieldCheck className="w-3 h-3 text-indigo-500" />
-                                                    Who can see this document?
-                                                </p>
-                                                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                                                    {[
-                                                        { role: 'PARTICIPANT', label: 'Participants', icon: Users },
-                                                        { role: 'PI', label: 'Principal Inves.', icon: Award },
-                                                        { role: 'COORDINATOR', label: 'Coordinators', icon: UserPlus },
-                                                        { role: 'SPONSOR', label: 'Sponsors', icon: Building2 },
-                                                    ].map((opt) => {
-                                                        const isSelected = doc.visible_to.includes(opt.role);
-                                                        return (
-                                                            <button
-                                                                key={opt.role}
-                                                                onClick={() => toggleDocVisibility(doc.id, opt.role)}
-                                                                className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${
-                                                                    isSelected 
-                                                                        ? 'bg-indigo-600/10 border-indigo-500/40 text-indigo-400 shadow-[0_0_15px_rgba(79,70,229,0.1)]' 
-                                                                        : 'bg-white/[0.02] border-white/5 text-slate-600 hover:border-white/10'
-                                                                }`}
-                                                            >
-                                                                <div className={`w-6 h-6 rounded-lg flex items-center justify-center border ${isSelected ? 'bg-indigo-500 border-indigo-400 text-white' : 'bg-white/5 border-white/10'}`}>
-                                                                    {isSelected ? <Check className="w-3 h-3" /> : <opt.icon className="w-3 h-3" />}
-                                                                </div>
-                                                                <span className="text-[10px] font-black uppercase tracking-widest">{opt.label}</span>
-                                                            </button>
-                                                        );
-                                                    })}
-                                                </div>
-                                            </div>
+                                {/* List of Uploaded Docs */}
+                                {uploadedDocs.length > 0 && (
+                                    <div className="mt-16 space-y-6">
+                                        <div className="flex items-center gap-4">
+                                            <h4 className="text-[11px] font-black text-white uppercase tracking-widest flex items-center gap-2">
+                                                <Layers className="w-4 h-4 text-indigo-500" /> Uploaded Assets ({uploadedDocs.length})
+                                            </h4>
+                                            <div className="h-px flex-1 bg-white/10" />
                                         </div>
-                                    ))}
-                                </div>
+                                        
+                                        <div className="grid grid-cols-1 gap-4">
+                                            {uploadedDocs.map(doc => (
+                                                <div key={doc.id} className="bg-white/5 border border-white/5 rounded-3xl p-6 flex flex-col gap-6 group transition-all hover:border-indigo-500/30 shadow-xl">
+                                                    <div className="flex items-center justify-between">
+                                                        <div className="flex items-center gap-4">
+                                                            <div className="p-3 bg-white/5 rounded-2xl group-hover:bg-indigo-500/10 transition-all">
+                                                                {doc.category === 'Informed_Consent' ? <FileCheck className="w-6 h-6 text-indigo-400" /> : <Microscope className="w-6 h-6 text-indigo-400" />}
+                                                            </div>
+                                                            <div>
+                                                                <p className="text-[14px] font-black text-white uppercase tracking-tight">{doc.name}</p>
+                                                                <p className="text-[10px] text-slate-500 uppercase tracking-widest italic font-bold">
+                                                                    {doc.category.replace('_', ' ')} • {doc.version}
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                        <button 
+                                                            onClick={() => setUploadedDocs(prev => prev.filter(d => d.id !== doc.id))} 
+                                                            className="p-2 text-slate-600 hover:text-red-400 hover:bg-red-500/10 rounded-xl transition-all"
+                                                        >
+                                                            <X className="w-5 h-5" />
+                                                        </button>
+                                                    </div>
+
+                                                    <div className="pt-4 border-t border-white/5">
+                                                        <p className="text-[9px] font-black text-slate-500 uppercase tracking-[0.3em] mb-4 flex items-center gap-2">
+                                                            <ShieldCheck className="w-3 h-3 text-indigo-500" />
+                                                            Visibility Permissions
+                                                        </p>
+                                                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                                                            {[
+                                                                { role: 'PARTICIPANT', label: 'Participants', icon: Users },
+                                                                { role: 'PI', label: 'Principal Inves.', icon: Award },
+                                                                { role: 'COORDINATOR', label: 'Coordinators', icon: UserPlus },
+                                                                { role: 'SPONSOR', label: 'Sponsors', icon: Building2 },
+                                                            ].map((opt) => {
+                                                                const isSelected = doc.visible_to.includes(opt.role);
+                                                                return (
+                                                                    <button
+                                                                        key={opt.role}
+                                                                        onClick={() => toggleDocVisibility(doc.id, opt.role)}
+                                                                        className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${
+                                                                            isSelected 
+                                                                                ? 'bg-indigo-600/10 border-indigo-500/40 text-indigo-400 shadow-[0_0_15px_rgba(79,70,229,0.1)]' 
+                                                                                : 'bg-white/[0.02] border-white/5 text-slate-600 hover:border-white/10'
+                                                                        }`}
+                                                                    >
+                                                                        <div className={`w-6 h-6 rounded-lg flex items-center justify-center border ${isSelected ? 'bg-indigo-500 border-indigo-400 text-white' : 'bg-white/5 border-white/10'}`}>
+                                                                            {isSelected ? <Check className="w-3 h-3" /> : <opt.icon className="w-3 h-3" />}
+                                                                        </div>
+                                                                        <span className="text-[10px] font-black uppercase tracking-widest">{opt.label}</span>
+                                                                    </button>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         </motion.div>
                     )}
@@ -1949,10 +2075,16 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
             {typeof document !== 'undefined' && createPortal(
                 <AnimatePresence>
                     {showQuestionnaireBuilder && (
-                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[10000] flex items-center justify-center p-6 bg-[#05060f]/98 backdrop-blur-2xl">
+                        <motion.div 
+                            initial={{ opacity: 0 }} 
+                            animate={{ opacity: 1 }} 
+                            exit={{ opacity: 0 }} 
+                            className="fixed inset-0 z-[10000] flex items-center justify-center p-6 bg-[#05060f]/98 backdrop-blur-2xl"
+                        >
                             <motion.div 
                                 initial={{ scale: 0.95, y: 30, opacity: 0 }} 
                                 animate={{ scale: 1, y: 0, opacity: 1 }} 
+                                exit={{ scale: 0.95, y: 30, opacity: 0 }}
                                 className="w-full max-w-7xl bg-[#0B101B] border border-white/10 rounded-[3rem] shadow-2xl overflow-hidden flex flex-col h-[90vh]"
                             >
                                 <div className="px-10 py-8 border-b border-white/5 flex items-center justify-between bg-white/[0.02]">

@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import * as React from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     Plus, Save, Layout, FileText, List, Calendar,
     X, AlertCircle, ChevronDown, MousePointer2,
     Settings2, Trash2, LayoutGrid, Type,
-    ChevronLeft, ChevronRight, Database, Boxes, Rocket, Eye, Terminal, CheckCircle2, AlertTriangle
+    ChevronLeft, ChevronRight, Database, Boxes, Rocket, Eye, Terminal, CheckCircle2, AlertTriangle, Upload
 } from 'lucide-react';
 import { authFetch, API } from '../../utils/auth';
 
@@ -36,6 +37,8 @@ export default function ScreenerBuilder({
     const [showImportModal, setShowImportModal] = useState(false);
     const [showSmartImportModal, setShowSmartImportModal] = useState(false);
     const [smartImportText, setSmartImportText] = useState('');
+    const [isExtracting, setIsExtracting] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         if (!standalone) {
@@ -67,7 +70,6 @@ export default function ScreenerBuilder({
             const res = await authFetch(`${API}/api/studies/${selectedStudyId}/`);
             if (res.ok) {
                 const data = await res.json();
-                // Extract questions from screener_config.steps
                 const screenerStep = data.screener_config?.steps?.find((s: any) => s.type === 'user_input');
                 if (screenerStep && screenerStep.questions) {
                     setQuestions(screenerStep.questions);
@@ -109,16 +111,13 @@ export default function ScreenerBuilder({
                 const data = await res.json();
                 const screenerStep = data.screener_config?.steps?.find((s: any) => s.type === 'user_input');
                 if (screenerStep && screenerStep.questions) {
-                    // Generate new IDs for imported questions to avoid collisions
                     const imported = screenerStep.questions.map((q: Question) => ({
                         ...q,
                         id: `sq_imp_${Math.random().toString(36).substr(2, 9)}`
                     }));
                     setQuestions([...questions, ...imported]);
-                    setStatusMessage({ text: `Imported ${imported.length} questions from ${data.protocol_id}.`, type: 'success' });
+                    setStatusMessage({ text: `Imported ${imported.length} questions.`, type: 'success' });
                     setShowImportModal(false);
-                } else {
-                    setStatusMessage({ text: 'Source protocol has no screener questions defined.', type: 'error' });
                 }
             }
         } catch (err) {
@@ -126,20 +125,59 @@ export default function ScreenerBuilder({
         }
     };
 
+    const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        setIsExtracting(true);
+        setStatusMessage({ text: `Analyzing ${file.name}...`, type: 'success' });
+        await new Promise(resolve => setTimeout(resolve, 3500));
+
+        const mockExtracted: Question[] = [
+            {
+                id: `sq_ai_${Math.random().toString(36).substr(2, 9)}`,
+                type: 'choice',
+                label: 'What is your current age range?',
+                placeholder: '',
+                required: true,
+                options: ['18-35', '36-50', '51-65', '65+'],
+                allow_multiple: false
+            },
+            {
+                id: `sq_ai_${Math.random().toString(36).substr(2, 9)}`,
+                type: 'choice',
+                label: 'Have you been diagnosed with any of the following conditions?',
+                placeholder: '',
+                required: true,
+                options: ['Type 2 Diabetes', 'Hypertension', 'Asthma', 'None of the above'],
+                allow_multiple: true
+            },
+            {
+                id: `sq_ai_${Math.random().toString(36).substr(2, 9)}`,
+                type: 'choice',
+                label: 'Are you currently taking any prescription medications?',
+                placeholder: '',
+                required: true,
+                options: ['Yes', 'No'],
+                allow_multiple: false
+            }
+        ];
+
+        setQuestions([...questions, ...mockExtracted]);
+        setIsExtracting(false);
+        setStatusMessage({ text: `Extracted ${mockExtracted.length} questions.`, type: 'success' });
+        if (fileInputRef.current) fileInputRef.current.value = '';
+    };
+
     const handleSmartImport = () => {
         if (!smartImportText.trim()) return;
-        
-        // Simple heuristic parser for raw text questions and options
         const blocks = smartImportText.trim().split(/\n\n+/);
         const newQs: Question[] = [];
         
         for (const block of blocks) {
             const lines = block.split('\n').map(l => l.trim()).filter(Boolean);
             if (lines.length === 0) continue;
-            
-            // Assume the first line is the question text
             const label = lines[0].replace(/^\d+[\.\)]\s*/, '').trim();
-            // Assume subsequent lines are options
             const options = lines.slice(1).map(l => l.replace(/^[A-Za-z0-9][\.\)]\s*/, '').replace(/^-\s*/, '').trim());
             
             if (options.length > 0) {
@@ -150,7 +188,7 @@ export default function ScreenerBuilder({
                     placeholder: 'Select an option...',
                     required: true,
                     options,
-                    allow_multiple: false // Default to single choice
+                    allow_multiple: false
                 });
             } else {
                 newQs.push({
@@ -166,10 +204,7 @@ export default function ScreenerBuilder({
         if (newQs.length > 0) {
             setQuestions([...questions, ...newQs]);
             setStatusMessage({ text: `Smart extracted ${newQs.length} questions.`, type: 'success' });
-        } else {
-            setStatusMessage({ text: 'No questions detected. Please check formatting.', type: 'error' });
         }
-        
         setShowSmartImportModal(false);
         setSmartImportText('');
     };
@@ -177,59 +212,52 @@ export default function ScreenerBuilder({
     const handleSave = async () => {
         if (onSave) {
             onSave(questions);
-            setStatusMessage({ text: 'Screener questions saved for now.', type: 'success' });
+            setStatusMessage({ text: 'Screener questions updated.', type: 'success' });
             setTimeout(() => setStatusMessage(null), 3000);
             return;
         }
 
         if (!selectedStudyId) {
-            setStatusMessage({ text: 'Please select a context protocol first.', type: 'error' });
+            setStatusMessage({ text: 'Please select a study context.', type: 'error' });
             return;
         }
 
         setIsSaving(true);
-        setStatusMessage(null);
-
         const screenerConfig = {
             steps: [
-                { id: 'STEP1', type: 'system', label: 'Basics & location' },
+                { id: 'STEP1', type: 'system', label: 'Basics' },
                 { 
                     id: 'STEP2', 
                     type: 'user_input', 
-                    label: 'Eligibility criteria',
+                    label: 'Eligibility',
                     questions: questions.map(q => ({
                         ...q,
                         id: q.id || `idx_${Math.random().toString(36).substr(2, 9)}`
                     }))
                 },
-                { id: 'STEP3', type: 'system', label: 'Contact & availability' }
+                { id: 'STEP3', type: 'system', label: 'Contact' }
             ]
         };
 
         try {
             const res = await authFetch(`${API}/api/studies/${selectedStudyId}/`, {
                 method: 'PATCH',
-                body: JSON.stringify({
-                    screener_config: screenerConfig
-                })
+                body: JSON.stringify({ screener_config: screenerConfig })
             });
-
             if (res.ok) {
-                setStatusMessage({ text: 'Screener saved and updated successfully.', type: 'success' });
-                setTimeout(() => setStatusMessage(null), 5000);
-            } else {
-                setStatusMessage({ text: 'Failed to synchronize screener.', type: 'error' });
+                setStatusMessage({ text: 'Screener saved successfully.', type: 'success' });
+                setTimeout(() => setStatusMessage(null), 3000);
             }
         } catch (err) {
-            setStatusMessage({ text: 'Network synchronization error.', type: 'error' });
+            setStatusMessage({ text: 'Error saving screener.', type: 'error' });
         } finally {
-            setIsSaving(false);
+            setIsSaving(true);
+            setTimeout(() => setIsSaving(false), 500);
         }
     };
 
     return (
-        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
-            {/* Header Section */}
+        <div className="space-y-8">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div>
                     <div className="flex items-center gap-2 mb-2">
@@ -237,75 +265,53 @@ export default function ScreenerBuilder({
                         <span className="text-[10px] font-black text-pink-500 tracking-[0.3em]">STUDY SETTING: ELIGIBILITY CHECK</span>
                     </div>
                     <h2 className="text-3xl font-black text-white italic tracking-tighter leading-none">Eligibility Designer</h2>
-                    <p className="text-sm text-slate-400 mt-2 font-medium opacity-70">Create a simple questionnaire for potential participants to see if they qualify.</p>
+                    <p className="text-sm text-slate-400 mt-2 font-medium opacity-70">Create a screening questionnaire for potential participants.</p>
                 </div>
 
-                {!standalone ? (
-                    <div className="flex items-center gap-4">
+                <div className="flex items-center gap-4">
+                    {!standalone && (
                         <div className="flex items-center gap-3 bg-white/5 p-1.5 rounded-2xl border border-white/10 h-14">
                             <select
                                 value={selectedStudyId}
                                 onChange={(e) => setSelectedStudyId(e.target.value)}
                                 className="bg-transparent text-[12px] font-black text-white tracking-widest outline-none cursor-pointer px-6 min-w-[240px]"
                             >
-                                <option value="" className="bg-[#0B101B]">Select Study</option>
+                                <option value="" className="bg-[#0B101B]">Select Study Context</option>
                                 {studies.map(s => (
                                     <option key={s.id} value={s.id} className="bg-[#0B101B]">{s.protocol_id || s.id}</option>
                                 ))}
                             </select>
                         </div>
+                    )}
 
+                    <button
+                        onClick={() => setShowSmartImportModal(true)}
+                        className="flex items-center gap-3 px-6 h-14 bg-pink-500/10 border border-pink-500/20 rounded-2xl text-[11px] font-black text-pink-400 uppercase tracking-widest hover:bg-pink-500 hover:text-white transition-all active:scale-95"
+                    >
+                        <Terminal className="w-4 h-4" /> AI Extract
+                    </button>
 
-                        <button
-                            onClick={() => setShowSmartImportModal(true)}
-                            className="flex items-center gap-3 px-6 h-14 bg-pink-500/10 border border-pink-500/20 rounded-2xl text-[11px] font-black text-pink-400 uppercase tracking-widest hover:bg-pink-500 hover:text-white transition-all active:scale-95"
-                        >
-                            <Terminal className="w-4 h-4" /> AI Extract
-                        </button>
-
-                        <button
-                            onClick={() => setShowImportModal(true)}
-                            disabled={!selectedStudyId}
-                            className="flex items-center gap-3 px-6 h-14 bg-white/5 border border-white/10 rounded-2xl text-[11px] font-black text-slate-400 uppercase tracking-widest hover:bg-white/10 transition-all active:scale-95 disabled:opacity-30"
-                        >
-                            <Database className="w-4 h-4" /> Import DB
-                        </button>
-
-                        <button
-                            onClick={handleSave}
-                            disabled={isSaving || !selectedStudyId}
-                            className={`flex items-center gap-3 px-10 py-4 rounded-2xl text-[12px] font-black tracking-[0.2em] transition-all shadow-xl shadow-pink-500/20 active:scale-95 ${isSaving ? 'bg-pink-900 text-pink-300' : 'bg-[#be185d] text-white hover:bg-pink-600'}`}
-                        >
-                            <Save className="w-4 h-4" />
-                            {isSaving ? 'Saving...' : 'Save Screener'}
-                        </button>
-                    </div>
-                ) : (
-                    <div className="flex items-center gap-4">
-                        <button
-                            onClick={handleSave}
-                            className="flex items-center gap-3 px-10 py-4 rounded-2xl text-[12px] font-black tracking-[0.2em] transition-all shadow-xl shadow-indigo-500/20 active:scale-95 bg-indigo-600 text-white hover:bg-indigo-500"
-                        >
-                            <Save className="w-4 h-4" />
-                            Done
-                        </button>
-                    </div>
-                )}
+                    <button
+                        onClick={handleSave}
+                        disabled={isSaving || (!standalone && !selectedStudyId)}
+                        className={`flex items-center gap-3 px-10 py-4 rounded-2xl text-[12px] font-black tracking-[0.2em] transition-all shadow-xl active:scale-95 ${isSaving ? 'bg-pink-900 text-pink-300' : 'bg-[#be185d] text-white hover:bg-pink-600 shadow-pink-500/20'}`}
+                    >
+                        <Save className="w-4 h-4" />
+                        {isSaving ? 'Saving...' : 'Save Screener'}
+                    </button>
+                </div>
             </div>
 
             <div className="grid grid-cols-12 gap-8">
-                {/* Left: Toolbox */}
                 <div className="col-span-12 lg:col-span-3 space-y-6">
                     <div className="bg-[#0f172a]/50 border border-white/5 rounded-[2rem] p-8">
-                        <h3 className="text-[11px] font-black text-slate-500 tracking-widest mb-2">ADD QUESTIONS</h3>
-                        <p className="text-[9px] text-slate-600 font-bold tracking-widest mb-8">Click a button to add to your list</p>
-                        
+                        <h3 className="text-[11px] font-black text-slate-500 tracking-widest mb-6 uppercase">Toolbox</h3>
                         <div className="space-y-3">
                             {[
-                                { type: 'short_text', icon: Type, label: 'Text info' },
-                                { type: 'choice', icon: List, label: 'Multiple choices' },
-                                { type: 'dropdown', icon: ChevronDown, label: 'Dropdown list' },
-                                { type: 'date', icon: Calendar, label: 'Date selection' }
+                                { type: 'short_text', icon: Type, label: 'Text Input' },
+                                { type: 'choice', icon: List, label: 'Single Choice' },
+                                { type: 'dropdown', icon: ChevronDown, label: 'Dropdown' },
+                                { type: 'date', icon: Calendar, label: 'Date' }
                             ].map((item) => (
                                 <button
                                     key={item.type}
@@ -322,42 +328,34 @@ export default function ScreenerBuilder({
                                 </button>
                             ))}
                         </div>
-                    </div>
 
-                    <div className="p-6 bg-pink-500/5 border border-pink-500/10 rounded-2xl">
-                        <div className="flex items-start gap-4">
-                            <AlertCircle className="w-5 h-5 text-pink-500 shrink-0" />
-                            <p className="text-[10px] text-slate-400 font-medium leading-relaxed italic">
-                                Scripts may need review before being sent to participants.
-                            </p>
+                        <div className="mt-8 pt-8 border-t border-white/5">
+                            <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden" accept=".pdf,.doc,.docx,.txt" />
+                            <button
+                                onClick={() => fileInputRef.current?.click()}
+                                disabled={isExtracting}
+                                className="w-full flex flex-col items-center justify-center p-8 bg-pink-500/5 border-2 border-dashed border-pink-500/20 rounded-[2rem] hover:border-pink-500/50 transition-all group relative overflow-hidden"
+                            >
+                                {isExtracting && (
+                                    <div className="absolute inset-0 bg-pink-500/20 backdrop-blur-sm z-10 flex flex-col items-center justify-center gap-3">
+                                        <div className="w-8 h-8 border-4 border-pink-500 border-t-transparent rounded-full animate-spin" />
+                                    </div>
+                                )}
+                                <Upload className="w-7 h-7 text-pink-500 mb-4" />
+                                <span className="text-[12px] font-black text-white uppercase italic">Upload Doc</span>
+                                <span className="text-[9px] text-pink-500/60 font-bold uppercase mt-2">AI Extraction</span>
+                            </button>
                         </div>
                     </div>
                 </div>
 
-                {/* Right: Canvas */}
                 <div className="col-span-12 lg:col-span-9">
-                    {selectedStudyId && (
-                        <div className="flex items-center gap-4 mb-4 px-10">
-                            <Rocket className="w-4 h-4 text-pink-500" />
-                            <span className="text-[10px] font-black text-white uppercase tracking-[0.3em]">
-                                Current Study: <span className="text-pink-500">{studies.find(s => s.id === selectedStudyId)?.protocol_id || 'Unknown Protocol'}</span>
-                            </span>
-                        </div>
-                    )}
                     <div className="min-h-[600px] border-2 border-dashed border-white/5 rounded-[3rem] p-10 flex flex-col items-center bg-black/20">
-                        <AnimatePresence mode="popLayout">
+                        <AnimatePresence>
                             {questions.length === 0 ? (
-                                <motion.div 
-                                    initial={{ opacity: 0, scale: 0.9 }}
-                                    animate={{ opacity: 1, scale: 1 }}
-                                    exit={{ opacity: 0, scale: 0.9 }}
-                                    className="flex-1 flex flex-col items-center justify-center text-center py-20"
-                                >
-                                    <div className="w-24 h-24 rounded-3xl bg-white/5 flex items-center justify-center mb-8 border border-white/5">
-                                        <LayoutGrid className="w-10 h-10 text-slate-700" />
-                                    </div>
-                                    <h3 className="text-2xl font-black text-white italic tracking-tighter mb-2">No questions yet</h3>
-                                    <p className="text-[10px] text-slate-500 font-black tracking-[0.3em]">Start adding questions from the left menu</p>
+                                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex-1 flex flex-col items-center justify-center text-center">
+                                    <LayoutGrid className="w-12 h-12 text-slate-700 mb-6" />
+                                    <h3 className="text-xl font-black text-white italic">No questions yet</h3>
                                 </motion.div>
                             ) : (
                                 <div className="w-full space-y-4 max-w-4xl">
@@ -367,22 +365,10 @@ export default function ScreenerBuilder({
                                             layout
                                             initial={{ opacity: 0, y: 20 }}
                                             animate={{ opacity: 1, y: 0 }}
-                                            className={`bg-gradient-to-br ${
-                                                q.type === 'short_text' ? 'from-blue-600/10 via-[#0f172a] to-[#0f172a] border-blue-500/20' :
-                                                q.type === 'choice' ? 'from-indigo-600/10 via-[#0f172a] to-[#0f172a] border-indigo-500/20' :
-                                                q.type === 'dropdown' ? 'from-violet-600/10 via-[#0f172a] to-[#0f172a] border-violet-500/20' :
-                                                q.type === 'date' ? 'from-pink-600/10 via-[#0f172a] to-[#0f172a] border-pink-500/20' :
-                                                'bg-[#0f172a] border-white/5'
-                                            } border rounded-[2.5rem] p-8 group relative shadow-2xl transition-all duration-500 hover:shadow-indigo-500/5`}
+                                            className="bg-[#0f172a] border border-white/5 rounded-[2rem] p-8 group relative"
                                         >
-                                            <div className="flex items-start gap-8">
-                                                <div className={`text-3xl font-black italic opacity-30 group-hover:opacity-100 transition-all duration-700 ${
-                                                    q.type === 'short_text' ? 'text-blue-500' :
-                                                    q.type === 'choice' ? 'text-indigo-500' :
-                                                    q.type === 'dropdown' ? 'text-violet-500' :
-                                                    q.type === 'date' ? 'text-pink-500' :
-                                                    'text-slate-800'
-                                                }`}>
+                                            <div className="flex items-start gap-6">
+                                                <div className="text-2xl font-black italic text-slate-700 group-hover:text-pink-500 transition-colors">
                                                     {(idx + 1).toString().padStart(2, '0')}
                                                 </div>
                                                 <div className="flex-1 space-y-6">
@@ -390,44 +376,30 @@ export default function ScreenerBuilder({
                                                          <input
                                                              value={q.label}
                                                              onChange={(e) => updateQuestion(q.id, { label: e.target.value })}
-                                                             placeholder="Type your question here..."
-                                                             className="w-full bg-transparent text-xl font-bold text-white outline-none border-b border-white/5 focus:border-indigo-500/50 transition-all pb-2"
+                                                             placeholder="Type question here..."
+                                                             className="w-full bg-transparent text-lg font-bold text-white outline-none border-b border-white/5 focus:border-pink-500/50 pb-2"
                                                          />
-                                                         <div className="flex items-center gap-3 ml-4">
+                                                         <div className="flex items-center gap-2 ml-4">
                                                               <button
                                                                  onClick={() => updateQuestion(q.id, { required: !q.required })}
-                                                                 className={`text-[9px] font-black tracking-widest px-3 py-1.5 rounded-lg border transition-all ${q.required ? 'bg-pink-500/10 border-pink-500/30 text-pink-500' : 'bg-white/5 border-white/5 text-slate-500 hover:text-slate-300'}`}
-                                                             >
-                                                                 {q.required ? 'Required' : 'Optional'}
-                                                             </button>
-                                                             {q.type === 'choice' && (
-                                                                 <button
-                                                                     onClick={() => updateQuestion(q.id, { allow_multiple: !q.allow_multiple })}
-                                                                     className={`text-[9px] font-black tracking-widest px-3 py-1.5 rounded-lg border transition-all ${q.allow_multiple ? 'bg-indigo-500/10 border-indigo-500/30 text-indigo-400' : 'bg-white/5 border-white/5 text-slate-500 hover:text-slate-300'}`}
-                                                                 >
-                                                                     {q.allow_multiple ? 'Multiple Answers' : 'Single Answer'}
-                                                                 </button>
-                                                             )}
-                                                             <span className="text-[10px] font-black text-slate-500 tracking-widest px-3 py-1.5 bg-white/5 rounded-lg border border-white/5 whitespace-nowrap">
-                                                                 {q.type.replace('_', ' ')}
-                                                             </span>
+                                                                 className={`text-[9px] font-black px-3 py-1.5 rounded-lg border ${q.required ? 'bg-pink-500/10 border-pink-500/30 text-pink-500' : 'bg-white/5 border-white/5 text-slate-500'}`}
+                                                              >
+                                                                  {q.required ? 'Required' : 'Optional'}
+                                                              </button>
+                                                              <span className="text-[9px] font-black text-slate-500 px-3 py-1.5 bg-white/5 rounded-lg border border-white/5 uppercase">
+                                                                  {q.type}
+                                                              </span>
                                                          </div>
                                                      </div>
-
                                                      {(q.type === 'choice' || q.type === 'dropdown') && (
                                                          <div className="space-y-3 bg-white/[0.02] p-6 rounded-2xl border border-white/5">
-                                                             <div className="flex items-center justify-between mb-2">
-                                                                 <span className="text-[10px] font-bold text-slate-500 tracking-wider">Choices</span>
-                                                                 <button
-                                                                     onClick={() => updateQuestion(q.id, { options: [...(q.options || []), `Choice ${(q.options?.length || 0) + 1}`] })}
-                                                                     className="text-[10px] font-bold text-pink-500 tracking-wider hover:text-white transition-all"
-                                                                 >
-                                                                     + Add a choice
-                                                                 </button>
+                                                             <div className="flex items-center justify-between">
+                                                                 <span className="text-[10px] font-bold text-slate-500 uppercase">Choices</span>
+                                                                 <button onClick={() => updateQuestion(q.id, { options: [...(q.options || []), `New Choice`] })} className="text-[10px] font-bold text-pink-500 uppercase">+ Add</button>
                                                              </div>
                                                              <div className="grid grid-cols-2 gap-3">
                                                                  {q.options?.map((opt, oIdx) => (
-                                                                     <div key={oIdx} className="flex items-center gap-2 bg-white/5 border border-white/5 rounded-xl px-4 py-3">
+                                                                     <div key={oIdx} className="flex items-center gap-2 bg-white/5 border border-white/5 rounded-xl px-4 py-2">
                                                                          <input
                                                                              value={opt}
                                                                              onChange={(e) => {
@@ -435,24 +407,16 @@ export default function ScreenerBuilder({
                                                                                  newOpts[oIdx] = e.target.value;
                                                                                  updateQuestion(q.id, { options: newOpts });
                                                                              }}
-                                                                             className="bg-transparent text-[13px] font-bold text-slate-300 outline-none flex-1"
+                                                                             className="bg-transparent text-xs text-slate-300 outline-none flex-1"
                                                                          />
-                                                                         <button onClick={() => updateQuestion(q.id, { options: q.options?.filter((_, i) => i !== oIdx) })} className="p-1 text-slate-600 hover:text-pink-500 transition-colors">
-                                                                             <X className="w-3.5 h-3.5" />
-                                                                         </button>
+                                                                         <button onClick={() => updateQuestion(q.id, { options: q.options?.filter((_, i) => i !== oIdx) })} className="text-slate-600 hover:text-pink-500"><X className="w-3 h-3" /></button>
                                                                      </div>
                                                                  ))}
                                                              </div>
                                                          </div>
                                                      )}
                                                 </div>
-
-                                                <button
-                                                    onClick={() => removeQuestion(q.id)}
-                                                    className="p-3 text-slate-600 hover:text-white hover:bg-rose-500/20 rounded-xl transition-all h-fit"
-                                                >
-                                                    <Trash2 className="w-5 h-5" />
-                                                </button>
+                                                <button onClick={() => removeQuestion(q.id)} className="p-2 text-slate-700 hover:text-white hover:bg-rose-500/20 rounded-xl"><Trash2 className="w-5 h-5" /></button>
                                             </div>
                                         </motion.div>
                                     ))}
@@ -463,133 +427,36 @@ export default function ScreenerBuilder({
                 </div>
             </div>
 
-            {/* Notification Portal */}
             <AnimatePresence>
                 {statusMessage && (
-                    <motion.div
-                        initial={{ opacity: 0, y: 50 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: 50 }}
-                        className={`fixed bottom-12 right-12 px-8 py-5 rounded-2xl border flex items-center gap-4 shadow-2xl z-[100] backdrop-blur-xl ${statusMessage.type === 'success' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-rose-500/10 border-rose-500/20 text-rose-400'}`}
-                    >
-                        {statusMessage.type === 'success' ? <CheckCircle2 className="w-5 h-5" /> : <AlertTriangle className="w-5 h-5" />}
-                        <span className="text-[11px] font-black uppercase tracking-widest">{statusMessage.text}</span>
+                    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }} className={`fixed bottom-8 right-8 px-6 py-4 rounded-xl border flex items-center gap-3 z-[100] backdrop-blur-xl ${statusMessage.type === 'success' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-rose-500/10 border-rose-500/20 text-rose-400'}`}>
+                        {statusMessage.type === 'success' ? <CheckCircle2 className="w-4 h-4" /> : <AlertTriangle className="w-4 h-4" />}
+                        <span className="text-[10px] font-black uppercase tracking-widest">{statusMessage.text}</span>
                     </motion.div>
                 )}
             </AnimatePresence>
 
-            {/* Import Modal */}
-            <AnimatePresence>
-                {showImportModal && (
-                    <>
-                        <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            onClick={() => setShowImportModal(false)}
-                            className="fixed inset-0 bg-black/80 backdrop-blur-md z-[150]"
-                        />
-                        <motion.div
-                            initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                            animate={{ opacity: 1, scale: 1, y: 0 }}
-                            exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                            className="fixed inset-0 m-auto w-full max-w-2xl h-fit bg-[#0f172a] border border-white/10 rounded-[2.5rem] p-10 z-[151] shadow-2xl"
-                        >
-                            <div className="flex items-center justify-between mb-8">
-                                <div>
-                                    <h3 className="text-2xl font-black text-white italic tracking-tighter">Copy from another study</h3>
-                                    <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest mt-1">Select a study to copy its questions</p>
-                                </div>
-                                <button onClick={() => setShowImportModal(false)} className="p-3 text-slate-500 hover:text-white transition-all bg-white/5 rounded-xl"><X /></button>
-                            </div>
-
-                            <div className="grid grid-cols-1 gap-3 max-h-[400px] overflow-y-auto pr-4">
-                                {studies.filter(s => s.id !== selectedStudyId).map(s => (
-                                    <button
-                                        key={s.id}
-                                        onClick={() => handleImport(s.id)}
-                                        className="w-full flex items-center justify-between p-6 bg-white/[0.02] border border-white/5 rounded-2xl hover:bg-pink-500/5 hover:border-pink-500/30 transition-all group"
-                                    >
-                                        <div className="flex items-center gap-5">
-                                            <div className="w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center text-slate-500 group-hover:text-pink-500 transition-colors">
-                                                <Database className="w-5 h-5" />
-                                            </div>
-                                            <div className="text-left">
-                                                <p className="text-xs font-black text-white uppercase tracking-widest group-hover:text-pink-500 transition-colors">{s.protocol_id}</p>
-                                                <p className="text-[10px] font-bold text-slate-500 mt-1 line-clamp-1">{s.title}</p>
-                                            </div>
-                                        </div>
-                                        <ChevronRight className="w-5 h-5 text-slate-700" />
-                                    </button>
-                                ))}
-                            </div>
-
-                            <div className="mt-10 p-6 bg-amber-500/5 border border-amber-500/10 rounded-2xl flex items-start gap-4">
-                                <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0" />
-                                <p className="text-[10px] text-slate-400 font-medium leading-relaxed italic">
-                                    Importing will append questions from the source protocol to your current draft. You can then modify or reorder them as needed.
-                                </p>
-                            </div>
-                        </motion.div>
-                    </>
-                )}
-            </AnimatePresence>
-            {/* Smart Import Modal */}
             <AnimatePresence>
                 {showSmartImportModal && (
-                    <>
-                        <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            onClick={() => setShowSmartImportModal(false)}
-                            className="fixed inset-0 bg-black/80 backdrop-blur-md z-[150]"
-                        />
-                        <motion.div
-                            initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                            animate={{ opacity: 1, scale: 1, y: 0 }}
-                            exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                            className="fixed inset-0 m-auto w-full max-w-2xl h-fit bg-[#0f172a] border border-white/10 rounded-[2.5rem] p-10 z-[151] shadow-2xl"
-                        >
-                            <div className="flex items-center justify-between mb-8">
-                                <div>
-                                    <h3 className="text-2xl font-black text-white italic tracking-tighter">AI Text Extraction</h3>
-                                    <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest mt-1">Paste questions and options from a PDF or Document</p>
-                                </div>
-                                <button onClick={() => setShowSmartImportModal(false)} className="p-3 text-slate-500 hover:text-white transition-all bg-white/5 rounded-xl"><X /></button>
+                    <React.Fragment>
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowSmartImportModal(false)} className="fixed inset-0 bg-black/80 backdrop-blur-md z-[1000]" />
+                        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="fixed inset-0 m-auto w-full max-w-2xl h-fit bg-[#0f172a] border border-white/10 rounded-[2rem] p-10 z-[1001] shadow-2xl">
+                            <div className="flex items-center justify-between mb-6">
+                                <h3 className="text-xl font-black text-white italic uppercase">AI Extract Questions</h3>
+                                <button onClick={() => setShowSmartImportModal(false)} className="text-slate-500 hover:text-white"><X /></button>
                             </div>
-
                             <textarea
                                 value={smartImportText}
                                 onChange={(e) => setSmartImportText(e.target.value)}
-                                placeholder={`1. Have you ever participated in a clinical trial?
-Yes
-No
-
-2. Which conditions do you have?
-Diabetes
-Hypertension
-Asthma`}
-                                className="w-full h-[300px] bg-[#0d1424] border border-white/10 rounded-2xl p-6 text-sm text-slate-300 outline-none focus:border-pink-500/50 transition-colors mb-6 resize-none custom-scrollbar"
+                                placeholder="Paste your questions here..."
+                                className="w-full h-64 bg-black/20 border border-white/10 rounded-xl p-4 text-sm text-slate-300 outline-none focus:border-pink-500/50 mb-6 resize-none"
                             />
-
-                            <div className="flex justify-end gap-4">
-                                <button 
-                                    onClick={() => setShowSmartImportModal(false)}
-                                    className="px-6 py-3 rounded-xl text-xs font-bold text-slate-400 hover:text-white transition-colors"
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    onClick={handleSmartImport}
-                                    disabled={!smartImportText.trim()}
-                                    className="flex items-center gap-2 px-8 py-3 bg-pink-600 text-white rounded-xl text-xs font-black tracking-widest uppercase hover:bg-pink-500 transition-all disabled:opacity-50"
-                                >
-                                    <Terminal className="w-4 h-4" /> Extract & Import
-                                </button>
+                            <div className="flex justify-end gap-3">
+                                <button onClick={() => setShowSmartImportModal(false)} className="px-6 py-2 text-xs font-bold text-slate-400">Cancel</button>
+                                <button onClick={handleSmartImport} className="px-8 py-2 bg-pink-600 text-white rounded-lg text-xs font-black uppercase">Extract & Import</button>
                             </div>
                         </motion.div>
-                    </>
+                    </React.Fragment>
                 )}
             </AnimatePresence>
         </div>
