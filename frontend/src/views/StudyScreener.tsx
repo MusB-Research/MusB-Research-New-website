@@ -56,8 +56,7 @@ export default function StudyScreener() {
     const [currentStepIndex, setCurrentStepIndex] = useState(0);
     const [outcome, setOutcome] = useState<OutcomeType | null>(null);
 
-    // Form Data
-    const [formData, setFormData] = useState<any>({
+    const initialFormData = {
         zipCode: '',
         location: '',
         trialsInLast30Days: '',
@@ -67,7 +66,11 @@ export default function StudyScreener() {
         email: '',
         phone: '',
         availability: ''
-    });
+    };
+
+    // Form Data
+    const [formData, setFormData] = useState<any>(initialFormData);
+    const [submittedData, setSubmittedData] = useState<any>(null);
 
     // ── Condition Details (per selected disease) ────────────────────────
     const [conditionDetails, setConditionDetails] = useState<Record<string, { severity: string; managed: string }>>({});
@@ -421,6 +424,14 @@ export default function StudyScreener() {
                     });
                 }
             }
+            // 🚀 Clear Local Backup and Reset Form for next use (Requirement: "clean the page")
+            localStorage.removeItem(`screener_backup_${id}`);
+            setSubmittedData({ ...formData });
+            setFormData(initialFormData);
+            setConditionDetails({});
+            setError(null);
+            setIsAttemptingSubmit(false);
+
         } catch (e) {
             console.error("Submission processing failed", e);
         }
@@ -762,16 +773,18 @@ export default function StudyScreener() {
                                     </div>
                                     <div className="space-y-4">
                                         <h1 className="text-4xl font-black text-white italic tracking-tighter">
-                                            {enrollmentResult?.is_pending_multi_enrollment ? 'Application pending review' : 'Initial match confirmed'}
+                                            {enrollmentResult?.is_pending_multi_enrollment ? 'Application pending review' : 'Application received'}
                                         </h1>
                                         <p className="text-slate-400 text-lg max-w-md mx-auto leading-relaxed">
-                                            {enrollmentResult?.is_pending_multi_enrollment
-                                                ? `You are currently enrolled in another study. Your application for ${study.title} has been submitted for PI review.`
-                                                : `You criteria matches the recruitment profile for ${study.title}.`}
+                                            Thank you for submitting the form. We have received your details and our clinical team will contact you shortly.
                                         </p>
-                                        {(!isExistingParticipant && !getAccessToken()) && (
+                                        {(!isExistingParticipant && !getAccessToken()) ? (
                                             <p className="text-cyan-400 text-sm font-bold mt-4 animate-pulse">
                                                 Please create an account or login with Gmail to complete your enrollment.
+                                            </p>
+                                        ) : (
+                                            <p className="text-emerald-400 text-sm font-bold mt-4 animate-pulse">
+                                                Success! Your clinical profile has been securely synchronized with the trial repository.
                                             </p>
                                         )}
                                     </div>
@@ -784,9 +797,9 @@ export default function StudyScreener() {
                                                 navigate('/signin', {
                                                     state: {
                                                         redirectTo: `/dashboard/participant`,
-                                                        email: formData.email,
-                                                        fullName: formData.fullName,
-                                                        screenerData: formData
+                                                        email: submittedData?.email || formData.email,
+                                                        fullName: submittedData?.fullName || formData.fullName,
+                                                        screenerData: submittedData || formData
                                                     }
                                                 });
                                             }
@@ -806,8 +819,13 @@ export default function StudyScreener() {
                                     <h1 className="text-3xl font-black text-white italic text-slate-400">Status: Review required</h1>
                                     <div className="bg-slate-950/50 p-8 rounded-3xl border border-white/5">
                                         <p className="text-slate-400 font-medium leading-relaxed">
-                                            We have received your application. After reviewing, our clinical team will contact you. Please make sure you have provided the correct documents for review.
+                                            Thank you for submitting the form. We have received your details and our clinical team will contact you shortly.
                                         </p>
+                                        {(isExistingParticipant || getAccessToken()) && (
+                                            <p className="text-emerald-400 text-sm font-bold mt-6 animate-pulse">
+                                                Success! Your clinical profile has been securely synchronized with the trial repository.
+                                            </p>
+                                        )}
                                     </div>
                                     <button
                                         onClick={() => {
@@ -817,9 +835,9 @@ export default function StudyScreener() {
                                                 navigate('/signin', {
                                                     state: {
                                                         redirectTo: `/dashboard/participant`,
-                                                        email: formData.email,
-                                                        fullName: formData.fullName,
-                                                        screenerData: formData
+                                                        email: submittedData?.email || formData.email,
+                                                        fullName: submittedData?.fullName || formData.fullName,
+                                                        screenerData: submittedData || formData
                                                     }
                                                 });
                                             }
