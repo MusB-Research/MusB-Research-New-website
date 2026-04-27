@@ -24,6 +24,7 @@ import SEO from '@/components/SEO';
 import { SkeletonLoader } from '../components/shared/SkeletonLoader';
 import { getMediaUrl, handleImageError } from '../utils/media';
 import { usePolling } from '@/hooks/usePolling';
+import { subscribeNewsletter } from '../api';
 
 const categories: (NewsType | 'All')[] = [
     'All',
@@ -90,6 +91,24 @@ export default function News() {
     const [submitting, setSubmitting] = useState(false);
     const [subscribeStatus, setSubscribeStatus] = useState<'idle' | 'success' | 'error'>('idle');
     const [isLoading, setIsLoading] = useState(true);
+    const [userType, setUserType] = useState<'business' | 'researcher' | 'participant'>('business');
+
+    const handleSubscribe = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!email) return;
+        setSubmitting(true);
+        setSubscribeStatus('idle');
+        try {
+            await subscribeNewsletter(email, userType);
+            setSubscribeStatus('success');
+            setEmail('');
+        } catch (err) {
+            console.error(err);
+            setSubscribeStatus('error');
+        } finally {
+            setSubmitting(false);
+        }
+    };
 
     const fetchData = async (showLoading: boolean = true, skipCache = false) => {
         if (showLoading) setIsLoading(true);
@@ -634,15 +653,36 @@ export default function News() {
                             {/* Role selection is visual only for now as backend only accepts email */}
                             <div className="flex bg-slate-950/50 rounded-2xl p-1 border border-white/10">
                                 <label className="flex-1 px-4 py-3 cursor-pointer has-[:checked]:bg-cyan-500 has-[:checked]:text-slate-950 has-[:checked]:shadow-sm rounded-xl transition-all">
-                                    <input type="radio" name="describe" value="business" className="sr-only" defaultChecked />
+                                    <input 
+                                        type="radio" 
+                                        name="describe" 
+                                        value="business" 
+                                        className="sr-only" 
+                                        checked={userType === 'business'}
+                                        onChange={() => setUserType('business')}
+                                    />
                                     <span className="text-[12px] font-black uppercase tracking-widest block text-center">Business</span>
                                 </label>
                                 <label className="flex-1 px-4 py-3 cursor-pointer has-[:checked]:bg-cyan-500 has-[:checked]:text-slate-950 has-[:checked]:shadow-sm rounded-xl transition-all">
-                                    <input type="radio" name="describe" value="researcher" className="sr-only" />
+                                    <input 
+                                        type="radio" 
+                                        name="describe" 
+                                        value="researcher" 
+                                        className="sr-only" 
+                                        checked={userType === 'researcher'}
+                                        onChange={() => setUserType('researcher')}
+                                    />
                                     <span className="text-[12px] font-black uppercase tracking-widest block text-center">Researcher</span>
                                 </label>
                                 <label className="flex-1 px-4 py-3 cursor-pointer has-[:checked]:bg-cyan-500 has-[:checked]:text-slate-950 has-[:checked]:shadow-sm rounded-xl transition-all">
-                                    <input type="radio" name="describe" value="participant" className="sr-only" />
+                                    <input 
+                                        type="radio" 
+                                        name="describe" 
+                                        value="participant" 
+                                        className="sr-only" 
+                                        checked={userType === 'participant'}
+                                        onChange={() => setUserType('participant')}
+                                    />
                                     <span className="text-[12px] font-black uppercase tracking-widest block text-center">Individual</span>
                                 </label>
                             </div>
