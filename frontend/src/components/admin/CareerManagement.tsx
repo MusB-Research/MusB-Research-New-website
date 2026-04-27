@@ -50,7 +50,10 @@ export default function CareerManagement() {
       const res = await authFetch(`${API_ROOT}/api/careers/admin/job-postings/`);
       if (res.ok) {
         const data = await res.json();
-        setJobs(data);
+        // Ensure data is an array before setting it to prevent crashes
+        setJobs(Array.isArray(data) ? data : (data.results || []));
+      } else {
+        console.error('API responded with error status:', res.status);
       }
     } catch (error) {
       console.error('Fetch error:', error);
@@ -299,11 +302,11 @@ export default function CareerManagement() {
                     <select 
                       value={formData.job_type}
                       onChange={e => setFormData({...formData, job_type: e.target.value as any})}
-                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-cyan-500/50 transition-all outline-none"
+                      className="w-full bg-[#1e293b] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-cyan-500/50 transition-all outline-none"
                     >
-                      <option value="Full-time">Full-time</option>
-                      <option value="Part-time">Part-time</option>
-                      <option value="Contract">Contract</option>
+                      <option value="Full-time" className="bg-[#1e293b] text-white">Full-time</option>
+                      <option value="Part-time" className="bg-[#1e293b] text-white">Part-time</option>
+                      <option value="Contract" className="bg-[#1e293b] text-white">Contract</option>
                     </select>
                   </div>
                   <div className="space-y-2">

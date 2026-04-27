@@ -401,6 +401,7 @@ class StudySerializer(SanitizedModelSerializer):
             'reward_type', 'reward_logic', 'reward_config',
             'consent_template_file', 'consent_templates', 'documents',
             'study_questionnaires', 'screener_config', 'avg_screener_duration',
+            'rct_design', 'medication_supply', 'has_study_kit', 'consent_collection',
             'created_at', 'updated_at'
         ]
 
@@ -411,6 +412,11 @@ class StudySerializer(SanitizedModelSerializer):
         ret['pi_ids'] = [str(a.user_id) for a in all_assignments if a.role == 'PI']
         ret['coordinator_ids'] = [str(a.user_id) for a in all_assignments if a.role == 'COORDINATOR']
         ret['sponsor_ids'] = [str(a.user_id) for a in all_assignments if a.role == 'SPONSOR_ADMIN']
+        
+        # Include questionnaires in the representation (since the field is write_only)
+        if hasattr(instance, 'study_questionnaires'):
+            ret['study_questionnaires'] = StudyQuestionnaireSerializer(instance.study_questionnaires.all(), many=True).data
+            
         return ret
 
     def to_internal_value(self, data):
@@ -419,8 +425,7 @@ class StudySerializer(SanitizedModelSerializer):
             'pi_ids', 'coordinator_ids', 'sponsor_ids', 'pi_id', 'coordinator_id', 'sponsor_id', 'sponsor_org_id'
         }
         FRONTEND_ONLY_FIELDS = {
-            'reward_amount', 'rct_design', 'masking', 'consent_collection', 'medication_supply',
-            'indication', 'execution_type',
+            'reward_amount', 'masking', 'indication', 'execution_type',
             'startDate', 'endDate',
             # Also strip these if frontend accidentally sends them (they are read-only relations)
             'consent_templates', 'documents', 'assigned_pis', 'assigned_coordinators', 'assigned_sponsors'

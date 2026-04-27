@@ -23,6 +23,7 @@ import { Link } from 'react-router-dom';
 import SEO from '@/components/SEO';
 import { SkeletonLoader } from '../components/shared/SkeletonLoader';
 import { getMediaUrl, handleImageError } from '../utils/media';
+import { usePolling } from '@/hooks/usePolling';
 
 const categories: (NewsType | 'All')[] = [
     'All',
@@ -78,6 +79,8 @@ const decodeEntities = (str: string): string => {
     }
 };
 
+
+
 export default function News() {
     const [activeCategory, setActiveCategory] = useState<NewsType | 'All'>('All');
     const [searchQuery, setSearchQuery] = useState('');
@@ -88,120 +91,110 @@ export default function News() {
     const [subscribeStatus, setSubscribeStatus] = useState<'idle' | 'success' | 'error'>('idle');
     const [isLoading, setIsLoading] = useState(true);
 
-    const handleSubscribe = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setSubmitting(true);
-        setSubscribeStatus('idle');
+    const fetchData = async (showLoading: boolean = true, skipCache = false) => {
+        if (showLoading) setIsLoading(true);
         try {
-            await new Promise(resolve => setTimeout(resolve, 800));
-            setSubscribeStatus('success');
-            setEmail('');
-        } catch (error) {
-            console.error('Subscription failed:', error);
-            setSubscribeStatus('error');
+            const apiUrl = API || 'http://localhost:8000';
+            const fetchOpts = { skipCache };
+            
+            // Fetch All Content Types from our API
+            const [newsRes, eventsRes, partnersRes, pubsRes, eduRes] = await Promise.all([
+                authFetch(`${apiUrl}/api/news/`, fetchOpts),
+                authFetch(`${apiUrl}/api/events/`, fetchOpts),
+                authFetch(`${apiUrl}/api/partnerships/`, fetchOpts),
+                authFetch(`${apiUrl}/api/publications/`, fetchOpts),
+                authFetch(`${apiUrl}/api/education/`, fetchOpts)
+            ]);
+
+            let combined: any[] = [];
+            
+            if (newsRes.ok) {
+                const newsData = await newsRes.json();
+                const newsArray = Array.isArray(newsData) ? newsData : (newsData.results || []);
+                combined = [...combined, ...newsArray.map((n: any) => ({
+                    ...n,
+                    type: n.is_success_story ? 'Success Story' : 'News',
+                    title: decodeEntities(n.title || 'Untitled News'),
+                    excerpt: stripToPlainText(n.excerpt || n.content || 'No excerpt available.'),
+                    date: new Date(n.published_at || n.created_at || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+                    imageUrl: getMediaUrl(n.image_url || n.image)
+                }))];
+            }
+
+            if (eventsRes.ok) {
+                const eventsData = await eventsRes.json();
+                const eventsArray = Array.isArray(eventsData) ? eventsData : (eventsData.results || []);
+                combined = [...combined, ...eventsArray.map((e: any) => ({
+                    ...e,
+                    type: 'Event',
+                    title: decodeEntities(e.title || e.name || 'Untitled Event'),
+                    excerpt: stripToPlainText(e.description || e.excerpt || 'No description available.'),
+                    date: new Date(e.date || e.event_date || e.created_at || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+                    imageUrl: getMediaUrl(e.image_url || e.image)
+                }))];
+            }
+
+            if (partnersRes.ok) {
+                const partnersData = await partnersRes.json();
+                const partnersArray = Array.isArray(partnersData) ? partnersData : (partnersData.results || []);
+                combined = [...combined, ...partnersArray.map((p: any) => ({
+                    ...p,
+                    type: 'Partnership',
+                    title: decodeEntities(p.name || p.partner_name || p.title || 'New Partnership'),
+                    excerpt: stripToPlainText(p.description || p.collaboration_details || 'Partnership details not provided.'),
+                    date: new Date(p.announcement_date || p.created_at || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+                    imageUrl: getMediaUrl(p.logo_url || p.logo)
+                }))];
+            }
+
+            if (pubsRes.ok) {
+                const pubsData = await pubsRes.json();
+                const pubsArray = Array.isArray(pubsData) ? pubsData : (pubsData.results || []);
+                combined = [...combined, ...pubsArray.map((p: any) => ({
+                    ...p,
+                    type: 'Publication',
+                    title: decodeEntities(p.title || 'Untitled Publication'),
+                    excerpt: stripToPlainText(p.abstract || p.summary || 'No abstract available.'),
+                    date: new Date(p.publication_date || p.created_at || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+                    imageUrl: getMediaUrl(p.image_url || p.image)
+                }))];
+            }
+
+            if (eduRes.ok) {
+                const eduData = await eduRes.json();
+                const eduArray = Array.isArray(eduData) ? eduData : (eduData.results || []);
+                combined = [...combined, ...eduArray.map((e: any) => ({
+                    ...e,
+                    type: 'Educational Material',
+                    title: decodeEntities(e.title || 'Untitled Material'),
+                    excerpt: stripToPlainText(e.content || e.description || e.summary || 'No description available.'),
+                    date: new Date(e.created_at || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+                    imageUrl: getMediaUrl(e.file_url || e.file || e.attachment)
+                }))];
+            }
+
+            // If we got real data, use it; otherwise fallback to hardcoded
+            if (combined.length > 0) {
+                // Sort descending by date
+                combined.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+                setNewsItems(combined);
+            } else {
+                setNewsItems(HARDCODED_NEWS);
+            }
+        } catch (e) {
+            console.error("Failed to fetch news", e);
+            setNewsItems(HARDCODED_NEWS);
         } finally {
-            setSubmitting(false);
+            if (showLoading) setIsLoading(false);
         }
     };
+
     useEffect(() => {
-        const fetchData = async () => {
-            setIsLoading(true);
-            try {
-                const apiUrl = API || 'http://localhost:8000';
-                
-                // Fetch All Content Types from our API
-                const [newsRes, eventsRes, partnersRes, pubsRes, eduRes] = await Promise.all([
-                    authFetch(`${apiUrl}/api/news/`),
-                    authFetch(`${apiUrl}/api/events/`),
-                    authFetch(`${apiUrl}/api/partnerships/`),
-                    authFetch(`${apiUrl}/api/publications/`),
-                    authFetch(`${apiUrl}/api/education/`)
-                ]);
-
-                let combined: any[] = [];
-                
-                if (newsRes.ok) {
-                    const newsData = await newsRes.json();
-                    const newsArray = Array.isArray(newsData) ? newsData : (newsData.results || []);
-                    combined = [...combined, ...newsArray.map((n: any) => ({
-                        ...n,
-                        type: n.is_success_story ? 'Success Story' : 'News',
-                        title: decodeEntities(n.title || 'Untitled News'),
-                        excerpt: stripToPlainText(n.excerpt || n.content || 'No excerpt available.'),
-                        date: new Date(n.published_at || n.created_at || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-                        imageUrl: getMediaUrl(n.image_url || n.image)
-                    }))];
-                }
-
-                if (eventsRes.ok) {
-                    const eventsData = await eventsRes.json();
-                    const eventsArray = Array.isArray(eventsData) ? eventsData : (eventsData.results || []);
-                    combined = [...combined, ...eventsArray.map((e: any) => ({
-                        ...e,
-                        type: 'Event',
-                        title: decodeEntities(e.title || e.name || 'Untitled Event'),
-                        excerpt: stripToPlainText(e.description || e.excerpt || 'No description available.'),
-                        date: new Date(e.date || e.event_date || e.created_at || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-                        imageUrl: getMediaUrl(e.image_url || e.image)
-                    }))];
-                }
-
-                if (partnersRes.ok) {
-                    const partnersData = await partnersRes.json();
-                    const partnersArray = Array.isArray(partnersData) ? partnersData : (partnersData.results || []);
-                    combined = [...combined, ...partnersArray.map((p: any) => ({
-                        ...p,
-                        type: 'Partnership',
-                        title: decodeEntities(p.name || p.partner_name || p.title || 'New Partnership'),
-                        excerpt: stripToPlainText(p.description || p.collaboration_details || 'Partnership details not provided.'),
-                        date: new Date(p.announcement_date || p.created_at || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-                        imageUrl: getMediaUrl(p.logo_url || p.logo)
-                    }))];
-                }
-
-                if (pubsRes.ok) {
-                    const pubsData = await pubsRes.json();
-                    const pubsArray = Array.isArray(pubsData) ? pubsData : (pubsData.results || []);
-                    combined = [...combined, ...pubsArray.map((p: any) => ({
-                        ...p,
-                        type: 'Publication',
-                        title: decodeEntities(p.title || 'Untitled Publication'),
-                        excerpt: stripToPlainText(p.abstract || p.summary || 'No abstract available.'),
-                        date: new Date(p.publication_date || p.created_at || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-                        imageUrl: getMediaUrl(p.image_url || p.image)
-                    }))];
-                }
-
-                if (eduRes.ok) {
-                    const eduData = await eduRes.json();
-                    const eduArray = Array.isArray(eduData) ? eduData : (eduData.results || []);
-                    combined = [...combined, ...eduArray.map((e: any) => ({
-                        ...e,
-                        type: 'Educational Material',
-                        title: decodeEntities(e.title || 'Untitled Material'),
-                        excerpt: stripToPlainText(e.content || e.description || e.summary || 'No description available.'),
-                        date: new Date(e.created_at || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-                        imageUrl: getMediaUrl(e.file_url || e.file || e.attachment)
-                    }))];
-                }
-
-                // If we got real data, use it; otherwise fallback to hardcoded
-                if (combined.length > 0) {
-                    // Sort descending by date
-                    combined.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-                    setNewsItems(combined);
-                } else {
-                    setNewsItems(HARDCODED_NEWS);
-                }
-            } catch (e) {
-                console.error("Failed to fetch news", e);
-                setNewsItems(HARDCODED_NEWS);
-            } finally {
-                setIsLoading(false);
-            }
-        };
-        fetchData();
+        fetchData(true, false);
     }, []);
+
+    // Polling: Refresh data every 10 seconds in the background
+    usePolling(() => fetchData(false, true), 10000);
 
 
     const filteredItems = useMemo(() => {

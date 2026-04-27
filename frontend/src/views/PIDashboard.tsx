@@ -34,6 +34,7 @@ import StaffTasksModule from '../components/shared/StaffTasksModule';
 import ParticipantTaskManagement from '../components/shared/ParticipantTaskManagement';
 import TeamInventoryModule from '../components/pi/panels/TeamInventoryModule';
 import StudyKitsModule from '../components/shared/StudyKitsModule';
+import { usePolling } from '@/hooks/usePolling';
 
 
 import {
@@ -307,17 +308,20 @@ export default function PIDashboard() {
         fetchSummary();
     }, [globalSelectedStudyId]);
 
-    const fetchAllData = useCallback(async () => {
-        setLoading(true);
+
+
+    const fetchAllData = useCallback(async (showLoading = true, skipCache = false) => {
+        if (showLoading) setLoading(true);
         try {
+            const fetchOpts = { skipCache };
             // OPTIMIZED: Added pagination limits to reduce payload
             const [studiesRaw, participantsRaw, notificationsRaw, visitsRaw, staffTasksRaw, usersRaw] = await Promise.all([
-                authFetch(`${API}/api/studies/?limit=50`).then(r => r.json()),
-                authFetch(`${API}/api/participants/?pi=true&limit=50`).then(r => r.json()), 
-                authFetch(`${API}/api/notifications/?limit=50`).then(r => r.json()),
-                authFetch(`${API}/api/visits/?limit=50`).then(r => r.json()),
-                authFetch(`${API}/api/staff-tasks/?limit=50`).then(r => r.json()),
-                authFetch(`${API}/api/auth/personnel-fetch/?limit=50`).then(r => r.json()).catch(() => [])
+                authFetch(`${API}/api/studies/?limit=50`, fetchOpts).then(r => r.json()),
+                authFetch(`${API}/api/participants/?pi=true&limit=50`, fetchOpts).then(r => r.json()), 
+                authFetch(`${API}/api/notifications/?limit=50`, fetchOpts).then(r => r.json()),
+                authFetch(`${API}/api/visits/?limit=50`, fetchOpts).then(r => r.json()),
+                authFetch(`${API}/api/staff-tasks/?limit=50`, fetchOpts).then(r => r.json()),
+                authFetch(`${API}/api/auth/personnel-fetch/?limit=50`, fetchOpts).then(r => r.json()).catch(() => [])
             ]);
 
             // Senior Dev: Normalize DRF Paginated results to Standard Arrays
@@ -366,15 +370,18 @@ export default function PIDashboard() {
         } catch (err) {
             console.error("Dashboard fetch error:", err);
         } finally {
-            setLoading(false);
+            if (showLoading) setLoading(false);
         }
     }, []);
 
     const mountGuard = useRef({ checkMissed: false });
 
     useEffect(() => {
-        fetchAllData();
+        fetchAllData(true, false);
     }, [fetchAllData]);
+
+    // Polling: Refresh all data every 10 seconds in the background
+    usePolling(() => fetchAllData(false, true), 10000);
 
     // [PERFORMANCE] One-time Dashboard Initialization
     useEffect(() => {
@@ -684,8 +691,18 @@ export default function PIDashboard() {
                         <StudyOverviewModule
                             studies={studies}
                             onAdd={() => setActiveModule('LAUNCH_STUDY')}
-                            onEdit={(s) => {
-                                setSelectedStudy(s);
+                            onEdit={async (s) => {
+                                try {
+                                    const res = await authFetch(`${API}/api/studies/${s.protocol_id}/`);
+                                    if (res.ok) {
+                                        const fullStudy = await res.json();
+                                        setSelectedStudy(fullStudy);
+                                    } else {
+                                        setSelectedStudy(s);
+                                    }
+                                } catch (e) {
+                                    setSelectedStudy(s);
+                                }
                                 setActiveModule('LAUNCH_STUDY');
                             }}
                             onStatusUpdate={async (protocolId, newStatus) => {

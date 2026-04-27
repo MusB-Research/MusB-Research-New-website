@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { usePolling } from '../hooks/usePolling';
 import {
     Users,
     Target,
@@ -118,30 +119,34 @@ export default function Careers() {
     const [loading, setLoading] = useState(true);
     const careerCategories = HARDCODED_CATEGORIES;
 
-    useEffect(() => {
-        const fetchJobs = async () => {
-            try {
-                const res = await fetch(`${API_ROOT}/api/careers/public/active/`);
-                if (res.ok) {
-                    const data = await res.json();
-                    setJobOpenings(data.map((j: any) => ({
-                        ...j,
-                        department: j.category, 
-                        summary: j.role_summary,
-                        experienceLevel: j.experience_level,
-                        type: j.job_type,
-                        isFeatured: j.is_featured,
-                        status: j.status === 'Active' ? 'Live' : 'Closed'
-                    })));
-                }
-            } catch (err) {
-                console.error("Failed to fetch jobs:", err);
-            } finally {
-                setLoading(false);
+    const fetchJobs = async () => {
+        try {
+            const res = await fetch(`${API_ROOT}/api/careers/public/active/?_t=${Date.now()}`);
+            if (res.ok) {
+                const data = await res.json();
+                setJobOpenings(data.map((j: any) => ({
+                    ...j,
+                    department: j.category, 
+                    summary: j.role_summary,
+                    experienceLevel: j.experience_level,
+                    type: j.job_type,
+                    isFeatured: j.is_featured,
+                    status: j.status === 'Active' ? 'Live' : 'Closed'
+                })));
             }
-        };
+        } catch (err) {
+            console.error("Failed to fetch jobs:", err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
         fetchJobs();
     }, []);
+
+    // Polling: Refresh data every 10 seconds in the background
+    usePolling(fetchJobs, 10000);
 
 
 

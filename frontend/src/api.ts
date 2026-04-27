@@ -3,7 +3,7 @@
 // ============================================================
 import { authFetch, getToken, API as API_BASE } from './utils/auth';
 
-async function apiFetch<T>(endpoint: string, options?: RequestInit): Promise<T> {
+async function apiFetch<T>(endpoint: string, options?: RequestInit & { skipCache?: boolean }): Promise<T> {
     const res = await authFetch(endpoint, options);
     
     if (!res.ok) {

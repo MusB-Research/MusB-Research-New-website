@@ -136,18 +136,28 @@ def login_view(request):
     ua = request.META.get('HTTP_USER_AGENT', '')[:512]
     
     def background_login_ops(u_id, email, ip_addr, user_agent, tz):
-        # 1. Update user last login and timezone
-        u_data = {'last_login': now()}
-        if tz: u_data['timezone'] = tz
-        User.objects.filter(pk=u_id).update(**u_data)
+        from django.db import close_old_connections
+        # Ensure thread-local connections are clean
+        close_old_connections()
         
-        # 2. Log Success
-        AuditLog.objects.create(
-            user_email=email,
-            action='LOGIN_SUCCESS',
-            ip_address=ip_addr,
-            user_agent=user_agent
-        )
+        try:
+            # 1. Update user last login and timezone
+            u_data = {'last_login': now()}
+            if tz: u_data['timezone'] = tz
+            User.objects.filter(pk=u_id).update(**u_data)
+            
+            # 2. Log Success
+            AuditLog.objects.create(
+                user_email=email,
+                action='LOGIN_SUCCESS',
+                ip_address=ip_addr,
+                user_agent=user_agent
+            )
+        except Exception as e:
+            logger.error(f"Error in background_login_ops: {e}")
+        finally:
+            # Cleanup connections for this thread
+            close_old_connections()
 
     threading.Thread(target=background_login_ops, args=(
         str(user.pk), user.email, ip, ua, request.data.get('timezone')

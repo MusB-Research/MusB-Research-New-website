@@ -2606,12 +2606,8 @@ class UserViewSet(viewsets.ModelViewSet):
             return User.objects.none()
         
         # Base: Staff management views should EXCLUDE participants (who are managed in /api/participants/)
-        # Also exclude pending/unactivated users so they only appear in the Invitations module
         staff_qs = User.objects.exclude(
-            Q(role__in=['PARTICIPANT', 'participant', 'Participant']) |
-            Q(must_change_password=True) |
-            Q(status__iexact='PENDING') |
-            Q(status__iexact='pending')
+            Q(role__in=['PARTICIPANT', 'participant', 'Participant'])
         )
         
         # Super Admins and Admins see all staff
@@ -2820,6 +2816,27 @@ from rest_framework.views import APIView
 
 class FacilityInquiryView(APIView):
     permission_classes = [permissions.AllowAny]
+
+    def get(self, request):
+        if not request.user or not request.user.is_authenticated:
+            return Response({"detail": "Authentication credentials were not provided."}, status=status.HTTP_401_UNAUTHORIZED)
+        
+        role = (getattr(request.user, 'role', '') or '').upper()
+        if role not in ['ADMIN', 'SUPER_ADMIN', 'COORDINATOR', 'PI']:
+            return Response({"detail": "You do not have permission to perform this action."}, status=status.HTTP_403_FORBIDDEN)
+            
+        queryset = FacilityInquiry.objects.all().order_by('-created_at')
+        
+        try:
+            limit = int(request.query_params.get('limit', 50))
+            if limit <= 0: limit = 50
+        except (ValueError, TypeError):
+            limit = 50
+            
+        queryset = queryset[:limit]
+        serializer = FacilityInquirySerializer(queryset, many=True)
+        return Response(serializer.data)
+
     def post(self, request):
         serializer = FacilityInquirySerializer(data=request.data)
         if serializer.is_valid():

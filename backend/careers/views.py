@@ -4,7 +4,7 @@ from rest_framework.decorators import api_view, permission_classes
 from django.utils.timezone import now
 from .models import JobPosting
 from .serializers import JobPostingSerializer
-from api.utils.cache_utils import cache_api_response
+from api.utils.cache_utils import cache_api_response, invalidate_cache
 
 class IsSuperAdminOrStaff(permissions.BasePermission):
     def hasattr_role(self, user):
@@ -23,10 +23,25 @@ class JobPostingViewSet(viewsets.ModelViewSet):
             return [IsSuperAdminOrStaff()]
         return [permissions.IsAuthenticated()]
 
+    def perform_create(self, serializer):
+        serializer.save()
+        invalidate_cache("active_jobs")
+        invalidate_cache("job_detail")
+
+    def perform_update(self, serializer):
+        serializer.save()
+        invalidate_cache("active_jobs")
+        invalidate_cache("job_detail")
+
+    def perform_destroy(self, instance):
+        instance.delete()
+        invalidate_cache("active_jobs")
+        invalidate_cache("job_detail")
+
 # Public API: Read-only for Active jobs
 @api_view(['GET'])
 @permission_classes([permissions.AllowAny])
-@cache_api_response("active_jobs", timeout=3600)
+@cache_api_response("active_jobs", timeout=300)
 def list_active_jobs(request):
     """Returns only 'Active' jobs that haven't expired yet."""
     current_date = now().date()

@@ -27,6 +27,8 @@ import { authFetch, API } from '../utils/auth';
 
 
 
+import { usePolling } from '@/hooks/usePolling';
+
 export default function Trials() {
     const [selectedCondition, setSelectedCondition] = useState('All');
     const [selectedType, setSelectedType] = useState('All');
@@ -36,62 +38,66 @@ export default function Trials() {
     const [loading, setLoading] = useState(true);
     const [showCompleted, setShowCompleted] = useState(false);
 
-    useEffect(() => {
-        const getStudies = async () => {
-            setLoading(true);
-            try {
-                const apiUrl = API || '';
-                const response = await authFetch(`${apiUrl}/api/public-studies/`);
-                if (!response.ok) throw new Error('Failed to fetch studies');
+    const getStudies = async (showLoading: boolean = true) => {
+        if (showLoading) setLoading(true);
+        try {
+            const apiUrl = API || '';
+            // skipCache: !showLoading ensures background polls bypass the cache
+            const response = await authFetch(`${apiUrl}/api/public-studies/`, { skipCache: !showLoading });
+            if (!response.ok) throw new Error('Failed to fetch studies');
 
-                const data = await response.json();
-                // DRF returns results in a 'results' key when paginated
-                const studyList = Array.isArray(data) ? data : (data.results || []);
+            const data = await response.json();
+            // DRF returns results in a 'results' key when paginated
+            const studyList = Array.isArray(data) ? data : (data.results || []);
+            // ... (rest of mapping logic)
+            const statusMap: Record<string, string> = {
+                'RECRUITING': 'Recruiting',
+                'UPCOMING': 'Upcoming',
+                'PAUSED': 'Paused',
+                'ACTIVE': 'Active',
+                'RECRUITMENT_COMPLETED': 'Recruitment Completed',
+                'ANALYSIS_UNDERWAY': 'Analysis Underway',
+                'PROGRESS_REPORT_DRAFT': 'Progress Report Draft',
+                'FINAL_REPORT_SENT': 'Final Report Sent',
+                'COMPLETED': 'Completed',
+                'CLOSED_ARCHIVED': 'Closed / Archived'
+            };
 
-                const statusMap: Record<string, string> = {
-                    'RECRUITING': 'Recruiting',
-                    'UPCOMING': 'Upcoming',
-                    'PAUSED': 'Paused',
-                    'ACTIVE': 'Active',
-                    'RECRUITMENT_COMPLETED': 'Recruitment Completed',
-                    'ANALYSIS_UNDERWAY': 'Analysis Underway',
-                    'PROGRESS_REPORT_DRAFT': 'Progress Report Draft',
-                    'FINAL_REPORT_SENT': 'Final Report Sent',
-                    'COMPLETED': 'Completed',
-                    'CLOSED_ARCHIVED': 'Closed / Archived'
+            const mappedStudies = studyList.map((s: any) => {
+                const mappedType = s.study_type === 'VIRTUAL' ? 'Virtual' : (s.study_type === 'IN_PERSON' ? 'On-site' : 'Hybrid');
+                return {
+                    id: s.protocol_id || s.id,
+                    db_id: s.id, // Needed for chronological sort
+                    title: s.title,
+                    description: s.description || '',
+                    overview: s.overview || '',
+                    benefit: s.benefit || '',
+                    participation_message: s.participation_message || '',
+                    condition: s.condition || s.primary_indication || "Other",
+                    type: mappedType,
+                    status: statusMap[s.status] || 'Paused',
+                    duration: s.duration || s.time_commitment || "4-12 Weeks",
+                    compensation: s.compensation || "Varies by study",
+                    tags: [s.trial_model, mappedType].filter(Boolean)
                 };
+            });
 
-                const mappedStudies = studyList.map((s: any) => {
-                    const mappedType = s.study_type === 'VIRTUAL' ? 'Virtual' : (s.study_type === 'IN_PERSON' ? 'On-site' : 'Hybrid');
-                    return {
-                        id: s.protocol_id || s.id,
-                        db_id: s.id, // Needed for chronological sort
-                        title: s.title,
-                        description: s.description || '',
-                        overview: s.overview || '',
-                        benefit: s.benefit || '',
-                        participation_message: s.participation_message || '',
-                        condition: s.condition || s.primary_indication || "Other",
-                        type: mappedType,
-                        status: statusMap[s.status] || 'Paused',
-                        duration: s.duration || s.time_commitment || "4-12 Weeks",
-                        compensation: s.compensation || "Varies by study",
-                        tags: [s.trial_model, mappedType].filter(Boolean)
-                    };
-                });
+            setStudies(mappedStudies);
+        } catch (err) {
+            console.error("Error loading studies:", err);
+            setStudies([]);
+        }
+        finally {
+            if (showLoading) setLoading(false);
+        }
+    };
 
-                setStudies(mappedStudies);
-            } catch (err) {
-                console.error("Error loading studies:", err);
-                setStudies([]);
-            }
-            finally {
-                setLoading(false);
-            }
-        };
-
-        getStudies();
+    useEffect(() => {
+        getStudies(true);
     }, []);
+
+    // Polling: Refresh data every 10 seconds in the background
+    usePolling(() => getStudies(false), 10000);
     
     const completedStatuses = ['Completed', 'Recruitment Completed', 'Analysis Underway', 'Progress Report Draft', 'Final Report Sent', 'Closed / Archived'];
 

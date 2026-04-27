@@ -56,8 +56,9 @@ def invalidate_cache(key_prefix, user_id=None):
     """
     Invalidates cache for a given key prefix.
     Uses delete_pattern when the backend supports it (django-redis).
-    Falls back to a no-op with a logged warning for backends that don't.
+    Falls back to clearing the whole cache in DEBUG mode if pattern deletion isn't supported.
     """
+    from django.conf import settings
     try:
         if user_id:
             pattern = f"{key_prefix}:*:{user_id}:*"
@@ -68,9 +69,12 @@ def invalidate_cache(key_prefix, user_id=None):
         if hasattr(cache, 'delete_pattern'):
             count = cache.delete_pattern(pattern)
             logger.info(f"Cache INVALIDATED: {pattern} ({count} keys removed)")
+        elif settings.DEBUG:
+            # Fallback for LocMemCache during local development
+            cache.clear()
+            logger.info(f"Cache CLEAR (Full): pattern deletion not supported, clearing all for DEBUG mode.")
         else:
-            # Standard backends (LocMemCache, FileCache) don't support patterns;
-            # data will expire naturally via TTL.
+            # Standard backends (FileCache etc) in production without redis
             logger.warning(f"Cache backend does not support delete_pattern. TTL expiry will handle: {pattern}")
 
     except Exception as e:

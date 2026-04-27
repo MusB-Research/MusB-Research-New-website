@@ -104,7 +104,7 @@ export default function SupportModule({ selectedStudyId }: { selectedStudyId?: s
                     createdAt: new Date(t.created_at).toLocaleString(),
                     createdBy: t.creator_name,
                     assignedTo: t.assigned_to_name || 'Unassigned',
-                    messages: t.messages.map((m: any) => ({
+                    messages: (t.messages || []).map((m: any) => ({
                         id: m.id.toString(),
                         sender: m.sender_name,
                         role: m.user_role_label,

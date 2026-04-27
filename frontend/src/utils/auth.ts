@@ -114,7 +114,12 @@ export async function authFetch(url: string, options: any = {}) {
     const isCacheable = method.toUpperCase() === 'GET' && !options.skipCache;
     
     // Ensure URL is absolute if it starts with /
-    const fullUrl = url.startsWith('/') ? `${API}${url}` : url;
+    const fullUrlBase = url.startsWith('/') ? `${API}${url}` : url;
+    
+    // Add cache buster if skipCache is true
+    const cacheBuster = options.skipCache ? `&_cb=${Date.now()}` : '';
+    const separator = fullUrlBase.includes('?') ? (fullUrlBase.endsWith('?') || fullUrlBase.endsWith('&') ? '' : '&') : '?';
+    const fullUrl = options.skipCache ? `${fullUrlBase}${separator}_cb=${Date.now()}` : fullUrlBase;
 
     // 1. Check Memory Cache
     if (isCacheable) {
@@ -225,12 +230,12 @@ export const getDisplayName = (u: User | null): string => {
     const isEncrypted = (s: any) => typeof s === 'string' && s.toUpperCase().startsWith('GAAAA') && s.length > 40;
 
     if (u.decrypted_name && !isEncrypted(u.decrypted_name)) {
-        return u.decrypted_name.split(' ')[0];
+        return u.decrypted_name;
     }
 
     const fullName = u.full_name || '';
     if (fullName && !isEncrypted(fullName)) {
-        return fullName.split(' ')[0];
+        return fullName;
     }
 
     const email = u.email || '';

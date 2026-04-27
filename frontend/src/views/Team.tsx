@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Linkedin, ChevronDown, ChevronUp, Building2, Users, Stethoscope, Briefcase, Activity, FileText, ShieldCheck } from 'lucide-react';
 
-const LEADERSHIP_DATA = [
+export const LEADERSHIP_DATA = [
     {
         name: "Dr. Shalini Jain",
         role: "CEO and Co-Founder",
@@ -44,7 +44,7 @@ const LEADERSHIP_DATA = [
     }
 ];
 
-const ADVISORS_DATA = [
+export const ADVISORS_DATA = [
     {
         name: "Douglas Lynch",
         advisory_role: "Business Development Advisory Board Member",
@@ -106,17 +106,17 @@ const COLLABORATORS_DATA = [
     { id: 11, name: 'Bay Area Gastroenterology Associates LLC', logo: '' },
 ];
 
-const STAFF_DATA = [
-    { name: "Ms. Vaishnavi S", role: "Business & Administration Manager", dept: "Operations" },
-    { name: "Mr. Indushekar Manjunatha", role: "Clinical Coordinator", dept: "Clinical Research" },
-    { name: "Mrs. Falguni Kanani", role: "Community Outreach Liaison", dept: "Public Relations" },
-    { name: "Mr. Alain Ramirez", role: "Laboratory Technician", dept: "Lab Services" },
-    { name: "Dr. Andreas Mbah", role: "Medical Laboratory Director", dept: "Diagnostics" },
-    { name: "Mr. Jason Chandler", role: "IT Professional", dept: "Technology" },
-    { name: "Mr. Shray Paliwal", role: "Research Intern", dept: "Scientific Support" },
-    { name: "Dr. Osula Ebiuwa", role: "Research Intern", dept: "Scientific Support" },
-    { name: "Mr. Barenya Prasad Mishra", role: "Digital Health Platform Developer", dept: "Product Engineering" },
-    { name: "Mr. Brijesh Kumar", role: "Junior Software Engineer", dept: "Software Development" }
+export const STAFF_DATA = [
+    { name: "Vaishnavi S", role: "Business & Administration Manager", dept: "Operations" },
+    { name: "Indushekar Manjunatha", role: "Clinical Coordinator", dept: "Clinical Research" },
+    { name: "Falguni Kanani", role: "Community Outreach Liaison", dept: "Public Relations" },
+    { name: "Alain Ramirez", role: "Laboratory Technician", dept: "Lab Services" },
+    { name: "Andreas Mbah", role: "Medical Laboratory Director", dept: "Diagnostics" },
+    { name: "Jason Chandler", role: "IT Professional", dept: "Technology" },
+    { name: "Shray Paliwal", role: "Research Intern", dept: "Scientific Support" },
+    { name: "Osula Ebiuwa", role: "Research Intern", dept: "Scientific Support" },
+    { name: "Barenya Prasad Mishra", role: "Digital Health Platform Developer", dept: "Product Engineering" },
+    { name: "Brijesh Kumar", role: "Junior Software Engineer", dept: "Software Development" }
 ];
 
 
@@ -345,13 +345,71 @@ const AdvisorCard = ({ advisor }: { advisor: any }) => {
 
             {/* Expanded Content */}
             {isOpen && (
-                <div className="p-8 bg-black/20 border-t border-white/5 space-y-6 animate-in slide-in-from-top-2 duration-300">
-                    <div className="prose prose-invert max-w-none text-slate-300 leading-relaxed text-sm">
-                        <p className="whitespace-pre-line">{advisor.bio}</p>
+                <div className="p-8 bg-black/20 border-t border-white/5 space-y-8 animate-in slide-in-from-top-2 duration-300">
+                    {/* Expanded Bio Text */}
+                    {(advisor.expanded_bio || advisor.bio) && (
+                        <div className="space-y-4 text-left">
+                            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-400/50">Professional Background</h4>
+                            <div className="prose prose-invert max-w-none text-slate-300 leading-relaxed text-sm">
+                                <p className="whitespace-pre-line">{advisor.expanded_bio || advisor.bio}</p>
+                            </div>
+                        </div>
+                    )}
+
+                    <div className="grid md:grid-cols-2 gap-8 text-left">
+                        {/* Expertise Tags */}
+                        {advisor.expertise_tags && advisor.expertise_tags.length > 0 && (
+                            <div className="space-y-4">
+                                <h4 className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-indigo-400">
+                                    <Activity className="w-4 h-4" /> Expertise
+                                </h4>
+                                <div className="flex flex-wrap gap-2">
+                                    {advisor.expertise_tags.map((tag: string, idx: number) => (
+                                        <span key={idx} className="px-2.5 py-1 text-[10px] font-black bg-indigo-400/10 text-indigo-400 rounded-lg border border-indigo-400/20 uppercase tracking-tighter">
+                                            {tag}
+                                        </span>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Affiliations */}
+                        {advisor.affiliations && advisor.affiliations.length > 0 && (
+                            <div className="space-y-4">
+                                <h4 className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-indigo-400">
+                                    <Building2 className="w-4 h-4" /> Affiliations
+                                </h4>
+                                <ul className="space-y-2">
+                                    {advisor.affiliations.map((aff: string, idx: number) => (
+                                        <li key={idx} className="flex items-start gap-3 text-slate-400 text-xs font-medium">
+                                            <div className="w-1 h-1 rounded-full bg-indigo-500/50 mt-1.5 flex-shrink-0"></div>
+                                            {aff}
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        )}
                     </div>
 
+                    {/* Publications */}
+                    {advisor.publications && advisor.publications.length > 0 && (
+                        <div className="space-y-6 pt-6 border-t border-white/10 text-left">
+                            <h4 className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-indigo-400">
+                                <FileText className="w-4 h-4" /> Key Publications
+                            </h4>
+                            <div className="grid gap-3">
+                                {advisor.publications.map((pub: string, idx: number) => (
+                                    <div key={idx} className="flex items-start gap-4 p-4 rounded-xl bg-white/5 border border-white/5 hover:border-white/10 transition-colors">
+                                        <span className="text-indigo-500/30 font-black text-lg leading-none">0{idx + 1}</span>
+                                        <p className="text-slate-400 text-xs italic leading-relaxed">{pub}</p>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
                     {advisor.linkedin_url && (
-                        <div className="pt-2 flex justify-start">
+                        <div className="pt-4 flex justify-start border-t border-white/5">
                             <a
                                 href={advisor.linkedin_url}
                                 target="_blank"
@@ -359,7 +417,7 @@ const AdvisorCard = ({ advisor }: { advisor: any }) => {
                                 className="inline-flex items-center gap-2 text-slate-400 hover:text-indigo-400 transition-colors"
                             >
                                 <Linkedin className="w-4 h-4" />
-                                <span className="font-bold text-[12px] uppercase tracking-widest">LinkedIn Profile</span>
+                                <span className="font-bold text-[10px] uppercase tracking-widest">LinkedIn Profile</span>
                             </a>
                         </div>
                     )}
@@ -369,8 +427,68 @@ const AdvisorCard = ({ advisor }: { advisor: any }) => {
     );
 };
 
-export default function Team() {
+const StaffCard = ({ staff }: { staff: any }) => {
+    const [isOpen, setIsOpen] = useState(false);
+    const hasBio = !!staff.bio;
 
+    return (
+        <div className="group bg-white/5 backdrop-blur-xl rounded-[2.5rem] p-8 border-2 border-white/10 hover:border-cyan-400/50 hover:bg-white/10 transition-all duration-500 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)] flex flex-col items-center text-center relative overflow-hidden h-full">
+            {/* Decorative Gradient Blobs */}
+            <div className="absolute top-0 right-0 w-24 h-24 bg-cyan-500/5 blur-3xl rounded-full -translate-y-12 translate-x-12 group-hover:bg-cyan-500/10 transition-colors"></div>
+            <div className="absolute bottom-0 left-0 w-24 h-24 bg-indigo-500/5 blur-3xl rounded-full translate-y-12 -translate-x-12 group-hover:bg-indigo-500/10 transition-colors"></div>
+
+            {/* Staff Info */}
+            <div className="space-y-3 relative z-10 w-full">
+                <div className="space-y-1">
+                    <h3 className="text-xl font-black text-white leading-tight tracking-tight group-hover:text-cyan-400 transition-colors underline decoration-cyan-400/0 group-hover:decoration-cyan-400/30 underline-offset-4">
+                        {staff.name}
+                    </h3>
+                    <p className="text-[12px] font-black uppercase tracking-[0.2em] text-cyan-400/70 py-1">
+                        {staff.role}
+                    </p>
+                </div>
+
+                <div className="pt-2">
+                    <span className="inline-block px-3 py-1 rounded-lg bg-white/5 border border-white/10 text-[12px] font-bold text-slate-500 uppercase tracking-widest group-hover:text-slate-300 group-hover:border-white/20 transition-all">
+                        {staff.dept}
+                    </span>
+                </div>
+
+                {hasBio && (
+                    <button 
+                        onClick={() => setIsOpen(!isOpen)}
+                        className="mt-6 w-full py-3 bg-white/5 hover:bg-cyan-500/20 rounded-2xl border border-white/10 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-cyan-400 transition-all flex items-center justify-center gap-2"
+                    >
+                        {isOpen ? 'Close Summary' : 'View Summary'}
+                        {isOpen ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                    </button>
+                )}
+
+                {isOpen && hasBio && (
+                    <div className="mt-6 pt-6 border-t border-white/5 text-left animate-in slide-in-from-top-2 duration-300">
+                        <p className="text-xs text-slate-400 leading-relaxed italic">
+                            {staff.bio}
+                        </p>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+};
+
+export default function Team() {
+    const [staffRecords] = useState(() => {
+        const saved = localStorage.getItem('musb_staff_records');
+        if (saved) {
+            try {
+                const parsed = JSON.parse(saved);
+                if (parsed.leadership && parsed.advisors && parsed.staff) return parsed;
+            } catch (e) {
+                console.warn("Failed to load staff records from storage", e);
+            }
+        }
+        return { leadership: LEADERSHIP_DATA, advisors: ADVISORS_DATA, staff: STAFF_DATA };
+    });
 
     return (
         <div className="min-h-screen font-sans text-slate-200 relative overflow-x-hidden">
@@ -384,7 +502,7 @@ export default function Team() {
 
             {/* Hero Section */}
             <section className="relative z-10 pt-32 pb-10 px-6 overflow-hidden">
-                <div className="max-w-7xl mx-auto">
+                <div className="max-w-screen-2xl mx-auto">
                     <div className="grid lg:grid-cols-2 gap-12 items-center">
                         {/* Left: Title + Intro */}
                         <div className="space-y-8 text-left max-w-2xl">
@@ -451,7 +569,7 @@ export default function Team() {
 
             {/* SECTION 1: Leadership & Scientific Team */}
             <section id="leadership" className="relative z-10 pt-6 pb-20 px-6">
-                <div className="max-w-7xl mx-auto">
+                <div className="max-w-screen-2xl mx-auto">
                     <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-16 border-b border-white/10 pb-12">
                         <div className="space-y-4">
                             <h2 className="text-4xl md:text-6xl font-black text-white tracking-tight">
@@ -467,8 +585,8 @@ export default function Team() {
                         </div>
                     </div>
 
-                    <div className="grid md:grid-cols-1 lg:grid-cols-2 gap-10 items-start">
-                        {LEADERSHIP_DATA.map((member, index) => (
+                    <div className="grid md:grid-cols-1 lg:grid-cols-2 gap-12 items-start">
+                        {staffRecords.leadership.map((member: any, index: number) => (
                             <TeamMemberCard key={index} member={member} />
                         ))}
                     </div>
@@ -477,7 +595,7 @@ export default function Team() {
 
             {/* SECTION 2: Advisors */}
             <section id="advisors" className="relative z-10 pt-6 pb-20 px-6 bg-white/[0.02]">
-                <div className="max-w-7xl mx-auto">
+                <div className="max-w-screen-2xl mx-auto">
                     <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-16 border-b border-white/10 pb-12">
                         <div className="space-y-4">
                             <h2 className="text-4xl md:text-6xl font-black text-white tracking-tight">
@@ -493,8 +611,8 @@ export default function Team() {
                         </div>
                     </div>
 
-                    <div className="grid md:grid-cols-1 lg:grid-cols-2 gap-10 items-start">
-                        {ADVISORS_DATA.map((advisor, index) => {
+                    <div className="grid md:grid-cols-1 lg:grid-cols-2 gap-12 items-start">
+                        {staffRecords.advisors.map((advisor: any, index: number) => {
                             if (index === 4) {
                                 return (
                                     <div key={index} className="lg:col-span-2 flex justify-center w-full">
@@ -512,7 +630,7 @@ export default function Team() {
 
             {/* SECTION 3: Clinical Collaborators */}
             <section className="relative z-10 pt-20 pb-8 px-6">
-                <div className="max-w-7xl mx-auto">
+                <div className="max-w-screen-2xl mx-auto">
                     <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-16 border-b border-white/10 pb-12">
                         <div className="space-y-4">
                             <h2 className="text-4xl md:text-6xl font-black text-white tracking-tight">
@@ -591,7 +709,7 @@ export default function Team() {
 
             {/* SECTION 4: Staff */}
             <section className="relative z-10 pt-8 pb-20 px-6">
-                <div className="max-w-7xl mx-auto">
+                <div className="max-w-screen-2xl mx-auto">
                     <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-16 border-b border-white/10 pb-12">
                         <div className="space-y-4">
                             <h2 className="text-4xl md:text-6xl font-black text-white tracking-tight">
@@ -608,33 +726,8 @@ export default function Team() {
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-                        {STAFF_DATA.map((staff, idx) => (
-                            <div
-                                key={idx}
-                                className="group bg-white/5 backdrop-blur-xl rounded-[2.5rem] p-8 border-2 border-white/10 hover:border-cyan-400/50 hover:bg-white/10 transition-all duration-500 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)] flex flex-col items-center text-center relative overflow-hidden h-full"
-                            >
-                                {/* Decorative Gradient Blobs */}
-                                <div className="absolute top-0 right-0 w-24 h-24 bg-cyan-500/5 blur-3xl rounded-full -translate-y-12 translate-x-12 group-hover:bg-cyan-500/10 transition-colors"></div>
-                                <div className="absolute bottom-0 left-0 w-24 h-24 bg-indigo-500/5 blur-3xl rounded-full translate-y-12 -translate-x-12 group-hover:bg-indigo-500/10 transition-colors"></div>
-
-                                {/* Staff Info */}
-                                <div className="space-y-3 relative z-10">
-                                    <div className="space-y-1">
-                                        <h3 className="text-xl font-black text-white leading-tight tracking-tight group-hover:text-cyan-400 transition-colors underline decoration-cyan-400/0 group-hover:decoration-cyan-400/30 underline-offset-4">
-                                            {staff.name}
-                                        </h3>
-                                        <p className="text-[12px] font-black uppercase tracking-[0.2em] text-cyan-400/70 py-1">
-                                            {staff.role}
-                                        </p>
-                                    </div>
-
-                                    <div className="pt-2">
-                                        <span className="inline-block px-3 py-1 rounded-lg bg-white/5 border border-white/10 text-[12px] font-bold text-slate-500 uppercase tracking-widest group-hover:text-slate-300 group-hover:border-white/20 transition-all">
-                                            {staff.dept}
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
+                        {staffRecords.staff.map((staff: any, idx: number) => (
+                            <StaffCard key={idx} staff={staff} />
                         ))}
                     </div>
                 </div>

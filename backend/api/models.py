@@ -134,6 +134,12 @@ class Study(BaseMongoModel):
         ('ECONSENT', 'Electronic Consent (eConsent)'),
         ('HYBRID', 'Hybrid (Both Modes)')
     ], default='ECONSENT')
+    consent_collection = models.JSONField(default=list, blank=True)
+
+    # Operational Parameters (Requirement 12.2)
+    rct_design = models.CharField(max_length=50, blank=True, null=True)
+    medication_supply = models.CharField(max_length=100, blank=True, null=True)
+    has_study_kit = models.BooleanField(default=False)
     
     # Frontend Data Fields
     condition = models.CharField(max_length=255, blank=True)

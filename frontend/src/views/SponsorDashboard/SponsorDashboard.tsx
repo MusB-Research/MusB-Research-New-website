@@ -4,6 +4,7 @@ import { getUser, getRole, authFetch, API, performLogout, getDisplayName } from 
 import { apiFetch } from '../../api';
 import { User, LogOut, Bell, Sparkles, LayoutDashboard, Database, FileText, Users, BarChart3, Presentation, Globe, X, Menu, Zap } from 'lucide-react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { usePolling } from '@/hooks/usePolling';
 
 import { MOCK_PROTOCOLS, ToastContainer, SPONSOR } from './SponsorDashboardShared';
 import DashboardPanel from './DashboardPanel';
@@ -132,14 +133,17 @@ export default function SponsorDashboard() {
 
 
 
-  const fetchData = async () => {
-    setLoading(true);
+
+
+  const fetchData = async (showLoading = true, skipCache = false) => {
+    if (showLoading) setLoading(true);
     try {
-      const studiesData = await apiFetch<any[]>('/api/studies/?limit=50');
-      const teamData = await apiFetch<any[]>('/api/auth/list-team-members/?limit=50');
-      const inquiriesData = await apiFetch<any[]>('/api/study-inquiries/?limit=50');
-      const notifData = await apiFetch<any[]>('/api/notifications/?limit=50');
-      const reportsData = await apiFetch<any[]>('/api/progress-reports/?limit=50');
+      const fetchOpts = { skipCache };
+      const studiesData = await apiFetch<any[]>('/api/studies/?limit=50', fetchOpts);
+      const teamData = await apiFetch<any[]>('/api/auth/list-team-members/?limit=50', fetchOpts);
+      const inquiriesData = await apiFetch<any[]>('/api/study-inquiries/?limit=50', fetchOpts);
+      const notifData = await apiFetch<any[]>('/api/notifications/?limit=50', fetchOpts);
+      const reportsData = await apiFetch<any[]>('/api/progress-reports/?limit=50', fetchOpts);
       const allReports = reportsData || [];
 
       const mapped = (studiesData || []).map((d: any) => ({
@@ -175,28 +179,16 @@ export default function SponsorDashboard() {
     } catch (e) {
       console.error('FETCH_ERROR:', e);
     } finally {
-      setLoading(false);
+      if (showLoading) setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchData();
-    const interval = setInterval(() => {
-      const apiUrl = API || 'http://localhost:8000';
-      authFetch(`${apiUrl}/api/notifications/?limit=5`).then(res => res.json()).then(data => {
-        const mapped = data.map((n: any) => ({
-          id: n.id,
-          message: n.message,
-          time: new Date(n.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          read: n.is_read,
-          type: n.type,
-          title: n.title
-        }));
-        setNotifications(mapped.slice(0, 5));
-      }).catch(err => console.warn('Refresh failed:', err));
-    }, 60000); // Changed from 30s to 60s
-    return () => clearInterval(interval);
+    fetchData(true, false);
   }, []);
+
+  // Polling: Refresh all data every 10 seconds in the background
+  usePolling(() => fetchData(false, true), 10000);
 
   const addToast = useCallback((toast: { type: string, message: string }) => {
     const id = Date.now().toString() + Math.random().toString();

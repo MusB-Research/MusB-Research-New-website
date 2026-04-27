@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Globe, Users, Clock, MousePointer2, TrendingUp, MapPin, Search, ArrowUpRight, Activity } from 'lucide-react';
-import { authFetch } from '../../utils/auth';
+import { authFetch, API } from '../../utils/auth';
 
 export default function AnalyticsDashboard() {
   const [loading, setLoading] = useState(true);
@@ -10,7 +10,8 @@ export default function AnalyticsDashboard() {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const response = await authFetch('http://localhost:8000/api/auth/admin/analytics-stats/');
+        const apiUrl = API || 'http://localhost:8000';
+        const response = await authFetch(`${apiUrl}/api/auth/admin/analytics-stats/`);
         if (response.ok) {
           const data = await response.json();
           setStats(data);

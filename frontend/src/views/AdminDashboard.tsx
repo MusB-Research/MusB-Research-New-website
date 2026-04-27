@@ -22,6 +22,7 @@ import WorkflowModerationPanel from '../components/admin/WorkflowModerationPanel
 import PIMessagesModule from '../components/pi/PIMessagesModule';
 import { MessageSquare, Mail } from 'lucide-react';
 import StudyInquiriesModule from '../components/admin/StudyInquiriesModule';
+import { usePolling } from '@/hooks/usePolling';
 
 
 
@@ -108,21 +109,21 @@ export default function AdminDashboard() {
 
     const apiUrl = API || 'http://localhost:8000';
 
-    const fetchStudies = async () => {
+    const fetchStudies = async (skipCache = false) => {
         try {
-            const data = await apiFetch<any[]>('/api/studies/');
+            const data = await apiFetch<any[]>('/api/studies/', { skipCache });
             setStudies(data || []);
         } catch (error) {
             console.error('Fetch error:', error);
         }
     };
 
-    const fetchInquiries = async () => {
+    const fetchInquiries = async (skipCache = false) => {
         try {
             const [studyData, leadData, facilityData] = await Promise.all([
-                apiFetch<any[]>('/api/study-inquiries/'),
-                apiFetch<any[]>('/api/leads/'),
-                apiFetch<any[]>('/api/facilities-inquiry/')
+                apiFetch<any[]>('/api/study-inquiries/', { skipCache }),
+                apiFetch<any[]>('/api/leads/', { skipCache }),
+                apiFetch<any[]>('/api/facilities-inquiry/', { skipCache })
             ]);
             setStudyInquiries(studyData || []);
             setParticipantLeads(leadData || []);
@@ -132,12 +133,12 @@ export default function AdminDashboard() {
         }
     };
 
-    const fetchDashboardMetrics = async () => {
+    const fetchDashboardMetrics = async (skipCache = false) => {
         try {
             const [participantsData, staffData, auditData] = await Promise.all([
-                apiFetch<any[]>('/api/participants/?limit=50'),
-                apiFetch<any[]>('/api/staff/?limit=50'),
-                apiFetch<any[]>('/api/audit-logs/?limit=50')
+                apiFetch<any[]>('/api/participants/?limit=50', { skipCache }),
+                apiFetch<any[]>('/api/staff/?limit=50', { skipCache }),
+                apiFetch<any[]>('/api/audit-logs/?limit=50', { skipCache })
             ]);
 
             setParticipants(participantsData || []);
@@ -176,6 +177,16 @@ export default function AdminDashboard() {
         };
     }, [isProfileOpen, isNotifOpen]);
 
+
+
+    const fetchAllData = async (skipCache = false) => {
+        await Promise.all([
+            fetchStudies(skipCache),
+            fetchInquiries(skipCache),
+            fetchDashboardMetrics(skipCache)
+        ]);
+    };
+
     useEffect(() => {
         const userStr = localStorage.getItem('user') || sessionStorage.getItem('user');
         const role = getRole();
@@ -188,10 +199,11 @@ export default function AdminDashboard() {
         }
 
         if (userStr) setUser(JSON.parse(userStr));
-        fetchStudies();
-        fetchInquiries();
-        fetchDashboardMetrics();
+        fetchAllData(false);
     }, [navigate]);
+
+    // Polling: Refresh all data every 10 seconds in the background
+    usePolling(() => fetchAllData(true), 10000);
 
     const handleCreateStudy = async (formData: any) => {
         try {
@@ -468,7 +480,24 @@ export default function AdminDashboard() {
                                 </thead>
                                 <tbody className="divide-y divide-white/5">
                                     {studies.map((study) => (
-                                        <tr key={study.id} className="hover:bg-white/[0.02] transition-colors group cursor-pointer" onClick={() => { setSelectedStudy(study); setShowCreateModal(true); }}>
+                                        <tr 
+                                            key={study.id} 
+                                            className="hover:bg-white/[0.02] transition-colors group cursor-pointer" 
+                                            onClick={async () => {
+                                                try {
+                                                    const res = await authFetch(`${API}/api/studies/${study.protocol_id}/`);
+                                                    if (res.ok) {
+                                                        const fullStudy = await res.json();
+                                                        setSelectedStudy(fullStudy);
+                                                    } else {
+                                                        setSelectedStudy(study);
+                                                    }
+                                                } catch (e) {
+                                                    setSelectedStudy(study);
+                                                }
+                                                setShowCreateModal(true);
+                                            }}
+                                        >
                                             <td className="px-8 py-5 text-sm font-black text-cyan-500 italic uppercase">{study.protocol_id}</td>
                                             <td className="px-8 py-5">
                                                 <p className="text-sm font-black text-white uppercase tracking-widest group-hover:text-cyan-400 transition-colors">{study.title}</p>

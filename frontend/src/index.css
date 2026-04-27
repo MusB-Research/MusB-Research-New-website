@@ -26,6 +26,16 @@ body {
   width: 100%;
 }
 
+/* Global Select & Option Styling for Dark Mode Visibility */
+select {
+  color-scheme: dark;
+}
+
+select option {
+  background-color: #0f172a; /* Solid dark blue-slate for dropdown list */
+  color: #ffffff;
+}
+
 /* Glassmorphism Utilities */
 .glass {
   background: var(--surface);

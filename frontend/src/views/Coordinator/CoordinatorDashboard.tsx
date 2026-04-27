@@ -36,6 +36,7 @@ import StudyKitsModule from '../../components/shared/StudyKitsModule';
 import { OperationsOversight } from './modules/OperationsOversight';
 import { StudyDirectory } from './modules/StudyDirectory';
 import InvitationsModule from '../../components/shared/InvitationsModule';
+import { usePolling } from '@/hooks/usePolling';
 
 
 import {
@@ -398,9 +399,12 @@ export default function CoordinatorDashboard() {
         fetchSummary();
     }, [globalSelectedStudyId]);
 
-    const fetchCoordinatorContent = useCallback(async () => {
-        setLoading(true);
+
+
+    const fetchCoordinatorContent = useCallback(async (showLoading = true, skipCache = false) => {
+        if (showLoading) setLoading(true);
         try {
+            const fetchOpts = { skipCache };
             const [
                 studiesData,
                 usersData,
@@ -409,12 +413,12 @@ export default function CoordinatorDashboard() {
                 participantsData,
                 questionnairesData
             ] = await Promise.all([
-                apiFetch<any[]>('/api/studies/?limit=50'),
-                apiFetch<any[]>('/api/users/?limit=100'),
-                apiFetch<any[]>('/api/sponsor-organizations/?limit=50'),
-                apiFetch<any[]>('/api/visits/?limit=50'),
-                apiFetch<any[]>('/api/participants/?limit=50'),
-                apiFetch<any[]>('/api/questionnaire-schedules/?limit=50')
+                apiFetch<any[]>('/api/studies/?limit=50', fetchOpts),
+                apiFetch<any[]>('/api/users/?limit=100', fetchOpts),
+                apiFetch<any[]>('/api/sponsor-organizations/?limit=50', fetchOpts),
+                apiFetch<any[]>('/api/visits/?limit=50', fetchOpts),
+                apiFetch<any[]>('/api/participants/?limit=50', fetchOpts),
+                apiFetch<any[]>('/api/questionnaire-schedules/?limit=50', fetchOpts)
             ]);
 
             setStudies(studiesData || []);
@@ -455,16 +459,19 @@ export default function CoordinatorDashboard() {
         } catch (e) {
             console.error("Coordinator Data Fetch Failed", e);
         } finally {
-            setLoading(false);
+            if (showLoading) setLoading(false);
         }
     }, []);
 
     useEffect(() => {
         if (!mountGuard.current.fetchContent) {
             mountGuard.current.fetchContent = true;
-            fetchCoordinatorContent();
+            fetchCoordinatorContent(true, false);
         }
     }, [fetchCoordinatorContent]);
+
+    // Polling: Refresh all data every 10 seconds in the background
+    usePolling(() => fetchCoordinatorContent(false, true), 10000);
 
     const toStudyAssignmentIds = (value: any) => {
         const list = Array.isArray(value) ? value : value ? [value] : [];

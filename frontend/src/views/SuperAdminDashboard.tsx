@@ -4,12 +4,13 @@ import { authFetch, clearToken, getRole, performLogout, getDisplayName, revealVa
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Users, Briefcase, Activity, Crown, Shield, Bell, Settings, LogOut, Search,
-  Plus, Eye, Edit2, Trash2, ChevronRight, Building, BarChart2, Globe,
+  Plus, Eye, Edit2, Trash2, ChevronRight, Building, Building2, BarChart2, Globe,
   Megaphone, FileText, UserCheck, AlertTriangle, Zap, X, ExternalLink,
   ChevronDown, Filter, Mail, Phone, Calendar, ArrowRight, ShieldCheck,
   LayoutDashboard, Server, Network, Terminal, CheckCircle2, MoreVertical,
   MapPin, Clock, MousePointer2, User as UserIcon, Menu, RefreshCw,
-  UserPlus, ShieldAlert, Rocket, ClipboardList, Archive
+  UserPlus, ShieldAlert, Rocket, ClipboardList, Archive, BookOpen,
+  Power, PowerOff
 } from 'lucide-react';
 import NotificationBell from '../components/NotificationBell';
 import LogoutConfirmationModal from '../components/LogoutConfirmationModal';
@@ -28,6 +29,8 @@ import ApprovalModule from '../components/admin/ApprovalModule';
 import CareerManagement from '../components/admin/CareerManagement';
 import SupportModule from '../components/coordinator/support/SupportEntry';
 import StudyInquiriesModule from '../components/admin/StudyInquiriesModule';
+import { LEADERSHIP_DATA, ADVISORS_DATA, STAFF_DATA } from './Team';
+import { usePolling } from '../hooks/usePolling';
 
 // ═══════════════════════════════════════════
 // TYPES & MOCK DATA
@@ -554,7 +557,7 @@ export default function SuperAdminDashboard() {
   const location = useLocation();
 
   const [currentPage, setCurrentPage] = useState<Page>(() => {
-    const route = location.pathname.split('/').pop();
+    const route = location.pathname.split('/').filter(Boolean).pop();
     if (route === 'activity') return 'ACTIVITY_LOG';
     if (route === 'users') return 'ALL_USERS';
     if (route === 'studies') return 'STUDIES';
@@ -581,7 +584,7 @@ export default function SuperAdminDashboard() {
   });
 
   useEffect(() => {
-    const route = location.pathname.split('/').pop();
+    const route = location.pathname.split('/').filter(Boolean).pop();
     if (route === 'activity') setCurrentPage('ACTIVITY_LOG');
     else if (route === 'users') setCurrentPage('ALL_USERS');
     else if (route === 'studies') setCurrentPage('STUDIES');
@@ -633,6 +636,16 @@ export default function SuperAdminDashboard() {
       'CAREERS': 'careers',
       'SUPPORT': 'support'
     };
+    
+    // Clear selected items when navigating via menu to prevent state carry-over
+    // unless navigating to the same page or explicit edit context.
+    if (page === 'LAUNCH_STUDY' && currentPage !== 'LAUNCH_STUDY') {
+      setSelectedStudy(null);
+    }
+    if (page === 'TEAM' && currentPage !== 'TEAM') {
+      setEditingStaff(null);
+    }
+    
     const slug = slugs[page];
     setCurrentPage(page);
     navigate(`/dashboard/super-admin${slug ? '/' + slug : ''}`);
@@ -678,6 +691,42 @@ export default function SuperAdminDashboard() {
   const [participantLeads, setParticipantLeads] = useState<any[]>([]);
   const [facilityInquiries, setFacilityInquiries] = useState<any[]>([]);
   const [announcements, setAnnouncements] = useState<any[]>([]);
+  const [staffRecords, setStaffRecords] = useState(() => {
+    const saved = localStorage.getItem('musb_staff_records');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (parsed.leadership && parsed.advisors && parsed.staff) return parsed;
+      } catch (e) {
+        console.warn("Failed to load staff records from storage", e);
+      }
+    }
+    return {
+      leadership: LEADERSHIP_DATA,
+      advisors: ADVISORS_DATA,
+      staff: STAFF_DATA
+    };
+  });
+
+  useEffect(() => {
+    localStorage.setItem('musb_staff_records', JSON.stringify(staffRecords));
+  }, [staffRecords]);
+  const [isEditStaffModalOpen, setIsEditStaffModalOpen] = useState(false);
+  const [editingStaff, setEditingStaff] = useState<any>(null);
+  const [isAddStaffModalOpen, setIsAddStaffModalOpen] = useState(false);
+  const [addingStaffCategory, setAddingStaffCategory] = useState<'leadership' | 'advisors' | 'staff'>('staff');
+  const [isRemoveStaffConfirmOpen, setIsRemoveStaffConfirmOpen] = useState(false);
+  const [staffToRemove, setStaffToRemove] = useState<any>(null);
+  const [newStaffData, setNewStaffData] = useState<any>({ 
+    name: '', 
+    role: '', 
+    dept: '', 
+    bio: '',
+    expanded_bio: '',
+    expertise_tags: '',
+    affiliations: '',
+    publications: ''
+  });
   const [activities, setActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
   const [toasts, setToasts] = useState<any[]>([]);
@@ -740,18 +789,19 @@ export default function SuperAdminDashboard() {
   // DATA FETCHING
   // ═══════════════════════════════════════════
 
-  const fetchData = useCallback(async (isInitial = false) => {
+  const fetchData = useCallback(async (isInitial = false, isSilent = false) => {
     if (isInitial) setLoading(true);
     try {
       const apiUrl = API || 'http://localhost:8000';
+      const fetchOpts = { skipCache: isSilent };
       const [uRes, sRes, pRes, iRes, lRes, fRes, nRes] = await Promise.all([
-        authFetch(`${apiUrl}/api/users/?limit=100`),
-        authFetch(`${apiUrl}/api/studies/?limit=50`),
-        authFetch(`${apiUrl}/api/participants/?limit=100`),
-        authFetch(`${apiUrl}/api/study-inquiries/?limit=50`),
-        authFetch(`${apiUrl}/api/leads/?limit=50`),
-        authFetch(`${apiUrl}/api/facilities-inquiry/?limit=50`),
-        authFetch(`${apiUrl}/api/news/?limit=50`),
+        authFetch(`${apiUrl}/api/users/?limit=100`, fetchOpts),
+        authFetch(`${apiUrl}/api/studies/?limit=50`, fetchOpts),
+        authFetch(`${apiUrl}/api/participants/?limit=100`, fetchOpts),
+        authFetch(`${apiUrl}/api/study-inquiries/?limit=50`, fetchOpts),
+        authFetch(`${apiUrl}/api/leads/?limit=50`, fetchOpts),
+        authFetch(`${apiUrl}/api/facilities-inquiry/?limit=50`, fetchOpts),
+        authFetch(`${apiUrl}/api/news/?limit=50`, fetchOpts),
       ]);
       if (uRes.ok) {
         const rawData = await uRes.json();
@@ -800,7 +850,7 @@ export default function SuperAdminDashboard() {
         setAnnouncements(Array.isArray(raw) ? raw : (raw.results || []));
       }
       try {
-        const aRes = await authFetch(`${apiUrl}/api/auth/admin/audit-logs/`);
+        const aRes = await authFetch(`${apiUrl}/api/auth/admin/audit-logs/`, fetchOpts);
         if (aRes.ok) {
           const raw = await aRes.json();
           setActivities(Array.isArray(raw) ? raw : (raw.results || []));
@@ -809,14 +859,17 @@ export default function SuperAdminDashboard() {
         console.warn("Audit logs fetch skipped or failed");
       }
       setLastRefresh(new Date().toLocaleTimeString());
-      addToast("Platform Data Synchronized With Core", "success");
+      if (!isSilent) addToast("Platform Data Synchronized With Core", "success");
     } catch (err) {
       console.error("Failed to fetch platform data:", err);
-      addToast("Terminal Connection Unstable", "error");
+      if (!isSilent) addToast("Terminal Connection Unstable", "error");
     } finally {
       if (isInitial) setLoading(false);
     }
   }, [API, navigate, addToast]);
+
+  // Automated synchronization every 10 seconds
+  usePolling(fetchData, 10000);
 
   useEffect(() => {
     const user = localStorage.getItem('user') || sessionStorage.getItem('user');
@@ -855,6 +908,9 @@ export default function SuperAdminDashboard() {
     fetchData(true);
   }, [fetchData]);
 
+  // Polling: Refresh dashboard every 10 seconds in the background (silent)
+  usePolling(() => fetchData(false, true), 10000);
+
   useEffect(() => {
     if (studyInquiries.length > 0) {
       const pendingInquiries = studyInquiries.filter(iq => iq.status === 'NDA_REQUESTED' || iq.status === 'PRELIMINARY');
@@ -885,6 +941,57 @@ export default function SuperAdminDashboard() {
   };
 
   const refreshDashboard = () => fetchData();
+
+  const handleRemoveStaff = () => {
+    if (!staffToRemove) return;
+    const { category, index } = staffToRemove;
+    setStaffRecords((prev: any) => ({
+      ...prev,
+      [category]: prev[category as keyof typeof prev].filter((_: any, i: number) => i !== index)
+    }));
+    setIsRemoveStaffConfirmOpen(false);
+    setStaffToRemove(null);
+    addToast('Team member removed from directory', 'success');
+  };
+
+  const handleAddStaff = () => {
+    if (!newStaffData.name || !newStaffData.role) {
+      addToast('Name and Role are required', 'warn');
+      return;
+    }
+    const category = addingStaffCategory;
+    const formatted = {
+      ...newStaffData,
+      [category === 'advisors' ? 'advisory_role' : 'role']: newStaffData.role,
+      [category === 'advisors' ? 'expertise_area' : 'dept']: newStaffData.dept,
+      expertise_tags: newStaffData.expertise_tags ? newStaffData.expertise_tags.split(',').map((s: string) => s.trim()).filter(Boolean) : [],
+      affiliations: newStaffData.affiliations ? newStaffData.affiliations.split('\n').map((s: string) => s.trim()).filter(Boolean) : [],
+      publications: newStaffData.publications ? newStaffData.publications.split('\n').map((s: string) => s.trim()).filter(Boolean) : [],
+    };
+    
+    // Clean up temporary fields ONLY if they were replaced by specialized advisor fields
+    if (category === 'advisors') {
+      delete formatted.role;
+      delete formatted.dept;
+    }
+
+    setStaffRecords((prev: any) => ({
+      ...prev,
+      [category]: [...prev[category as keyof typeof prev], formatted]
+    }));
+    setIsAddStaffModalOpen(false);
+    setNewStaffData({ 
+      name: '', 
+      role: '', 
+      dept: '', 
+      bio: '',
+      expanded_bio: '',
+      expertise_tags: '',
+      affiliations: '',
+      publications: ''
+    });
+    addToast(`${category.charAt(0).toUpperCase() + category.slice(1)} record added successfully`, 'success');
+  };
 
   // (getStudyIdentifier moved outside)
 
@@ -951,17 +1058,36 @@ export default function SuperAdminDashboard() {
   const handleRoleUpdate = async (userId: string, newRole: string) => {
     const apiUrl = API || 'http://localhost:8000';
     try {
+      // Optimistic Update
+      setUsers(prev => prev.map(u => u.id === userId ? { ...u, role: newRole.toUpperCase() } : u));
+      
       const res = await authFetch(`${apiUrl}/api/users/${userId}/`, {
         method: 'PATCH',
         body: JSON.stringify({ role: newRole })
       });
       if (res.ok) fetchData();
     } catch (err) {
-      alert("Update failed");
+      addToast("System Sync Delayed - Local state preserved", "warn");
     }
   };
 
   const handleStatusToggle = async (user: any) => {
+    if (user.created === 'Directory Record') {
+      const category = user.category;
+      const index = user.index;
+      if (category && typeof index === 'number') {
+        const newStatus = user.status === 'Active' ? 'Inactive' : 'Active';
+        setStaffRecords((prev: any) => {
+          const updatedCategory = [...prev[category]];
+          updatedCategory[index] = { ...updatedCategory[index], status: newStatus };
+          return { ...prev, [category]: updatedCategory };
+        });
+        setSelectedUser({ ...user, status: newStatus });
+        addToast(`Member status set to ${newStatus}`, 'success');
+      }
+      return;
+    }
+
     const apiUrl = API || 'http://localhost:8000';
     const newStatus = user.status === 'Active' ? false : true;
     try {
@@ -974,9 +1100,10 @@ export default function SuperAdminDashboard() {
         if (selectedUser && selectedUser.id === user.id) {
           setSelectedUser({ ...user, status: newStatus ? 'Active' : 'Inactive' });
         }
+        addToast(`System user status updated successfully`, 'success');
       }
     } catch (err) {
-      alert("Status update failed");
+      addToast("Status update failed", 'error');
     }
   };
 
@@ -1594,33 +1721,249 @@ export default function SuperAdminDashboard() {
   // PAGE: TEAM
   // ═══════════════════════════════════════════
 
-  const TeamPage = ({ users, viewDetails }: any) => {
-    const internalTeam = (users || []).filter((u: any) => ['SUPER_ADMIN', 'ADMIN', 'PI', 'COORDINATOR'].includes(u.role));
-    return (
-      <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-        <h1 className="text-4xl font-black text-white italic uppercase tracking-tighter">MUSB <span className="text-[#818cf8]">Internal Team</span></h1>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-          {internalTeam.length === 0 ? (
-            <div className="col-span-4 py-20 text-center opacity-30 italic uppercase tracking-[0.2em] text-[12px]">No internal team members detected</div>
-          ) : (
-            internalTeam.map((u: any, i: number) => (
-              <div key={i} className="bg-[#0f1133] border border-white/5 rounded-[2.5rem] p-8 text-center hover:border-cyan-500/30 transition-all group">
-                <div className="w-20 h-20 bg-cyan-500/10 rounded-[2rem] flex items-center justify-center text-cyan-400 mx-auto mb-6 font-black text-2xl group-hover:scale-110 transition-transform">
-                  {u.name ? u.name[0] : '?'}
-                </div>
-                <h4 className="text-xl font-black text-white uppercase italic tracking-tighter truncate px-2">{u.name}</h4>
-                <p className="text-[12px] text-[#555a7a] mt-3 font-black uppercase tracking-widest leading-relaxed">
-                  {u.role === 'SUPER_ADMIN' ? 'Master Admin / Root' : 'Team Controller'}
-                </p>
-                <button
-                  onClick={() => viewDetails(u)}
-                  className="mt-8 w-full py-3 bg-white/5 text-[12px] font-black uppercase tracking-widest rounded-xl hover:bg-white hover:text-slate-900 transition-all"
+  const TeamPage = ({ users, viewDetails, staffRecords }: any) => {
+    const internalUsers = (users || []).filter((u: any) => ['SUPER_ADMIN', 'ADMIN', 'PI', 'COORDINATOR'].includes(u.role));
+
+    const renderCard = (displayData: any, index: number, category: 'leadership' | 'advisors' | 'staff', systemUser: any = null) => {
+      const isUser = !!systemUser;
+      const member = displayData;
+      
+      return (
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ delay: (index % 5) * 0.05 }}
+          whileHover={{ y: -10, scale: 1.02 }}
+          className="group relative"
+        >
+          <div className="absolute inset-0 bg-gradient-to-br from-[#7c3aed]/20 to-cyan-500/20 rounded-[2.5rem] blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+          
+          <div className="relative h-full bg-[#0f1133]/60 backdrop-blur-xl border border-white/10 rounded-[2.5rem] p-8 md:p-10 flex flex-col gap-8 overflow-hidden shadow-2xl transition-all duration-500">
+            <div className="absolute -top-12 -right-12 w-24 h-24 bg-[#7c3aed]/10 rounded-full blur-3xl group-hover:bg-[#7c3aed]/20 transition-all duration-700" />
+            
+            <div className="flex flex-col md:flex-row items-center md:items-start text-center md:text-left gap-8 flex-1">
+              <div className="absolute top-8 right-8 flex gap-2 opacity-0 group-hover:opacity-100 transition-all z-20">
+                {category !== 'staff' && (
+                  <button 
+                    onClick={(e) => { 
+                      e.stopPropagation(); 
+                      setEditingStaff(isUser ? { ...systemUser, designation: member.role || member.advisory_role, isSystemUser: true } : { ...member, isSystemUser: false, originalIndex: index, category }); 
+                      setIsEditStaffModalOpen(true); 
+                    }}
+                    className="p-3 bg-white/5 hover:bg-cyan-500/20 border border-white/10 rounded-2xl text-white/40 hover:text-cyan-400 transition-all"
+                    title="Edit Details"
+                  >
+                    <Edit2 className="w-4 h-4" />
+                  </button>
+                )}
+                <button 
+                  onClick={(e) => { 
+                    e.stopPropagation(); 
+                    setStaffToRemove({ category, index, name: member.name });
+                    setIsRemoveStaffConfirmOpen(true);
+                  }}
+                  className="p-3 bg-white/5 hover:bg-red-500/20 border border-white/10 rounded-2xl text-white/40 hover:text-red-400 transition-all"
+                  title="Remove Member"
                 >
-                  Direct Link
+                  <Trash2 className="w-4 h-4" />
                 </button>
               </div>
-            ))
-          )}
+              <div className="relative shrink-0">
+                <div className="w-28 h-28 p-1.5 bg-gradient-to-br from-[#7c3aed] via-cyan-500 to-purple-500 rounded-[2.2rem] shadow-[0_0_30px_rgba(124,58,237,0.3)] group-hover:shadow-[0_0_50px_rgba(124,58,237,0.5)] transition-all duration-500">
+                  <div className="w-full h-full bg-[#0a0b1a] rounded-[2rem] flex items-center justify-center overflow-hidden border border-white/10 relative">
+                    {member.image ? (
+                      <img src={member.image} alt={member.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                    ) : (
+                      <span className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-br from-white to-white/30 italic">
+                        {member.name ? member.name[0] : '?'}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                {isUser && (
+                  <div className="absolute -bottom-1 -right-1 p-1 bg-[#0a0b1a] rounded-full border border-white/10 shadow-2xl">
+                    <div className="w-4 h-4 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_15px_#10b981]" />
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-6 flex-1 w-full">
+                <div>
+                  <h4 className="text-xl font-black text-white uppercase italic tracking-tighter leading-none group-hover:text-cyan-400 transition-colors">
+                    {member.name}
+                  </h4>
+                  <p className="text-[11px] text-cyan-400 font-black uppercase tracking-[0.2em] mt-3 italic opacity-70 group-hover:opacity-100 transition-opacity">
+                    {member.role || member.advisory_role || 'Staff'}
+                  </p>
+                </div>
+                <div className="flex flex-wrap justify-center md:justify-start gap-2 pt-2">
+                  <span className="px-3 py-1.5 rounded-xl bg-white/5 border border-white/5 text-[9px] font-black text-slate-400 uppercase tracking-widest group-hover:bg-white/10 group-hover:text-white transition-all">
+                    {member.dept || member.expertise_area || (systemUser?.is_super_admin ? 'Master Admin' : 'Global Operations')}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="w-full mt-4 pt-6 border-t border-white/5 flex flex-col justify-center">
+              {isUser ? (
+                <button
+                  onClick={() => viewDetails({
+                    ...systemUser,
+                    ...member,
+                    category,
+                    index,
+                    designation: member.role || member.advisory_role || 'Staff Member',
+                    image: member.image
+                  })}
+                  className="w-full group/btn relative overflow-hidden py-4 bg-white/5 border border-white/10 text-white rounded-2xl font-black text-[11px] uppercase tracking-[0.2em] italic transition-all hover:bg-white/10 hover:border-cyan-400/50"
+                >
+                  <span className="relative z-10 flex items-center justify-center gap-2">
+                    View Profile <Eye className="w-3 h-3 group-hover/btn:scale-110 transition-transform" />
+                  </span>
+                  <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/10 to-purple-500/10 opacity-0 group-hover/btn:opacity-100 transition-opacity duration-500" />
+                </button>
+              ) : (
+                <button
+                  onClick={() => viewDetails({
+                    ...member,
+                    category,
+                    index,
+                    id: member.id || `static-${index}-${member.name.replace(/\s+/g, '-')}`,
+                    status: member.status || 'Active',
+                    created: 'Directory Record',
+                    role: member.system_role || (member.role || member.advisory_role || 'Staff').toUpperCase(),
+                    email: 'No System Account',
+                    mobile_number: 'N/A',
+                    full_address: 'N/A'
+                  })}
+                  className="w-full group/btn relative overflow-hidden py-4 bg-white/5 border border-white/10 text-white rounded-2xl font-black text-[11px] uppercase tracking-[0.2em] italic transition-all hover:bg-white/10 hover:border-cyan-400/50"
+                >
+                  <span className="relative z-10 flex items-center justify-center gap-2">
+                    View Profile <Eye className="w-3 h-3 group-hover/btn:scale-110 transition-transform" />
+                  </span>
+                  <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/10 to-purple-500/10 opacity-0 group-hover/btn:opacity-100 transition-opacity duration-500" />
+                </button>
+              )}
+            </div>
+          </div>
+        </motion.div>
+      );
+    };
+
+    const SectionHeader = ({ title, subtitle, icon: Icon, color, onAdd }: any) => (
+      <div className="flex items-center justify-between mb-8 group">
+        <div className="flex items-center gap-6">
+          <div className={`w-14 h-14 rounded-2xl bg-white/5 flex items-center justify-center ${color} border border-white/5 shadow-2xl transition-transform group-hover:scale-110`}>
+            <Icon className="w-7 h-7" />
+          </div>
+          <div>
+            <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter leading-none">{title}</h2>
+            <p className="text-[11px] text-slate-500 font-black uppercase tracking-[0.4em] mt-2 italic">{subtitle}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-4">
+           <button 
+             onClick={onAdd}
+             className="px-4 py-2 bg-white/5 hover:bg-cyan-500/20 border border-white/10 rounded-xl text-white/60 hover:text-cyan-400 text-[10px] font-black uppercase tracking-widest flex items-center gap-2 transition-all group/add"
+           >
+             <Plus className="w-3 h-3 group-hover/add:rotate-90 transition-transform" /> Add Member
+           </button>
+           <div className="hidden md:block h-px w-20 bg-gradient-to-r from-white/5 to-transparent" />
+        </div>
+      </div>
+    );
+
+    return (
+      <div className="space-y-20 animate-in fade-in duration-700 pb-20">
+        <div className="space-y-4">
+          <div className="flex items-center gap-3">
+            <div className="w-1.5 h-10 bg-gradient-to-b from-[#7c3aed] to-cyan-500 rounded-full" />
+            <h1 className="text-6xl font-black text-white italic uppercase tracking-tighter leading-none">
+              Internal <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#7c3aed] to-cyan-500">Staff</span>
+            </h1>
+          </div>
+          <p className="text-[13px] text-slate-500 font-black uppercase tracking-[0.4em] ml-5">
+            Unified organizational directory & hierarchical management
+          </p>
+        </div>
+
+        {/* LEADERSHIP SECTION */}
+        <section className="space-y-10">
+          <SectionHeader 
+            title="Leadership & Scientific Team" 
+            subtitle="Executive direction and core scientific leadership"
+            icon={Crown}
+            color="text-amber-500"
+            onAdd={() => { setAddingStaffCategory('leadership'); setIsAddStaffModalOpen(true); }}
+          />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 max-w-6xl">
+            {staffRecords.leadership.map((member: any, i: number) => {
+              const memberName = member?.name || '';
+              const lastName = memberName.split(' ').pop() || '____';
+              const matchedUser = internalUsers.find((u: any) => 
+                (u.name || '').toLowerCase().includes(lastName.toLowerCase())
+              );
+              return renderCard(member, i, 'leadership', matchedUser);
+            })}
+          </div>
+        </section>
+
+        {/* ADVISORS SECTION */}
+        <section className="space-y-10">
+          <SectionHeader 
+            title="Advisory Board" 
+            subtitle="Global strategic advisors and subject matter experts"
+            icon={ShieldCheck}
+            color="text-cyan-500"
+            onAdd={() => { setAddingStaffCategory('advisors'); setIsAddStaffModalOpen(true); }}
+          />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
+            {staffRecords.advisors.map((member: any, i: number) => renderCard(member, i, 'advisors', null))}
+          </div>
+        </section>
+
+        {/* STAFF SECTION */}
+        <section className="space-y-10">
+          <SectionHeader 
+            title="Operational Staff" 
+            subtitle="Clinical coordinators, IT, and laboratory management"
+            icon={Users}
+            color="text-[#7c3aed]"
+            onAdd={() => { setAddingStaffCategory('staff'); setIsAddStaffModalOpen(true); }}
+          />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
+            {staffRecords.staff.map((member: any, i: number) => {
+              const memberName = member?.name || '';
+              const lastName = memberName.split(' ').pop() || '____';
+              const matchedUser = internalUsers.find((u: any) => 
+                (u.name || '').toLowerCase().includes(lastName.toLowerCase())
+              );
+              return renderCard(member, i, 'staff', matchedUser);
+            })}
+          </div>
+        </section>
+
+        {/* Dynamic Intel Footer */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 pt-12 border-t border-white/5">
+          {[
+            { label: 'Network Reach', val: staffRecords.leadership.length + staffRecords.advisors.length + staffRecords.staff.length, sub: 'Global Personnel Units', icon: Globe, color: 'text-cyan-500' },
+            { label: 'System Access', val: internalUsers.length, sub: 'Authenticated Operators', icon: ShieldCheck, color: 'text-[#7c3aed]' },
+            { label: 'Operational Nodes', val: 12, sub: 'Clinical Departments', icon: Activity, color: 'text-emerald-500' },
+          ].map((stat, i) => (
+            <div key={i} className="bg-white/[0.02] border border-white/5 rounded-3xl p-8 flex items-center gap-6 hover:bg-white/[0.04] transition-all group">
+              <div className={`w-14 h-14 rounded-2xl bg-white/5 flex items-center justify-center ${stat.color} border border-white/5 group-hover:scale-110 transition-transform`}>
+                <stat.icon className="w-7 h-7" />
+              </div>
+              <div>
+                <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-1">{stat.label}</p>
+                <div className="flex items-baseline gap-3">
+                  <span className="text-3xl font-black text-white italic leading-none">{stat.val}</span>
+                  <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest">{stat.sub}</span>
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     );
@@ -1748,7 +2091,7 @@ export default function SuperAdminDashboard() {
               <option value="MAINTENANCE">Maintenance Alert</option>
               <option value="CLINICAL">Clinical Milestone</option>
             </select>
-            <textarea value={content} onChange={(e) => setContent(e.target.value)} placeholder="Message content..." className="w-full h-40 bg-[#0a0b1a] border border-white/5 rounded-2xl px-6 py-5 text-white font-bold resize-none outline-none focus:border-emerald-500/40 transition-all placeholder:text-slate-800" />
+            <textarea value={content} onChange={(e) => setContent(e.target.value)} placeholder="Message content..." className="w-full h-40 bg-[#0a0b1a] border border-white/5 rounded-2xl px-6 py-5 text-white font-bold resize-none outline-none focus:border-emerald-500/40 transition-all placeholder:text-slate-800"></textarea>
             <div className="flex gap-4">
               <button onClick={() => setModals({ ...modals, createAnnouncement: false })} className="flex-1 py-4 bg-white/5 border border-white/5 text-[#555a7a] hover:text-white rounded-2xl font-black uppercase tracking-widest transition-all">Abort</button>
               <button onClick={handleBroadcast} disabled={isTransmitting} className="flex-[2] py-4 bg-emerald-500 text-white rounded-2xl font-black uppercase tracking-widest italic shadow-xl shadow-emerald-900/40 hover:scale-[1.02] transition-all disabled:opacity-50">
@@ -1882,7 +2225,7 @@ export default function SuperAdminDashboard() {
   // ═══════════════════════════════════════════
 
   return (
-    <div className="h-screen bg-[#07091e] font-sans text-slate-300 flex overflow-hidden lg:static">
+    <div className="h-screen bg-[#07091e] font-sans text-slate-300 flex overflow-hidden">
       <AnimatePresence>
         {isSidebarOpen && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
@@ -2090,9 +2433,10 @@ export default function SuperAdminDashboard() {
           {currentPage === 'LAUNCH_STUDY' && (
             <LaunchStudyForm
               initialData={selectedStudy}
-              availablePIs={users.filter(u => u.role === 'PI')}
-              availableCoordinators={users.filter(u => u.role === 'COORDINATOR')}
-              availableSponsors={users.filter(u => u.role === 'SPONSOR')}
+              availablePIs={users.filter(u => (u.role || '').toString().toUpperCase() === 'PI')}
+              availableCoordinators={users.filter(u => (u.role || '').toString().toUpperCase() === 'COORDINATOR')}
+              availableSponsorUsers={users.filter(u => (u.role || '').toString().toUpperCase() === 'SPONSOR')}
+              availableSponsors={users.filter(u => (u.role || '').toString().toUpperCase() === 'SPONSOR')}
               onSave={async (data: any, docs: any[] = []) => {
                 await handleCreateStudy(data, docs);
                 setSelectedStudy(null);
@@ -2168,7 +2512,7 @@ export default function SuperAdminDashboard() {
             />
           )}
           {currentPage === 'SPONSOR_LEADS' && <SponsorLeadsPage studyInquiries={studyInquiries} handlePageChange={handlePageChange} />}
-          {currentPage === 'TEAM' && <TeamPage users={users} viewDetails={viewDetails} />}
+          {currentPage === 'TEAM' && <TeamPage users={users} viewDetails={viewDetails} staffRecords={staffRecords} />}
           {currentPage === 'INQUIRIES' && (
             <InquiriesPage
               studyInquiries={studyInquiries}
@@ -2183,7 +2527,7 @@ export default function SuperAdminDashboard() {
             />
           )}
 
-          {!['DASHBOARD', 'ALL_USERS', 'STUDIES', 'SPONSORS', 'LAUNCH_STUDY', 'SCREENER_BUILDER', 'PIS', 'COORDINATORS', 'PARTICIPANTS', 'LIVE_USERS', 'METRICS', 'AUDIT_LOGS', 'SETTINGS', 'ANNOUNCEMENTS', 'SPONSOR_LEADS', 'TEAM', 'INQUIRIES', 'TEAM_APPROVALS', 'CAREERS', 'WORKFLOW', 'SUBMIT_CONTENT', 'ACTIVITY_LOG'].includes(currentPage) && (
+          {!['DASHBOARD', 'ALL_USERS', 'STUDIES', 'SPONSORS', 'LAUNCH_STUDY', 'SCREENER_BUILDER', 'PIS', 'COORDINATORS', 'PARTICIPANTS', 'LIVE_USERS', 'METRICS', 'AUDIT_LOGS', 'SETTINGS', 'ANNOUNCEMENTS', 'SPONSOR_LEADS', 'TEAM', 'INQUIRIES', 'TEAM_APPROVALS', 'CAREERS', 'WORKFLOW', 'SUBMIT_CONTENT', 'ACTIVITY_LOG', 'SUPPORT'].includes(currentPage) && (
             <div className="h-[70vh] flex flex-col items-center justify-center text-center space-y-6">
               <div className="w-24 h-24 bg-white/5 border border-white/10 rounded-[2.5rem] flex items-center justify-center">
                 <LayoutDashboard className="w-12 h-12 text-[#555a7a] animate-pulse" />
@@ -2245,13 +2589,21 @@ export default function SuperAdminDashboard() {
               </div>
               <div className="px-12 pb-12">
                 <div className="relative -mt-12 mb-8 flex items-end gap-6">
-                  <div className="w-24 h-24 rounded-3xl bg-cyan-600 border-4 border-[#0d0e2b] flex items-center justify-center text-3xl font-black text-white italic shadow-2xl">
-                    {(selectedUser.name?.[0] || 'U').toUpperCase()}
+                  <div className="w-24 h-24 rounded-3xl bg-[#0a0b1a] border-4 border-[#0d0e2b] flex items-center justify-center text-3xl font-black text-white italic shadow-2xl overflow-hidden relative">
+                    <div className="absolute inset-0 bg-gradient-to-br from-[#7c3aed]/20 to-cyan-500/20" />
+                    {selectedUser.image ? (
+                      <img src={selectedUser.image} alt={selectedUser.name} className="w-full h-full object-cover relative z-10" />
+                    ) : (
+                      <span className="relative z-10">{(selectedUser.name?.[0] || 'U').toUpperCase()}</span>
+                    )}
                   </div>
                   <div className="pb-2">
                     <h3 className="text-2xl font-black text-white italic uppercase tracking-tighter leading-none">{formatName(selectedUser.name)}</h3>
-                    <div className="flex items-center gap-3 mt-2">
-                      <RoleBadge role={selectedUser.role} />
+                    <p className="text-[11px] text-cyan-400 font-black uppercase tracking-[0.2em] mt-2 italic opacity-90">
+                      {selectedUser.designation || 'Staff Member'}
+                    </p>
+                    <div className="flex items-center gap-3 mt-3">
+                      {selectedUser.category !== 'staff' && <RoleBadge role={selectedUser.role} />}
                       <span className={`px-2 py-0.5 rounded-full text-[12px] font-black uppercase tracking-widest ${selectedUser.status === 'Active' ? 'text-green-500 bg-green-500/10' : 'text-red-500 bg-red-500/10'}`}>
                         {selectedUser.status}
                       </span>
@@ -2260,73 +2612,376 @@ export default function SuperAdminDashboard() {
                     </div>
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-8">
-                  <div className="space-y-6">
-                    <div className="space-y-1">
-                      <label className="text-[12px] font-black text-[#555a7a] uppercase tracking-widest flex items-center gap-2 italic"><Mail className="w-3 h-3" /> Email Address</label>
-                      <p className="text-base font-bold text-white">{selectedUser.email}</p>
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-[12px] font-black text-[#555a7a] uppercase tracking-widest flex items-center gap-2 italic"><Phone className="w-3 h-3" /> Mobile Number</label>
-                      <p className="text-base font-bold text-white">{selectedUser.mobile_number || 'N/A'}</p>
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-[12px] font-black text-[#555a7a] uppercase tracking-widest flex items-center gap-2 italic"><Globe className="w-3 h-3" /> Place of Origin</label>
-                      <p className="text-base font-bold text-white">{selectedUser.place_of_origin || 'N/A'}</p>
-                    </div>
+                <div className="space-y-10 max-h-[60vh] overflow-y-auto pr-4 custom-scrollbar">
+                  {/* PROFESSIONAL BIO */}
+                  <div className="space-y-4">
+                    <label className="text-[12px] font-black text-cyan-400 uppercase tracking-widest flex items-center justify-between gap-2 italic">
+                      <div className="flex items-center gap-2">
+                        <FileText className="w-3 h-3" /> Professional Summary
+                      </div>
+                      {selectedUser.category === 'staff' && (
+                        <button 
+                          onClick={() => {
+                            setIsUserDetailOpen(false);
+                            setEditingStaff({ 
+                              ...selectedUser,
+                              bio: selectedUser.bio || `Serving as ${selectedUser.designation || selectedUser.role} at MusB Research, contributing to high-impact scientific operations and translational excellence.`,
+                              isSystemUser: selectedUser.created !== 'Directory Record',
+                              designation: selectedUser.designation || selectedUser.role 
+                            });
+                            setIsEditStaffModalOpen(true);
+                          }}
+                          className="text-[10px] text-cyan-400 hover:text-white transition-colors flex items-center gap-1 bg-cyan-500/10 px-2 py-1 rounded-lg border border-cyan-500/20"
+                        >
+                          <Edit2 className="w-2.5 h-2.5" /> Edit Section
+                        </button>
+                      )}
+                    </label>
+                    <p className="text-base font-medium text-slate-300 leading-relaxed italic">
+                      {selectedUser.bio || `Serving as ${selectedUser.designation} at MusB Research, contributing to high-impact scientific operations and translational excellence.`}
+                    </p>
                   </div>
-                  <div className="space-y-6">
-                    <div className="space-y-1">
-                      <label className="text-[12px] font-black text-[#555a7a] uppercase tracking-widest flex items-center gap-2 italic"><Calendar className="w-3 h-3" /> Account Created</label>
-                      <p className="text-base font-bold text-white">{selectedUser.created || 'Jan 15, 2026'}</p>
+
+                  {/* EXPERTISE TAGS */}
+                  {selectedUser.expertise_tags && selectedUser.expertise_tags.length > 0 && (
+                    <div className="space-y-4">
+                      <label className="text-[12px] font-black text-purple-400 uppercase tracking-widest flex items-center gap-2 italic">
+                        <Activity className="w-3 h-3" /> Core Competencies
+                      </label>
+                      <div className="flex flex-wrap gap-2">
+                        {selectedUser.expertise_tags.map((tag: string, i: number) => (
+                          <span key={i} className="px-4 py-2 rounded-xl bg-cyan-500/5 border border-cyan-500/10 text-[10px] font-black text-cyan-300 uppercase tracking-widest shadow-lg">
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
                     </div>
-                    <div className="space-y-1">
-                      <label className="text-[12px] font-black text-[#555a7a] uppercase tracking-widest flex items-center gap-2 italic"><MapPin className="w-3 h-3" /> Location / Address</label>
-                      <p className="text-base font-bold text-white italic leading-relaxed">
-                        {selectedUser.full_address ? `${selectedUser.full_address}, ${selectedUser.city}, ${selectedUser.state} ${selectedUser.zip_code || ''}, ${selectedUser.country || ''}` : 'N/A'}
-                      </p>
+                  )}
+
+                  {/* EXTENDED BACKGROUND */}
+                  {selectedUser.expanded_bio && (
+                    <div className="space-y-4">
+                      <label className="text-[12px] font-black text-[#555a7a] uppercase tracking-widest flex items-center gap-2 italic">
+                        <Briefcase className="w-3 h-3" /> Professional Background
+                      </label>
+                      <div className="bg-white/5 rounded-3xl p-6 border border-white/5">
+                        <p className="text-sm font-medium text-slate-400 leading-relaxed whitespace-pre-line">
+                          {selectedUser.expanded_bio}
+                        </p>
+                      </div>
                     </div>
+                  )}
+
+                  {/* AFFILIATIONS & RESEARCH */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    {selectedUser.affiliations && selectedUser.affiliations.length > 0 && (
+                      <div className="space-y-4">
+                        <label className="text-[12px] font-black text-[#555a7a] uppercase tracking-widest flex items-center gap-2 italic">
+                          <Building2 className="w-3 h-3" /> Affiliations
+                        </label>
+                        <ul className="space-y-2">
+                          {selectedUser.affiliations.map((aff: string, i: number) => (
+                            <li key={i} className="flex items-center gap-3 text-xs font-black text-white italic uppercase tracking-tight">
+                              <div className="w-1.5 h-1.5 bg-cyan-500 rounded-full" />
+                              {aff}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    
+                    {selectedUser.areas_of_expertise && selectedUser.areas_of_expertise.length > 0 && (
+                      <div className="space-y-4">
+                        <label className="text-[12px] font-black text-[#555a7a] uppercase tracking-widest flex items-center gap-2 italic">
+                          <ShieldCheck className="w-3 h-3" /> Specialized Areas
+                        </label>
+                        <ul className="space-y-2">
+                          {selectedUser.areas_of_expertise.map((area: string, i: number) => (
+                            <li key={i} className="flex items-center gap-3 text-xs font-black text-slate-400 italic uppercase tracking-tight">
+                              <div className="w-1.5 h-1.5 bg-purple-500 rounded-full" />
+                              {area}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* PUBLICATIONS SECTION (IF ANY) */}
+                  {selectedUser.publications && selectedUser.publications.length > 0 && (
+                    <div className="space-y-4">
+                      <label className="text-[12px] font-black text-[#555a7a] uppercase tracking-widest flex items-center gap-2 italic">
+                        <BookOpen className="w-3 h-3" /> Selected Publications
+                      </label>
+                      <div className="space-y-3">
+                        {selectedUser.publications.map((pub: string, i: number) => (
+                          <div key={i} className="p-4 rounded-2xl bg-white/5 border border-white/5 flex gap-4 items-start">
+                            <div className="p-2 bg-cyan-500/10 rounded-lg">
+                              <FileText className="w-4 h-4 text-cyan-500" />
+                            </div>
+                            <p className="text-xs font-medium text-slate-400 leading-normal">{pub}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="mt-12 pt-8 border-t border-white/5 flex flex-col md:flex-row gap-4">
+                  <button onClick={() => setIsUserDetailOpen(false)} className="flex-1 py-4 bg-white/5 hover:bg-white/10 border border-white/5 rounded-2xl text-[11px] font-black text-white uppercase tracking-[0.2em] italic transition-all">
+                    Close Entry
+                  </button>
+                  {selectedUser.category !== 'staff' && (
+                    <button 
+                      onClick={() => {
+                        setIsUserDetailOpen(false);
+                        setEditingStaff({ 
+                          ...selectedUser,
+                          isSystemUser: selectedUser.created !== 'Directory Record',
+                          designation: selectedUser.designation || selectedUser.role 
+                        });
+                        setIsEditStaffModalOpen(true);
+                      }}
+                      className="flex-1 py-4 bg-[#7c3aed]/10 hover:bg-[#7c3aed] text-[#7c3aed] hover:text-white border border-[#7c3aed]/20 rounded-2xl text-[11px] font-black uppercase tracking-[0.2em] italic transition-all flex items-center justify-center gap-2"
+                    >
+                      <Edit2 className="w-3 h-3" /> Edit Details
+                    </button>
+                  )}
+                  <button 
+                    onClick={() => handleStatusToggle(selectedUser)} 
+                    className={`flex-1 py-4 border rounded-[1.5rem] text-[10px] font-black uppercase tracking-[0.15em] italic transition-all flex items-center justify-center gap-2 group/status shadow-xl ${
+                      selectedUser.status === 'Active' 
+                        ? 'bg-amber-500/5 hover:bg-amber-500 text-amber-500 hover:text-white border-amber-500/20 hover:border-amber-500 hover:shadow-amber-500/20' 
+                        : 'bg-emerald-500/5 hover:bg-emerald-500 text-emerald-500 hover:text-white border-emerald-500/20 hover:border-emerald-500 hover:shadow-emerald-500/20'
+                    }`}
+                  >
+                    {selectedUser.status === 'Active' ? (
+                      <>
+                        <PowerOff className="w-3.5 h-3.5 group-hover/status:scale-110 transition-transform" />
+                        Deactivate Access
+                      </>
+                    ) : (
+                      <>
+                        <Power className="w-3.5 h-3.5 group-hover/status:scale-110 transition-transform" />
+                        Activate Access
+                      </>
+                    )}
+                  </button>
+                  
+                  <button 
+                    onClick={() => {
+                      setIsUserDetailOpen(false);
+                      setStaffToRemove({ category: selectedUser.category, index: selectedUser.index });
+                      setIsRemoveStaffConfirmOpen(true);
+                    }} 
+                    className="flex-1 py-4 bg-red-500/5 hover:bg-red-600 text-red-500 hover:text-white border border-red-500/10 hover:border-red-600 rounded-[1.5rem] text-[10px] font-black uppercase tracking-[0.15em] italic transition-all flex items-center justify-center gap-2 shadow-xl hover:shadow-red-600/30 group/remove"
+                  >
+                    <Trash2 className="w-3.5 h-3.5 group-hover/remove:-rotate-12 transition-transform" />
+                    Remove Member
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+      {/* ── Edit Staff Modal ── */}
+      <AnimatePresence>
+        {isEditStaffModalOpen && editingStaff && (
+          <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-[#0a0b1e]/95 backdrop-blur-2xl" onClick={() => setIsEditStaffModalOpen(false)} />
+            <motion.div initial={{ scale: 0.95, opacity: 0, y: 30 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 30 }} className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-[#0d0e2b] border border-white/10 rounded-[2.5rem] shadow-2xl p-10 custom-scrollbar">
+              <div className="absolute top-0 right-0 p-8 opacity-5">
+                <Edit2 className="w-32 h-32" />
+              </div>
+              
+              <div className="relative z-10 space-y-10">
+                <div className="flex items-center gap-6">
+                  <div className="w-16 h-16 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400">
+                    <UserIcon className="w-8 h-8" />
+                  </div>
+                  <div>
+                    <h3 className="text-2xl font-black text-white italic uppercase tracking-tighter leading-none">Edit Profile Details</h3>
+                    <p className="text-[11px] text-slate-500 font-bold uppercase tracking-[0.2em] mt-2">Managing professional identity for {editingStaff.name}</p>
                   </div>
                 </div>
 
-                {(selectedUser.role === 'PI' || selectedUser.role === 'COORDINATOR') && (
-                  <div className="mt-10 p-8 bg-emerald-500/5 border border-emerald-500/20 rounded-3xl space-y-6 relative overflow-hidden group">
-                    <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
-                      <ShieldCheck className="w-24 h-24 text-emerald-500" />
+                <div className="space-y-8">
+                  {/* CORE INFO SECTION */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-3">
+                      <label className="text-[11px] font-black text-[#555a7a] uppercase tracking-widest px-1 italic">Professional Designation</label>
+                      <input 
+                        type="text" 
+                        defaultValue={editingStaff.designation || editingStaff.role}
+                        onChange={(e) => setEditingStaff({ ...editingStaff, newDesignation: e.target.value })}
+                        className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white font-bold italic focus:border-cyan-500/50 outline-none transition-all"
+                        placeholder="e.g. Chief Operations Officer"
+                      />
                     </div>
-                    <div className="flex items-center gap-4 relative z-10">
-                      <div className="w-1.5 h-6 bg-emerald-500 rounded-full" />
-                      <h4 className="text-sm font-black text-white italic uppercase tracking-widest">Compliance Documents</h4>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 relative z-10">
-                      {[
-                        { id: 'medical_licence', label: 'Medical Licence', path: selectedUser.medical_licence },
-                        { id: 'insurance_certificate', label: 'Insurance Cert', path: selectedUser.insurance_certificate },
-                        { id: 'cv_document', label: 'Professional CV', path: selectedUser.cv_document }
-                      ].map((doc) => (
-                        <div key={doc.id} className="p-4 bg-black/20 border border-white/5 rounded-2xl flex flex-col gap-3">
-                          <div className="flex items-center justify-between">
-                            <FileText className="w-5 h-5 text-emerald-400" />
-                            {doc.path ? (
-                              <a href={`${API}/media/${doc.path}`} target="_blank" rel="noreferrer" className="p-1.5 bg-emerald-500 text-slate-950 rounded-lg hover:scale-110 transition-transform" title="View Document">
-                                <ExternalLink className="w-3.5 h-3.5" />
-                              </a>
-                            ) : (
-                              <div title="Documentation Missing"><AlertTriangle className="w-4 h-4 text-cyan-500" /></div>
-                            )}
-                          </div>
-                          <p className="text-[12px] font-black text-white uppercase tracking-widest leading-none truncate">{doc.label}</p>
-                          {!doc.path && <p className="text-[12px] font-bold text-cyan-500/60 uppercase tracking-tighter">Not Uploaded</p>}
-                        </div>
-                      ))}
+
+                    <div className="space-y-3">
+                      <label className="text-[11px] font-black text-[#555a7a] uppercase tracking-widest px-1 italic">Department / Focus Area</label>
+                      <input 
+                        type="text" 
+                        defaultValue={editingStaff.dept || editingStaff.expertise_area || 'Global Operations'}
+                        onChange={(e) => setEditingStaff({ ...editingStaff, newDept: e.target.value })}
+                        className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white font-bold italic focus:border-cyan-500/50 outline-none transition-all"
+                        placeholder="e.g. Product Engineering"
+                      />
                     </div>
                   </div>
-                )}
 
-                <div className="mt-12 pt-8 border-t border-white/5 flex gap-4">
-                  <button onClick={() => setIsUserDetailOpen(false)} className="px-8 py-3 bg-white/5 hover:bg-white/10 border border-white/5 rounded-xl text-[12px] font-black text-white uppercase tracking-[0.2em] transition-all">Close Entry</button>
-                  <button onClick={() => handleStatusToggle(selectedUser)} className="px-8 py-3 bg-cyan-500 text-white rounded-xl text-[12px] font-black uppercase tracking-[0.2em] shadow-xl shadow-cyan-500/20 hover:-translate-y-0.5 transition-all">
-                    {selectedUser.status === 'Active' ? 'Deactivate User' : 'Activate User'}
+                  {/* SCIENTIFIC PROFILE EXTENSIONS */}
+                    <div className="space-y-8 pt-10 border-t border-white/5">
+                      <div className="space-y-3">
+                        <label className="text-[11px] font-black text-purple-400 uppercase tracking-widest px-1 italic flex items-center gap-2">
+                          <FileText className="w-3 h-3" /> {editingStaff.category === 'staff' ? 'Professional Summary' : 'Short Biography (Summary Card)'}
+                        </label>
+                        <textarea 
+                          defaultValue={editingStaff.bio}
+                          onChange={(e) => setEditingStaff({ ...editingStaff, newBio: e.target.value })}
+                          className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white font-medium text-sm focus:border-purple-500/50 outline-none transition-all h-32 custom-scrollbar leading-relaxed"
+                          placeholder={editingStaff.category === 'staff' ? "Enter professional summary..." : "Brief summary for the team card..."}
+                        ></textarea>
+                      </div>
+
+                      {editingStaff.category !== 'staff' && (
+                        <>
+                          <div className="space-y-3">
+                            <label className="text-[11px] font-black text-cyan-400 uppercase tracking-widest px-1 italic flex items-center gap-2">
+                              <Briefcase className="w-3 h-3" /> Full Professional Background (Expanded Bio)
+                            </label>
+                            <textarea 
+                              defaultValue={editingStaff.expanded_bio}
+                              onChange={(e) => setEditingStaff({ ...editingStaff, newExpandedBio: e.target.value })}
+                              className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white font-medium text-sm focus:border-cyan-500/50 outline-none transition-all h-48 custom-scrollbar leading-relaxed"
+                              placeholder="Full professional history and vision..."
+                            ></textarea>
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div className="space-y-3">
+                              <label className="text-[11px] font-black text-[#555a7a] uppercase tracking-widest px-1 italic">Core Competencies (Expertise Tags)</label>
+                              <textarea 
+                                defaultValue={editingStaff.expertise_tags?.join(', ')}
+                                onChange={(e) => setEditingStaff({ ...editingStaff, newTags: e.target.value })}
+                                className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white font-bold italic focus:border-cyan-500/50 outline-none transition-all h-24 text-xs"
+                                placeholder="Microbiome, Immunology, Brain Health..."
+                              ></textarea>
+                            </div>
+                            <div className="space-y-3">
+                              <label className="text-[11px] font-black text-[#555a7a] uppercase tracking-widest px-1 italic">Affiliations (One per line)</label>
+                              <textarea 
+                                defaultValue={editingStaff.affiliations?.join('\n')}
+                                onChange={(e) => setEditingStaff({ ...editingStaff, newAffiliations: e.target.value })}
+                                className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white font-bold italic focus:border-cyan-500/50 outline-none transition-all h-24 text-xs"
+                                placeholder="University of Illinois, NIH..."
+                              ></textarea>
+                            </div>
+                          </div>
+
+                          <div className="space-y-3">
+                            <label className="text-[11px] font-black text-[#555a7a] uppercase tracking-widest px-1 italic flex items-center gap-2">
+                              <BookOpen className="w-3 h-3" /> Selected Publications (One per line)
+                            </label>
+                            <textarea 
+                              defaultValue={editingStaff.publications?.join('\n')}
+                              onChange={(e) => setEditingStaff({ ...editingStaff, newPublications: e.target.value })}
+                              className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white font-bold italic focus:border-cyan-500/50 outline-none transition-all h-32 text-xs leading-relaxed"
+                              placeholder="Title, Journal, Year..."
+                            ></textarea>
+                          </div>
+                        </>
+                      )}
+                    </div>
+
+                  {editingStaff.isSystemUser && editingStaff.category !== 'staff' && (
+                    <div className="p-8 bg-cyan-500/5 border border-cyan-500/20 rounded-[2rem] space-y-4">
+                      <label className="text-[11px] font-black text-cyan-500 uppercase tracking-widest px-1 italic flex items-center gap-2">
+                        <Shield className="w-3 h-3" /> System Access Permissions
+                      </label>
+                      <select 
+                        defaultValue={editingStaff.role}
+                        onChange={(e) => setEditingStaff({ ...editingStaff, newRole: e.target.value })}
+                        className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-4 text-xs font-black text-white uppercase tracking-[0.1em] outline-none focus:border-cyan-500/50"
+                      >
+                        {ROLES.map(r => <option key={r.id} value={r.id}>{r.label}</option>)}
+                      </select>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex gap-4 pt-4">
+                  <button 
+                    onClick={() => setIsEditStaffModalOpen(false)}
+                    className="flex-1 py-4 bg-white/5 hover:bg-white/10 border border-white/5 rounded-2xl text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] italic transition-all"
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    onClick={async () => {
+                      const updatedRole = editingStaff.newRole || editingStaff.role;
+                      const updatedDesignation = editingStaff.newDesignation || editingStaff.designation;
+                      const updatedDept = editingStaff.newDept || editingStaff.dept || editingStaff.expertise_area;
+
+                      // 1. Handle System Role Update (Backend)
+                      if (editingStaff.isSystemUser && updatedRole !== editingStaff.role) {
+                        await handleRoleUpdate(editingStaff.id, updatedRole);
+                      }
+
+                      const updatedBio = editingStaff.newBio ?? editingStaff.bio;
+                      const updatedExpandedBio = editingStaff.newExpandedBio ?? editingStaff.expanded_bio;
+                      const updatedTags = editingStaff.newTags ? editingStaff.newTags.split(',').map((t: string) => t.trim()) : editingStaff.expertise_tags;
+                      const updatedAffiliations = editingStaff.newAffiliations ? editingStaff.newAffiliations.split('\n').map((t: string) => t.trim()).filter(Boolean) : editingStaff.affiliations;
+                      const updatedPublications = editingStaff.newPublications ? editingStaff.newPublications.split('\n').map((t: string) => t.trim()).filter(Boolean) : editingStaff.publications;
+
+                      // 2. Update Directory Records State (Frontend)
+                      setStaffRecords((prev: any) => {
+                        const updateList = (list: any[]) => list.map(m => 
+                          (m.name === editingStaff.name) ? { 
+                            ...m, 
+                            role: updatedDesignation, 
+                            advisory_role: updatedDesignation,
+                            system_role: updatedRole,
+                            dept: updatedDept,
+                            expertise_area: updatedDept,
+                            bio: updatedBio,
+                            expanded_bio: updatedExpandedBio,
+                            expertise_tags: updatedTags,
+                            affiliations: updatedAffiliations,
+                            publications: updatedPublications
+                          } : m
+                        );
+                        return {
+                          leadership: updateList(prev.leadership),
+                          advisors: updateList(prev.advisors),
+                          staff: updateList(prev.staff)
+                        };
+                      });
+
+                      addToast(`Profile Synchronized: ${editingStaff.name}`, "success");
+                      
+                      // Refresh selected user if it was the one being edited
+                      if (selectedUser && (selectedUser.id === editingStaff.id || selectedUser.name === editingStaff.name)) {
+                        setSelectedUser({
+                          ...selectedUser,
+                          role: updatedRole,
+                          designation: updatedDesignation,
+                          dept: updatedDept,
+                          bio: updatedBio,
+                          expanded_bio: updatedExpandedBio,
+                          expertise_tags: updatedTags,
+                          affiliations: updatedAffiliations,
+                          publications: updatedPublications
+                        });
+                      }
+
+                      setIsEditStaffModalOpen(false);
+                    }}
+                    className="flex-1 py-4 bg-cyan-500 text-white rounded-2xl font-black text-[11px] uppercase tracking-[0.2em] italic shadow-2xl shadow-cyan-500/20 hover:-translate-y-1 transition-all"
+                  >
+                    Save Changes
                   </button>
                 </div>
               </div>
@@ -2335,7 +2990,7 @@ export default function SuperAdminDashboard() {
         )}
       </AnimatePresence>
 
-      {/* ── Delete Confirm Modal ── */}
+      {/* ── Delete User? Modal (System) ── */}
       <AnimatePresence>
         {isDeleteConfirmOpen && selectedUser && (
           <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
@@ -2350,18 +3005,180 @@ export default function SuperAdminDashboard() {
               </p>
               <div className="flex flex-col gap-3">
                 <button
-                  onClick={() => {
-                    const apiUrl = API || 'http://localhost:8000';
-                    authFetch(`${apiUrl}/api/users/${selectedUser.id}/`, { method: 'DELETE' }).then(() => {
-                      fetchData();
-                      setIsDeleteConfirmOpen(false);
-                    });
+                  onClick={async () => {
+                    try {
+                      const apiUrl = API || 'http://localhost:8000';
+                      const res = await authFetch(`${apiUrl}/api/users/${selectedUser.id}/`, { method: 'DELETE' });
+                      if (res.ok) {
+                        addToast(`User ${selectedUser.name} removed from system`, 'success');
+                        fetchData();
+                        setIsDeleteConfirmOpen(false);
+                        setSelectedUser(null);
+                      } else {
+                        const err = await res.json().catch(() => ({}));
+                        addToast(err.error || err.detail || "Deletion request refused by core", 'error');
+                      }
+                    } catch (err) {
+                      addToast("Network failure during deletion protocol", 'error');
+                    }
                   }}
                   className="w-full py-4 bg-red-500 text-white rounded-xl font-black text-[12px] uppercase tracking-[0.2em] shadow-2xl shadow-red-500/20 hover:bg-red-600 transition-all"
                 >
                   Confirm Deletion
                 </button>
                 <button onClick={() => setIsDeleteConfirmOpen(false)} className="w-full py-4 text-[#555a7a] hover:text-white font-black text-[12px] uppercase tracking-[0.2em] transition-all">Cancel</button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* ── Add Staff Modal ── */}
+      <AnimatePresence>
+        {isAddStaffModalOpen && (
+          <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsAddStaffModalOpen(false)} className="absolute inset-0 bg-black/80 backdrop-blur-md" />
+            <motion.div initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 50, opacity: 0 }} className="relative bg-[#0f1133] border border-white/10 rounded-[3rem] p-10 max-w-2xl w-full shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto custom-scrollbar">
+              <div className="flex items-center justify-between mb-8">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-cyan-500/10 rounded-2xl flex items-center justify-center">
+                    <Plus className="w-6 h-6 text-cyan-400" />
+                  </div>
+                  <div>
+                    <h3 className="text-2xl font-black text-white italic uppercase tracking-tighter">Add {addingStaffCategory} Member</h3>
+                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">Initialize professional directory record</p>
+                  </div>
+                </div>
+                <button onClick={() => setIsAddStaffModalOpen(false)} className="p-3 bg-white/5 hover:bg-white/10 rounded-2xl text-slate-400 transition-all"><X className="w-5 h-5" /></button>
+              </div>
+
+              <div className="space-y-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div className="space-y-3">
+                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1 italic">Full Name</label>
+                    <input 
+                      type="text" 
+                      placeholder="e.g. Dr. Jane Smith"
+                      className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white font-bold focus:border-cyan-500/50 transition-all outline-none italic"
+                      value={newStaffData.name}
+                      onChange={(e) => setNewStaffData({...newStaffData, name: e.target.value})}
+                    />
+                  </div>
+                  <div className="space-y-3">
+                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1 italic">
+                      {addingStaffCategory === 'advisors' ? 'Advisory Role' : 'Professional Role'}
+                    </label>
+                    <input 
+                      type="text" 
+                      placeholder="e.g. Chief Scientist"
+                      className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white font-bold focus:border-cyan-500/50 transition-all outline-none italic"
+                      value={newStaffData.role}
+                      onChange={(e) => setNewStaffData({...newStaffData, role: e.target.value})}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1 italic">
+                    {addingStaffCategory === 'advisors' ? 'Expertise Area' : 'Department'}
+                  </label>
+                  <input 
+                    type="text" 
+                    placeholder={addingStaffCategory === 'advisors' ? "e.g. Regulatory Affairs" : "e.g. Clinical Operations"}
+                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white font-bold focus:border-cyan-500/50 transition-all outline-none italic"
+                    value={newStaffData.dept}
+                    onChange={(e) => setNewStaffData({...newStaffData, dept: e.target.value})}
+                  />
+                </div>
+
+                <div className="space-y-6">
+                  <div className="space-y-3">
+                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1 italic">
+                      {addingStaffCategory === 'staff' ? 'Professional Summary' : 'SHORT BIOGRAPHY (SUMMARY CARD)'}
+                    </label>
+                    <textarea 
+                      placeholder={addingStaffCategory === 'staff' ? "Brief professional summary..." : "Professional summary for the card view..."}
+                      className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white font-medium focus:border-cyan-500/50 transition-all outline-none h-28 resize-none italic"
+                      value={newStaffData.bio}
+                      onChange={(e) => setNewStaffData({...newStaffData, bio: e.target.value})}
+                    ></textarea>
+                  </div>
+
+                  {addingStaffCategory !== 'staff' && (
+                    <>
+                      <div className="space-y-3">
+                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1 italic">FULL PROFESSIONAL BACKGROUND (EXPANDED BIO)</label>
+                        <textarea 
+                          placeholder="Enter full professional history..."
+                          className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white font-medium focus:border-cyan-500/50 transition-all outline-none h-32 resize-none italic"
+                          value={newStaffData.expanded_bio}
+                          onChange={(e) => setNewStaffData({...newStaffData, expanded_bio: e.target.value})}
+                        ></textarea>
+                      </div>
+
+                      <div className="space-y-3">
+                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1 italic">CORE COMPETENCIES (EXPERTISE TAGS)</label>
+                        <input 
+                          type="text" 
+                          placeholder="e.g. Microbiome, Genetics, Neuroscience (Comma separated)"
+                          className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white font-bold focus:border-cyan-500/50 transition-all outline-none italic"
+                          value={newStaffData.expertise_tags}
+                          onChange={(e) => setNewStaffData({...newStaffData, expertise_tags: e.target.value})}
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-3">
+                          <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1 italic">AFFILIATIONS (ONE PER LINE)</label>
+                          <textarea 
+                            placeholder="e.g. Harvard University&#10;Stanford Research"
+                            className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white font-medium focus:border-cyan-500/50 transition-all outline-none h-32 resize-none italic"
+                            value={newStaffData.affiliations}
+                            onChange={(e) => setNewStaffData({...newStaffData, affiliations: e.target.value})}
+                          ></textarea>
+                        </div>
+                        <div className="space-y-3">
+                          <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1 italic">SELECTED PUBLICATIONS (ONE PER LINE)</label>
+                          <textarea 
+                            placeholder="e.g. Nature (2023)&#10;Science (2024)"
+                            className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white font-medium focus:border-cyan-500/50 transition-all outline-none h-32 resize-none italic"
+                            value={newStaffData.publications}
+                            onChange={(e) => setNewStaffData({...newStaffData, publications: e.target.value})}
+                          ></textarea>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                <button 
+                  onClick={handleAddStaff}
+                  className="w-full py-5 bg-gradient-to-r from-cyan-600 to-[#7c3aed] text-white rounded-[1.5rem] font-black text-[12px] uppercase tracking-[0.3em] italic shadow-2xl shadow-[#7c3aed]/20 hover:scale-[1.01] active:scale-95 transition-all mt-4"
+                >
+                  Add To Directory
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* ── Remove Staff Confirm Modal ── */}
+      <AnimatePresence>
+        {isRemoveStaffConfirmOpen && staffToRemove && (
+          <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsRemoveStaffConfirmOpen(false)} className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="relative bg-[#0f1133] border border-red-500/30 rounded-[2.5rem] p-10 max-w-md w-full shadow-2xl text-center">
+              <div className="w-20 h-20 bg-red-500/10 rounded-3xl flex items-center justify-center mx-auto mb-6 border border-red-500/20">
+                <Trash2 className="w-10 h-10 text-red-500" />
+              </div>
+              <h3 className="text-2xl font-black text-white italic uppercase tracking-tighter mb-4">Remove Member?</h3>
+              <p className="text-slate-400 text-sm leading-relaxed mb-10">
+                Are you sure you want to remove <span className="text-white font-bold">{staffToRemove.name}</span> from the <span className="text-cyan-400 font-bold uppercase">{staffToRemove.category}</span> directory? This action is permanent.
+              </p>
+              <div className="flex gap-4">
+                <button onClick={() => setIsRemoveStaffConfirmOpen(false)} className="flex-1 py-4 bg-white/5 hover:bg-white/10 text-white rounded-2xl font-black text-[11px] uppercase tracking-widest transition-all">Cancel</button>
+                <button onClick={handleRemoveStaff} className="flex-1 py-4 bg-red-500 hover:bg-red-600 text-white rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-lg shadow-red-500/20 transition-all">Confirm</button>
               </div>
             </motion.div>
           </div>
