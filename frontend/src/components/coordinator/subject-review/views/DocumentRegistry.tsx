@@ -40,7 +40,7 @@ export const DocumentRegistry: React.FC<DocumentRegistryProps> = ({ participant 
 
 
     return (
-        <div style={{ padding: '2rem', display: 'flex', flexDirection: 'column', gap: '3rem' }}>
+        <div className="p-4 md:p-8 flex flex-col gap-8 md:gap-12">
             <div>
                 <h3 style={S.title}>Participant Document Repository</h3>
                 <div style={{ marginTop: '2rem', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1.5rem' }}>

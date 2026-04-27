@@ -39,6 +39,7 @@ const ResetForced = lazy(() => import('./views/auth/ResetForced'));
 const ResetPassword = lazy(() => import('./views/auth/ResetPassword'));
 const ProfileSetup = lazy(() => import('./views/auth/ProfileSetup'));
 const AcceptInvitation = lazy(() => import('./views/auth/AcceptInvitation'));
+const ConsentManagement = lazy(() => import('./views/ConsentManagement'));
 
 // --- Helper Redirects for Legacy URLs ---
 const CoordinatorRedirect = () => {
@@ -150,6 +151,7 @@ function AppContent() {
                         <Route path="/dashboard/pi/*" element={<PIDashboard />} />
                         <Route path="/dashboard/coordinator/*" element={<CoordinatorDashboard />} />
                         <Route path="/dashboard/sponsor/*" element={<SponsorDashboard />} />
+                        <Route path="/consent-management" element={<ConsentManagement />} />
                         
                         {/* Legacy Redirects for old notification links */}
                         {/* Legacy Redirects for old notification links - preserving full path */}

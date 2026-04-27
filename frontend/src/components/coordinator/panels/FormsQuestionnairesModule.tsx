@@ -177,8 +177,8 @@ export default function FormsQuestionnairesModule({ selectedStudyId }: { selecte
         <div className="space-y-8">
             <div className={`flex ${isMobile ? 'flex-col' : 'items-end justify-between'} gap-6`}>
                 <div>
-                    <h2 className={`${isMobile ? 'text-2xl' : 'text-xl'} font-bold text-white tracking-tight italic uppercase`}>Eligibility <span className="text-blue-400">Questionnaires</span></h2>
-                    <p className="text-[11px] text-slate-500 font-bold uppercase tracking-[0.3em] mt-2 italic">eCRF Management & Dynamic Instrument Design</p>
+                    <h2 className={`${isMobile ? 'text-2xl' : 'text-xl'} font-bold text-white tracking-tight uppercase`}>Forms</h2>
+                    <p className="text-[11px] text-slate-500 font-bold uppercase tracking-wider mt-2">Tracking & Design</p>
                 </div>
                 <div className="flex items-center gap-3">
                     <button onClick={fetchForms} className={`p-3 text-slate-500 hover:text-white transition-colors border border-slate-800 rounded-xl hover:bg-slate-800 ${isMobile ? 'w-full flex justify-center' : ''}`}>
@@ -195,7 +195,7 @@ export default function FormsQuestionnairesModule({ selectedStudyId }: { selecte
                             onClick={() => setTabDropdownOpen(!tabDropdownOpen)}
                             className="w-full flex items-center justify-between px-6 py-4 bg-slate-900/50 border border-slate-800 rounded-2xl text-[12px] font-black uppercase tracking-widest text-white transition-all active:scale-[0.98]"
                         >
-                            <span>Module: {currentTabLabel}</span>
+                            <span>{currentTabLabel}</span>
                             <Plus className={`w-4 h-4 text-slate-500 transition-transform duration-300 ${tabDropdownOpen ? 'rotate-45' : ''}`} />
                         </button>
 
@@ -215,7 +215,7 @@ export default function FormsQuestionnairesModule({ selectedStudyId }: { selecte
                                                 setView(tab.id as any); 
                                                 setTabDropdownOpen(false); 
                                             }}
-                                            className={`w-full flex items-center px-4 py-4 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all ${(view === tab.id || (tab.id === 'Splash' && view === 'Architect')) ? `bg-${tab.color}-600 text-white` : 'text-slate-400 hover:bg-white/5 hover:text-white'}`}
+                                            className={`w-full flex items-center px-4 py-4 rounded-xl text-[11px] font-bold uppercase tracking-wider transition-all ${(view === tab.id || (tab.id === 'Splash' && view === 'Architect')) ? `bg-${tab.color}-600 text-white` : 'text-slate-400 hover:bg-white/5 hover:text-white'}`}
                                         >
                                             {tab.label}
                                         </button>
@@ -231,7 +231,7 @@ export default function FormsQuestionnairesModule({ selectedStudyId }: { selecte
                                 onClick={() => setView('Tracking')}
                                 className={`px-5 py-2.5 text-xs font-bold uppercase tracking-widest rounded-md transition-all ${view === 'Tracking' ? 'bg-blue-600 text-white' : 'text-slate-500 hover:text-slate-300'}`}
                             >
-                                Form Tracking
+                                Tracking
                             </button>
                             <button
                                 onClick={() => {
@@ -240,13 +240,13 @@ export default function FormsQuestionnairesModule({ selectedStudyId }: { selecte
                                 }}
                                 className={`px-5 py-2.5 text-xs font-bold uppercase tracking-widest rounded-md transition-all ${view === 'Splash' || view === 'Architect' ? 'bg-blue-600 text-white' : 'text-slate-500 hover:text-slate-300'}`}
                             >
-                                Form Builder
+                                Builder
                             </button>
                             <button
                                 onClick={() => setView('Screener')}
                                 className={`px-5 py-2.5 text-xs font-bold uppercase tracking-widest rounded-md transition-all ${view === 'Screener' ? 'bg-pink-600 text-white shadow-lg shadow-pink-600/20' : 'text-slate-500 hover:text-slate-300'}`}
                             >
-                                Screener Builder
+                                Screeners
                             </button>
                         </div>
                     </div>
@@ -258,18 +258,18 @@ export default function FormsQuestionnairesModule({ selectedStudyId }: { selecte
                     {/* Stats Grid */}
                     <div className={`grid ${isMobile ? 'grid-cols-1' : isTablet ? 'grid-cols-2' : 'grid-cols-4'} gap-4`}>
                         {[
-                            { label: 'Completion Rate', val: stats.completion, icon: CheckCircle2, color: 'emerald' },
-                            { label: 'Pending Forms', val: stats.pending, icon: Clock, color: 'blue' },
-                            { label: 'Active Queries', val: stats.queries, icon: AlertCircle, color: 'rose' },
-                            { label: 'Synced to EDC', val: stats.synced, icon: Database, color: 'blue' }
+                            { label: 'Done', val: stats.completion, icon: CheckCircle2, color: 'emerald' },
+                            { label: 'Pending', val: stats.pending, icon: Clock, color: 'blue' },
+                            { label: 'Queries', val: stats.queries, icon: AlertCircle, color: 'rose' },
+                            { label: 'Synced', val: stats.synced, icon: Database, color: 'blue' }
                         ].map((stat, i) => (
                             <div key={i} className="bg-slate-900/40 border border-slate-800/50 p-5 rounded-2xl flex items-center gap-4 group hover:bg-slate-900/60 transition-all">
                                 <div className={`w-12 h-12 rounded-xl bg-${stat.color}-500/10 border border-${stat.color}-500/20 flex items-center justify-center text-${stat.color}-500 group-hover:scale-110 transition-transform`}>
                                     <stat.icon className="w-6 h-6" />
                                 </div>
                                 <div>
-                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] leading-none mb-1">{stat.label}</p>
-                                    <p className="text-2xl font-black text-white italic tracking-tighter leading-none">{stat.val}</p>
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider leading-none mb-1">{stat.label}</p>
+                                    <p className="text-2xl font-bold text-white tracking-tighter leading-none">{stat.val}</p>
                                 </div>
                             </div>
                         ))}
@@ -286,7 +286,7 @@ export default function FormsQuestionnairesModule({ selectedStudyId }: { selecte
                         </div>
                         <select 
                             value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}
-                            className={`bg-slate-950 border border-slate-800 rounded-2xl py-3.5 px-6 text-[11px] font-black text-slate-400 focus:outline-none focus:text-white uppercase tracking-widest ${isMobile ? 'w-full' : ''}`}
+                            className={`bg-slate-950 border border-slate-800 rounded-2xl py-3.5 px-6 text-[11px] font-bold text-slate-400 focus:outline-none focus:text-white uppercase tracking-wider ${isMobile ? 'w-full' : ''}`}
                         >
                             <option value="All">All Statuses</option>
                             <option value="PENDING">Pending</option>
@@ -298,8 +298,8 @@ export default function FormsQuestionnairesModule({ selectedStudyId }: { selecte
                     <div className="bg-[#0f1133]/40 border border-white/5 rounded-[2.5rem] overflow-hidden shadow-2xl">
                         <div className="px-8 py-6 bg-white/[0.02] border-b border-white/5 flex items-center justify-between">
                             <div>
-                                <h4 className="text-sm font-black uppercase tracking-widest text-white italic">Subject Submissions</h4>
-                                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.2em] mt-1">{filteredForms.length} Active Records</p>
+                                <h4 className="text-sm font-bold uppercase tracking-wider text-white">Submissions</h4>
+                                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mt-1">{filteredForms.length} Forms</p>
                             </div>
                         </div>
 
@@ -313,11 +313,11 @@ export default function FormsQuestionnairesModule({ selectedStudyId }: { selecte
                                                     <FileText className="w-6 h-6" />
                                                 </div>
                                                 <div>
-                                                    <p className="text-base font-black text-white italic uppercase tracking-tight leading-none">{f.title || 'Unknown Form'}</p>
-                                                    <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest mt-1.5">{f.type?.replace(/_/g, ' ')}</p>
+                                                    <p className="text-base font-bold text-white uppercase tracking-tight leading-none">{f.title || 'Form'}</p>
+                                                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mt-1.5">{f.type?.replace(/_/g, ' ')}</p>
                                                 </div>
                                             </div>
-                                            <div className={`px-3 py-1.5 rounded-lg border text-[10px] font-black uppercase tracking-widest ${
+                                                <div className={`px-3 py-1.5 rounded-lg border text-[10px] font-bold uppercase tracking-wider ${
                                                 f.status === 'COMPLETED' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 
                                                 f.status === 'PENDING' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' : 
                                                 'bg-slate-800 text-slate-400 border-slate-700'
@@ -328,29 +328,29 @@ export default function FormsQuestionnairesModule({ selectedStudyId }: { selecte
 
                                         <div className="py-4 border-y border-white/5 space-y-3">
                                             <div className="flex justify-between items-center">
-                                                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest italic">Subject</span>
+                                                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Participant</span>
                                                 <div className="text-right">
-                                                    <p className="text-sm font-black text-white uppercase italic leading-none">{f.participant_name || 'Anonymous'}</p>
-                                                    <p className="text-[10px] font-mono text-slate-500 uppercase tracking-tighter mt-1">{f.participant}</p>
+                                                    <p className="text-sm font-bold text-white uppercase leading-none">{f.participant_name || 'Anonymous'}</p>
+                                                    <p className="text-[10px] font-mono text-slate-500 uppercase tracking-tight mt-1">{f.participant}</p>
                                                 </div>
                                             </div>
                                             <div className="flex justify-between items-center">
-                                                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest italic">Last Update</span>
+                                                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Last Sync</span>
                                                 <div className="text-right">
-                                                    <p className="text-sm font-black text-slate-300 uppercase leading-none">{new Date(f.updated_at).toLocaleDateString('en-US')}</p>
-                                                    <p className="text-[10px] text-slate-600 font-bold tracking-widest mt-1">{new Date(f.updated_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</p>
+                                                    <p className="text-sm font-bold text-slate-300 uppercase leading-none">{new Date(f.updated_at).toLocaleDateString('en-US')}</p>
+                                                    <p className="text-[10px] text-slate-600 font-bold tracking-wider mt-1">{new Date(f.updated_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</p>
                                                 </div>
                                             </div>
                                         </div>
 
                                         <button className="w-full py-4 bg-white/5 border border-white/10 rounded-2xl text-[11px] font-black uppercase tracking-[0.2em] text-white hover:bg-white hover:text-slate-900 transition-all flex items-center justify-center gap-3 active:scale-95">
-                                            Open Review <ChevronRight className="w-4 h-4" />
+                                            Open <ChevronRight className="w-4 h-4" />
                                         </button>
                                     </div>
                                 )) : (
                                     <div className="py-20 text-center">
                                         <ClipboardList className="w-12 h-12 text-slate-700 mx-auto mb-4" />
-                                        <p className="text-sm font-black uppercase tracking-widest text-slate-600 italic">No submissions found</p>
+                                        <p className="text-sm font-bold uppercase tracking-wider text-slate-600">No submissions found</p>
                                     </div>
                                 )}
                             </div>
@@ -358,10 +358,10 @@ export default function FormsQuestionnairesModule({ selectedStudyId }: { selecte
                             <table className="w-full text-left border-collapse">
                                 <thead>
                                     <tr className="bg-white/[0.01] border-b border-white/5 whitespace-nowrap">
-                                        <th className="px-8 py-5 text-[11px] font-black text-white/40 uppercase tracking-widest italic border-r border-white/5">Instrument Details</th>
-                                        <th className="px-8 py-5 text-[11px] font-black text-white/40 uppercase tracking-widest italic border-r border-white/5">Subject ID</th>
-                                        <th className="px-8 py-5 text-[11px] font-black text-white/40 uppercase tracking-widest italic border-r border-white/5">Current Status</th>
-                                        <th className="px-8 py-5 text-[11px] font-black text-white/40 uppercase tracking-widest italic text-right">Synchronization</th>
+                                        <th className="px-8 py-5 text-[11px] font-bold text-white/40 uppercase tracking-wider border-r border-white/5">Form</th>
+                                        <th className="px-8 py-5 text-[11px] font-bold text-white/40 uppercase tracking-wider border-r border-white/5">Participant</th>
+                                        <th className="px-8 py-5 text-[11px] font-bold text-white/40 uppercase tracking-wider border-r border-white/5">Status</th>
+                                        <th className="px-8 py-5 text-[11px] font-bold text-white/40 uppercase tracking-wider text-right">Last Sync</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-white/5">
@@ -373,19 +373,19 @@ export default function FormsQuestionnairesModule({ selectedStudyId }: { selecte
                                                         <FileText className="w-4 h-4" />
                                                     </div>
                                                     <div className="flex flex-col">
-                                                        <span className="text-[14px] font-black text-white italic uppercase tracking-tight leading-none">{f.title || 'Unknown Form'}</span>
-                                                        <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest mt-1.5 italic">{f.type?.replace(/_/g, ' ')}</span>
+                                                        <span className="text-[14px] font-bold text-white uppercase tracking-tight leading-none">{f.title || 'Form'}</span>
+                                                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mt-1.5">{f.type?.replace(/_/g, ' ')}</span>
                                                     </div>
                                                 </div>
                                             </td>
                                             <td className="px-8 py-5 border-r border-white/5">
                                                 <div className="flex flex-col">
-                                                    <span className="text-[14px] font-black text-white italic uppercase tracking-tighter leading-none">{f.participant_name || 'Anonymous'}</span>
-                                                    <span className="text-[11px] font-mono text-slate-500 uppercase tracking-widest mt-1.5">{f.participant}</span>
+                                                    <span className="text-[14px] font-bold text-white uppercase tracking-tighter leading-none">{f.participant_name || 'Anonymous'}</span>
+                                                    <span className="text-[11px] font-mono text-slate-500 uppercase tracking-wider mt-1.5">{f.participant}</span>
                                                 </div>
                                             </td>
                                             <td className="px-8 py-5 border-r border-white/5">
-                                                <span className={`px-4 py-1.5 rounded-xl text-[11px] font-black uppercase tracking-widest border transition-all ${
+                                                <span className={`px-4 py-1.5 rounded-xl text-[11px] font-bold uppercase tracking-wider border transition-all ${
                                                     f.status === 'COMPLETED' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 group-hover:bg-emerald-500 group-hover:text-white' : 
                                                     f.status === 'PENDING' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20 group-hover:bg-amber-500 group-hover:text-white' : 
                                                     'bg-slate-800 text-slate-400 border-slate-700'
@@ -395,13 +395,13 @@ export default function FormsQuestionnairesModule({ selectedStudyId }: { selecte
                                             </td>
                                             <td className="px-8 py-5 text-right">
                                                 <div className="flex flex-col items-end gap-1.5">
-                                                    <span className="text-[13px] text-white font-black italic uppercase leading-none">{new Date(f.updated_at).toLocaleDateString('en-US')}</span>
-                                                    <span className="text-[10px] text-slate-500 font-black uppercase tracking-widest font-mono italic opacity-60">{new Date(f.updated_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</span>
+                                                    <span className="text-[13px] text-white font-bold uppercase leading-none">{new Date(f.updated_at).toLocaleDateString('en-US')}</span>
+                                                    <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider font-mono opacity-60">{new Date(f.updated_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</span>
                                                 </div>
                                             </td>
                                         </tr>
                                     )) : (
-                                        <tr><td colSpan={4} className="px-8 py-24 text-center text-slate-600 text-sm font-black uppercase tracking-widest italic opacity-40">No localized telemetry found</td></tr>
+                                        <tr><td colSpan={4} className="px-8 py-24 text-center text-slate-600 text-sm font-bold uppercase tracking-wider opacity-40">No Forms</td></tr>
                                     )}
                                 </tbody>
                             </table>
@@ -414,19 +414,19 @@ export default function FormsQuestionnairesModule({ selectedStudyId }: { selecte
                 <div className={`p-8 md:p-20 bg-slate-900/30 border border-slate-800 rounded-[3rem] flex flex-col items-center text-center space-y-10 ${isMobile ? 'py-16' : ''}`}>
                     <div className="w-24 h-24 bg-indigo-600/10 border border-indigo-500/20 rounded-[2rem] flex items-center justify-center text-indigo-400 shadow-2xl shadow-indigo-900/20"><Plus className="w-12 h-12" /></div>
                     <div className="max-w-md">
-                        <h3 className="text-2xl font-black text-white italic uppercase tracking-tighter mb-4">Instrument Architect</h3>
-                        <p className="text-xs text-slate-500 font-bold uppercase tracking-[0.2em] leading-relaxed">Design multi-page electronic case report forms (eCRF) with built-in edit checks and logic branching.</p>
+                        <h3 className="text-2xl font-bold text-white uppercase tracking-tighter mb-4">Designer</h3>
+                        <p className="text-xs text-slate-500 font-bold uppercase tracking-wider leading-relaxed">Create custom forms and questionnaires.</p>
                     </div>
                     <div className="flex gap-4">
-                        <button onClick={() => { setBuilderTab('Create New'); setView('Architect'); }} className="px-12 py-5 bg-white text-slate-950 rounded-[1.5rem] text-[12px] font-black uppercase tracking-widest hover:scale-105 transition-all shadow-2xl active:scale-95">Create New eCRF</button>
+                        <button onClick={() => { setBuilderTab('Create New'); setView('Architect'); }} className="px-12 py-5 bg-white text-slate-950 rounded-[1.5rem] text-[12px] font-bold uppercase tracking-wider hover:scale-105 transition-all shadow-2xl active:scale-95">Create New</button>
                     </div>
                 </div>
             )}
 
             {view === 'Architect' && (
                 <div className="">
-                    <button onClick={() => { setView('Tracking'); fetchForms(); }} className="mb-8 flex items-center gap-2 text-[10px] font-black text-slate-600 uppercase tracking-widest hover:text-white transition-all">
-                        <ChevronRight className="w-4 h-4 rotate-180" /> Back to Dashboard
+                    <button onClick={() => { setView('Tracking'); fetchForms(); }} className="mb-8 flex items-center gap-2 text-[10px] font-bold text-slate-600 uppercase tracking-wider hover:text-white transition-all">
+                        <ChevronRight className="w-4 h-4 rotate-180" /> Back
                     </button>
                     <QuestionnaireBuilder initialTemplate={selectedTemplate} initialTab={builderTab} />
                 </div>
@@ -434,8 +434,8 @@ export default function FormsQuestionnairesModule({ selectedStudyId }: { selecte
 
             {view === 'Screener' && (
                 <div className="">
-                    <button onClick={() => { setView('Tracking'); fetchForms(); }} className="mb-8 flex items-center gap-2 text-[10px] font-black text-slate-600 uppercase tracking-widest hover:text-white transition-all">
-                        <ChevronRight className="w-4 h-4 rotate-180" /> Back to Dashboard
+                    <button onClick={() => { setView('Tracking'); fetchForms(); }} className="mb-8 flex items-center gap-2 text-[10px] font-bold text-slate-600 uppercase tracking-wider hover:text-white transition-all">
+                        <ChevronRight className="w-4 h-4 rotate-180" /> Back
                     </button>
                     <ScreenerBuilder />
                 </div>

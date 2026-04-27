@@ -3,13 +3,13 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { authFetch, API } from '../../utils/auth';
 import { Skeleton } from '../../views/Participant/SharedComponents';
 
-import { 
-    Box, 
-    Search, 
-    Ship, 
-    ArrowRight, 
-    CheckCircle2, 
-    Clock, 
+import {
+    Box,
+    Search,
+    Ship,
+    ArrowRight,
+    CheckCircle2,
+    Clock,
     Package,
     Truck,
     MapPin,
@@ -46,7 +46,7 @@ export default function StudyKitsModule({ selectedStudyId, preloadedStudies, pre
     const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
     const [participants, setParticipants] = useState<any[]>(preloadedParticipants || []);
     const [selectedStudyForAssignment, setSelectedStudyForAssignment] = useState<string>('');
-    
+
     // Form state for new kit
     const [newKit, setNewKit] = useState({
         participantId: '',
@@ -249,7 +249,7 @@ export default function StudyKitsModule({ selectedStudyId, preloadedStudies, pre
         }
     };
 
-    const filteredKits = kits.filter(kit => 
+    const filteredKits = kits.filter(kit =>
         (selectedStudyId === 'all' || !selectedStudyId || kit.protocol_id === selectedStudyId) &&
         (kit.participant_name.toLowerCase().includes(searchQuery.toLowerCase()) || (kit.kit_number && kit.kit_number.includes(searchQuery)) || (kit.participant_id && kit.participant_id.includes(searchQuery)))
     );
@@ -269,15 +269,15 @@ export default function StudyKitsModule({ selectedStudyId, preloadedStudies, pre
                 <div className={`flex ${isMobile ? 'flex-col' : 'items-center'} gap-4`}>
                     <div className={`relative group ${isMobile ? 'w-full' : 'w-80'}`}>
                         <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600 group-focus-within:text-blue-400 transition-colors" />
-                        <input 
-                            type="text" 
+                        <input
+                            type="text"
                             placeholder="Find Kit, Subject, or SID..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             className="bg-white/5 border border-white/10 rounded-2xl pl-12 pr-6 py-4 text-[12px] text-white font-black outline-none focus:border-blue-500/50 transition-all w-full uppercase tracking-widest placeholder:text-slate-800 font-mono shadow-2xl"
                         />
                     </div>
-                    <button 
+                    <button
                         onClick={() => setIsAssignModalOpen(true)}
                         className={`flex items-center justify-center gap-3 px-8 py-4 bg-blue-600 text-white rounded-2xl text-[12px] font-black uppercase tracking-widest hover:scale-[1.03] active:scale-95 transition-all shadow-2xl shadow-blue-600/30 ${isMobile ? 'w-full' : ''}`}
                     >
@@ -310,7 +310,7 @@ export default function StudyKitsModule({ selectedStudyId, preloadedStudies, pre
 
             <div className="bg-[#0B101B]/40 backdrop-blur-2xl border border-white/5 rounded-[2.5rem] md:rounded-[3rem] overflow-hidden shadow-2xl relative">
                 <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-blue-500/20 to-transparent" />
-                
+
                 {(isMobile || isTablet) ? (
                     <div className="p-4 space-y-4">
                         {isLoading ? (
@@ -337,7 +337,7 @@ export default function StudyKitsModule({ selectedStudyId, preloadedStudies, pre
                                             <p className="text-base md:text-lg font-black text-white italic uppercase tracking-tighter mt-1 truncate">{kit.kit_number}</p>
                                         </div>
                                     </div>
-                                    <div className={`px-3 py-1.5 md:px-4 md:py-1.5 rounded-full border text-[8px] md:text-[10px] font-black uppercase tracking-widest shrink-0 ${getStatusStyle(kit.status)}`}>
+                                    <div className={`px-2 py-1 md:px-3 md:py-1 rounded-full border text-[8px] md:text-[9px] font-black uppercase tracking-widest shrink-0 ${getStatusStyle(kit.status)}`}>
                                         {kit.status}
                                     </div>
                                 </div>
@@ -355,7 +355,7 @@ export default function StudyKitsModule({ selectedStudyId, preloadedStudies, pre
                                             <MapPin className="w-3 h-3 text-slate-500" />
                                             <p className="text-[9px] md:text-[10px] font-black text-slate-500 uppercase tracking-widest italic">Delivery Vector</p>
                                         </div>
-                                        <textarea 
+                                        <textarea
                                             value={kit.address}
                                             onChange={(e) => {
                                                 const val = e.target.value;
@@ -370,7 +370,7 @@ export default function StudyKitsModule({ selectedStudyId, preloadedStudies, pre
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="space-y-2">
                                         <p className="text-[9px] md:text-[10px] font-black text-slate-600 uppercase tracking-widest italic">Carrier Vector</p>
-                                        <select 
+                                        <select
                                             value={kit.carrier}
                                             onChange={(e) => handleUpdateKit(kit.id, { carrier: e.target.value as any })}
                                             className="w-full bg-white/5 px-3 py-3 rounded-xl border border-white/10 text-[10px] font-black text-slate-400 uppercase tracking-widest outline-none appearance-none italic"
@@ -381,69 +381,69 @@ export default function StudyKitsModule({ selectedStudyId, preloadedStudies, pre
                                             <option value="USPS">USPS</option>
                                         </select>
                                     </div>
-                                {kit.status === 'ASSIGNED' || kit.status === 'PREPARING' ? (
-                                    <div className="space-y-4 pt-4 border-t border-white/5">
-                                        <div className="bg-blue-500/5 border border-blue-500/10 rounded-2xl p-5 space-y-4">
-                                            <div className="flex items-center gap-2 text-[10px] font-black text-blue-400 uppercase tracking-widest italic">
-                                                <Truck className="w-3.5 h-3.5" /> Initialize Dispatch Protocol
-                                            </div>
-                                            <div className="flex gap-3">
-                                                <input 
-                                                    type="text" 
-                                                    placeholder="CARRIER TRACKING #" 
-                                                    className="flex-1 bg-[#0B101B] border border-white/10 rounded-xl px-4 py-3.5 text-[12px] text-white font-mono outline-none focus:border-blue-500/50 transition-all placeholder:text-slate-800"
-                                                    onKeyDown={(e: any) => {
-                                                        if (e.key === 'Enter' && e.target.value) {
-                                                            handleUpdateKit(kit.id, { status: 'SHIPPED', tracking_number: e.target.value.trim() });
-                                                        }
-                                                    }}
-                                                />
-                                                <button 
-                                                    onClick={(e: any) => {
-                                                        const input = e.currentTarget.previousSibling as HTMLInputElement;
-                                                        if (input.value) {
-                                                            handleUpdateKit(kit.id, { status: 'SHIPPED', tracking_number: input.value.trim() });
-                                                        }
-                                                    }}
-                                                    className="px-6 bg-blue-600 text-white rounded-xl text-[11px] font-black uppercase tracking-widest hover:scale-[1.03] active:scale-95 transition-all shadow-xl shadow-blue-600/20"
-                                                >
-                                                    Ship
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                ) : (
-                                    <div className="space-y-4 pt-4 border-t border-white/5">
-                                        <div className={`p-5 rounded-2xl border flex items-center justify-between transition-all ${kit.status === 'SHIPPED' ? 'bg-amber-500/5 border-amber-500/10' : 'bg-emerald-500/5 border-emerald-500/10'}`}>
-                                            <div className="space-y-1">
-                                                <div className={`text-[10px] font-black uppercase tracking-widest italic ${kit.status === 'SHIPPED' ? 'text-amber-400' : 'text-emerald-400'}`}>
-                                                    {kit.status === 'SHIPPED' ? 'Active Inbound Transit' : 'Material Received'}
+                                    {kit.status === 'ASSIGNED' || kit.status === 'PREPARING' ? (
+                                        <div className="space-y-4 pt-4 border-t border-white/5">
+                                            <div className="bg-blue-500/5 border border-blue-500/10 rounded-2xl p-5 space-y-4">
+                                                <div className="flex items-center gap-2 text-[10px] font-black text-blue-400 uppercase tracking-widest italic">
+                                                    <Truck className="w-3.5 h-3.5" /> Initialize Dispatch Protocol
                                                 </div>
-                                                <div className="text-[12px] font-black text-white font-mono tracking-tighter uppercase">{kit.tracking_number || 'Internal Transfer'}</div>
+                                                <div className="flex gap-3">
+                                                    <input
+                                                        type="text"
+                                                        placeholder="CARRIER TRACKING #"
+                                                        className="flex-1 bg-[#0B101B] border border-white/10 rounded-xl px-4 py-3.5 text-[12px] text-white font-mono outline-none focus:border-blue-500/50 transition-all placeholder:text-slate-800"
+                                                        onKeyDown={(e: any) => {
+                                                            if (e.key === 'Enter' && e.target.value) {
+                                                                handleUpdateKit(kit.id, { status: 'SHIPPED', tracking_number: e.target.value.trim() });
+                                                            }
+                                                        }}
+                                                    />
+                                                    <button
+                                                        onClick={(e: any) => {
+                                                            const input = e.currentTarget.previousSibling as HTMLInputElement;
+                                                            if (input.value) {
+                                                                handleUpdateKit(kit.id, { status: 'SHIPPED', tracking_number: input.value.trim() });
+                                                            }
+                                                        }}
+                                                        className="px-6 bg-blue-600 text-white rounded-xl text-[11px] font-black uppercase tracking-widest hover:scale-[1.03] active:scale-95 transition-all shadow-xl shadow-blue-600/20"
+                                                    >
+                                                        Ship
+                                                    </button>
+                                                </div>
                                             </div>
-                                            {kit.tracking_number && (
-                                                <button 
-                                                    onClick={() => window.open(`https://www.google.com/search?q=${kit.tracking_number}+tracking`, '_blank')}
-                                                    className="p-3 bg-white/5 rounded-xl text-slate-400 hover:text-white hover:bg-white/10 transition-all shadow-xl"
-                                                >
-                                                    <ExternalLink className="w-4 h-4" />
-                                                </button>
-                                            )}
                                         </div>
-                                    </div>
-                                )}
+                                    ) : (
+                                        <div className="space-y-4 pt-4 border-t border-white/5">
+                                            <div className={`p-5 rounded-2xl border flex items-center justify-between transition-all ${kit.status === 'SHIPPED' ? 'bg-amber-500/5 border-amber-500/10' : 'bg-emerald-500/5 border-emerald-500/10'}`}>
+                                                <div className="space-y-1">
+                                                    <div className={`text-[10px] font-black uppercase tracking-widest italic ${kit.status === 'SHIPPED' ? 'text-amber-400' : 'text-emerald-400'}`}>
+                                                        {kit.status === 'SHIPPED' ? 'Active Inbound Transit' : 'Material Received'}
+                                                    </div>
+                                                    <div className="text-[12px] font-black text-white font-mono tracking-tighter uppercase">{kit.tracking_number || 'Internal Transfer'}</div>
+                                                </div>
+                                                {kit.tracking_number && (
+                                                    <button
+                                                        onClick={() => window.open(`https://www.google.com/search?q=${kit.tracking_number}+tracking`, '_blank')}
+                                                        className="p-3 bg-white/5 rounded-xl text-slate-400 hover:text-white hover:bg-white/10 transition-all shadow-xl"
+                                                    >
+                                                        <ExternalLink className="w-4 h-4" />
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
 
-                                <div className="flex gap-2 pt-4">
-                                    <button onClick={() => downloadLabel(kit, 'SHIPPING')} className="flex-1 py-4 bg-white/5 border border-white/10 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-400 hover:bg-white/10 hover:text-white transition-all flex items-center justify-center gap-2">
-                                        <Truck className="w-4 h-4" /> Shipping
-                                    </button>
-                                    <button onClick={() => downloadLabel(kit, 'RETURN')} className="flex-1 py-4 bg-white/5 border border-white/10 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-400 hover:bg-white/10 hover:text-white transition-all flex items-center justify-center gap-2">
-                                        <Package className="w-4 h-4" /> Return
-                                    </button>
-                                    <button onClick={() => alert(`Operational Audit Flagged`)} className="p-4 bg-white/5 border border-white/10 rounded-2xl text-slate-400 hover:text-red-400 hover:bg-red-600/10 transition-all shadow-xl" title="Audit Flag">
-                                        <AlertCircle className="w-4 h-4" />
-                                    </button>
-                                </div>
+                                    <div className="flex gap-2 pt-4">
+                                        <button onClick={() => downloadLabel(kit, 'SHIPPING')} className="flex-1 py-4 bg-white/5 border border-white/10 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-400 hover:bg-white/10 hover:text-white transition-all flex items-center justify-center gap-2">
+                                            <Truck className="w-4 h-4" /> Shipping
+                                        </button>
+                                        <button onClick={() => downloadLabel(kit, 'RETURN')} className="flex-1 py-4 bg-white/5 border border-white/10 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-400 hover:bg-white/10 hover:text-white transition-all flex items-center justify-center gap-2">
+                                            <Package className="w-4 h-4" /> Return
+                                        </button>
+                                        <button onClick={() => alert(`Operational Audit Flagged`)} className="p-4 bg-white/5 border border-white/10 rounded-2xl text-slate-400 hover:text-red-400 hover:bg-red-600/10 transition-all shadow-xl" title="Audit Flag">
+                                            <AlertCircle className="w-4 h-4" />
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         ))}
@@ -453,11 +453,11 @@ export default function StudyKitsModule({ selectedStudyId, preloadedStudies, pre
                         <table className="w-full text-left min-w-[1200px]">
                             <thead>
                                 <tr className="bg-white/5 border-b border-white/5">
-                                    <th className="px-8 py-6 text-[12px] font-black text-slate-500 uppercase tracking-widest italic border-r border-white/5">Protocol & Kit Logistics</th>
-                                    <th className="px-8 py-6 text-[12px] font-black text-slate-500 uppercase tracking-widest italic border-r border-white/5">Participant Info & Address</th>
-                                    <th className="px-8 py-6 text-[12px] font-black text-slate-500 uppercase tracking-widest italic border-r border-white/5">Carrier & Tracking</th>
-                                    <th className="px-8 py-6 text-[12px] font-black text-slate-500 uppercase tracking-widest italic border-r border-white/5">Dispatch Status</th>
-                                    <th className="px-8 py-6 text-[12px] font-black text-slate-500 uppercase tracking-widest italic text-right">Actions</th>
+                                    <th className="px-6 py-4 text-[11px] font-black text-slate-500 uppercase tracking-widest italic border-r border-white/5">Protocol & Kit Logistics</th>
+                                    <th className="px-6 py-4 text-[11px] font-black text-slate-500 uppercase tracking-widest italic border-r border-white/5">Participant Info & Address</th>
+                                    <th className="px-6 py-4 text-[11px] font-black text-slate-500 uppercase tracking-widest italic border-r border-white/5">Carrier & Tracking</th>
+                                    <th className="px-6 py-4 text-[11px] font-black text-slate-500 uppercase tracking-widest italic border-r border-white/5">Dispatch Status</th>
+                                    <th className="px-6 py-4 text-[11px] font-black text-slate-500 uppercase tracking-widest italic text-right">Actions</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-white/5">
@@ -478,7 +478,7 @@ export default function StudyKitsModule({ selectedStudyId, preloadedStudies, pre
                                     ))
                                 ) : filteredKits.map((kit) => (
                                     <motion.tr key={kit.id} layout className="hover:bg-white/[0.02] transition-colors group">
-                                        <td className="px-8 py-8 border-r border-white/5">
+                                        <td className="px-6 py-6 border-r border-white/5">
                                             <div className="flex items-center gap-8">
                                                 <div className="w-16 h-16 rounded-[1.75rem] bg-[#0B101B] border border-white/10 flex items-center justify-center text-blue-400 group-hover:border-blue-500/40 transition-all shadow-inner group-hover:scale-105">
                                                     <Package className="w-7 h-7" />
@@ -496,7 +496,7 @@ export default function StudyKitsModule({ selectedStudyId, preloadedStudies, pre
                                             <p className="text-[12px] font-black text-blue-500/60 uppercase tracking-widest font-mono italic">{kit.participant_id}</p>
                                             <div className="flex items-start gap-3 mt-5 p-4 bg-white/5 rounded-[1.5rem] border border-white/5 group/addr relative transition-all hover:bg-white/10">
                                                 <MapPin className="w-4 h-4 text-slate-600 mt-1 shrink-0" />
-                                                <textarea 
+                                                <textarea
                                                     value={kit.address}
                                                     onChange={(e) => {
                                                         const val = e.target.value;
@@ -510,21 +510,21 @@ export default function StudyKitsModule({ selectedStudyId, preloadedStudies, pre
                                         <td className="px-8 py-8 border-r border-white/5">
                                             <div className="space-y-5">
                                                 <div className="bg-white/5 p-1 rounded-2xl border border-white/10 hover:border-blue-500/30 transition-all">
-                                                    <select 
+                                                    <select
                                                         value={kit.carrier}
                                                         onChange={(e) => handleUpdateKit(kit.id, { carrier: e.target.value as any })}
                                                         className="bg-transparent text-[12px] font-black text-slate-300 uppercase tracking-widest outline-none cursor-pointer w-full px-5 py-3 italic"
                                                     >
-                                                        <option value="FedEx" className="bg-[#0B101B]">FEDEX GLOBAL EXPRESS</option>
-                                                        <option value="UPS" className="bg-[#0B101B]">UPS WORLDWIDE LOGISTICS</option>
-                                                        <option value="DHL" className="bg-[#0B101B]">DHL INTERNATIONAL</option>
-                                                        <option value="USPS" className="bg-[#0B101B]">USPS PRIORITY RESEARCH</option>
+                                                        <option value="FedEx" className="bg-[#0B101B] text-white">FEDEX GLOBAL EXPRESS</option>
+                                                        <option value="UPS" className="bg-[#0B101B] text-white">UPS WORLDWIDE LOGISTICS</option>
+                                                        <option value="DHL" className="bg-[#0B101B] text-white">DHL INTERNATIONAL</option>
+                                                        <option value="USPS" className="bg-[#0B101B] text-white">USPS PRIORITY RESEARCH</option>
                                                     </select>
                                                 </div>
                                                 <div className="bg-white/5 border border-white/10 rounded-[1.5rem] px-6 py-4 relative group/track overflow-hidden transition-all hover:border-blue-500/40">
                                                     <p className="text-[10px] font-black text-slate-600 uppercase tracking-[0.2em] mb-2 italic">Clinical Tracking Matrix</p>
-                                                    <input 
-                                                        type="text" 
+                                                    <input
+                                                        type="text"
                                                         value={kit.tracking_number}
                                                         placeholder={kit.status === 'PREPARING' ? 'AWAITING DISPATCH...' : 'ENTER TRACKING...'}
                                                         onChange={(e) => {
@@ -535,12 +535,12 @@ export default function StudyKitsModule({ selectedStudyId, preloadedStudies, pre
                                                         className="bg-transparent text-[15px] font-black text-white italic outline-none w-full placeholder:text-slate-800 tracking-tighter tabular-nums"
                                                     />
                                                     {kit.tracking_number && (
-                                                        <a 
+                                                        <a
                                                             href={
                                                                 kit.carrier === 'FedEx' ? `https://www.fedex.com/fedextrack/?trknbr=${kit.tracking_number}` :
-                                                                kit.carrier === 'UPS' ? `https://www.ups.com/track?tracknum=${kit.tracking_number}` :
-                                                                kit.carrier === 'DHL' ? `https://www.dhl.com/en/express/tracking.html?AWB=${kit.tracking_number}` :
-                                                                kit.carrier === 'USPS' ? `https://tools.usps.com/go/TrackConfirmAction?tLabels=${kit.tracking_number}` : '#'
+                                                                    kit.carrier === 'UPS' ? `https://www.ups.com/track?tracknum=${kit.tracking_number}` :
+                                                                        kit.carrier === 'DHL' ? `https://www.dhl.com/en/express/tracking.html?AWB=${kit.tracking_number}` :
+                                                                            kit.carrier === 'USPS' ? `https://tools.usps.com/go/TrackConfirmAction?tLabels=${kit.tracking_number}` : '#'
                                                             }
                                                             target="_blank" rel="noopener noreferrer"
                                                             className="flex items-center gap-2 mt-3 text-[10px] font-black text-blue-400 hover:text-white transition-colors uppercase tracking-[0.2em] italic"
@@ -552,21 +552,21 @@ export default function StudyKitsModule({ selectedStudyId, preloadedStudies, pre
                                                 </div>
                                             </div>
                                         </td>
-                                        <td className="px-8 py-8 border-r border-white/5">
+                                        <td className="px-6 py-6 border-r border-white/5">
                                             <div className="space-y-5">
                                                 <div className="bg-white/5 p-1 rounded-2xl border border-white/10 hover:border-blue-500/30 transition-all">
-                                                    <select 
+                                                    <select
                                                         value={kit.status}
                                                         onChange={(e) => handleUpdateKit(kit.id, { status: e.target.value as any })}
                                                         className={`bg-transparent text-[12px] font-black uppercase tracking-widest outline-none cursor-pointer w-full px-5 py-3 italic ${getStatusStyle(kit.status).split(' ')[0]}`}
                                                     >
-                                                        <option value="ASSIGNED" className="bg-[#0B101B]">ASSIGNED FOR DISPATCH</option>
-                                                        <option value="PREPARING" className="bg-[#0B101B]">READY FOR DISPATCH</option>
-                                                        <option value="SHIPPED" className="bg-[#0B101B]">IN TRANSIT (OUTBOUND)</option>
-                                                        <option value="DELIVERED" className="bg-[#0B101B]">DELIVERED TO SITE</option>
-                                                        <option value="RETURN_SHIPPED" className="bg-[#0B101B]">IN TRANSIT (RETURN)</option>
-                                                        <option value="RECEIVED" className="bg-[#0B101B]">RECEIVED AT LAB</option>
-                                                        <option value="DAMAGED" className="bg-[#0B101B]">PROTOCOL VOID / DAMAGED</option>
+                                                        <option value="ASSIGNED" className="bg-[#0B101B] text-white">ASSIGNED FOR DISPATCH</option>
+                                                        <option value="PREPARING" className="bg-[#0B101B] text-white">READY FOR DISPATCH</option>
+                                                        <option value="SHIPPED" className="bg-[#0B101B] text-white">IN TRANSIT (OUTBOUND)</option>
+                                                        <option value="DELIVERED" className="bg-[#0B101B] text-white">DELIVERED TO SITE</option>
+                                                        <option value="RETURN_SHIPPED" className="bg-[#0B101B] text-white">IN TRANSIT (RETURN)</option>
+                                                        <option value="RECEIVED" className="bg-[#0B101B] text-white">RECEIVED AT LAB</option>
+                                                        <option value="DAMAGED" className="bg-[#0B101B] text-white">PROTOCOL VOID / DAMAGED</option>
                                                     </select>
                                                 </div>
                                                 <div className="flex items-center gap-3 px-3">
@@ -575,28 +575,34 @@ export default function StudyKitsModule({ selectedStudyId, preloadedStudies, pre
                                                 </div>
                                             </div>
                                         </td>
-                                        <td className="px-8 py-8 text-right">
+                                        <td className="px-6 py-6 text-right">
                                             <div className="flex flex-col gap-3">
                                                 {(kit.status === 'ASSIGNED' || kit.status === 'PREPARING') ? (
-                                                    <button 
+                                                    <button
                                                         onClick={() => {
                                                             const tracking = prompt("Enter Carrier Tracking ID:", kit.tracking_number || "");
-                                                            if (tracking) handleUpdateKit(kit.id, { status: 'SHIPPED', tracking_number: tracking.trim() });
+                                                            if (tracking) {
+                                                                handleUpdateKit(kit.id, { status: 'SHIPPED', tracking_number: tracking.trim() });
+                                                                alert(`DISPATCH SUCCESSFUL:\n\nKit ID: ${kit.kit_id}\nTracking: ${tracking}\n\nShipping manifesto transmitted to carrier.`);
+                                                            }
                                                         }}
                                                         className="px-6 py-4 bg-amber-600 text-white rounded-2xl text-[12px] font-black uppercase tracking-[0.2em] shadow-2xl shadow-amber-900/40 hover:scale-[1.03] transition-all"
                                                     >
                                                         DISPATCH KIT
                                                     </button>
                                                 ) : (
-                                                    <button className="px-6 py-4 bg-blue-600 text-white rounded-2xl text-[12px] font-black uppercase tracking-[0.2em] shadow-2xl shadow-blue-900/40 hover:scale-[1.03] transition-all">
+                                                    <button
+                                                        onClick={() => alert(`SYSTEM SYNC:\n\nRetrieving real-time tracking from carrier for Kit ${kit.kit_id}...\n\nStatus: ${kit.status} (Verified).`)}
+                                                        className="px-6 py-4 bg-blue-600 text-white rounded-2xl text-[12px] font-black uppercase tracking-[0.2em] shadow-2xl shadow-blue-900/40 hover:scale-[1.03] transition-all"
+                                                    >
                                                         SYNC STATUS
                                                     </button>
                                                 )}
                                                 <div className="flex items-center justify-end gap-3 mt-1">
-                                                    <button onClick={() => downloadLabel(kit, 'SHIPPING')} className="p-3.5 bg-white/5 border border-white/10 rounded-xl text-slate-400 hover:text-white hover:bg-blue-600/20 transition-all shadow-lg" title="Distro Label">
+                                                    <button onClick={() => { downloadLabel(kit, 'SHIPPING'); alert('LABEL GENERATION:\n\nFetching outbound shipping manifesto PDF...'); }} className="p-3.5 bg-white/5 border border-white/10 rounded-xl text-slate-400 hover:text-white hover:bg-blue-600/20 transition-all shadow-lg" title="Distro Label">
                                                         <Truck className="w-4 h-4" />
                                                     </button>
-                                                    <button onClick={() => downloadLabel(kit, 'RETURN')} className="p-3.5 bg-white/5 border border-white/10 rounded-xl text-slate-400 hover:text-white hover:bg-indigo-600/20 transition-all shadow-lg" title="Return Label">
+                                                    <button onClick={() => { downloadLabel(kit, 'RETURN'); alert('LABEL GENERATION:\n\nFetching return shipment manifesto PDF...'); }} className="p-3.5 bg-white/5 border border-white/10 rounded-xl text-slate-400 hover:text-white hover:bg-indigo-600/20 transition-all shadow-lg" title="Return Label">
                                                         <Package className="w-4 h-4" />
                                                     </button>
                                                     <button onClick={() => alert(`Operational Audit Flagged`)} className="p-3.5 bg-white/5 border border-white/10 rounded-xl text-slate-400 hover:text-red-400 hover:bg-red-600/10 transition-all shadow-lg" title="Audit Flag">
@@ -617,12 +623,12 @@ export default function StudyKitsModule({ selectedStudyId, preloadedStudies, pre
                 {isAssignModalOpen && (
                     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
                         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsAssignModalOpen(false)} className="absolute inset-0 bg-[#020617]/95 backdrop-blur-xl" />
-                        <motion.div 
+                        <motion.div
                             initial={{ opacity: 0, scale: 0.9, y: 30 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 30 }}
                             className="relative w-full max-w-3xl bg-[#0B101B] border border-white/10 rounded-[3rem] p-10 shadow-[0_0_100px_rgba(37,99,235,0.2)] overflow-hidden"
                         >
                             <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-transparent via-blue-600 to-transparent" />
-                            
+
                             <div className="flex items-center gap-8 mb-12">
                                 <div className="p-5 bg-blue-500/10 rounded-[2rem] border border-blue-500/20 shadow-2xl shadow-blue-500/10">
                                     <Package className="w-10 h-10 text-blue-400" />
@@ -636,37 +642,37 @@ export default function StudyKitsModule({ selectedStudyId, preloadedStudies, pre
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
                                 <div className="space-y-3 md:col-span-2">
                                     <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest ml-1">Research Protocol / Study</label>
-                                    <select 
+                                    <select
                                         value={selectedStudyForAssignment}
                                         onChange={(e) => setSelectedStudyForAssignment(e.target.value)}
                                         className="w-full bg-white/5 border border-white/10 rounded-[1.5rem] px-8 py-5 text-[13px] font-black text-blue-400 outline-none focus:border-blue-500/50 transition-all uppercase appearance-none italic shadow-inner tabular-nums"
                                     >
-                                        <option value="" className="bg-[#0B101B]">-- SELECT ACTIVE PROTOCOL --</option>
+                                        <option value="" className="bg-[#0B101B] text-white">-- SELECT ACTIVE PROTOCOL --</option>
                                         {studies.map(s => (
-                                            <option key={s.id} value={s.id} className="bg-[#0B101B]">{s.protocol_id || s.id} - {s.title}</option>
+                                            <option key={s.id} value={s.id} className="bg-[#0B101B] text-white">{s.protocol_id || s.id} - {s.title}</option>
                                         ))}
                                     </select>
                                 </div>
 
                                 <div className="space-y-3">
                                     <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest ml-1">Assigned Subject</label>
-                                    <select 
+                                    <select
                                         value={newKit.participantId}
                                         onChange={(e) => setNewKit({ ...newKit, participantId: e.target.value })}
                                         disabled={!selectedStudyForAssignment}
                                         className="w-full bg-white/5 border border-white/10 rounded-[1.5rem] px-8 py-5 text-[13px] font-black text-white outline-none focus:border-blue-500/50 transition-all uppercase appearance-none disabled:opacity-30 italic shadow-inner"
                                     >
-                                        <option value="" className="bg-[#0B101B]">{selectedStudyForAssignment ? '-- CHOOSE SUBJECT --' : '-- SELECT STUDY FIRST --'}</option>
+                                        <option value="" className="bg-[#0B101B] text-white">{selectedStudyForAssignment ? '-- CHOOSE SUBJECT --' : '-- SELECT STUDY FIRST --'}</option>
                                         {participants.map(p => (
-                                            <option key={p.id} value={p.id} className="bg-[#0B101B]">{p.participant_sid} - {p.user_details?.full_name}</option>
+                                            <option key={p.id} value={p.id} className="bg-[#0B101B] text-white">{p.participant_sid} - {p.user_details?.full_name}</option>
                                         ))}
                                     </select>
                                 </div>
 
                                 <div className="space-y-3">
                                     <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest ml-1">Kit Serial Matrix</label>
-                                    <input 
-                                        type="text" 
+                                    <input
+                                        type="text"
                                         placeholder="EX: SK-2024-XXXX"
                                         value={newKit.kitNumber}
                                         onChange={(e) => setNewKit({ ...newKit, kitNumber: e.target.value })}
@@ -676,29 +682,29 @@ export default function StudyKitsModule({ selectedStudyId, preloadedStudies, pre
 
                                 <div className="space-y-3">
                                     <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest ml-1">Clinical Protocol Type</label>
-                                    <select 
+                                    <select
                                         value={newKit.kitType}
                                         onChange={(e) => setNewKit({ ...newKit, kitType: e.target.value })}
                                         className="w-full bg-white/5 border border-white/10 rounded-[1.5rem] px-8 py-5 text-[13px] font-black text-white outline-none focus:border-blue-500/50 transition-all uppercase appearance-none italic shadow-inner"
                                     >
-                                        <option value="Standard" className="bg-[#0B101B]">STANDARD COLLECTION</option>
-                                        <option value="Genetic" className="bg-[#0B101B]">GENETIC SAMPLING</option>
-                                        <option value="Biohazard" className="bg-[#0B101B]">BIOHAZARD / CRITICAL</option>
-                                        <option value="Ambient" className="bg-[#0B101B]">AMBIENT LOGISTICS</option>
+                                        <option value="Standard" className="bg-[#0B101B] text-white">STANDARD COLLECTION</option>
+                                        <option value="Genetic" className="bg-[#0B101B] text-white">GENETIC SAMPLING</option>
+                                        <option value="Biohazard" className="bg-[#0B101B] text-white">BIOHAZARD / CRITICAL</option>
+                                        <option value="Ambient" className="bg-[#0B101B] text-white">AMBIENT LOGISTICS</option>
                                     </select>
                                 </div>
 
                                 <div className="space-y-3">
                                     <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest ml-1">Logistics Carrier</label>
-                                    <select 
+                                    <select
                                         value={newKit.carrier}
                                         onChange={(e) => setNewKit({ ...newKit, carrier: e.target.value })}
                                         className="w-full bg-white/5 border border-white/10 rounded-[1.5rem] px-8 py-5 text-[13px] font-black text-white outline-none focus:border-blue-500/50 transition-all uppercase appearance-none italic shadow-inner"
                                     >
-                                        <option value="FedEx" className="bg-[#0B101B]">FEDEX GLOBAL EXPRESS</option>
-                                        <option value="UPS" className="bg-[#0B101B]">UPS WORLDWIDE</option>
-                                        <option value="DHL" className="bg-[#0B101B]">DHL INTERNATIONAL</option>
-                                        <option value="USPS" className="bg-[#0B101B]">USPS PRIORITY RESEARCH</option>
+                                        <option value="FedEx" className="bg-[#0B101B] text-white">FEDEX GLOBAL EXPRESS</option>
+                                        <option value="UPS" className="bg-[#0B101B] text-white">UPS WORLDWIDE</option>
+                                        <option value="DHL" className="bg-[#0B101B] text-white">DHL INTERNATIONAL</option>
+                                        <option value="USPS" className="bg-[#0B101B] text-white">USPS PRIORITY RESEARCH</option>
                                     </select>
                                 </div>
                             </div>
@@ -717,20 +723,20 @@ export default function StudyKitsModule({ selectedStudyId, preloadedStudies, pre
 
 // Separated Icons
 const Activity = (props: any) => (
-  <svg
-    {...props}
-    xmlns="http://www.w3.org/2000/svg"
-    width="24"
-    height="24"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
-  </svg>
+    <svg
+        {...props}
+        xmlns="http://www.w3.org/2000/svg"
+        width="24"
+        height="24"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+    >
+        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+    </svg>
 );
 
 

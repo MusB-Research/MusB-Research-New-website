@@ -8,7 +8,7 @@ interface SafetySignalsProps {
 
 export const SafetySignals: React.FC<SafetySignalsProps> = ({ participant }) => {
     return (
-        <div style={{ padding: '2rem', display: 'flex', flexDirection: 'column', gap: '3rem' }}>
+        <div className="p-4 md:p-8 flex flex-col gap-8 md:gap-12">
             <div>
                 <h3 style={S.title}>Adverse Event Registry</h3>
                 <div style={{ marginTop: '2rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -18,7 +18,7 @@ export const SafetySignals: React.FC<SafetySignalsProps> = ({ participant }) => 
                                 <span style={{ fontSize: '15px', fontWeight: 900, color: COLORS.danger }}>{ae.event.toUpperCase()}</span>
                                 <span style={S.badge(COLORS.danger)}>SERIOUS AE (SAE)</span>
                             </div>
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '2rem' }}>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
                                 <div>
                                     <label style={S.label}>Severity</label>
                                     <p style={{ fontSize: '13px', fontWeight: 'bold' }}>{ae.severity}</p>
@@ -64,7 +64,7 @@ export const SafetySignals: React.FC<SafetySignalsProps> = ({ participant }) => 
                                     <span style={{...S.badge(hasAE ? '#F59E0B' : COLORS.success), color: 'white'}}>{log.is_draft ? 'DRAFT' : 'FINALIZED'}</span>
                                 </div>
                                 
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.5rem' }}>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                                     <div>
                                         <label style={S.label}>Medication</label>
                                         <p style={{ fontSize: '12px', fontWeight: 'bold', color: log.took_medicine ? COLORS.success : COLORS.danger }}>

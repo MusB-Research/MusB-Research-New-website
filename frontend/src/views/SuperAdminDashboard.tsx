@@ -1993,54 +1993,54 @@ export default function SuperAdminDashboard() {
 
   const sidebarItems = [
     {
-      group: 'OVERVIEW', items: [
-        { id: 'WEBSITE', label: 'Main Website', icon: Globe, isExternal: true },
+      group: 'Overview', items: [
+        { id: 'WEBSITE', label: 'Website', icon: Globe, isExternal: true },
         { id: 'DASHBOARD', label: 'Dashboard', icon: LayoutDashboard },
-        { id: 'LIVE_USERS', label: 'Live Active Users', icon: Activity, hasNotify: true },
-        { id: 'ACTIVITY_LOG', label: 'Platform Activity', icon: Clock },
+        { id: 'LIVE_USERS', label: 'Active Users', icon: Activity, hasNotify: true },
+        { id: 'ACTIVITY_LOG', label: 'Activity Log', icon: Clock },
       ]
     },
     {
-      group: 'CORE MANAGEMENT', items: [
+      group: 'Management', items: [
         { id: 'ALL_USERS', label: 'All Users', icon: Users },
         { id: 'STUDIES', label: 'All Studies', icon: Briefcase },
-        { id: 'LAUNCH_STUDY', label: 'Launch A Study', icon: Rocket },
-        { id: 'SCREENER_BUILDER', label: 'Screener Builder', icon: ClipboardList },
+        { id: 'LAUNCH_STUDY', label: 'New Study', icon: Rocket },
+        { id: 'SCREENER_BUILDER', label: 'Screener', icon: ClipboardList },
         { id: 'CAREERS', label: 'Careers', icon: Briefcase },
       ]
     },
     {
-      group: 'CRM & LEAD PIPELINE', items: [
-        { id: 'SPONSOR_LEADS', label: 'Lead Prospecting', icon: BarChart2 },
-        { id: 'INQUIRIES', label: 'Clinical Inquiries', icon: Bell, hasNotify: studyInquiries.length > 0 },
-        { id: 'SPONSORS', label: 'Registered Sponsors', icon: Building },
+      group: 'Leads', items: [
+        { id: 'SPONSOR_LEADS', label: 'Prospecting', icon: BarChart2 },
+        { id: 'INQUIRIES', label: 'Inquiries', icon: Bell, hasNotify: studyInquiries.length > 0 },
+        { id: 'SPONSORS', label: 'Sponsors', icon: Building },
       ]
     },
     {
-      group: 'ACCESS CONTROL', items: [
-        { id: 'TEAM_APPROVALS', label: 'Team Approvals', icon: ShieldCheck, hasNotify: true },
-        { id: 'TEAM', label: 'Internal Staff', icon: Users },
+      group: 'Access', items: [
+        { id: 'TEAM_APPROVALS', label: 'Approvals', icon: ShieldCheck, hasNotify: true },
+        { id: 'TEAM', label: 'Staff', icon: Users },
         { id: 'COORDINATORS', label: 'Coordinators', icon: UserCheck },
         { id: 'PARTICIPANTS', label: 'Participants', icon: UserIcon },
       ]
     },
     {
-      group: 'ANALYTICS & INTEL', items: [
-        { id: 'METRICS', label: 'Visitor Analytics', icon: Globe },
+      group: 'Analytics', items: [
+        { id: 'METRICS', label: 'Visitors', icon: Globe },
       ]
     },
     {
-      group: 'SYSTEM CONTROL', items: [
+      group: 'System', items: [
         { id: 'ANNOUNCEMENTS', label: 'Announcements', icon: Megaphone },
-        { id: 'AUDIT_LOGS', label: 'Login Audit Logs', icon: FileText },
+        { id: 'AUDIT_LOGS', label: 'Login Logs', icon: FileText },
         { id: 'SUPPORT', label: 'Help Desk', icon: Bell },
-        { id: 'SETTINGS', label: 'System Settings', icon: Settings },
+        { id: 'SETTINGS', label: 'Settings', icon: Settings },
       ]
     },
     {
-      group: 'CONTENT WORKFLOW', items: [
-        { id: 'WORKFLOW', label: 'Moderation Queue', icon: ShieldCheck },
-        { id: 'SUBMIT_CONTENT', label: 'Create Content', icon: Plus },
+      group: 'Content', items: [
+        { id: 'WORKFLOW', label: 'Moderation', icon: ShieldCheck },
+        { id: 'SUBMIT_CONTENT', label: 'Create', icon: Plus },
       ]
     }
   ];
@@ -2291,10 +2291,10 @@ export default function SuperAdminDashboard() {
             </div>
             <button
               onClick={handleSignOut}
-              className="w-full group flex items-center justify-start gap-3 px-6 py-4 bg-red-500/5 hover:bg-red-500 border border-red-500/10 hover:border-red-500 rounded-2xl transition-all duration-500 shadow-lg hover:shadow-red-500/20"
+              className="w-full group flex items-center justify-start gap-3 px-6 py-3 bg-red-500/5 hover:bg-red-500 border border-red-500/10 hover:border-red-500 rounded-2xl transition-all duration-500"
             >
               <LogOut className="w-5 h-5 text-red-500 group-hover:text-white transition-colors shrink-0" />
-              <span className="text-[12px] sm:text-sm font-black uppercase tracking-[0.1em] text-red-500 group-hover:text-white transition-colors text-left leading-tight">Sign Out Interface</span>
+              <span className="text-sm font-bold uppercase tracking-wider text-red-500 group-hover:text-white transition-colors">Sign Out</span>
             </button>
           </div>
         </div>
@@ -2317,7 +2317,7 @@ export default function SuperAdminDashboard() {
             <div className="relative hidden lg:block">
               <div className="px-4 py-2 bg-[#7c3aed]/10 border border-[#7c3aed]/30 rounded-full flex items-center gap-2 relative">
                 <div className="w-2 h-2 bg-[#7c3aed] rounded-full animate-pulse shadow-[0_0_10px_#7c3aed]" />
-                <span className="text-[11px] font-black text-[#7c3aed] uppercase tracking-[0.2em] italic">Master Access</span>
+                <span className="text-xs font-bold text-[#7c3aed] uppercase tracking-wider">Admin Access</span>
               </div>
             </div>
 
@@ -2330,7 +2330,7 @@ export default function SuperAdminDashboard() {
                 {showNotifications && (
                   <div className="absolute top-full mt-4 right-0 w-80 bg-[#0f1133] border border-white/5 rounded-3xl shadow-2xl p-6 space-y-6 animate-in fade-in slide-in-from-top-4">
                     <div className="flex justify-between items-center px-2">
-                      <p className="text-[12px] font-black text-white uppercase italic tracking-widest">Global Pings</p>
+                      <p className="text-xs font-bold text-white uppercase tracking-wider">Notifications</p>
                       <span className="text-[12px] font-black text-[#7c3aed] uppercase tracking-widest cursor-pointer hover:text-white">Mark all read</span>
                     </div>
                     <div className="space-y-4">

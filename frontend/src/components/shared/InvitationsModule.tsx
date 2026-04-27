@@ -127,53 +127,53 @@ export default function InvitationsModule({ allStudies = [] }: InvitationsModule
             className="flex flex-col h-full space-y-6"
         >
             {/* Header */}
-            <div className={`flex ${isMobile ? 'flex-col gap-6' : 'justify-between items-center'} bg-white/[0.03] border border-white/5 rounded-3xl p-6 shadow-2xl`}>
+            <div className={`flex ${isMobile ? 'flex-col gap-4' : 'justify-between items-center'} bg-[#0B101B]/50 backdrop-blur-xl border border-white/5 rounded-3xl p-5 shadow-2xl`}>
                 <div>
-                    <h1 className={`${isMobile ? 'text-2xl' : 'text-3xl'} font-black text-white italic uppercase tracking-tighter`}>
-                        Invitation <span className="text-indigo-400">Management</span>
+                    <h1 className={`${isMobile ? 'text-xl' : 'text-2xl'} font-bold text-white uppercase tracking-tighter`}>
+                        Invitations
                     </h1>
-                    <p className="text-[10px] text-white/40 font-bold uppercase tracking-[0.3em] mt-1 flex items-center gap-2">
+                    <p className="text-[10px] text-white/40 font-bold uppercase tracking-wider mt-1 flex items-center gap-2">
                         <Shield className="w-2.5 h-2.5 text-indigo-500/40" />
-                        Cross-Dashboard Recruitment Hub
+                        Manage Personnel Access
                     </p>
                 </div>
                 <button 
                     onClick={() => setShowInviteModal(true)}
-                    className={`${isMobile ? 'w-full py-4' : 'px-6 py-3.5'} flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-black uppercase tracking-widest text-[11px] transition-all shadow-lg shadow-indigo-600/20 active:scale-95`}
+                    className={`${isMobile ? 'w-full py-3' : 'px-5 py-3'} flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold uppercase tracking-wider text-[10px] transition-all shadow-lg shadow-indigo-600/20 active:scale-95`}
                 >
                     <UserPlus className="w-4 h-4" />
-                    Invite Personnel
+                    Send Invite
                 </button>
             </div>
 
             {/* Stats Row */}
             <div className={`grid grid-cols-1 ${isTablet ? 'grid-cols-2' : 'md:grid-cols-3'} gap-4 md:gap-6`}>
                 {[
-                    { label: 'Pending Invites', value: invitations.filter(i => !i.is_accepted).length, color: 'text-indigo-400', icon: Clock },
-                    { label: 'Accepted Access', value: invitations.filter(i => i.is_accepted).length, color: 'text-emerald-400', icon: CheckCircle2 },
-                    { label: 'Response Rate', value: invitations.length > 0 ? `${Math.round((invitations.filter(i => i.is_accepted).length / invitations.length) * 100)}%` : '0%', color: 'text-amber-400', icon: RefreshCcw },
+                    { label: 'Pending', value: invitations.filter(i => !i.is_accepted).length, color: 'text-indigo-400', icon: Clock },
+                    { label: 'Accepted', value: invitations.filter(i => i.is_accepted).length, color: 'text-emerald-400', icon: CheckCircle2 },
+                    { label: 'Rate', value: invitations.length > 0 ? `${Math.round((invitations.filter(i => i.is_accepted).length / invitations.length) * 100)}%` : '0%', color: 'text-amber-400', icon: RefreshCcw },
                 ].map((stat, idx) => (
-                    <div key={idx} className="bg-white/[0.02] border border-white/5 rounded-2xl p-6 flex items-center justify-between">
+                    <div key={idx} className="bg-[#0B101B]/40 backdrop-blur-xl border border-white/5 rounded-2xl p-5 flex items-center justify-between shadow-xl">
                         <div>
-                            <p className="text-[10px] font-black text-white/40 uppercase tracking-widest mb-1">{stat.label}</p>
-                            <p className={`text-3xl font-black italic ${stat.color}`}>{stat.value}</p>
+                            <p className="text-[10px] font-bold text-white/40 uppercase tracking-wider mb-1">{stat.label}</p>
+                            <p className={`text-2xl font-bold text-white ${stat.color}`}>{stat.value}</p>
                         </div>
-                        <div className="w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center">
-                            <stat.icon className={`w-6 h-6 ${stat.color} opacity-40`} />
+                        <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center border border-white/5">
+                            <stat.icon className={`w-5 h-5 ${stat.color} opacity-40`} />
                         </div>
                     </div>
                 ))}
             </div>
 
             {/* Table Area */}
-            <div className="flex-1 bg-white/[0.03] border border-white/5 rounded-3xl overflow-hidden flex flex-col shadow-2xl">
+            <div className="flex-1 bg-[#0B101B]/30 backdrop-blur-2xl border border-white/5 rounded-3xl overflow-hidden flex flex-col shadow-2xl">
                 {/* Table Header / Search */}
                 <div className={`p-4 border-b border-white/5 flex ${isMobile ? 'flex-col' : 'items-center justify-between'} gap-4`}>
                     <div className="relative flex-1">
                         <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/20" />
                         <input 
                             type="text" 
-                            placeholder="Search by email or role..."
+                            placeholder="Search..."
                             className="w-full bg-white/5 border border-white/10 rounded-xl pl-12 pr-4 py-3.5 text-sm text-white focus:border-indigo-500/50 outline-none"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
@@ -201,7 +201,7 @@ export default function InvitationsModule({ allStudies = [] }: InvitationsModule
                                             </div>
                                             <div>
                                                 <p className="text-sm font-bold text-white tracking-tight">{inv.email}</p>
-                                                <p className="text-[10px] text-white/30 uppercase font-black">{inv.organization || 'MusB Research'}</p>
+                                                <p className="text-[10px] text-white/30 uppercase font-bold">{inv.organization || 'MusB'}</p>
                                             </div>
                                         </div>
                                         {inv.is_accepted ? (
@@ -213,29 +213,29 @@ export default function InvitationsModule({ allStudies = [] }: InvitationsModule
 
                                     <div className="grid grid-cols-2 gap-4 py-4 border-y border-white/5">
                                         <div className="space-y-1">
-                                            <p className="text-[9px] font-black text-white/40 uppercase tracking-widest">Target Role</p>
+                                            <p className="text-[9px] font-bold text-white/40 uppercase tracking-wider">Role</p>
                                             <div className="flex items-center gap-1.5">
                                                 <Shield className="w-3 h-3 text-indigo-500" />
-                                                <span className="text-[10px] font-black text-white uppercase tracking-widest">{inv.role}</span>
+                                                <span className="text-[10px] font-bold text-white uppercase tracking-wider">{inv.role}</span>
                                             </div>
                                         </div>
                                         <div className="space-y-1">
-                                            <p className="text-[9px] font-black text-white/40 uppercase tracking-widest">Scope</p>
-                                            <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">
-                                                {inv.scope === 'SPECIFIC' ? `${inv.study_ids?.length || 0} Studies` : 'Access to All'}
+                                            <p className="text-[9px] font-bold text-white/40 uppercase tracking-wider">Access</p>
+                                            <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider">
+                                                {inv.scope === 'SPECIFIC' ? `${inv.study_ids?.length || 0} Studies` : 'All'}
                                             </p>
                                         </div>
                                     </div>
 
                                     <div className="flex items-center justify-between pt-2">
                                         <div className="space-y-1">
-                                            <p className="text-[9px] font-black text-white/40 uppercase tracking-widest">Created On</p>
+                                            <p className="text-[9px] font-bold text-white/40 uppercase tracking-wider">Date</p>
                                             <p className="text-[10px] font-bold text-white/60">
-                                                {new Date(inv.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                                {new Date(inv.created_at).toLocaleDateString('en-US')}
                                             </p>
                                         </div>
                                         <div className={`px-4 py-1.5 rounded-full border ${inv.is_accepted ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : new Date(inv.expires_at) < new Date() ? 'bg-red-500/10 border-red-500/20 text-red-400' : 'bg-amber-500/10 border-amber-500/20 text-amber-400'}`}>
-                                            <span className="text-[9px] font-black uppercase tracking-widest">
+                                            <span className="text-[9px] font-bold uppercase tracking-wider">
                                                 {inv.is_accepted ? 'Accepted' : new Date(inv.expires_at) < new Date() ? 'Expired' : 'Pending'}
                                             </span>
                                         </div>
@@ -247,11 +247,11 @@ export default function InvitationsModule({ allStudies = [] }: InvitationsModule
                         <table className="w-full text-left border-collapse">
                             <thead className="sticky top-0 bg-[#0B1120] z-10">
                                 <tr className="border-b border-white/5">
-                                    <th className="px-6 py-5 text-[10px] font-black text-white/40 uppercase tracking-widest">Invited Personnel</th>
-                                    <th className="px-6 py-5 text-[10px] font-black text-white/40 uppercase tracking-widest">Target Role</th>
-                                    <th className="px-6 py-5 text-[10px] font-black text-white/40 uppercase tracking-widest">Scope</th>
-                                    <th className="px-6 py-5 text-[10px] font-black text-white/40 uppercase tracking-widest">Created</th>
-                                    <th className="px-6 py-5 text-[10px] font-black text-white/40 uppercase tracking-widest">Status</th>
+                                    <th className="px-6 py-5 text-[10px] font-bold text-white/40 uppercase tracking-wider">Person</th>
+                                    <th className="px-6 py-5 text-[10px] font-bold text-white/40 uppercase tracking-wider">Role</th>
+                                    <th className="px-6 py-5 text-[10px] font-bold text-white/40 uppercase tracking-wider">Access</th>
+                                    <th className="px-6 py-5 text-[10px] font-bold text-white/40 uppercase tracking-wider">Date</th>
+                                    <th className="px-6 py-5 text-[10px] font-bold text-white/40 uppercase tracking-wider">Status</th>
                                     <th className="px-6 py-5"></th>
                                 </tr>
                             </thead>
@@ -265,21 +265,21 @@ export default function InvitationsModule({ allStudies = [] }: InvitationsModule
                                                 </div>
                                                 <div>
                                                     <p className="text-sm font-bold text-white tracking-tight">{inv.email}</p>
-                                                    <p className="text-[10px] text-white/30 uppercase font-black">{inv.organization || 'MusB Research'}</p>
+                                                    <p className="text-[10px] text-white/30 uppercase font-bold">{inv.organization || 'MusB'}</p>
                                                 </div>
                                             </div>
                                         </td>
                                         <td className="px-6 py-5">
-                                            <span className="flex items-center gap-2 text-[11px] font-black text-white/70 uppercase tracking-widest">
+                                            <span className="flex items-center gap-2 text-[11px] font-bold text-white/70 uppercase tracking-wider">
                                                 <Shield className="w-3 h-3 text-indigo-500" />
                                                 {inv.role}
                                             </span>
                                         </td>
                                         <td className="px-6 py-5">
                                             <div className="space-y-1">
-                                                <p className="text-[10px] font-black text-white/40 uppercase tracking-[0.1em]">{inv.scope}</p>
+                                                <p className="text-[10px] font-bold text-white/40 uppercase tracking-wider">{inv.scope}</p>
                                                 <p className="text-[11px] font-bold text-indigo-400">
-                                                    {inv.scope === 'SPECIFIC' ? `${inv.study_ids?.length || 0} Studies` : 'Access to All'}
+                                                    {inv.scope === 'SPECIFIC' ? `${inv.study_ids?.length || 0} Studies` : 'All'}
                                                 </p>
                                             </div>
                                         </td>
@@ -297,7 +297,7 @@ export default function InvitationsModule({ allStudies = [] }: InvitationsModule
                                             ) : (
                                                 <div className={`flex items-center gap-2 px-3 py-1.5 border rounded-full w-fit ${new Date(inv.expires_at) < new Date() ? 'bg-red-500/10 border-red-500/20' : 'bg-amber-500/10 border-amber-500/20'}`}>
                                                     <Clock className={`w-3 h-3 ${new Date(inv.expires_at) < new Date() ? 'text-red-500' : 'text-amber-500'}`} />
-                                                    <span className={`text-[9px] font-black uppercase tracking-widest ${new Date(inv.expires_at) < new Date() ? 'text-red-400' : 'text-amber-400'}`}>
+                                                    <span className={`text-[9px] font-bold uppercase tracking-wider ${new Date(inv.expires_at) < new Date() ? 'text-red-400' : 'text-amber-400'}`}>
                                                         {new Date(inv.expires_at) < new Date() ? 'Expired' : 'Pending'}
                                                     </span>
                                                 </div>
@@ -337,8 +337,8 @@ export default function InvitationsModule({ allStudies = [] }: InvitationsModule
                                         <Send className="w-6 h-6 text-indigo-400" />
                                     </div>
                                     <div>
-                                        <h3 className="text-xl font-black text-white italic uppercase tracking-tighter">New Personnel Invitation</h3>
-                                        <p className="text-[10px] text-white/40 font-bold uppercase tracking-widest mt-1 italic">Dispatch Secure Identity Credential</p>
+                                        <h3 className="text-xl font-bold text-white uppercase tracking-tighter">Invite</h3>
+                                        <p className="text-[10px] text-white/40 font-bold uppercase tracking-wider mt-1">Add new user.</p>
                                     </div>
                                 </div>
                                 <button onClick={() => setShowInviteModal(false)} className="p-2 hover:bg-white/5 rounded-xl transition-colors">
@@ -349,7 +349,7 @@ export default function InvitationsModule({ allStudies = [] }: InvitationsModule
                             <form onSubmit={handleCreateInvitation} className="p-8 space-y-6">
                                 <div className="space-y-4">
                                     <div className="space-y-2">
-                                        <label className="text-[10px] font-black text-white/40 uppercase tracking-widest ml-1">Email Address</label>
+                                        <label className="text-[10px] font-bold text-white/40 uppercase tracking-wider ml-1">Email</label>
                                         <input 
                                             type="email" 
                                             required
@@ -362,19 +362,19 @@ export default function InvitationsModule({ allStudies = [] }: InvitationsModule
 
                                     <div className="grid grid-cols-2 gap-4">
                                         <div className="space-y-2">
-                                            <label className="text-[10px] font-black text-white/40 uppercase tracking-widest ml-1">Assigned Role</label>
+                                            <label className="text-[10px] font-bold text-white/40 uppercase tracking-wider ml-1">Role</label>
                                             <select 
-                                                className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-white font-bold outline-none focus:border-indigo-500/50 appearance-none italic"
+                                                className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-white font-bold outline-none focus:border-indigo-500/50 appearance-none"
                                                 value={inviteForm.role}
                                                 onChange={(e) => setInviteForm({...inviteForm, role: e.target.value})}
                                             >
-                                                <option value="COORDINATOR" className="bg-[#0B1120]">Coordinator</option>
-                                                <option value="SPONSOR" className="bg-[#0B1120]">Sponsor / Monitor</option>
-                                                <option value="PI" className="bg-[#0B1120]">Sub-Investigator</option>
+                                                <option value="COORDINATOR" className="bg-[#0B101B] text-white">Coordinator</option>
+                                                <option value="SPONSOR" className="bg-[#0B101B] text-white">Sponsor / Monitor</option>
+                                                <option value="PI" className="bg-[#0B101B] text-white">Sub-Investigator</option>
                                             </select>
                                         </div>
                                         <div className="space-y-2">
-                                            <label className="text-[10px] font-black text-white/40 uppercase tracking-widest ml-1">Organization</label>
+                                            <label className="text-[10px] font-bold text-white/40 uppercase tracking-wider ml-1">Org</label>
                                             <input 
                                                 className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-white font-bold outline-none focus:border-indigo-500/50"
                                                 value={inviteForm.organization}
@@ -384,7 +384,7 @@ export default function InvitationsModule({ allStudies = [] }: InvitationsModule
                                     </div>
 
                                     <div className="space-y-2">
-                                        <label className="text-[10px] font-black text-white/40 uppercase tracking-widest ml-1">Access Scope</label>
+                                        <label className="text-[10px] font-bold text-white/40 uppercase tracking-wider ml-1">Scope</label>
                                         <div className="flex gap-4">
                                             <button 
                                                 type="button"
@@ -392,7 +392,7 @@ export default function InvitationsModule({ allStudies = [] }: InvitationsModule
                                                 className={`flex-1 p-4 rounded-2xl border transition-all flex flex-col items-center ${inviteForm.scope === 'ALL' ? 'bg-indigo-600/10 border-indigo-500' : 'bg-white/5 border-white/5 hover:border-white/20'}`}
                                             >
                                                 <Shield className={`w-5 h-5 mb-2 ${inviteForm.scope === 'ALL' ? 'text-indigo-400' : 'text-slate-500'}`} />
-                                                <span className="text-[10px] font-black uppercase tracking-widest">Global Access</span>
+                                                <span className="text-[10px] font-bold uppercase tracking-wider">Global</span>
                                             </button>
                                             <button 
                                                 type="button"
@@ -400,14 +400,14 @@ export default function InvitationsModule({ allStudies = [] }: InvitationsModule
                                                 className={`flex-1 p-4 rounded-2xl border transition-all flex flex-col items-center ${inviteForm.scope === 'SPECIFIC' ? 'bg-indigo-600/10 border-indigo-500' : 'bg-white/5 border-white/5 hover:border-white/20'}`}
                                             >
                                                 <Building className={`w-5 h-5 mb-2 ${inviteForm.scope === 'SPECIFIC' ? 'text-indigo-400' : 'text-slate-500'}`} />
-                                                <span className="text-[10px] font-black uppercase tracking-widest">Study Specific</span>
+                                                <span className="text-[10px] font-bold uppercase tracking-wider">Specific</span>
                                             </button>
                                         </div>
                                     </div>
 
                                     {inviteForm.scope === 'SPECIFIC' && (
                                         <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
-                                            <label className="text-[10px] font-black text-white/40 uppercase tracking-widest ml-1">Select Studies</label>
+                                            <label className="text-[10px] font-bold text-white/40 uppercase tracking-wider ml-1">Studies</label>
                                             <div className="grid grid-cols-2 gap-2 max-h-32 overflow-auto p-2 bg-white/5 rounded-2xl border border-white/5">
                                                 {allStudies.map(study => (
                                                     <button 
@@ -440,7 +440,7 @@ export default function InvitationsModule({ allStudies = [] }: InvitationsModule
                                         <div className="p-5 rounded-2xl bg-amber-500/10 border border-amber-500/20 space-y-4 animate-in fade-in zoom-in-95">
                                             <div className="flex items-center gap-3">
                                                 <AlertCircle className="w-5 h-5 text-amber-500" />
-                                                <p className="text-[11px] font-black text-white uppercase tracking-widest">Email Already Exists</p>
+                                                <p className="text-[11px] font-bold text-white uppercase tracking-wider">Already Exists</p>
                                             </div>
                                             <p className="text-[10px] text-white/60 font-medium leading-relaxed">
                                                 {emailCheckResult.message} Continuing will still send an invitation link which might overwrite their current role access if they accept.
@@ -449,7 +449,7 @@ export default function InvitationsModule({ allStudies = [] }: InvitationsModule
                                                 <button 
                                                     type="button"
                                                     onClick={() => setEmailCheckResult(null)}
-                                                    className="flex-1 py-3 bg-white/5 border border-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-white/10 transition-all"
+                                                    className="flex-1 py-3 bg-white/5 border border-white/10 rounded-xl text-[10px] font-bold uppercase tracking-wider hover:bg-white/10 transition-all"
                                                 >
                                                     Change Email
                                                 </button>
@@ -462,7 +462,7 @@ export default function InvitationsModule({ allStudies = [] }: InvitationsModule
                                                             handleCreateInvitation({ preventDefault: () => {}, currentTarget: form } as any);
                                                         }
                                                     }}
-                                                    className="flex-1 py-3 bg-amber-500 text-slate-950 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-white transition-all"
+                                                    className="flex-1 py-3 bg-amber-500 text-slate-950 rounded-xl text-[10px] font-bold uppercase tracking-wider hover:bg-white transition-all"
                                                 >
                                                     Invite Anyway
                                                 </button>
@@ -481,10 +481,10 @@ export default function InvitationsModule({ allStudies = [] }: InvitationsModule
 
                                     <button 
                                         disabled={isSubmitting}
-                                        className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-black uppercase tracking-[0.2em] py-5 rounded-[1.5rem] shadow-xl shadow-indigo-600/20 flex items-center justify-center gap-3 active:scale-[0.98] transition-all"
+                                        className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-bold uppercase tracking-wider py-5 rounded-[1.5rem] shadow-xl shadow-indigo-600/20 flex items-center justify-center gap-3 active:scale-[0.98] transition-all"
                                     >
                                         {isSubmitting ? <RefreshCcw className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
-                                        {emailCheckResult ? 'Confirm Re-Invitation' : 'Create Invitation'}
+                                        {emailCheckResult ? 'Invite Anyway' : 'Send Invite'}
                                     </button>
                                 </div>
                             </form>

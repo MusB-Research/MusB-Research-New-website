@@ -1007,7 +1007,7 @@ export default function VisitsModule({ selectedStudyId, preloadedParticipants, p
                 {isScheduleOpen && (
                     <>
                         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsScheduleOpen(false)} className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100]" />
-                        <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] bg-[#1e293b] border border-white/10 rounded-2xl z-[101] p-8 shadow-2xl overflow-hidden">
+                        <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-[500px] bg-[#1e293b] border border-white/10 rounded-2xl z-[101] p-6 md:p-8 shadow-2xl overflow-hidden">
                             <div className="flex items-center justify-between mb-6">
                                 <h3 className="text-xl font-bold text-white uppercase italic tracking-tighter">Schedule Clinical Visit</h3>
                                 <button 
@@ -1134,7 +1134,7 @@ export default function VisitsModule({ selectedStudyId, preloadedParticipants, p
                 {isProblemModalOpen && (
                     <>
                         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsProblemModalOpen(false)} className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100]" />
-                        <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] bg-[#1e293b] border border-white/10 rounded-2xl z-[101] p-8 shadow-2xl overflow-hidden">
+                        <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-[500px] bg-[#1e293b] border border-white/10 rounded-2xl z-[101] p-6 md:p-8 shadow-2xl overflow-hidden">
                             <div className="flex items-center justify-between mb-6">
                                 <div className="flex items-center gap-3">
                                     <ShieldAlert className="w-6 h-6 text-red-500" />

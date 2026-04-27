@@ -13,7 +13,7 @@ export const EligibilityAudit: React.FC<EligibilityAuditProps> = ({
     participant, screeningNotes, setScreeningNotes, logAction 
 }) => {
     return (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             <div style={S.card}>
                 <label style={S.label}>Inclusion Criteria Registry</label>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '1.5rem' }}>

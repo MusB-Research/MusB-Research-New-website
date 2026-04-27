@@ -9,7 +9,8 @@ export const SubjectAuditTrail: React.FC<SubjectAuditTrailProps> = ({ auditLog =
     return (
         <div style={S.card}>
             <label style={S.label}>Node Transaction Log</label>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <div className="overflow-x-auto mt-6">
+                <table className="w-full border-collapse min-w-[800px]">
                 <thead>
                     <tr style={{ borderBottom: `1px solid ${COLORS.border}`, textAlign: 'left' }}>
                         {['Timestamp', 'Entity', 'Operation', 'Trace Details'].map(h => (
@@ -32,7 +33,8 @@ export const SubjectAuditTrail: React.FC<SubjectAuditTrailProps> = ({ auditLog =
                         </tr>
                     )}
                 </tbody>
-            </table>
+                </table>
+            </div>
         </div>
     );
 };

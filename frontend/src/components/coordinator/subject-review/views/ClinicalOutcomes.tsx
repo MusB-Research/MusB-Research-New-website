@@ -34,7 +34,8 @@ export const ClinicalOutcomes: React.FC<ClinicalOutcomesProps> = ({ participant 
 
             <div style={S.card}>
                 <label style={S.label}>Individual Symptom Matrics</label>
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <div className="overflow-x-auto mt-6">
+                    <table className="w-full border-collapse min-w-[600px]">
                     <thead>
                         <tr style={{ borderBottom: `1px solid ${COLORS.border}`, textAlign: 'left' }}>
                             {['Metric', 'Baseline', 'Week 2', 'Week 4', 'Improvement', 'Trend'].map(h => (
@@ -68,6 +69,7 @@ export const ClinicalOutcomes: React.FC<ClinicalOutcomesProps> = ({ participant 
                 </table>
             </div>
         </div>
+    </div>
     );
 };
 

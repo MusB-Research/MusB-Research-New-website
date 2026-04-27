@@ -7,11 +7,11 @@ interface LabParametersProps {
 
 export const LabParameters: React.FC<LabParametersProps> = ({ participant }) => {
     return (
-        <div style={{ padding: '2rem', display: 'flex', flexDirection: 'column', gap: '3rem' }}>
+        <div className="p-4 md:p-8 flex flex-col gap-8 md:gap-12">
             <div>
                 <h3 style={S.title}>Longitudinal Clinical Parameters</h3>
-                <div style={{ marginTop: '2rem', ...S.card, padding: 0, overflow: 'hidden' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <div className="mt-8 overflow-x-auto border border-white/5 rounded-2xl bg-white/[0.02]">
+                    <table className="w-full border-collapse min-w-[800px]">
                         <thead>
                             <tr style={{ backgroundColor: 'rgba(255,255,255,0.02)', borderBottom: `1px solid ${COLORS.border}` }}>
                                 <th style={{ padding: '1.25rem 2rem', textAlign: 'left', ...S.label }}>Parameter</th>

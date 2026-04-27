@@ -183,12 +183,12 @@ export default function FormsQuestionnairesModule() {
             {/* Header */}
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                 <div>
-                    <h2 className="text-xl md:text-2xl font-black text-white italic uppercase tracking-tight">
-                        ELIGIBILITY <span className="text-teal-400">QUESTIONNAIRES</span>
+                    <h2 className="text-xl md:text-2xl font-bold text-white uppercase tracking-tight">
+                        Forms
                     </h2>
-                    <p className="text-[11px] text-white/50 font-bold uppercase tracking-[0.4em] mt-2 italic">
-                        Participant Progress & Form Design
-                        {lastRefresh && <span className="ml-3 text-teal-600">· Synced {lastRefresh}</span>}
+                    <p className="text-[11px] text-white/50 font-bold uppercase tracking-wider mt-2">
+                        Tracking & Design
+                        {lastRefresh && <span className="ml-3 text-teal-600">· {lastRefresh}</span>}
                     </p>
                 </div>
                 <div className="flex items-center gap-3">
@@ -205,13 +205,13 @@ export default function FormsQuestionnairesModule() {
                             onClick={() => setView('Tracking')}
                             className={`flex-1 lg:flex-none px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${view === 'Tracking' ? 'bg-[#1e1b4b] border border-teal-500/30 text-white shadow-lg shadow-teal-600/10' : 'text-slate-500 hover:text-white'}`}
                         >
-                            Form Tracking
+                            Tracking
                         </button>
                         <button
                             onClick={() => setView('Splash')}
                             className={`flex-1 lg:flex-none px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${view === 'Splash' || view === 'Architect' ? 'bg-[#1e1b4b] border border-teal-500/30 text-white shadow-lg shadow-teal-600/10' : 'text-slate-500 hover:text-white'}`}
                         >
-                            Form Builder
+                            Builder
                         </button>
                     </div>
                 </div>
@@ -224,18 +224,18 @@ export default function FormsQuestionnairesModule() {
                         {/* KPI Strip */}
                         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                             {[
-                                { label: 'Completion Rate', val: `${completionRate}%`, icon: CheckCircle2, color: 'emerald' },
-                                { label: 'Pending Forms',   val: String(pending),       icon: Clock,        color: 'amber'   },
-                                { label: 'Query Open',      val: String(queryOpen),     icon: MessageSquare,color: 'red'     },
-                                { label: 'Total Forms',     val: String(total),         icon: Database,     color: 'teal'    },
+                                { label: 'Done', val: `${completionRate}%`, icon: CheckCircle2, color: 'emerald' },
+                                { label: 'Pending',   val: String(pending),       icon: Clock,        color: 'amber'   },
+                                { label: 'Queries',      val: String(queryOpen),     icon: MessageSquare,color: 'red'     },
+                                { label: 'Total',     val: String(total),         icon: Database,     color: 'teal'    },
                             ].map((stat, i) => (
                                 <div key={i} className="flex items-center gap-4 group bg-white/[0.02] border border-white/5 rounded-2xl p-3">
                                     <div className={`flex-shrink-0 w-10 h-10 bg-${stat.color}-500/5 border border-${stat.color}-500/10 rounded-xl flex items-center justify-center text-${stat.color}-400 group-hover:scale-110 transition-transform`}>
                                         <stat.icon className="w-5 h-5" />
                                     </div>
                                     <div>
-                                        <span className="text-[10px] text-white/40 font-black uppercase tracking-widest italic block">{stat.label}</span>
-                                        <p className="text-xl font-black text-white italic tracking-tighter leading-none">{stat.val}</p>
+                                        <span className="text-[10px] text-white/40 font-bold uppercase tracking-wider block">{stat.label}</span>
+                                        <p className="text-xl font-bold text-white tracking-tighter leading-none">{stat.val}</p>
                                     </div>
                                 </div>
                             ))}
@@ -246,10 +246,10 @@ export default function FormsQuestionnairesModule() {
                             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
                             <input
                                 type="text"
-                                placeholder="Search by form name, subject ID, or visit..."
+                                placeholder="Search..."
                                 value={searchQuery}
                                 onChange={e => setSearchQuery(e.target.value)}
-                                className="w-full bg-white/5 border border-white/10 rounded-2xl pl-10 pr-4 py-2.5 text-sm text-white font-bold outline-none focus:border-teal-500/50 transition-all uppercase tracking-widest font-mono placeholder:text-slate-700"
+                                className="w-full bg-white/5 border border-white/10 rounded-2xl pl-10 pr-4 py-2.5 text-sm text-white font-bold outline-none focus:border-teal-500/50 transition-all uppercase tracking-wider placeholder:text-slate-700"
                             />
                         </div>
 
@@ -257,7 +257,7 @@ export default function FormsQuestionnairesModule() {
                         {error && (
                             <div className="mb-4 p-4 bg-red-500/10 border border-red-500/20 rounded-2xl flex items-center gap-3">
                                 <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0" />
-                                <p className="text-sm text-red-400 font-bold uppercase tracking-widest">{error}</p>
+                                <p className="text-sm text-red-400 font-bold uppercase tracking-wider">{error}</p>
                             </div>
                         )}
 
@@ -265,7 +265,7 @@ export default function FormsQuestionnairesModule() {
                         {isLoading ? (
                             <div className="flex items-center justify-center py-20 gap-3">
                                 <RefreshCw className="w-5 h-5 text-teal-400 animate-spin" />
-                                <span className="text-sm text-slate-500 font-black uppercase tracking-widest">Loading Records...</span>
+                                <span className="text-sm text-slate-500 font-bold uppercase tracking-wider">Loading...</span>
                             </div>
                         ) : filtered.length === 0 ? (
                             <div className="py-20 text-center space-y-6">
@@ -273,16 +273,16 @@ export default function FormsQuestionnairesModule() {
                                     <ClipboardList className="w-10 h-10 text-slate-600" />
                                 </div>
                                 <div className="max-w-sm mx-auto">
-                                    <h3 className="text-xl font-black text-white italic uppercase tracking-tighter mb-4">No Active Submissions Found</h3>
-                                    <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest leading-relaxed italic">
-                                        Once subjects start filling out questionnaires, their progress will appear here. 
-                                        {searchQuery && ' No forms match your current search.'}
+                                    <h3 className="text-xl font-bold text-white uppercase tracking-tighter mb-4">No Submissions</h3>
+                                    <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider leading-relaxed">
+                                        Forms will appear here. 
+                                        {searchQuery && ' No matches found.'}
                                     </p>
                                     <button 
                                         onClick={() => setView('Splash')}
                                         className="mt-8 px-8 py-3 bg-teal-600/10 border border-teal-500/20 text-teal-400 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-teal-600 hover:text-white transition-all italic"
                                     >
-                                        Go to Form Builder →
+                                        Form Builder →
                                     </button>
                                 </div>
                             </div>
@@ -292,11 +292,11 @@ export default function FormsQuestionnairesModule() {
                                 <table className="w-full text-left min-w-[900px] border-t border-white/5">
                                     <thead>
                                         <tr className="bg-white/[0.02] border-b border-white/5">
-                                            <th className="px-4 py-3 text-[10px] font-black text-white/60 uppercase tracking-widest border-r border-white/5">Document Title</th>
-                                            <th className="px-4 py-3 text-[10px] font-black text-white/60 uppercase tracking-widest border-r border-white/5">Subject ID</th>
-                                            <th className="px-4 py-3 text-[10px] font-black text-white/60 uppercase tracking-widest border-r border-white/5">Study Visit</th>
-                                            <th className="px-4 py-3 text-[10px] font-black text-white/60 uppercase tracking-widest border-r border-white/5">Status</th>
-                                            <th className="px-4 py-3 text-[10px] font-black text-white/60 uppercase tracking-widest text-right">Actions</th>
+                                            <th className="px-4 py-3 text-[10px] font-bold text-white/60 uppercase tracking-wider border-r border-white/5">Form</th>
+                                            <th className="px-4 py-3 text-[10px] font-bold text-white/60 uppercase tracking-wider border-r border-white/5">Participant</th>
+                                            <th className="px-4 py-3 text-[10px] font-bold text-white/60 uppercase tracking-wider border-r border-white/5">Visit</th>
+                                            <th className="px-4 py-3 text-[10px] font-bold text-white/60 uppercase tracking-wider border-r border-white/5">Status</th>
+                                            <th className="px-4 py-3 text-[10px] font-bold text-white/60 uppercase tracking-wider text-right">Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-white/5">
@@ -309,29 +309,29 @@ export default function FormsQuestionnairesModule() {
                                                             <FileText className="w-4 h-4" />
                                                         </div>
                                                         <div>
-                                                            <p className="text-sm font-black text-white italic truncate tracking-tight uppercase leading-none">{f.formName}</p>
-                                                            <p className="text-[10px] text-slate-500 font-mono tracking-widest mt-0.5">{f.id}</p>
+                                                            <p className="text-sm font-bold text-white tracking-tight uppercase leading-none">{f.formName}</p>
+                                                            <p className="text-[10px] text-slate-500 tracking-wider mt-0.5">{f.id}</p>
                                                         </div>
                                                     </div>
                                                 </td>
                                                 {/* Subject */}
                                                 <td className="px-4 py-3 border-r border-white/5">
-                                                    <p className="text-sm font-black text-white italic uppercase tracking-tighter">{f.subjectId}</p>
+                                                    <p className="text-sm font-bold text-white uppercase tracking-tighter">{f.subjectId}</p>
                                                 </td>
                                                 {/* Visit */}
                                                 <td className="px-4 py-3 border-r border-white/5">
-                                                    <p className="text-xs text-teal-300/70 font-black uppercase tracking-widest italic mb-1">{f.visit}</p>
+                                                    <p className="text-xs text-teal-300/70 font-bold uppercase tracking-wider mb-1">{f.visit}</p>
                                                     {f.lastUpdated !== '--' && (
                                                         <div className="flex items-center gap-1.5 text-[10px] text-slate-500 font-bold uppercase tracking-widest italic opacity-60">
                                                             <Clock className="w-3 h-3" />
-                                                            <span>Updated: <span className="text-slate-400">{f.lastUpdated}</span></span>
+                                                            <span>Last Sync: <span className="text-slate-400">{f.lastUpdated}</span></span>
                                                         </div>
                                                     )}
                                                 </td>
                                                 {/* Status + Progress */}
                                                 <td className="px-4 py-3 border-r border-white/5">
                                                     <div className="flex flex-col items-start gap-2">
-                                                        <div className={`px-3 py-1 rounded-lg border text-[10px] font-black uppercase tracking-widest shadow-lg ${statusStyle(f.status)}`}>
+                                                        <div className={`px-3 py-1 rounded-lg border text-[10px] font-bold uppercase tracking-wider shadow-lg ${statusStyle(f.status)}`}>
                                                             {f.status}
                                                         </div>
                                                         <div className="w-28 h-1.5 bg-white/5 rounded-full overflow-hidden">
@@ -352,7 +352,7 @@ export default function FormsQuestionnairesModule() {
                                                             onClick={() => alert(`Opening ${f.formName}`)}
                                                             className="px-4 py-2 bg-gradient-to-br from-teal-600 to-teal-800 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:opacity-90 active:scale-95 transition-all flex items-center gap-1.5 whitespace-nowrap"
                                                         >
-                                                            View Form <ChevronRight className="w-3.5 h-3.5" />
+                                                            View <ChevronRight className="w-3.5 h-3.5" />
                                                         </button>
                                                     </div>
                                                 </td>
@@ -361,7 +361,7 @@ export default function FormsQuestionnairesModule() {
                                     </tbody>
                                 </table>
                                 <p className="text-[10px] text-slate-600 font-bold uppercase tracking-widest text-right mt-2">
-                                    Showing {filtered.length} of {total} eCRF records
+                                    Showing {filtered.length} of {total} forms
                                 </p>
                             </div>
                         )}
@@ -374,16 +374,16 @@ export default function FormsQuestionnairesModule() {
                             <div className="w-20 h-20 bg-indigo-500/10 rounded-3xl flex items-center justify-center mb-8 border border-indigo-500/20 text-indigo-400 group-hover:scale-110 transition-transform">
                                 <Activity className="w-10 h-10" />
                             </div>
-                            <h3 className="text-xl font-black text-white uppercase italic tracking-tighter mb-4">Participant Oversight</h3>
-                            <p className="text-sm text-slate-500 font-bold uppercase tracking-widest leading-relaxed">Track active form completion and data entry for enrolled subjects.</p>
+                            <h3 className="text-xl font-bold text-white uppercase tracking-tighter mb-4">Tracking</h3>
+                            <p className="text-sm text-slate-500 font-bold uppercase tracking-wider leading-relaxed">Track form progress.</p>
                         </div>
 
                         <div onClick={() => setView('Screeners')} className="group p-10 bg-white/5 border border-white/5 rounded-[2.5rem] flex flex-col items-center text-center hover:bg-white/[0.08] hover:border-pink-500/30 transition-all cursor-pointer h-full">
                             <div className="w-20 h-20 bg-pink-500/10 rounded-3xl flex items-center justify-center mb-8 border border-pink-500/20 text-pink-400 group-hover:scale-110 transition-transform">
                                 <Search className="w-10 h-10" />
                             </div>
-                            <h3 className="text-xl font-black text-white uppercase italic tracking-tighter mb-4">Screening Registry</h3>
-                            <p className="text-sm text-slate-500 font-bold uppercase tracking-widest leading-relaxed">Review potential leads and eligibility screener responses across all protocols.</p>
+                            <h3 className="text-xl font-bold text-white uppercase tracking-tighter mb-4">Screeners</h3>
+                            <p className="text-sm text-slate-500 font-bold uppercase tracking-wider leading-relaxed">Review screening responses.</p>
                         </div>
 
                         <div className="md:col-span-2 p-12 bg-indigo-600/10 border border-indigo-500/20 rounded-[3rem] flex flex-col md:flex-row items-center gap-12 group hover:bg-indigo-600/[0.15] transition-all">
@@ -391,12 +391,12 @@ export default function FormsQuestionnairesModule() {
                                 <DraftingCompass className="w-12 h-12" />
                             </div>
                             <div className="flex-1 space-y-3 text-center md:text-left">
-                                <h3 className="text-xl font-black text-white italic uppercase tracking-tighter">Form Designer</h3>
-                                <p className="text-sm text-slate-500 font-bold uppercase tracking-widest leading-relaxed italic">Design multi-page electronic forms with built-in checks, logic branching, and dynamic field visibility.</p>
+                                <h3 className="text-xl font-bold text-white uppercase tracking-tighter">Designer</h3>
+                                <p className="text-sm text-slate-500 font-bold uppercase tracking-wider leading-relaxed">Create custom forms and questionnaires.</p>
                             </div>
                             <div className="grid grid-cols-2 gap-4 w-full md:w-auto max-w-sm">
-                                <button onClick={() => { setBuilderTab('Create New'); setView('Architect'); }} className="px-8 py-4 bg-white text-slate-950 rounded-[2rem] text-[10px] font-black uppercase tracking-widest hover:scale-[1.05] transition-all">New Form</button>
-                                <button onClick={() => { setBuilderTab('Templates'); setView('Architect'); }} className="px-8 py-4 bg-white/5 border border-white/10 text-white rounded-[2rem] text-[10px] font-black uppercase tracking-widest hover:bg-white/10 transition-all">Browse Library</button>
+                                <button onClick={() => { setBuilderTab('Create New'); setView('Architect'); }} className="px-8 py-4 bg-white text-slate-950 rounded-[2rem] text-[10px] font-bold uppercase tracking-wider hover:scale-[1.05] transition-all">Create New</button>
+                                <button onClick={() => { setBuilderTab('Templates'); setView('Architect'); }} className="px-8 py-4 bg-white/5 border border-white/10 text-white rounded-[2rem] text-[10px] font-bold uppercase tracking-wider hover:bg-white/10 transition-all">Templates</button>
                             </div>
                         </div>
                     </motion.div>
@@ -405,7 +405,7 @@ export default function FormsQuestionnairesModule() {
                 {view === 'Screeners' && (
                     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
                         <div className="mb-8 flex items-center justify-between">
-                            <button onClick={() => setView('Splash')} className="text-xs font-black text-slate-600 uppercase tracking-widest hover:text-white transition-all">← Back to Overview</button>
+                            <button onClick={() => setView('Splash')} className="text-xs font-bold text-slate-600 uppercase tracking-wider hover:text-white transition-all">← Back</button>
                             <div className="flex items-center gap-4">
                                 <div className="p-3 bg-pink-500/10 border border-pink-500/20 rounded-xl flex items-center gap-2">
                                     <Search className="w-4 h-4 text-pink-400" />
@@ -417,10 +417,10 @@ export default function FormsQuestionnairesModule() {
                         <div className="grid grid-cols-1 gap-6">
                             <div className="bg-[#0f172a] border border-white/5 rounded-[2rem] overflow-hidden">
                                 <div className="p-8 border-b border-white/5 bg-white/[0.02] flex items-center justify-between">
-                                    <h3 className="text-lg font-black text-white uppercase italic tracking-widest flex items-center gap-3">
-                                        <Database className="w-5 h-5 text-indigo-400" /> Study Eligibility Catalog
+                                    <h3 className="text-lg font-bold text-white uppercase tracking-wider flex items-center gap-3">
+                                        <Database className="w-5 h-5 text-indigo-400" /> Screener Library
                                     </h3>
-                                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Active Screener Definitions</p>
+                                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Current Screeners</p>
                                 </div>
                                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-1 p-1 bg-white/[0.01]">
                                     {studies.map(s => (
@@ -430,32 +430,32 @@ export default function FormsQuestionnairesModule() {
                                             className="p-6 bg-[#0f172a] hover:bg-white/[0.03] transition-all border border-white/5 m-1 rounded-2xl group cursor-pointer"
                                         >
                                             <div className="flex items-center justify-between mb-4">
-                                                <div className="px-3 py-1 bg-indigo-500/10 border border-indigo-500/20 rounded-lg text-[11px] font-black text-indigo-400 uppercase tracking-widest">
+                                                <div className="px-3 py-1 bg-indigo-500/10 border border-indigo-500/20 rounded-lg text-[11px] font-bold text-indigo-400 uppercase tracking-wider">
                                                     {s.protocol_id}
                                                 </div>
                                                 <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center group-hover:bg-white/10 transition-all">
                                                     <ChevronRight className="w-4 h-4 text-slate-400" />
                                                 </div>
                                             </div>
-                                            <h4 className="text-base font-black text-white uppercase italic leading-tight mb-2 line-clamp-1">{s.title}</h4>
+                                            <h4 className="text-base font-bold text-white uppercase leading-tight mb-2 line-clamp-1">{s.title}</h4>
                                             <div className="flex items-center gap-4 mt-4 pt-4 border-t border-white/5">
                                                 <div>
-                                                    <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Screener Quality</p>
-                                                    <p className="text-sm font-black text-slate-300 uppercase tracking-widest mt-0.5">
-                                                        {getScreenerFieldCount(s)} Fields
+                                                    <p className="text-[10px] font-bold text-slate-600 uppercase tracking-wider">Questions</p>
+                                                    <p className="text-sm font-bold text-slate-300 uppercase tracking-wider mt-0.5">
+                                                        {getScreenerFieldCount(s)}
                                                     </p>
                                                 </div>
                                                 <div className="h-8 w-px bg-white/5" />
                                                 <div>
-                                                    <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Submissions</p>
-                                                    <p className="text-sm font-black text-slate-300 uppercase tracking-widest mt-0.5">
+                                                    <p className="text-[10px] font-bold text-slate-600 uppercase tracking-wider">Total</p>
+                                                    <p className="text-sm font-bold text-slate-300 uppercase tracking-wider mt-0.5">
                                                         {leads.filter(l => l.study === s.id).length}
                                                     </p>
                                                 </div>
                                                 <div className="h-8 w-px bg-white/5" />
                                                 <div>
-                                                    <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Avg. Time</p>
-                                                    <p className="text-sm font-black text-slate-300 uppercase tracking-widest mt-0.5">
+                                                    <p className="text-[10px] font-bold text-slate-600 uppercase tracking-wider">Avg Time</p>
+                                                    <p className="text-sm font-bold text-slate-300 uppercase tracking-wider mt-0.5">
                                                         {getAvgTime(s.id)}
                                                     </p>
                                                 </div>
@@ -471,7 +471,7 @@ export default function FormsQuestionnairesModule() {
                 {view === 'Architect' && (
                     <motion.div key="architect" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
                         <div className="mb-4">
-                            <button onClick={() => setView('Splash')} className="text-xs font-black text-slate-600 uppercase tracking-widest hover:text-white transition-all">← Back to Designer Home</button>
+                            <button onClick={() => setView('Splash')} className="text-xs font-bold text-slate-600 uppercase tracking-wider hover:text-white transition-all">← Back</button>
                         </div>
                         <QuestionnaireBuilder initialTab={builderTab} />
                     </motion.div>
@@ -494,7 +494,7 @@ export default function FormsQuestionnairesModule() {
                                         <Database className="w-4 h-4 text-pink-500" />
                                         <span className="text-sm font-black text-pink-500 tracking-widest uppercase">{selectedStudyForDetails.protocol_id}</span>
                                     </div>
-                                    <h3 className="text-2xl md:text-3xl font-black text-white italic uppercase tracking-tighter">{selectedStudyForDetails.title}</h3>
+                                    <h3 className="text-2xl md:text-3xl font-bold text-white uppercase tracking-tighter">{selectedStudyForDetails.title}</h3>
                                 </div>
                                 <button onClick={() => setSelectedStudyForDetails(null)} className="p-3 hover:bg-white/5 rounded-xl transition-all group">
                                     <X className="w-6 h-6 text-slate-500 group-hover:text-white" />
@@ -502,7 +502,7 @@ export default function FormsQuestionnairesModule() {
                             </div>
                             <div className="flex-1 overflow-y-auto p-8 space-y-6 custom-scrollbar">
                                 <section>
-                                    <h5 className="text-xs md:text-sm font-black text-slate-500 uppercase tracking-[0.2em] mb-6">Eligibility Questions</h5>
+                                    <h5 className="text-xs md:text-sm font-bold text-slate-500 uppercase tracking-wider mb-6">Questions</h5>
                                     <div className="space-y-4">
                                         {getScreenerQuestions(selectedStudyForDetails).length > 0 ? (
                                             getScreenerQuestions(selectedStudyForDetails).map((q: any, idx: number) => (

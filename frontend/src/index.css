@@ -639,13 +639,13 @@ html {
 }
 
 .custom-scrollbar-horizontal::-webkit-scrollbar-thumb {
-  background: rgba(99, 102, 241, 0.3);
+  background: rgba(99, 102, 241, 0.6);
   border-radius: 10px;
   border: 2px solid #0B101B;
 }
 
 .custom-scrollbar-horizontal::-webkit-scrollbar-thumb:hover {
-  background: rgba(99, 102, 241, 0.6);
+  background: rgba(99, 102, 241, 0.9);
 }
 
 /* Global Date Picker Indicator Visibility Fix */

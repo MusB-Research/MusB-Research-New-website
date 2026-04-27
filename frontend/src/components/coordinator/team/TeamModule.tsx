@@ -72,7 +72,9 @@ export default function TeamModule({
 
                 const staffOnly = formatted.filter(m => 
                     m.role !== 'Participant' && 
-                    m.role !== 'PARTICIPANT'
+                    m.role !== 'PARTICIPANT' &&
+                    m.status !== 'Draft' &&
+                    m.status !== 'PENDING'
                 );
 
                 setMusbTeam(staffOnly.filter(m => m.type === 'MusB'));
@@ -113,7 +115,9 @@ export default function TeamModule({
 
                 const staffOnly = formatted.filter(m => 
                     m.role !== 'Participant' && 
-                    m.role !== 'PARTICIPANT'
+                    m.role !== 'PARTICIPANT' &&
+                    m.status !== 'Draft' &&
+                    m.status !== 'PENDING'
                 );
 
                 setMusbTeam(staffOnly.filter(m => m.type === 'MusB'));
@@ -333,13 +337,13 @@ export default function TeamModule({
                     { label: 'MusB Network', val: stats.musb, icon: Building2, color: 'text-slate-400', bg: 'bg-slate-400/10' },
                     { label: 'Inactive / Alerts', val: stats.alerts, icon: AlertTriangle, color: 'text-rose-400', bg: 'bg-rose-400/10' },
                 ].map((k, idx) => (
-                    <div key={idx} className="p-5 sm:p-6 bg-[#1E293B]/20 border border-white/5 rounded-2xl flex items-center gap-5 sm:gap-6">
-                        <div className={`p-3.5 sm:p-4 rounded-xl ${k.bg} shrink-0`}>
-                            <k.icon className={`w-5 h-5 sm:w-6 sm:h-6 ${k.color}`} />
+                    <div key={idx} className="p-4 sm:p-5 bg-[#0B101B]/50 backdrop-blur-xl border border-white/5 rounded-2xl flex items-center gap-4 sm:gap-5 shadow-2xl">
+                        <div className={`p-3 rounded-xl ${k.bg} shrink-0 border border-white/5`}>
+                            <k.icon className={`w-5 h-5 ${k.color}`} />
                         </div>
                         <div className="min-w-0">
-                            <p className="text-xl sm:text-2xl font-black text-white leading-none">{k.val.toString().padStart(2, '0')}</p>
-                            <p className="text-[10px] sm:text-[11px] font-black text-slate-500 mt-2 sm:mt-3 uppercase tracking-[0.2em] truncate">{k.label}</p>
+                            <p className="text-xl sm:text-2xl font-black text-white leading-none italic">{k.val.toString().padStart(2, '0')}</p>
+                            <p className="text-[10px] font-black text-slate-500 mt-2 uppercase tracking-[0.2em] truncate">{k.label}</p>
                         </div>
                     </div>
                 ))}
@@ -436,10 +440,9 @@ export default function TeamModule({
                             </table>
                         </div>
 
-                        {/* Mobile/Tablet Card View */}
                         <div className="xl:hidden grid grid-cols-1 md:grid-cols-2 gap-4">
                             {getVisibleTeam.map(m => (
-                                <div key={m.id} className="p-6 bg-[#1E293B]/20 border border-white/5 rounded-2xl space-y-6">
+                                <div key={m.id} className="p-5 bg-[#0B101B]/40 backdrop-blur-xl border border-white/5 rounded-2xl space-y-5 shadow-2xl">
                                     <div className="flex justify-between items-start">
                                         <div className="flex items-center gap-4">
                                             <div className="w-12 h-12 rounded-xl bg-white/5 border border-white/5 flex items-center justify-center shrink-0">
@@ -471,14 +474,14 @@ export default function TeamModule({
                                     <div className="grid grid-cols-2 gap-4 pt-4 border-t border-white/5">
                                         <div>
                                             <p className="text-[9px] font-black text-slate-600 uppercase tracking-widest mb-1">Functional Role</p>
-                                            <p className="text-xs font-black text-slate-300 uppercase tracking-widest">{m.role}</p>
-                                            {m.expertise && <p className="text-[10px] text-slate-500 mt-1 font-bold uppercase tracking-wider opacity-60 leading-none">{m.expertise}</p>}
+                                            <p className="text-[11px] font-black text-slate-300 uppercase tracking-widest italic">{m.role}</p>
+                                            {m.expertise && <p className="text-[10px] text-slate-500 mt-1 font-bold uppercase tracking-wider opacity-60 leading-none italic">{m.expertise}</p>}
                                         </div>
                                         <div>
                                             <p className="text-[9px] font-black text-slate-600 uppercase tracking-widest mb-1">Assignments</p>
                                             <div className="flex flex-wrap gap-1.5">
                                                 {m.assignedStudies.length > 0 ? m.assignedStudies.map(s => (
-                                                    <span key={s} className="px-2 py-0.5 rounded bg-white/5 border border-white/5 text-[9px] font-black text-slate-400 uppercase tracking-widest">{s}</span>
+                                                    <span key={s} className="px-2 py-0.5 rounded bg-white/5 border border-white/5 text-[9px] font-black text-slate-400 uppercase tracking-widest italic">{s}</span>
                                                 )) : <span className="text-[10px] text-slate-600 font-black uppercase tracking-widest opacity-60">none</span>}
                                             </div>
                                         </div>

@@ -13,8 +13,8 @@ export const COLORS = {
 
 export const S = {
     panel: {
-        display: 'flex', flexDirection: 'column' as const, height: '100vh', width: '100%',
-        backgroundColor: COLORS.bg, color: 'white', overflow: 'hidden', position: 'relative' as const
+        display: 'flex', flexDirection: 'column' as const, minHeight: 'calc(100vh - 128px)', width: '100%',
+        backgroundColor: COLORS.bg, color: 'white', position: 'relative' as const
     },
     header: {
         padding: '1.25rem 2rem', backgroundColor: '#0B1221',

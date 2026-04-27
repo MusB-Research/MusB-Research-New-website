@@ -394,7 +394,7 @@ export default function LabsResultsModule({ selectedStudyId, preloadedStudies, i
                             <th className="px-6 py-4 text-[12px] font-black text-white/80 uppercase tracking-widest italic border-r border-white/5">Clinical Subject</th>
                             <th className="px-6 py-4 text-[12px] font-black text-white/80 uppercase tracking-widest italic border-r border-white/5">Specimen Status</th>
                             <th className="px-6 py-4 text-[12px] font-black text-white/80 uppercase tracking-widest italic border-r border-white/5">Analysis Result</th>
-                            <th className="px-6 py-4 text-[12px] font-black text-white/80 uppercase tracking-widest italic text-right">Actions</th>
+                            <th className="sticky right-0 px-6 py-4 text-[12px] font-black text-white/80 uppercase tracking-widest italic text-right bg-[#0B101B] z-10 shadow-[-10px_0_15px_-10px_rgba(0,0,0,0.5)] border-l border-white/5">Actions</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-white/5">
@@ -439,22 +439,22 @@ export default function LabsResultsModule({ selectedStudyId, preloadedStudies, i
                                     </div>
                                     {s.critical && <p className="text-[11px] font-black text-red-500 uppercase tracking-widest mt-1.5 shrink-0">CRITICAL HIGH</p>}
                                 </td>
-                                <td className="px-6 py-4 text-right">
+                                <td className="sticky right-0 px-6 py-4 text-right bg-[#0B101B] group-hover:bg-[#0E131E] z-10 shadow-[-10px_0_15px_-10px_rgba(0,0,0,0.5)] border-l border-white/5">
                                     <div className="flex items-center justify-end gap-3 transition-opacity">
                                         {s.status === 'Resulted' && !s.isReleased && (
                                             <button 
                                                 onClick={() => handleRelease(s.id)}
-                                                className="px-8 py-4 bg-blue-600 text-white rounded-2xl text-[12px] font-black uppercase tracking-widest flex items-center gap-3 hover:bg-white hover:text-blue-900 shadow-xl shadow-blue-600/30 transition-all cursor-pointer"
+                                                className="px-8 py-4 bg-blue-600 text-white rounded-2xl text-[12px] font-black uppercase tracking-widest flex items-center gap-3 hover:bg-white hover:text-blue-900 shadow-xl shadow-blue-600/30 transition-all cursor-pointer whitespace-nowrap"
                                             >
                                                 Release <CheckCircle2 className="w-4 h-4" />
                                             </button>
                                         )}
                                         {s.isReleased && (
-                                            <div className="flex items-center gap-3 px-8 py-4 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-2xl text-[12px] font-black uppercase tracking-widest">
+                                            <div className="flex items-center gap-3 px-8 py-4 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-2xl text-[12px] font-black uppercase tracking-widest whitespace-nowrap">
                                                 Released <CheckCircle2 className="w-4 h-4" />
                                             </div>
                                         )}
-                                        <button className="p-3 bg-white/5 border border-white/10 rounded-2xl text-slate-400 hover:text-white hover:bg-white/10 transition-all shadow-lg cursor-pointer">
+                                        <button className="p-4 bg-white/5 border border-white/10 rounded-2xl text-slate-400 hover:text-white hover:bg-white/10 transition-all shadow-lg cursor-pointer shrink-0">
                                             <TrendingUp className="w-4 h-4" />
                                         </button>
                                         {(s.status === 'Resulted' || s.status === 'Alert') && (
@@ -463,7 +463,7 @@ export default function LabsResultsModule({ selectedStudyId, preloadedStudies, i
                                                     console.log("Setting selected sample:", s.id);
                                                     setSelectedSample(s);
                                                 }}
-                                                className="px-8 py-4 bg-white text-slate-950 rounded-2xl text-[12px] font-black uppercase tracking-widest flex items-center gap-3 hover:scale-[1.03] transition-all shadow-lg cursor-pointer"
+                                                className="px-8 py-4 bg-white text-slate-950 rounded-2xl text-[12px] font-black uppercase tracking-widest flex items-center gap-3 hover:scale-[1.03] transition-all shadow-lg cursor-pointer whitespace-nowrap"
                                             >
                                                 Review <ChevronRight className="w-4 h-4" />
                                             </button>

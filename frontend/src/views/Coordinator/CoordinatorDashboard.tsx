@@ -31,6 +31,8 @@ import StaffTasksModule from '../../components/shared/StaffTasksModule';
 import ParticipantTaskManagement from '../../components/shared/ParticipantTaskManagement';
 import CompensationManagement from '../../components/coordinator/panels/CompensationManagement';
 import StudyKitsModule from '../../components/shared/StudyKitsModule';
+import InformedConsentManagement from '../../components/shared/InformedConsentManagement';
+import EnrollmentWorkflow from '../../components/shared/EnrollmentWorkflow';
 
 // Modular Page Components
 import { OperationsOversight } from './modules/OperationsOversight';
@@ -75,7 +77,9 @@ type CCModule =
 
     | 'COMPENSATION'
     | 'LOGISTICS'
-    | 'PARTICIPANT_TASKS';
+    | 'PARTICIPANT_TASKS'
+    | 'CONSENT_NEW'
+    | 'ENROLLMENT_WORKFLOW';
 
 export default function CoordinatorDashboard() {
     const navigate = useNavigate();
@@ -217,6 +221,8 @@ export default function CoordinatorDashboard() {
             'SPONSORS': 'sponsors',
 
             'COMPENSATION': 'compensation',
+            'INVITATIONS': 'invitations',
+            'ENROLLMENT_WORKFLOW': 'enrollment-workflow',
             'LOGISTICS': 'logistics',
             'PARTICIPANT_TASKS': 'participant-tasks'
         };
@@ -411,14 +417,16 @@ export default function CoordinatorDashboard() {
                 sponsorsData,
                 visitsData,
                 participantsData,
-                questionnairesData
+                questionnairesData,
+                staffTasksData
             ] = await Promise.all([
                 apiFetch<any[]>('/api/studies/?limit=50', fetchOpts),
                 apiFetch<any[]>('/api/users/?limit=100', fetchOpts),
                 apiFetch<any[]>('/api/sponsor-organizations/?limit=50', fetchOpts),
                 apiFetch<any[]>('/api/visits/?limit=50', fetchOpts),
                 apiFetch<any[]>('/api/participants/?limit=50', fetchOpts),
-                apiFetch<any[]>('/api/questionnaire-schedules/?limit=50', fetchOpts)
+                apiFetch<any[]>('/api/questionnaire-schedules/?limit=50', fetchOpts),
+                apiFetch<any[]>('/api/staff-tasks/?limit=50', fetchOpts)
             ]);
 
             setStudies(studiesData || []);
@@ -431,6 +439,7 @@ export default function CoordinatorDashboard() {
             setSponsorOrganizations(sponsorsData || []);
             setVisits(visitsData || []);
             setParticipants(participantsData || []);
+            setGlobalTasks(staffTasksData || []);
 
             const activeParticipants = participantsData || [];
 
@@ -567,30 +576,30 @@ export default function CoordinatorDashboard() {
 
     const sidebarGroups = [
         {
-            group: 'GENERAL',
+            group: 'Overview',
             items: [
                 { id: 'WEBSITE', label: 'Website', icon: Globe },
-                { id: 'OVERSIGHT', label: 'Overview', icon: LayoutDashboard },
-                { id: 'TASKS', label: 'Tasks', icon: CheckSquare, hasNotify: true },
+                { id: 'OVERSIGHT', label: 'Dashboard', icon: LayoutDashboard },
             ]
         },
         {
-            group: 'COORDINATION',
+            group: 'Work',
             items: [
                 { id: 'STUDIES', label: 'Studies', icon: Beaker },
-                { id: 'TEAM', label: 'Invited Team Members', icon: Users },
+                { id: 'TEAM', label: 'Team', icon: Users },
                 { id: 'PARTICIPANTS', label: 'Participants', icon: UsersRound },
                 { id: 'FORMS', label: 'Forms', icon: ClipboardList },
                 { id: 'CONSENT', label: 'Consent', icon: ShieldCheck },
                 { id: 'VISITS', label: 'Visits', icon: Calendar },
                 { id: 'LABS', label: 'Labs', icon: Beaker },
                 { id: 'COMPENSATION', label: 'Payments', icon: DollarSign },
-                { id: 'LOGISTICS', label: 'Logistics', icon: Truck },
-                { id: 'PARTICIPANT_TASKS', label: 'Tasks', icon: ListFilter },
+                { id: 'TASKS', label: 'Staff Tasks', icon: ClipboardList },
+                { id: 'ENROLLMENT_WORKFLOW', label: 'Enrollment', icon: UserPlus },
+                { id: 'PARTICIPANT_TASKS', label: 'Subject Tasks', icon: CheckSquare },
             ]
         },
         {
-            group: 'DOCUMENTS & COMMS',
+            group: 'Communication',
             items: [
                 { id: 'STUDY_DOCS', label: 'Documents', icon: FileText },
                 { id: 'MY_DOCS', label: 'Credentials', icon: Briefcase },
@@ -600,7 +609,7 @@ export default function CoordinatorDashboard() {
             ]
         },
         ...(isAdmin ? [{
-            group: 'ADMINISTRATION',
+            group: 'Admin',
             items: [
                 { id: 'LAUNCH_STUDY', label: 'Setup', icon: Rocket },
                 { id: 'SPONSORS', label: 'Sponsors', icon: Database },
@@ -632,7 +641,7 @@ export default function CoordinatorDashboard() {
                 <div className="flex-1 flex items-center justify-start lg:pl-4">
                     <div className="flex items-center gap-4">
                         <div className="hidden lg:flex items-center gap-2 bg-white/5 p-1 rounded-2xl border border-white/10 h-10">
-                            <div className="px-2 text-[9px] font-black text-slate-500 uppercase tracking-widest italic border-r border-white/10 shrink-0">Study</div>
+                            <div className="px-2 text-[9px] font-bold text-slate-500 uppercase tracking-widest border-r border-white/10 shrink-0">Study</div>
                              <select
                                  value={globalSelectedStudyId}
                                  onChange={(e) => setGlobalSelectedStudyId(e.target.value)}
@@ -675,7 +684,7 @@ export default function CoordinatorDashboard() {
                                 {isNotificationOpen && (
                                     <motion.div initial={{ opacity: 0, scale: 0.95, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 10 }} className="absolute right-0 mt-6 w-80 md:w-96 bg-[#0F172A]/95 backdrop-blur-3xl border border-white/10 rounded-2xl shadow-2xl z-[100] overflow-hidden">
                                         <div className="p-5 border-b border-white/5 flex items-center justify-between bg-white/[0.02]">
-                                            <h3 className="text-[11px] font-black text-white uppercase tracking-widest">System Alerts</h3>
+                                            <h3 className="text-xs font-bold text-white uppercase tracking-wider">Alerts</h3>
                                             <button 
                                                 onClick={() => setIsNotificationOpen(false)}
                                                 className="p-1.5 hover:bg-white/5 rounded-lg text-slate-500 hover:text-white transition-all"
@@ -758,7 +767,7 @@ export default function CoordinatorDashboard() {
                                     className="absolute right-0 top-full mt-4 w-64 bg-[#0F172A]/95 backdrop-blur-3xl border border-white/10 rounded-2xl shadow-2xl p-2 z-[100] overflow-hidden"
                                 >
                                     <div className="p-5 border-b border-white/5 mb-2">
-                                         <p className="text-sm font-black text-white uppercase italic truncate tracking-tight">
+                                         <p className="text-sm font-bold text-white uppercase tracking-tight">
                                              {getDisplayName(getUser())}
                                          </p>
                                          <p className="text-[11px] text-blue-400 font-black uppercase tracking-widest mt-2 px-2 py-0.5 bg-blue-500/10 border border-blue-500/20 rounded-lg inline-block">
@@ -770,10 +779,10 @@ export default function CoordinatorDashboard() {
                                     </div>
                                     <button
                                         onClick={handleSignOut}
-                                        className="w-full flex items-center gap-4 px-5 py-4 rounded-xl text-red-400 hover:text-white hover:bg-red-500/20 transition-all text-[11px] font-black uppercase tracking-widest"
+                                        className="w-full flex items-center gap-4 px-5 py-4 rounded-xl text-red-400 hover:text-white hover:bg-red-500/20 transition-all text-xs font-bold uppercase tracking-wider"
                                     >
                                         <LogOut className="w-4 h-4" />
-                                        <span>Terminate Session</span>
+                                        <span>Sign Out</span>
                                     </button>
                                 </motion.div>
                             )}
@@ -842,12 +851,12 @@ export default function CoordinatorDashboard() {
                         className="w-full flex items-center gap-3 px-5 py-3 rounded-xl text-slate-400 hover:text-white hover:bg-rose-500/10 hover:border-rose-500/20 border border-transparent transition-all group"
                     >
                         <LogOut className="w-4 h-4 text-slate-500 group-hover:text-rose-400" />
-                        <span className="text-[12px] font-black uppercase tracking-widest">Sign Out</span>
+                        <span className="text-xs font-bold uppercase tracking-wider">Sign Out</span>
                     </button>
                 </div>
             </aside>
 
-            <main className="flex-1 lg:pl-[240px] pt-24 md:pt-32 pb-20 overflow-x-hidden bg-[#0F172A] min-h-screen">
+            <main className="flex-1 lg:pl-[240px] pt-24 md:pt-32 pb-20 bg-[#0F172A] min-h-screen">
                 <div className="px-3 md:px-6 flex-1">
                     <AnimatePresence mode="wait">
                         {activeModule === 'OVERSIGHT' && (
@@ -920,10 +929,42 @@ export default function CoordinatorDashboard() {
                         )}
                         {activeModule === 'FORMS' && <FormsQuestionnairesModule selectedStudyId={globalSelectedStudyId} />}
                         {activeModule === 'CONSENT' && (
-                            <CCConsentModule 
-                                selectedStudyId={globalSelectedStudyId} 
-                                preloadedStudies={studies}
-                            />
+                            <div className="bg-[#0B101B] rounded-[2.5rem] -mt-6">
+                                <InformedConsentManagement 
+                                    role="Coordinator" 
+                                    studyTitle={studies.find(s => s.id === globalSelectedStudyId)?.title || "Current Study"}
+                                    pendingParticipants={globalTasks
+                                        .filter(t => t.task_type === 'CONSENT_SIGNATURE' && !t.is_completed)
+                                        .map(t => ({
+                                            name: t.title.split('for ')[1] || 'Participant',
+                                            sid: t.reference_id || 'ID-PENDING',
+                                            date: new Date(t.created_at).toLocaleDateString(),
+                                            type: 'e-consent'
+                                        }))
+                                    }
+                                    stats={{
+                                        consented: participants.filter(p => p.status === 'CONSENTED' || p.status === 'ENROLLED' || p.status === 'RANDOMIZED' || p.status === 'ACTIVE').length,
+                                        awaitingCoSign: globalTasks.filter(t => t.task_type === 'CONSENT_SIGNATURE' && !t.is_completed).length,
+                                        paperPending: 0,
+                                        larConsent: 0
+                                    }}
+                                    archivedParticipants={participants
+                                        .filter(p => ['CONSENTED', 'ENROLLED', 'RANDOMIZED', 'ACTIVE', 'COMPLETED'].includes(p.status))
+                                        .map(p => ({
+                                            name: p.participant_sid,
+                                            desc: `ICF-2026-${p.participant_sid} · E-consent · Status: ${p.status}`,
+                                            status: 'Complete',
+                                            color: 'text-emerald-500',
+                                            bg: 'bg-emerald-500/10'
+                                        }))
+                                    }
+                                />
+                            </div>
+                        )}
+                        {activeModule === 'ENROLLMENT_WORKFLOW' && (
+                            <div className="bg-[#0B101B] rounded-[2.5rem] -mt-6">
+                                <EnrollmentWorkflow role="Coordinator" />
+                            </div>
                         )}
                         {activeModule === 'VISITS' && (
                             <CCC_VisitsAssessmentsModule 

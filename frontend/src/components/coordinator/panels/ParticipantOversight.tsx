@@ -803,7 +803,8 @@ export default function ParticipantOversight({
                         </div>
 
                         {/* Desktop Table Layout */}
-                        <table className="hidden lg:table w-full text-left border-collapse min-w-[1100px] border-t border-white/5">
+                        <div className="relative">
+                        <table className="hidden lg:table w-full text-left border-collapse min-w-[1200px] border-t border-white/5">
                         <thead>
                             <tr className="bg-white/[0.02] border-b border-white/5 whitespace-nowrap">
                                 <th className="px-6 py-5 text-[11px] font-black text-white/60 uppercase tracking-widest italic border-r border-white/5">Subject</th>
@@ -813,7 +814,7 @@ export default function ParticipantOversight({
                                 <th className="px-6 py-5 text-[11px] font-black text-white/60 uppercase tracking-widest italic border-r border-white/5">Tasks</th>
                                 <th className="px-6 py-5 text-[11px] font-black text-white/60 uppercase tracking-widest italic border-r border-white/5">Progress</th>
                                 <th className="px-6 py-5 text-[11px] font-black text-white/60 uppercase tracking-widest italic border-r border-white/5">Submitted</th>
-                                <th className="px-6 py-5 text-[11px] font-black text-white/60 uppercase tracking-widest italic text-right">Actions</th>
+                                <th className="sticky right-0 px-6 py-5 text-[11px] font-black text-white/60 uppercase tracking-widest italic text-right bg-[#0B101B] z-10 shadow-[-10px_0_15px_-10px_rgba(0,0,0,0.5)]">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-white/5">
@@ -907,19 +908,19 @@ export default function ParticipantOversight({
                                             </td>
 
                                             {/* Actions */}
-                                            <td className="px-6 py-5 align-middle">
+                                            <td className={`sticky right-0 px-6 py-5 align-middle z-10 shadow-[-10px_0_15px_-10px_rgba(0,0,0,0.5)] transition-colors ${p.rawStatus === 'PENDING_REVIEW' ? 'bg-[#0E131E] group-hover:bg-[#121826]' : 'bg-[#0B101B] group-hover:bg-[#0E131E]'}`}>
                                                 <div className="flex items-center justify-end gap-2 whitespace-nowrap">
                                                     {p.rawStatus === 'PENDING_REVIEW' && (
-                                                        <>
+                                                        <div className="flex items-center gap-1.5">
                                                             <button onClick={() => setReviewModal({ id: p.id, name: p.name, decision: 'ACCEPT' })}
-                                                                className="px-4 py-2 bg-blue-600 hover:bg-white hover:text-blue-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 flex items-center gap-1.5">
+                                                                className="px-4 py-2 bg-blue-600 hover:bg-white hover:text-blue-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 flex items-center gap-1.5 shadow-lg shadow-blue-600/10">
                                                                 <CheckCheck className="w-3 h-3" /> Enroll
                                                             </button>
                                                             <button onClick={() => setReviewModal({ id: p.id, name: p.name, decision: 'REJECT' })}
                                                                 className="px-4 py-2 bg-red-600/80 hover:bg-white hover:text-red-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 flex items-center gap-1.5">
                                                                 <X className="w-3 h-3" /> Reject
                                                             </button>
-                                                        </>
+                                                        </div>
                                                     )}
                                                     {/* Send Compensation — only for enrolled/active/completed */}
                                                     {canPay && (
@@ -928,14 +929,17 @@ export default function ParticipantOversight({
                                                             <DollarSign className="w-3 h-3" /> Pay
                                                         </button>
                                                     )}
-                                                    <button onClick={() => onMessage?.(p.id)}
-                                                        className="p-2.5 bg-white/5 border border-white/10 rounded-xl text-slate-400 hover:text-white hover:bg-white/10 transition-all active:scale-95">
-                                                        <MessageSquare className="w-3.5 h-3.5" />
-                                                    </button>
-                                                    <button onClick={() => onOpenProfile?.(p.id)}
-                                                        className="px-5 py-2.5 bg-blue-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 hover:bg-white hover:text-slate-950 shadow-lg active:scale-95 transition-all">
-                                                        Profile <ChevronRight className="w-3.5 h-3.5" />
-                                                    </button>
+                                                    <div className="flex items-center gap-1.5">
+                                                        <button onClick={() => onMessage?.(p.id)}
+                                                            className="p-2.5 bg-white/5 border border-white/10 rounded-xl text-slate-400 hover:text-white hover:bg-white/10 transition-all active:scale-95"
+                                                            title="Message Subject">
+                                                            <MessageSquare className="w-3.5 h-3.5" />
+                                                        </button>
+                                                        <button onClick={() => onOpenProfile?.(p.id)}
+                                                            className="px-5 py-2.5 bg-blue-600/10 border border-blue-500/20 text-blue-400 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 hover:bg-blue-600 hover:text-white shadow-lg active:scale-95 transition-all">
+                                                            Profile <ChevronRight className="w-3.5 h-3.5" />
+                                                        </button>
+                                                    </div>
                                                 </div>
                                             </td>
                                         </motion.tr>
@@ -944,6 +948,7 @@ export default function ParticipantOversight({
                             </AnimatePresence>
                         </tbody>
                     </table>
+                    </div>
                     </>
                 )}
                 {filteredParticipants.length === 0 && !isLoading && !error && (

@@ -179,7 +179,7 @@ export const StudyDirectory: React.FC<StudyDirectoryProps> = ({
                                             <th className="px-8 py-6 border-r border-white/5">Research Objective & Metadata</th>
                                             <th className="px-8 py-6 border-r border-white/5">Sponsor Entity</th>
                                             <th className="px-8 py-6 border-r border-white/5">Operational Status</th>
-                                            <th className="px-8 py-6 text-right">Actions</th>
+                                            <th className="sticky right-0 px-8 py-6 text-right bg-[#0B101B] z-10 shadow-[-10px_0_15px_-10px_rgba(0,0,0,0.5)] border-l border-white/5">Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-white/[0.03]">
@@ -220,7 +220,7 @@ export const StudyDirectory: React.FC<StudyDirectoryProps> = ({
                                                         </div>
                                                     </div>
                                                 </td>
-                                                <td className="px-8 py-10 text-right">
+                                                <td className="sticky right-0 px-8 py-10 text-right bg-[#0B101B] group-hover:bg-[#0E131E] z-10 shadow-[-10px_0_15px_-10px_rgba(0,0,0,0.5)] border-l border-white/5">
                                                     <button className="p-4 bg-white/5 border border-white/10 rounded-2xl text-slate-500 group-hover:text-white group-hover:bg-blue-600 group-hover:border-blue-500 transition-all shadow-xl">
                                                         <ChevronRight className="w-5 h-5" />
                                                     </button>

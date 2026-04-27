@@ -201,7 +201,7 @@ function ConsentReviewModal({
                 initial={{ scale: 0.93, opacity: 0, y: 20 }}
                 animate={{ scale: 1, opacity: 1, y: 0 }}
                 exit={{ scale: 0.93, opacity: 0, y: 20 }}
-                className="bg-[#0B101B] border border-white/10 rounded-[2rem] w-full max-w-4xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden"
+                className="bg-[#111827]/80 backdrop-blur-2xl border border-white/10 rounded-[2rem] w-full max-w-4xl max-h-[92vh] flex flex-col shadow-[0_0_50px_rgba(0,0,0,0.5)] overflow-hidden"
             >
                 {/* Modal Header */}
                 <div className="flex items-center justify-between px-7 py-5 border-b border-white/5 shrink-0">
@@ -210,8 +210,8 @@ function ConsentReviewModal({
                             <FileText className={`w-5 h-5 text-${accent}-400`} />
                         </div>
                         <div>
-                            <h3 className="text-base font-black text-white uppercase italic tracking-tight">
-                                Co-Sign Consent Form
+                            <h3 className="text-base font-bold text-white uppercase tracking-tight">
+                                Co-Sign Consent
                             </h3>
                             <p className="text-[11px] text-slate-500 font-bold uppercase tracking-widest mt-0.5">
                                 {task.description}
@@ -233,7 +233,7 @@ function ConsentReviewModal({
                         <p className="text-[12px] text-red-400 font-bold uppercase text-center max-w-sm px-10">{error}</p>
                         <div className="flex gap-3">
                             <button onClick={fetchRecord} className="text-[11px] font-black text-white px-5 py-2 bg-white/5 rounded-full hover:bg-white/10 transition-all uppercase">Retry</button>
-                            <button onClick={() => onCoSigned(task.id)} className="text-[11px] font-black text-slate-400 px-5 py-2 border border-white/5 rounded-full hover:bg-white/5 transition-all uppercase italic">Dismiss Orphaned Task</button>
+                            <button onClick={() => onCoSigned(task.id)} className="text-[11px] font-bold text-slate-400 px-5 py-2 border border-white/5 rounded-full hover:bg-white/5 transition-all uppercase">Dismiss Task</button>
                         </div>
                     </div>
                 ) : (
@@ -248,8 +248,8 @@ function ConsentReviewModal({
                                     { label: 'Status', value: record.status || '—' },
                                 ].map(({ label, value }) => (
                                     <div key={label} className="bg-white/5 border border-white/5 rounded-xl px-4 py-3">
-                                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{label}</p>
-                                        <p className="text-[12px] font-black text-white mt-1 uppercase tracking-tight truncate">{value}</p>
+                                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{label}</p>
+                                        <p className="text-[12px] font-bold text-white mt-1 uppercase tracking-tight truncate">{value}</p>
                                     </div>
                                 ))}
                             </div>
@@ -262,8 +262,8 @@ function ConsentReviewModal({
                                 <div className="flex-1 overflow-y-auto p-8 space-y-6">
                                     <div className="max-w-xl mx-auto space-y-8">
                                         <div>
-                                            <h4 className="text-xl font-black text-white uppercase italic tracking-tight mb-2">Apply Co-Signature</h4>
-                                            <p className="text-[11px] text-slate-500 font-bold uppercase tracking-widest">Provide your digital authentication to finalize this consent record.</p>
+                                            <h4 className="text-xl font-bold text-white uppercase tracking-tight mb-2">Apply Signature</h4>
+                                            <p className="text-[11px] text-slate-500 font-bold uppercase tracking-wider">Confirm your signature to finish.</p>
                                         </div>
 
                                         <div className="space-y-4">
@@ -313,7 +313,7 @@ function ConsentReviewModal({
                                     <div className="flex items-center justify-between px-7 py-2.5 border-b border-white/5 bg-white/[0.02] shrink-0">
                                         <div className="flex items-center gap-2">
                                             <Eye className="w-3.5 h-3.5 text-slate-400" />
-                                            <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Signed Consent Document</span>
+                                            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Consent Document</span>
                                         </div>
                                         <div className="flex items-center gap-2">
                                             <button
@@ -383,7 +383,7 @@ function ConsentReviewModal({
                                 {signed ? (
                                     <div className="flex items-center gap-2 px-4 py-2.5 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl">
                                         <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                                        <span className="text-[12px] font-black text-emerald-400 uppercase tracking-widest">Co-Signature Verified</span>
+                                        <span className="text-[12px] font-bold text-emerald-400 uppercase tracking-widest">Verified</span>
                                     </div>
                                 ) : (
                                     <p className="text-[11px] text-slate-500 font-bold uppercase tracking-widest max-w-md italic">
@@ -524,22 +524,22 @@ export default function StaffTasksModule({ primaryColor = 'indigo', onRefresh, p
             {/* Premium SaaS Header Section */}
             <div className={`flex ${isMobile ? 'flex-col gap-4' : 'items-end justify-between'} pb-6 md:pb-8 border-b border-white/[0.07] mb-4`}>
                 <div className="flex flex-col gap-1 md:gap-2">
-                    <h2 className={`${isMobile ? 'text-3xl' : 'text-4xl'} font-black text-white tracking-tighter uppercase italic leading-none`}>My Tasks</h2>
-                    <p className="text-[9px] md:text-[10px] text-slate-500 font-bold uppercase tracking-[0.2em]">Outstanding Actions and Signatures</p>
+                    <h2 className={`${isMobile ? 'text-3xl' : 'text-4xl'} font-bold text-white tracking-tighter uppercase leading-none`}>My Tasks</h2>
+                    <p className="text-[9px] md:text-[10px] text-slate-500 font-bold uppercase tracking-wider">Pending Actions</p>
                 </div>
                 
                 <div className={`flex items-center gap-4 text-slate-500/50 pb-1.5 transition-opacity hover:opacity-100 ${isMobile ? 'opacity-100' : 'opacity-60'}`}>
                     <div className="w-8 md:w-12 h-px bg-white/10 hidden md:block" />
-                    <span className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] whitespace-nowrap">Completed History</span>
+                    <span className="text-[9px] md:text-[10px] font-bold uppercase tracking-wider whitespace-nowrap">Finished</span>
                 </div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                 {/* Pending Tasks */}
                 <div className="lg:col-span-7 space-y-5">
-                    <h3 className="text-base md:text-lg font-black text-white flex items-center gap-3 uppercase tracking-tighter italic px-2">
-                        Pending Tasks
-                        <span className="text-[10px] md:text-xs font-black text-slate-400 bg-white/5 px-2 py-0.5 md:px-2.5 md:py-1 rounded-lg border border-white/5">
+                    <h3 className="text-base md:text-lg font-bold text-white flex items-center gap-3 uppercase tracking-tighter px-2">
+                        Pending Actions
+                        <span className="text-[10px] md:text-xs font-bold text-slate-400 bg-white/5 px-2.5 py-1 rounded-lg border border-white/10">
                             {pendingTasks.length.toString().padStart(2, '0')}
                         </span>
                     </h3>
@@ -574,11 +574,11 @@ export default function StaffTasksModule({ primaryColor = 'indigo', onRefresh, p
                                         key={task.id}
                                         initial={{ opacity: 0, y: 8 }}
                                         animate={{ opacity: 1, y: 0 }}
-                                        className={`p-6 rounded-[2.5rem] border transition-all group ${
+                                        className={`p-5 rounded-[2rem] border transition-all group ${
                                             isConsent
                                                 ? `bg-${accent}-500/[0.04] border-${accent}-500/20 hover:bg-${accent}-500/[0.07]`
-                                                : 'bg-white/[0.03] border-white/5 hover:bg-white/[0.05]'
-                                        }`}
+                                                : 'bg-[#0B101B]/50 backdrop-blur-xl border-white/10 hover:bg-[#0B101B]/70'
+                                        } shadow-xl`}
                                     >
                                         <div className={`flex ${(isMobile || isTablet) ? 'flex-col' : 'items-start justify-between'} gap-6`}>
                                             <div className="flex items-start gap-4 flex-1 min-w-0">
@@ -598,7 +598,7 @@ export default function StaffTasksModule({ primaryColor = 'indigo', onRefresh, p
                                                         <h4 className="text-sm md:text-base font-black text-white uppercase tracking-tight leading-tight">{task.title}</h4>
                                                         {isConsent && (
                                                             <span className={`text-[8px] md:text-[9px] font-black text-${accent}-400 bg-${accent}-500/10 border border-${accent}-500/20 px-2 py-0.5 rounded-full uppercase tracking-widest`}>
-                                                                Clinical Audit
+                                                                Audit
                                                             </span>
                                                         )}
                                                     </div>
@@ -622,17 +622,20 @@ export default function StaffTasksModule({ primaryColor = 'indigo', onRefresh, p
                                                 {isConsent ? (
                                                     <button
                                                         onClick={() => setReviewTask(task)}
-                                                        className={`px-6 py-4 bg-${accent}-600 hover:bg-${accent}-500 text-white rounded-[1.25rem] text-[11px] font-black flex items-center justify-center gap-2 transition-all active:scale-95 shadow-xl shadow-${accent}-900/20 uppercase tracking-widest ${(isMobile || isTablet) ? 'w-full' : ''}`}
+                                                        className={`px-6 py-4 bg-${accent}-600 hover:bg-${accent}-500 text-white rounded-[1.25rem] text-[11px] font-bold flex items-center justify-center gap-2 transition-all active:scale-95 shadow-xl shadow-${accent}-900/20 uppercase tracking-widest ${(isMobile || isTablet) ? 'w-full' : ''}`}
                                                     >
                                                         <Eye className="w-3.5 h-3.5" />
                                                         Review Record
                                                     </button>
                                                 ) : (
                                                     <button
-                                                        onClick={() => markComplete(task.id)}
-                                                        className={`px-6 py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-[1.25rem] text-[11px] font-black flex items-center justify-center gap-2 shrink-0 transition-all active:scale-95 shadow-xl shadow-blue-900/20 uppercase tracking-widest ${(isMobile || isTablet) ? 'w-full' : ''}`}
+                                                        onClick={() => {
+                                                            alert(`Task finished.`);
+                                                            markComplete(task.id);
+                                                        }}
+                                                        className={`px-5 py-3.5 bg-blue-600 hover:bg-blue-500 text-white rounded-[1.25rem] text-[11px] font-bold flex items-center justify-center gap-2 shrink-0 transition-all active:scale-95 shadow-xl shadow-blue-900/20 uppercase tracking-widest ${(isMobile || isTablet) ? 'w-full' : ''}`}
                                                     >
-                                                        Finalize <ChevronRight className="w-4 h-4" />
+                                                        Finish <ChevronRight className="w-4 h-4" />
                                                     </button>
                                                 )}
                                             </div>
@@ -646,9 +649,9 @@ export default function StaffTasksModule({ primaryColor = 'indigo', onRefresh, p
 
                 {/* Completed Tasks */}
                 <div className="lg:col-span-5 space-y-5">
-                    <h3 className="text-lg font-black text-slate-500 flex items-center gap-3 uppercase tracking-tighter italic">
-                        Completed
-                        <span className="text-xs font-black text-slate-600 bg-white/5 px-2.5 py-1 rounded-lg border border-white/5">
+                    <h3 className="text-lg font-bold text-slate-500 flex items-center gap-3 uppercase tracking-tighter">
+                        Finished
+                        <span className="text-xs font-bold text-slate-600 bg-white/5 px-2.5 py-1 rounded-lg border border-white/5">
                             {completedTasks.length.toString().padStart(2, '0')}
                         </span>
                     </h3>

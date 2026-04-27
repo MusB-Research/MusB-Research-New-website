@@ -35,6 +35,8 @@ import ParticipantTaskManagement from '../components/shared/ParticipantTaskManag
 import TeamInventoryModule from '../components/pi/panels/TeamInventoryModule';
 import StudyKitsModule from '../components/shared/StudyKitsModule';
 import { usePolling } from '@/hooks/usePolling';
+import InformedConsentManagement from '../components/shared/InformedConsentManagement';
+import EnrollmentWorkflow from '../components/shared/EnrollmentWorkflow';
 
 
 import {
@@ -76,6 +78,8 @@ type PIModule =
     | 'TEAM_INVENTORY'
     | 'LOGISTICS'
     | 'INVITATIONS'
+    | 'CONSENT_NEW'
+    | 'ENROLLMENT_WORKFLOW'
     | 'SUPPORT';
 
 interface SidebarItem {
@@ -192,6 +196,8 @@ export default function PIDashboard() {
             'ANALYTICS': 'analytics',
             'SPONSORS': 'sponsors',
             'INVITATIONS': 'invitations',
+            'ENROLLMENT_WORKFLOW': 'enrollment-workflow',
+            'CONSENT_NEW': 'consent-new',
             'PARTICIPANT_TASKS': 'participant-tasks'
         };
         const slug = slugs[mod];
@@ -449,34 +455,34 @@ export default function PIDashboard() {
 
     const sidebarGroups: SidebarGroup[] = [
         {
-            group: 'Main',
+            group: 'Overview',
             items: [
-                { id: 'WEBSITE', label: 'Main Website', icon: Globe },
-                { id: 'OVERVIEW', label: 'Overview', icon: LayoutDashboard },
-                { id: 'TASKS', label: 'My Tasks', icon: CheckSquare, hasNotify: true },
+                { id: 'WEBSITE', label: 'Website', icon: Globe },
+                { id: 'OVERVIEW', label: 'Dashboard', icon: LayoutDashboard },
             ]
         },
         {
-            group: 'Research',
+            group: 'Work',
             items: [
-                { id: 'STUDIES', label: 'My Studies', icon: Beaker },
-                { id: 'TEAM', label: 'Team Members', icon: Users },
+                { id: 'STUDIES', label: 'Studies', icon: Beaker },
+                { id: 'TEAM', label: 'Team', icon: Users },
                 { id: 'INVITATIONS', label: 'Invitations', icon: UserPlus },
                 { id: 'PARTICIPANTS', label: 'Participants', icon: UsersRound },
                 { id: 'SUBJECT_REVIEW', label: 'Review', icon: Activity },
-                { id: 'FORMS', label: 'Screening Forms', icon: ClipboardList },
-                { id: 'CONSENT', label: 'Consent Forms', icon: ShieldCheck },
-                { id: 'VISITS', label: 'Visits & Appointments', icon: Calendar },
+                { id: 'FORMS', label: 'Forms', icon: ClipboardList },
+                { id: 'ENROLLMENT_WORKFLOW', label: 'Enrollment', icon: UserPlus },
+                { id: 'CONSENT', label: 'Consent', icon: ShieldCheck },
+                { id: 'VISITS', label: 'Visits', icon: Calendar },
                 { id: 'SPONSORS', label: 'Sponsors', icon: Building2 },
-                { id: 'LABS', label: 'Lab Results', icon: Beaker },
-
+                { id: 'TASKS', label: 'Staff Tasks', icon: ClipboardList },
+                { id: 'LABS', label: 'Labs', icon: Beaker },
                 { id: 'PARTICIPANT_TASKS', label: 'Subject Tasks', icon: ListFilter },
                 { id: 'LOGISTICS', label: 'Logistics', icon: Truck },
-                { id: 'LAUNCH_STUDY', label: 'Start Study', icon: Rocket },
+                { id: 'LAUNCH_STUDY', label: 'New Study', icon: Rocket },
             ]
         },
         {
-            group: 'Files & Messages',
+            group: 'Comms',
             items: [
                 { id: 'MESSAGES', label: 'Messages', icon: MessageSquare },
                 { id: 'ALERTS', label: 'Alerts', icon: Bell, hasNotify: true },
@@ -513,14 +519,14 @@ export default function PIDashboard() {
 
                 <div className="flex items-center gap-6">
                     <div className="hidden xl:flex items-center gap-3 bg-white/5 p-1 rounded-xl border border-white/10">
-                        <div className="px-4 text-xs font-bold text-slate-500 uppercase tracking-widest border-r border-white/10 shrink-0">STUDY</div>
+                        <div className="px-4 text-xs font-bold text-slate-500 uppercase tracking-widest border-r border-white/10 shrink-0">Study</div>
                         <select
                             value={globalSelectedStudyId}
                             onChange={(e) => setGlobalSelectedStudyId(e.target.value)}
                             className="bg-transparent text-[13px] font-bold text-teal-400 uppercase tracking-widest outline-none cursor-pointer px-4"
                         >
                             <option value="all" className="bg-[#0B101B]">
-                                ALL ACTIVE STUDIES ({Object.values(participantsByStudy).reduce((a,b)=>a+b,0)} participant{Object.values(participantsByStudy).reduce((a,b)=>a+b,0) !== 1 ? 's' : ''} total)
+                                All Studies ({Object.values(participantsByStudy).reduce((a,b)=>a+b,0)} participant{Object.values(participantsByStudy).reduce((a,b)=>a+b,0) !== 1 ? 's' : ''})
                             </option>
                             {studies.map(s => {
                                 const cnt = participantsByStudy[s.id] ?? 0;
@@ -558,7 +564,7 @@ export default function PIDashboard() {
 
                     <div className="flex items-center gap-4 relative" ref={profileRef}>
                         <div className="text-right hidden lg:block">
-                            <p className="text-[13px] font-black text-white uppercase leading-none tracking-wider">{userName}</p>
+                            <p className="text-sm font-bold text-white uppercase tracking-tight">{userName}</p>
                         </div>
                         <button
                             onClick={() => setIsProfileOpen(!isProfileOpen)}
@@ -775,10 +781,42 @@ export default function PIDashboard() {
                     />}
                     {activeModule === 'FORMS' && <FormsQuestionnairesModule />}
                     {activeModule === 'CONSENT' && (
-                        <ConsentModule 
-                            selectedStudyId={globalSelectedStudyId !== 'all' ? globalSelectedStudyId : undefined} 
-                            preloadedStudies={studies}
-                        />
+                        <div className="bg-[#0B101B] rounded-[2.5rem] -mt-6">
+                            <InformedConsentManagement 
+                                role="PI" 
+                                studyTitle={studies.find(s => s.id === globalSelectedStudyId)?.title || "Current Study"}
+                                pendingParticipants={tasks
+                                    .filter(t => t.task_type === 'CONSENT_SIGNATURE' && !t.is_completed)
+                                    .map(t => ({
+                                        name: t.title.split('for ')[1] || 'Participant',
+                                        sid: t.reference_id || 'ID-PENDING',
+                                        date: new Date(t.created_at).toLocaleDateString(),
+                                        type: 'e-consent'
+                                    }))
+                                }
+                                stats={{
+                                    consented: participants.filter(p => p.status === 'CONSENTED' || p.status === 'ENROLLED' || p.status === 'RANDOMIZED' || p.status === 'ACTIVE').length,
+                                    awaitingCoSign: tasks.filter(t => t.task_type === 'CONSENT_SIGNATURE' && !t.is_completed).length,
+                                    paperPending: 0,
+                                    larConsent: 0
+                                }}
+                                archivedParticipants={participants
+                                    .filter(p => ['CONSENTED', 'ENROLLED', 'RANDOMIZED', 'ACTIVE', 'COMPLETED'].includes(p.status))
+                                    .map(p => ({
+                                        name: p.participant_sid, // Using SID for now as name might be encrypted
+                                        desc: `ICF-2026-${p.participant_sid} · E-consent · Status: ${p.status}`,
+                                        status: 'Complete',
+                                        color: 'text-emerald-500',
+                                        bg: 'bg-emerald-500/10'
+                                    }))
+                                }
+                            />
+                        </div>
+                    )}
+                    {activeModule === 'ENROLLMENT_WORKFLOW' && (
+                        <div className="bg-[#0B101B] rounded-[2.5rem] -mt-6">
+                            <EnrollmentWorkflow role="PI" />
+                        </div>
                     )}
                     {activeModule === 'VISITS' && (
                         <VisitsModule 
