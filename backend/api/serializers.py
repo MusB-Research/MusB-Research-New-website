@@ -363,6 +363,8 @@ class StudySerializer(SanitizedModelSerializer):
     study_questionnaires = serializers.JSONField(required=False, write_only=True)
 
     # Read-only nested fields ---
+    # consent_templates is a reverse FK relation — MUST be read_only, never required on write
+    consent_templates = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
     assigned_pis = UserSerializer(many=True, read_only=True)
     assigned_coordinators = UserSerializer(many=True, read_only=True)
     assigned_sponsors = UserSerializer(many=True, read_only=True)
@@ -390,7 +392,7 @@ class StudySerializer(SanitizedModelSerializer):
             'pi_id', 'coordinator_id', 'sponsor_id', 'sponsor_org_id', 'pi_ids', 'coordinator_ids', 'sponsor_ids',
             'assigned_pis', 'assigned_coordinators', 'assigned_sponsors', 'approval_status', 'created_by', 'created_by_role',
             'primary_indication', 'trial_model', 'phase', 'masking_strategy', 'is_double_blind', 'has_placebo_control',
-            'has_screening_log', 'shipment_mode', 'consent_mode', 'condition',
+            'has_screening_log', 'shipment_mode', 'consent_mode', 'condition', 'show_dosing_log', 'show_ae_report', 'show_lab_upload', 'is_archived',
             'trial_format', 'benefit', 'duration', 'tags', 'compensation', 'compensation_currency', 'location',
             'time_commitment', 'overview', 'participation_message', 'timeline', 'safety_info',
             'privacy_standards', 'remote_participation', 'start_date', 'end_date',
@@ -399,7 +401,7 @@ class StudySerializer(SanitizedModelSerializer):
             'contract_status', 'sponsor_contact_name', 'sponsor_contact_email',
             'reward_type', 'reward_logic', 'reward_config',
             'consent_content', 'require_participant_sig', 'require_cc_verification', 'require_pi_signoff', 'require_lar',
-            'consent_pdf_template', 'consent_pdf_url',
+            'consent_pdf_template', 'consent_pdf_url', 'consent_templates',
             'documents',
             'study_questionnaires', 'screener_config', 'avg_screener_duration',
             'rct_design', 'medication_supply', 'has_study_kit', 'consent_collection',
@@ -435,7 +437,7 @@ class StudySerializer(SanitizedModelSerializer):
             'reward_amount', 'masking', 'indication', 'execution_type',
             'startDate', 'endDate',
             # Also strip these if frontend accidentally sends them (they are read-only relations)
-            'documents', 'assigned_pis', 'assigned_coordinators', 'assigned_sponsors'
+            'documents', 'assigned_pis', 'assigned_coordinators', 'assigned_sponsors', 'consent_templates'
         }
         if isinstance(data, dict):
             # Map frontend keys to backend fields
@@ -444,7 +446,8 @@ class StudySerializer(SanitizedModelSerializer):
 
             # Include study_questionnaires in KNOWN_FIELDS so it's not stripped
             LOCAL_KNOWN = KNOWN_FIELDS | {'study_questionnaires', 'consent_pdf_template'}
-            data = {k: v for k, v in data.items() if k in LOCAL_KNOWN or k not in FRONTEND_ONLY_FIELDS}
+            data = {k: v for k, v in data.items() if k not in FRONTEND_ONLY_FIELDS or k == 'study_questionnaires'}
+
         try:
             return super().to_internal_value(data)
         except Exception as e:

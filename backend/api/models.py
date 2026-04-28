@@ -987,6 +987,13 @@ class Consent(BaseMongoModel):
                 pt.completed_at = _now()
                 pt.save()
 
+            # Generate initial signed PDF
+            try:
+                from .utils.pdf_utils import generate_signed_consent_pdf
+                generate_signed_consent_pdf(self)
+            except Exception as e:
+                print(f"PDF Generation Error (Initial): {e}")
+
             # StaffTask notification for Coordinator
             try:
                 from .models import StaffTask
@@ -1008,7 +1015,9 @@ class Consent(BaseMongoModel):
             
             # Check if PI verification is required
             requires_pi = False
-            if self.study:
+            if self.template:
+                requires_pi = self.template.require_pi_signoff
+            elif self.study:
                 requires_pi = self.study.require_pi_signoff
             
             if requires_pi and not self.pi_verified:
@@ -1041,6 +1050,14 @@ class Consent(BaseMongoModel):
                 "actor": self.cc_name or "Coordinator",
                 "role": "COORDINATOR"
             })
+            
+            # REGENERATE PDF
+            try:
+                from .utils.pdf_utils import generate_signed_consent_pdf
+                generate_signed_consent_pdf(self)
+            except Exception as e:
+                print(f"PDF Regeneration Error (CC): {e}")
+
             super().save(update_fields=['signing_status', 'cc_verified_at', 'audit_trail'])
 
         # ── POST-SAVE side effects for PI sign transition ──
@@ -1056,23 +1073,20 @@ class Consent(BaseMongoModel):
                 "actor": self.pi_name or "Principal Investigator",
                 "role": "PI"
             })
-            super().save(update_fields=['signing_status', 'pi_verified_at', 'audit_trail'])
 
-        # ── REGENERATE PDF logic ──
-        # Regenerate whenever a signature is added or updated
-        # is_new (Participant signed) OR Coordinator just signed OR PI just signed
-        should_regenerate = is_new or (not is_new and (
-            (self.cc_verified and not old_cc_verified) or 
-            (self.pi_verified and not old_pi_verified)
-        ))
-
-        if should_regenerate:
+            # REGENERATE PDF
             try:
                 from .utils.pdf_utils import generate_signed_consent_pdf
                 generate_signed_consent_pdf(self)
-                
-                # If it's FULLY_SIGNED, also archive as a Document
-                if self.signing_status == 'FULLY_SIGNED':
+            except Exception as e:
+                print(f"PDF Regeneration Error (PI): {e}")
+
+            super().save(update_fields=['signing_status', 'pi_verified_at', 'audit_trail'])
+
+        # ── Archival logic for when it becomes FULLY_SIGNED ──
+        if self.signing_status == 'FULLY_SIGNED' and ((self.cc_verified and not old_cc_verified) or (self.pi_verified and not old_pi_verified)):
+            try:
+                if self.signed_pdf:
                     from .models import Document
                     doc_title = f"Executed Consent - {self.study.protocol_id}"
                     Document.objects.update_or_create(
@@ -1085,7 +1099,7 @@ class Consent(BaseMongoModel):
                         }
                     )
             except Exception as e:
-                print(f"PDF Generation/Archival Error: {e}")
+                print(f"Archival Error: {e}")
 
 # ─────────────────────────────────────────────────────────
 # NEW MODELS FOR FULL BUILD PROMPT
