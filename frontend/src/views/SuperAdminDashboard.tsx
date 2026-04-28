@@ -29,7 +29,6 @@ import ApprovalModule from '../components/admin/ApprovalModule';
 import CareerManagement from '../components/admin/CareerManagement';
 import SupportModule from '../components/coordinator/support/SupportEntry';
 import StudyInquiriesModule from '../components/admin/StudyInquiriesModule';
-import { LEADERSHIP_DATA, ADVISORS_DATA, STAFF_DATA } from './Team';
 import { usePolling } from '../hooks/usePolling';
 
 // ═══════════════════════════════════════════
@@ -553,6 +552,16 @@ const StudiesPage = ({
 };
 
 export default function SuperAdminDashboard() {
+  const emptyStaffRecords = {
+    leadership: [] as any[],
+    advisors: [] as any[],
+    staff: [] as any[]
+  };
+  const groupTeamMembers = useCallback((members: any[] = []) => ({
+    leadership: members.filter((member: any) => member.category === 'leadership'),
+    advisors: members.filter((member: any) => member.category === 'advisors'),
+    staff: members.filter((member: any) => member.category === 'staff')
+  }), []);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -691,26 +700,7 @@ export default function SuperAdminDashboard() {
   const [participantLeads, setParticipantLeads] = useState<any[]>([]);
   const [facilityInquiries, setFacilityInquiries] = useState<any[]>([]);
   const [announcements, setAnnouncements] = useState<any[]>([]);
-  const [staffRecords, setStaffRecords] = useState(() => {
-    const saved = localStorage.getItem('musb_staff_records');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (parsed.leadership && parsed.advisors && parsed.staff) return parsed;
-      } catch (e) {
-        console.warn("Failed to load staff records from storage", e);
-      }
-    }
-    return {
-      leadership: LEADERSHIP_DATA,
-      advisors: ADVISORS_DATA,
-      staff: STAFF_DATA
-    };
-  });
-
-  useEffect(() => {
-    localStorage.setItem('musb_staff_records', JSON.stringify(staffRecords));
-  }, [staffRecords]);
+  const [staffRecords, setStaffRecords] = useState<any>(emptyStaffRecords);
   const [isEditStaffModalOpen, setIsEditStaffModalOpen] = useState(false);
   const [editingStaff, setEditingStaff] = useState<any>(null);
   const [isAddStaffModalOpen, setIsAddStaffModalOpen] = useState(false);
@@ -794,7 +784,7 @@ export default function SuperAdminDashboard() {
     try {
       const apiUrl = API || 'http://localhost:8000';
       const fetchOpts = { skipCache: isSilent };
-      const [uRes, sRes, pRes, iRes, lRes, fRes, nRes] = await Promise.all([
+      const [uRes, sRes, pRes, iRes, lRes, fRes, nRes, tmRes] = await Promise.all([
         authFetch(`${apiUrl}/api/users/?limit=100`, fetchOpts),
         authFetch(`${apiUrl}/api/studies/?limit=50`, fetchOpts),
         authFetch(`${apiUrl}/api/participants/?limit=100`, fetchOpts),
@@ -802,6 +792,7 @@ export default function SuperAdminDashboard() {
         authFetch(`${apiUrl}/api/leads/?limit=50`, fetchOpts),
         authFetch(`${apiUrl}/api/facilities-inquiry/?limit=50`, fetchOpts),
         authFetch(`${apiUrl}/api/news/?limit=50`, fetchOpts),
+        authFetch(`${apiUrl}/api/team-members/`, fetchOpts),
       ]);
       if (uRes.ok) {
         const rawData = await uRes.json();
@@ -848,6 +839,11 @@ export default function SuperAdminDashboard() {
       if (nRes.ok) {
         const raw = await nRes.json();
         setAnnouncements(Array.isArray(raw) ? raw : (raw.results || []));
+      }
+      if (tmRes.ok) {
+        const raw = await tmRes.json();
+        const members = Array.isArray(raw) ? raw : (raw.results || []);
+        setStaffRecords(groupTeamMembers(members));
       }
       try {
         const aRes = await authFetch(`${apiUrl}/api/auth/admin/audit-logs/`, fetchOpts);
@@ -942,26 +938,35 @@ export default function SuperAdminDashboard() {
 
   const refreshDashboard = () => fetchData();
 
-  const handleRemoveStaff = () => {
-    if (!staffToRemove) return;
-    const { category, index } = staffToRemove;
-    setStaffRecords((prev: any) => ({
-      ...prev,
-      [category]: prev[category as keyof typeof prev].filter((_: any, i: number) => i !== index)
-    }));
-    setIsRemoveStaffConfirmOpen(false);
-    setStaffToRemove(null);
-    addToast('Team member removed from directory', 'success');
+  const handleRemoveStaff = async () => {
+    if (!staffToRemove?.id) return;
+    try {
+      const apiUrl = API || 'http://localhost:8000';
+      const res = await authFetch(`${apiUrl}/api/team-members/${staffToRemove.id}/`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('Delete failed');
+      setStaffRecords((prev: any) => ({
+        ...prev,
+        [staffToRemove.category]: prev[staffToRemove.category as keyof typeof prev].filter((item: any) => item.id !== staffToRemove.id)
+      }));
+      addToast('Team member removed from directory', 'success');
+    } catch (err) {
+      addToast('Failed to remove team member', 'error');
+    } finally {
+      setIsRemoveStaffConfirmOpen(false);
+      setStaffToRemove(null);
+    }
   };
 
-  const handleAddStaff = () => {
+  const handleAddStaff = async () => {
     if (!newStaffData.name || !newStaffData.role) {
       addToast('Name and Role are required', 'warn');
       return;
     }
     const category = addingStaffCategory;
-    const formatted = {
+    const formatted: any = {
       ...newStaffData,
+      category,
+      status: 'Active',
       [category === 'advisors' ? 'advisory_role' : 'role']: newStaffData.role,
       [category === 'advisors' ? 'expertise_area' : 'dept']: newStaffData.dept,
       expertise_tags: newStaffData.expertise_tags ? newStaffData.expertise_tags.split(',').map((s: string) => s.trim()).filter(Boolean) : [],
@@ -974,23 +979,35 @@ export default function SuperAdminDashboard() {
       delete formatted.role;
       delete formatted.dept;
     }
-
-    setStaffRecords((prev: any) => ({
-      ...prev,
-      [category]: [...prev[category as keyof typeof prev], formatted]
-    }));
-    setIsAddStaffModalOpen(false);
-    setNewStaffData({ 
-      name: '', 
-      role: '', 
-      dept: '', 
-      bio: '',
-      expanded_bio: '',
-      expertise_tags: '',
-      affiliations: '',
-      publications: ''
-    });
-    addToast(`${category.charAt(0).toUpperCase() + category.slice(1)} record added successfully`, 'success');
+    try {
+      const apiUrl = API || 'http://localhost:8000';
+      const res = await authFetch(`${apiUrl}/api/team-members/`, {
+        method: 'POST',
+        body: JSON.stringify(formatted)
+      });
+      if (!res.ok) {
+        throw new Error('Create failed');
+      }
+      const created = await res.json();
+      setStaffRecords((prev: any) => ({
+        ...prev,
+        [category]: [...prev[category as keyof typeof prev], created]
+      }));
+      setIsAddStaffModalOpen(false);
+      setNewStaffData({
+        name: '',
+        role: '',
+        dept: '',
+        bio: '',
+        expanded_bio: '',
+        expertise_tags: '',
+        affiliations: '',
+        publications: ''
+      });
+      addToast(`${category.charAt(0).toUpperCase() + category.slice(1)} record added successfully`, 'success');
+    } catch (err) {
+      addToast('Failed to save team member to database', 'error');
+    }
   };
 
   // (getStudyIdentifier moved outside)
@@ -1074,16 +1091,22 @@ export default function SuperAdminDashboard() {
   const handleStatusToggle = async (user: any) => {
     if (user.created === 'Directory Record') {
       const category = user.category;
-      const index = user.index;
-      if (category && typeof index === 'number') {
-        const newStatus = user.status === 'Active' ? 'Inactive' : 'Active';
-        setStaffRecords((prev: any) => {
-          const updatedCategory = [...prev[category]];
-          updatedCategory[index] = { ...updatedCategory[index], status: newStatus };
-          return { ...prev, [category]: updatedCategory };
+      const newStatus = user.status === 'Active' ? 'Inactive' : 'Active';
+      try {
+        const apiUrl = API || 'http://localhost:8000';
+        const res = await authFetch(`${apiUrl}/api/team-members/${user.id}/`, {
+          method: 'PATCH',
+          body: JSON.stringify({ status: newStatus })
         });
+        if (!res.ok) throw new Error('Update failed');
+        setStaffRecords((prev: any) => ({
+          ...prev,
+          [category]: prev[category].map((member: any) => member.id === user.id ? { ...member, status: newStatus } : member)
+        }));
         setSelectedUser({ ...user, status: newStatus });
         addToast(`Member status set to ${newStatus}`, 'success');
+      } catch (err) {
+        addToast("Failed to update member status", "error");
       }
       return;
     }

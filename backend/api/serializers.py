@@ -9,7 +9,7 @@ from .models import (
     DosingLog, AEReport, Document, Notification, ProgressReport,
     StudyActionRequest, DailyMedicationLog, AssignedForm, SponsorOrganization,
     StudyKit, QuestionnaireTemplate, StudyQuestionnaire, QuestionnaireScheduleInstance,
-    Technology, InnovationPageSettings, SponsorInquiry
+    Technology, InnovationPageSettings, SponsorInquiry, TeamMember
 )
 from authentication.models import User, Invitation
 from authentication.security import decrypt_data
@@ -1257,6 +1257,11 @@ class QuestionnaireScheduleInstanceSerializer(SanitizedModelSerializer):
 class TechnologySerializer(SanitizedModelSerializer):
     class Meta:
         model = Technology
+        fields = '__all__'
+
+class TeamMemberSerializer(SanitizedModelSerializer):
+    class Meta:
+        model = TeamMember
         fields = '__all__'
 
 class InnovationPageSettingsSerializer(SanitizedModelSerializer):

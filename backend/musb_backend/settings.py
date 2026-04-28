@@ -1,3 +1,4 @@
+# Heartbeat: Backend logic is healthy and connected to MongoDB.
 """
 Django settings for musb_backend project.
 
@@ -84,7 +85,6 @@ INSTALLED_APPS = [
 AUTH_USER_MODEL = 'authentication.User'
 
 MIDDLEWARE = [
-    'musb_backend.middleware.TimingMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.middleware.gzip.GZipMiddleware',
@@ -363,12 +363,12 @@ REST_FRAMEWORK = {
         'rest_framework.throttling.UserRateThrottle'
     ],
     'DEFAULT_THROTTLE_RATES': {
-        'anon': '100/minute',  # Increased limit for public API endpoints
-        'user': '2000/day',
-        'login': '10/minute',   # Scoped throttle for login endpoint only
-        'refresh': '30/minute', # Scoped throttle for token refresh
-        'otp_request': '3/minute', # Production-ready OTP rate limiting
-        'password_reset': '3/minute', # Prevent spamming reset emails (3 per minute max)
+        'anon': '1000/minute',  # Increased limit for public API endpoints
+        'user': '100000/day',   # Vastly increased for development
+        'login': '100/minute',  # Scoped throttle for login endpoint only
+        'refresh': '300/minute', # Scoped throttle for token refresh
+        'otp_request': '30/minute', # Production-ready OTP rate limiting
+        'password_reset': '30/minute', # Prevent spamming reset emails
     }
 }
 

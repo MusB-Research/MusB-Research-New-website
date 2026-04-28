@@ -31,6 +31,8 @@ interface Template {
 interface QuestionnaireBuilderProps {
     initialTemplate?: any;
     initialTab?: string;
+    onSelectTemplate?: (id: string, name: string) => void;
+    selectedTemplates?: string[];
 }
 
 const getFullUrl = (path: string | null) => {
@@ -49,7 +51,7 @@ const getFullUrl = (path: string | null) => {
     return `${API}${cleanPath}`;
 };
 
-export default function QuestionnaireBuilder({ initialTemplate, initialTab }: QuestionnaireBuilderProps) {
+export default function QuestionnaireBuilder({ initialTemplate, initialTab, onSelectTemplate, selectedTemplates }: QuestionnaireBuilderProps) {
     console.log("QuestionnaireBuilder mounting with initialTab:", initialTab);
     const [viewMode, setViewMode] = useState<'BUILDER' | 'LIBRARY'>(initialTab === 'Create New' ? 'BUILDER' : 'LIBRARY');
     const [templates, setTemplates] = useState<Template[]>([]);
@@ -470,6 +472,22 @@ export default function QuestionnaireBuilder({ initialTemplate, initialTab }: Qu
                             )}
 
                             <div className="flex items-center gap-3 mt-6">
+                                {onSelectTemplate && (
+                                    <button
+                                        type="button"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            onSelectTemplate(t.id, t.name);
+                                        }}
+                                        className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                                            selectedTemplates?.includes(t.id)
+                                                ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                                                : 'bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 hover:bg-indigo-600/30 hover:text-white'
+                                        }`}
+                                    >
+                                        {selectedTemplates?.includes(t.id) ? 'Selected' : 'Select for Study'}
+                                    </button>
+                                )}
                                 {t.pdf_file && (
                                     <button
                                         onClick={() => setPreviewPdf(getFullUrl(t.pdf_file))}
@@ -703,9 +721,10 @@ export default function QuestionnaireBuilder({ initialTemplate, initialTab }: Qu
                         <div className="bg-[#0f172a] border border-white/5 rounded-2xl p-6">
                             <h3 className="text-[11px] font-black text-slate-500 uppercase tracking-widest mb-6">Template Actions</h3>
                             <button
+                                type="button"
                                 onClick={saveStructured}
-                                disabled={isSaving || !name}
-                                className="w-full py-4 bg-indigo-600 rounded-xl text-[12px] font-black text-white uppercase opacity-90 hover:opacity-100 transition-all flex items-center justify-center gap-3"
+                                disabled={isSaving}
+                                className={`w-full py-4 rounded-xl text-[12px] font-black text-white uppercase transition-all flex items-center justify-center gap-3 ${isSaving ? 'bg-indigo-600/50 cursor-not-allowed' : 'bg-indigo-600 opacity-90 hover:opacity-100'}`}
                             >
                                 <Save className="w-4 h-4" /> {isSaving ? 'Synchronizing...' : 'Save Template to Library'}
                             </button>

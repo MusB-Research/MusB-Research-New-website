@@ -46,6 +46,7 @@ router.register(r'study-questionnaires', views.StudyQuestionnaireViewSet)
 router.register(r'kits', views.StudyKitViewSet)
 router.register(r'questionnaire-schedules', views.QuestionnaireScheduleInstanceViewSet)
 router.register(r'innovation/technologies', views.TechnologyViewSet)
+router.register(r'team-members', views.TeamMemberViewSet)
 
 
 urlpatterns = [

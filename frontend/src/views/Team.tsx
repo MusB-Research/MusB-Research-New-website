@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Linkedin, ChevronDown, ChevronUp, Building2, Users, Stethoscope, Briefcase, Activity, FileText, ShieldCheck } from 'lucide-react';
+import { authFetch, API } from '../utils/auth';
 
 export const LEADERSHIP_DATA = [
     {
@@ -477,18 +478,32 @@ const StaffCard = ({ staff }: { staff: any }) => {
 };
 
 export default function Team() {
-    const [staffRecords] = useState(() => {
-        const saved = localStorage.getItem('musb_staff_records');
-        if (saved) {
-            try {
-                const parsed = JSON.parse(saved);
-                if (parsed.leadership && parsed.advisors && parsed.staff) return parsed;
-            } catch (e) {
-                console.warn("Failed to load staff records from storage", e);
-            }
-        }
-        return { leadership: LEADERSHIP_DATA, advisors: ADVISORS_DATA, staff: STAFF_DATA };
+    const [staffRecords, setStaffRecords] = useState({
+        leadership: [] as any[],
+        advisors: [] as any[],
+        staff: [] as any[]
     });
+
+    useEffect(() => {
+        const fetchTeamMembers = async () => {
+            try {
+                const res = await authFetch(`${API}/api/team-members/`);
+                if (!res.ok) throw new Error('Failed to fetch team members');
+                const raw = await res.json();
+                const members = Array.isArray(raw) ? raw : (raw.results || []);
+                setStaffRecords({
+                    leadership: members.filter((member: any) => member.category === 'leadership'),
+                    advisors: members.filter((member: any) => member.category === 'advisors'),
+                    staff: members.filter((member: any) => member.category === 'staff')
+                });
+            } catch (error) {
+                console.error('Failed to load team members:', error);
+                setStaffRecords({ leadership: [], advisors: [], staff: [] });
+            }
+        };
+
+        fetchTeamMembers();
+    }, []);
 
     return (
         <div className="min-h-screen font-sans text-slate-200 relative overflow-x-hidden">

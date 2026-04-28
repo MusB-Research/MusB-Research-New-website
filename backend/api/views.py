@@ -12,7 +12,7 @@ from .models import (
     DosingLog, AEReport, Document, Notification, ProgressReport,
     StudyActionRequest, DailyMedicationLog, AssignedForm, SponsorOrganization,
     StudyKit, QuestionnaireTemplate, StudyQuestionnaire, QuestionnaireScheduleInstance,
-    Technology, InnovationPageSettings, SponsorInquiry
+    Technology, InnovationPageSettings, SponsorInquiry, TeamMember
 )
 import logging
 
@@ -36,7 +36,8 @@ from .serializers import (
     DailyMedicationLogSerializer, AssignedFormSerializer, AssignedFormBriefSerializer, SponsorOrganizationSerializer,
     PublicStudySerializer, StudyKitSerializer, QuestionnaireTemplateSerializer, QuestionnaireTemplateBriefSerializer, StudyQuestionnaireSerializer,
     QuestionnaireScheduleInstanceSerializer, QuestionnaireScheduleInstanceBriefSerializer,
-    TechnologySerializer, InnovationPageSettingsSerializer, SponsorInquirySerializer, InvitationSerializer
+    TechnologySerializer, InnovationPageSettingsSerializer, SponsorInquirySerializer, InvitationSerializer,
+    TeamMemberSerializer
 )
 from authentication.models import User, AuditLog, Invitation
 from django.db.models import Q, Count, Case, When, IntegerField, FloatField, Avg
@@ -1682,6 +1683,7 @@ class ConsentTemplateViewSet(WorkflowContentMixin, viewsets.ModelViewSet):
     queryset = ConsentTemplate.objects.all().order_by('-created_at').select_related('study')
     serializer_class = ConsentTemplateSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    parser_classes = (parsers.MultiPartParser, parsers.FormParser, parsers.JSONParser)
 
     @cache_api_response("consent_templates", timeout=180)
     def list(self, request, *args, **kwargs):
@@ -3728,6 +3730,48 @@ class TechnologyViewSet(viewsets.ModelViewSet):
     queryset = Technology.objects.all().order_by('display_order')
     serializer_class = TechnologySerializer
     permission_classes = [permissions.AllowAny]
+
+class TeamMemberViewSet(viewsets.ModelViewSet):
+    queryset = TeamMember.objects.all().order_by('display_order', 'created_at')
+    serializer_class = TeamMemberSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+
+    def get_permissions(self):
+        if self.action in ['list', 'retrieve']:
+            return [permissions.AllowAny()]
+        return [permissions.IsAuthenticated()]
+
+    def get_queryset(self):
+        queryset = TeamMember.objects.all().order_by('display_order', 'created_at')
+        category = self.request.query_params.get('category')
+        status_filter = self.request.query_params.get('status')
+
+        if category:
+            queryset = queryset.filter(category=category)
+        if status_filter:
+            queryset = queryset.filter(status=status_filter)
+
+        user = self.request.user
+        if user.is_authenticated and (user.role or '').upper() in ['SUPER_ADMIN', 'ADMIN']:
+            return queryset
+        return queryset.filter(status='Active')
+
+    def _assert_can_manage(self):
+        role = (self.request.user.role or '').upper()
+        if role not in ['SUPER_ADMIN', 'ADMIN']:
+            raise serializers.ValidationError({"detail": "Unauthorized to manage team directory."})
+
+    def perform_create(self, serializer):
+        self._assert_can_manage()
+        serializer.save()
+
+    def perform_update(self, serializer):
+        self._assert_can_manage()
+        serializer.save()
+
+    def perform_destroy(self, instance):
+        self._assert_can_manage()
+        instance.delete()
 
 class InnovationPageSettingsView(APIView):
     permission_classes = [permissions.AllowAny]

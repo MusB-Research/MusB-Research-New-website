@@ -34,7 +34,7 @@ class RequestTimingMiddleware:
             
         # Print directly to stdout for immediate developer visibility in the runserver terminal
         # This is useful because logger levels might be silenced in dev configurations
-        print(f"\n{log_message}\n")
+        # print(f"\n{log_message}\n")
         
         # Add a custom header so the developer can see it in Browser Network Tab
         response['X-Request-Duration'] = f"{duration:.4f}s"

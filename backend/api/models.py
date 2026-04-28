@@ -1293,6 +1293,44 @@ class Partnership(BaseMongoModel):
     def __str__(self):
         return f"{self.name} ({self.status})"
 
+class TeamMember(BaseMongoModel):
+    CATEGORY_CHOICES = [
+        ('leadership', 'Leadership'),
+        ('advisors', 'Advisors'),
+        ('staff', 'Operational Staff'),
+    ]
+    STATUS_CHOICES = [
+        ('Active', 'Active'),
+        ('Inactive', 'Inactive'),
+    ]
+
+    name = models.CharField(max_length=255)
+    category = models.CharField(max_length=20, choices=CATEGORY_CHOICES, default='staff')
+    role = models.CharField(max_length=255, blank=True, default='')
+    advisory_role = models.CharField(max_length=255, blank=True, default='')
+    dept = models.CharField(max_length=255, blank=True, default='')
+    expertise_area = models.CharField(max_length=255, blank=True, default='')
+    organization = models.CharField(max_length=255, blank=True, default='')
+    bio = models.TextField(blank=True, default='')
+    expanded_bio = models.TextField(blank=True, default='')
+    expertise_tags = models.JSONField(default=list, blank=True)
+    areas_of_expertise = models.JSONField(default=list, blank=True)
+    affiliations = models.JSONField(default=list, blank=True)
+    publications = models.JSONField(default=list, blank=True)
+    image = models.CharField(max_length=512, blank=True, default='')
+    linkedin_url = models.CharField(max_length=512, blank=True, default='')
+    system_role = models.CharField(max_length=50, blank=True, default='')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Active')
+    display_order = models.IntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta(BaseMongoModel.Meta):
+        ordering = ['display_order', 'created_at']
+
+    def __str__(self):
+        return f"{self.name} ({self.category})"
+
 class Publication(BaseMongoModel):
     title = models.CharField(max_length=255)
     authors = models.TextField()

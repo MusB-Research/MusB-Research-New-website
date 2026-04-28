@@ -14,18 +14,10 @@ export function usePolling(callback: () => Promise<void>, intervalMs: number = 3
         savedCallback.current = callback;
     }, [callback]);
 
-    // Set up the interval
+    // Background polling is completely disabled globally per request 
+    // to prevent API rate limiting and frontend performance degradation.
+    // The hook signature is preserved to avoid breaking imports in other files.
     useEffect(() => {
-        if (!enabled) return;
-
-        // Call immediately on mount/enable if needed, 
-        // but usually the component already has an initial fetch.
-        
-        const tick = () => {
-            savedCallback.current();
-        };
-
-        const id = setInterval(tick, intervalMs);
-        return () => clearInterval(id);
+        return;
     }, [intervalMs, enabled]);
 }

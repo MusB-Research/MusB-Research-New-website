@@ -231,6 +231,12 @@ export default function CoordinatorDashboard() {
         navigate(`/dashboard/coordinator${slug ? '/' + slug : ''}`);
     };
 
+    const startNewStudyLaunch = () => {
+        localStorage.removeItem('study_launch_draft');
+        setSelectedStudy(null);
+        handleModuleChange('LAUNCH_STUDY');
+    };
+
     const [isProfileOpen, setIsProfileOpen] = useState(false);
     const [currentTime, setCurrentTime] = useState(new Date());
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -493,30 +499,222 @@ export default function CoordinatorDashboard() {
             .filter(Boolean);
     };
 
+    const parseMultilineList = (value: any) => {
+        if (!value) return [];
+        if (Array.isArray(value)) return value.filter(Boolean);
+        return String(value)
+            .split('\n')
+            .map((line) => line.replace(/^[\s*-•]+/, '').trim())
+            .filter(Boolean);
+    };
+
+    const toTrialModel = (value: string) => {
+        const map: Record<string, string> = {
+            'Randomized controlled trial': 'RCT',
+            'Open label study': 'OPEN_LABEL',
+            'In-home use test': 'IHUT',
+            'Patient repository': 'REGISTRY',
+            'Observational study': 'OBSERVATIONAL',
+            'Bioequivalence study': 'BIOEQUIVALENCE'
+        };
+        return map[value] || value || 'RCT';
+    };
+
+    const toPhase = (value: string) => {
+        const map: Record<string, string> = {
+            'N/A': 'N/A',
+            'Phase 0': 'PHASE_0',
+            'Phase 1': 'PHASE_1',
+            'Phase 1/2': 'PHASE_1_2',
+            'Phase 2': 'PHASE_2',
+            'Phase 2/3': 'PHASE_2_3',
+            'Phase 3': 'PHASE_3',
+            'Phase 4': 'PHASE_4',
+            'Pilot': 'PILOT',
+            'Bioequivalence': 'BIOEQUIVALENCE'
+        };
+        return map[value] || value || 'N/A';
+    };
+
+    const toMaskingStrategy = (value: string) => {
+        const map: Record<string, string> = {
+            'None (open label)': 'NONE',
+            'Single blind': 'SINGLE_BLIND',
+            'Double blind': 'DOUBLE_BLIND',
+            'Triple blind': 'TRIPLE_BLIND',
+            'Quadruple blind': 'QUADRUPLE_BLIND'
+        };
+        return map[value] || value || 'NONE';
+    };
+
+    const toStudyType = (value: string) => {
+        const map: Record<string, string> = {
+            'In-person': 'IN_PERSON',
+            'Remote': 'VIRTUAL',
+            'Hybrid': 'DECENTRALIZED'
+        };
+        return map[value] || value || 'IN_PERSON';
+    };
+
+    const toRewardType = (value: string) => {
+        const map: Record<string, string> = {
+            'Cash': 'CASH',
+            'Gift Card': 'VISA_CARD',
+            'Product': 'MIXED',
+            'None': 'CASH'
+        };
+        return map[value] || value || 'CASH';
+    };
+
+    const toRewardLogic = (value: string) => {
+        const map: Record<string, string> = {
+            'Per study completion': 'FULL_STUDY',
+            'Per visit': 'PER_VISIT',
+            'Milestone based': 'PER_TASK'
+        };
+        return map[value] || value || 'FULL_STUDY';
+    };
+
+    const buildConsentCollection = (consentMethods: Record<string, boolean> | undefined) => {
+        if (!consentMethods) return [];
+        const labelMap: Record<string, string> = {
+            eConsent: 'ECONSENT',
+            paperConsent: 'PAPER',
+            remoteWitness: 'REMOTE_WITNESS',
+            lar: 'LAR',
+            parentGuardian: 'PARENT_GUARDIAN'
+        };
+        return Object.entries(consentMethods)
+            .filter(([, enabled]) => Boolean(enabled))
+            .map(([key]) => labelMap[key] || key.toUpperCase());
+    };
+
+    const buildConsentMode = (consentMethods: Record<string, boolean> | undefined) => {
+        if (!consentMethods) return 'ECONSENT';
+        if (consentMethods.eConsent && consentMethods.paperConsent) return 'HYBRID';
+        if (consentMethods.paperConsent) return 'PAPER';
+        return 'ECONSENT';
+    };
+
+    const buildScreenerConfig = (questions: any[]) => ({
+        steps: [
+            { id: 'STEP1', type: 'system', label: 'Basics' },
+            {
+                id: 'STEP2',
+                type: 'user_input',
+                label: 'Eligibility',
+                questions: (questions || []).map((q: any, index: number) => ({
+                    ...q,
+                    id: q?.id || `launch_screener_${index + 1}`
+                }))
+            },
+            { id: 'STEP3', type: 'system', label: 'Contact' }
+        ]
+    });
+
     const normalizeStudyPayload = (formData: any) => {
+        const sponsorOrg = sponsorOrganizations.find((org: any) => String(org.id) === String(formData.sponsor));
+        const piIds = toStudyAssignmentIds(formData.selectedPIs ?? formData.pi_ids ?? formData.pi_id);
+        const coordinatorIds = toStudyAssignmentIds(formData.selectedCoordinators ?? formData.coordinator_ids ?? formData.coordinator_id);
+        const sponsorIds = toStudyAssignmentIds(formData.selectedSponsorUsers ?? formData.sponsor_ids ?? formData.sponsor_id);
+        const overviewItems = parseMultilineList(formData.studyOverview);
+        const benefitItems = parseMultilineList(formData.benefits);
+        const stipendAmount = formData.stipendAmount ? Number(formData.stipendAmount) : 0;
+        const questionnaireIds = Array.isArray(formData.selectedQuestionnaires) ? formData.selectedQuestionnaires : [];
+
         const payload: any = { ...formData };
 
         payload.start_date = formData.startDate ?? formData.start_date ?? null;
         payload.end_date = formData.endDate ?? formData.end_date ?? null;
-        payload.description = formData.brief_description ?? formData.description ?? '';
-        payload.primary_indication = formData.indication ?? formData.primary_indication ?? '';
-        payload.condition = formData.indication ?? formData.condition ?? formData.primary_indication ?? '';
-        payload.study_type = formData.execution_type ?? formData.study_type ?? 'IN_PERSON';
-        payload.target_subjects = formData.target_subjects ?? formData.target_screened ?? 0;
+        payload.launch_date = formData.launch_date || new Date().toISOString().slice(0, 10);
+        payload.title = formData.shortTitle ?? formData.title ?? formData.fullTitle ?? 'Untitled Study';
+        payload.full_title = formData.fullTitle ?? formData.full_title ?? payload.title;
+        payload.protocol_id = formData.internalId ?? formData.protocol_id ?? '';
+        payload.description = formData.briefSummary ?? formData.brief_description ?? formData.description ?? '';
+        payload.primary_indication = formData.category ?? formData.indication ?? formData.primary_indication ?? '';
+        payload.condition = formData.category ?? formData.indication ?? formData.condition ?? formData.primary_indication ?? '';
+        payload.study_type = toStudyType(formData.executionMode ?? formData.execution_type ?? formData.study_type);
+        payload.target_subjects = Number(formData.targetEnrollment ?? formData.target_subjects ?? formData.target_screened ?? 0) || 0;
         payload.target_screened = formData.target_screened ?? payload.target_subjects;
-        payload.pi_ids = toStudyAssignmentIds(formData.pi_ids ?? formData.pi_id);
-        payload.coordinator_ids = toStudyAssignmentIds(formData.coordinator_ids ?? formData.coordinator_id);
-
-        if (!payload.sponsor_id) delete payload.sponsor_id;
-        if (!payload.sponsor_org_id) delete payload.sponsor_org_id;
+        payload.pi_ids = piIds;
+        payload.coordinator_ids = coordinatorIds;
+        payload.sponsor_ids = sponsorIds;
+        payload.sponsor_id = sponsorIds[0] || undefined;
+        payload.sponsor_org_id = sponsorOrg?.id || formData.sponsor_org_id || undefined;
+        payload.sponsor_name = sponsorOrg?.name || formData.sponsor_name || '';
+        payload.trial_model = toTrialModel(formData.primaryModel ?? formData.trial_model);
+        payload.phase = toPhase(formData.clinicalPhase ?? formData.phase);
+        payload.masking_strategy = toMaskingStrategy(formData.maskingStrategy ?? formData.masking_strategy);
+        payload.is_double_blind = payload.masking_strategy === 'DOUBLE_BLIND';
+        payload.remote_participation = payload.study_type !== 'IN_PERSON';
+        payload.shipment_mode = formData.requireStudyKit ? 'DTP' : (payload.study_type === 'DECENTRALIZED' ? 'HYBRID' : 'CLINIC');
+        payload.has_study_kit = Boolean(formData.requireStudyKit ?? formData.has_study_kit);
+        payload.overview = overviewItems.join('\n');
+        payload.benefit = benefitItems.join('\n');
+        payload.timeline = overviewItems;
+        payload.tags = Array.from(new Set([payload.condition, formData.primaryModel, formData.executionMode].filter(Boolean)));
+        payload.participation_message = formData.participationMessage ?? formData.participation_message ?? '';
+        payload.duration = formData.duration ?? '';
+        payload.compensation = stipendAmount > 0 ? `${formData.currency || 'USD'} ${stipendAmount}` : (formData.compensation ?? '');
+        payload.compensation_currency = formData.currency ?? formData.compensation_currency ?? 'USD';
+        payload.reward_type = toRewardType(formData.rewardType ?? formData.reward_type);
+        payload.reward_logic = toRewardLogic(formData.incentiveLogic ?? formData.reward_logic);
+        payload.reward_config = {
+            amount: stipendAmount,
+            currency: formData.currency || 'USD',
+            logic_label: formData.incentiveLogic || '',
+            reward_label: formData.rewardType || ''
+        };
+        payload.consent_collection = buildConsentCollection(formData.consentMethods);
+        payload.consent_mode = buildConsentMode(formData.consentMethods);
+        payload.screener_config = buildScreenerConfig(formData.screenerQuestions ?? []);
+        payload.study_questionnaires = questionnaireIds.map((templateId: string) => ({
+            template: templateId,
+            mode: 'STRUCTURED',
+            frequency_interval: 1,
+            frequency_unit: 'WEEKS',
+            repetitions: 1,
+            frequency: 'ONCE'
+        }));
+        payload.status = formData.status ?? selectedStudy?.status ?? 'RECRUITING';
+        payload.stage = formData.stage ?? selectedStudy?.stage ?? 'RECRUITING';
 
         delete payload.pi_id;
         delete payload.coordinator_id;
+        delete payload.sponsor;
         delete payload.assigned_pis;
         delete payload.assigned_coordinators;
         delete payload.assigned_sponsors;
         delete payload.startDate;
         delete payload.endDate;
+        delete payload.internalId;
+        delete payload.fullTitle;
+        delete payload.shortTitle;
+        delete payload.category;
+        delete payload.briefSummary;
+        delete payload.studyOverview;
+        delete payload.benefits;
+        delete payload.primaryModel;
+        delete payload.clinicalPhase;
+        delete payload.maskingStrategy;
+        delete payload.executionMode;
+        delete payload.rewardType;
+        delete payload.incentiveLogic;
+        delete payload.stipendAmount;
+        delete payload.currency;
+        delete payload.requireStudyKit;
+        delete payload.targetEnrollment;
+        delete payload.selectedPIs;
+        delete payload.selectedCoordinators;
+        delete payload.selectedSponsorUsers;
+        delete payload.invitePIEmail;
+        delete payload.inviteCoordinatorEmail;
+        delete payload.inviteSponsorEmail;
+        delete payload.selectedQuestionnaires;
+        delete payload.consentMethods;
+        delete payload.screenerQuestions;
+        delete payload.consentFormFile;
+        delete payload.additionalDocuments;
         delete payload.brief_description;
         delete payload.indication;
         delete payload.execution_type;
@@ -532,6 +730,43 @@ export default function CoordinatorDashboard() {
         return payload;
     };
 
+    const uploadStudyFiles = async (study: any, formData: any) => {
+        const apiUrl = API || '';
+        const studyId = study?.id || study?.protocol_id;
+        if (!studyId) return;
+
+        if (formData.consentFormFile) {
+            const consentData = new FormData();
+            consentData.append('study', studyId);
+            consentData.append('title', `${formData.shortTitle || formData.fullTitle || study.title || 'Study'} Consent Form`);
+            consentData.append('version', '1.0');
+            consentData.append('status', 'ACTIVE');
+            consentData.append('file', formData.consentFormFile);
+            consentData.append('require_participant_sig', 'true');
+            consentData.append('require_cc_verification', 'true');
+            consentData.append('require_pi_signoff', formData.selectedPIs?.length ? 'true' : 'false');
+            consentData.append('require_witness', formData.consentMethods?.remoteWitness ? 'true' : 'false');
+            consentData.append('require_lar', formData.consentMethods?.lar ? 'true' : 'false');
+            await authFetch(`${apiUrl}/api/consent-templates/`, {
+                method: 'POST',
+                body: consentData
+            });
+        }
+
+        for (const file of formData.additionalDocuments || []) {
+            const documentData = new FormData();
+            documentData.append('study', studyId);
+            documentData.append('title', file.name.replace(/\.[^.]+$/, ''));
+            documentData.append('version', '1.0');
+            documentData.append('visibility', JSON.stringify(['PI', 'COORDINATOR', 'SPONSOR']));
+            documentData.append('file', file);
+            await authFetch(`${apiUrl}/api/documents/`, {
+                method: 'POST',
+                body: documentData
+            });
+        }
+    };
+
     const handleCreateStudy = async (formData: any) => {
         try {
             const apiUrl = API || '';
@@ -545,6 +780,9 @@ export default function CoordinatorDashboard() {
             const res = await authFetch(url, { method: method, body: JSON.stringify(payload) });
 
             if (res.ok) {
+                const study = await res.json().catch(() => null);
+                await uploadStudyFiles(study || selectedStudy || payload, formData);
+                localStorage.removeItem('study_launch_draft');
                 handleModuleChange('STUDIES');
                 setSelectedStudy(null);
                 fetchCoordinatorContent();
@@ -835,6 +1073,7 @@ export default function CoordinatorDashboard() {
                             key={j} 
                             onClick={() => { 
                                 if (item.id === 'WEBSITE') window.open('/', '_blank'); 
+                                else if (item.id === 'LAUNCH_STUDY') { startNewStudyLaunch(); setIsSidebarOpen(false); }
                                 else { handleModuleChange(item.id as CCModule); setIsSidebarOpen(false); } 
                             }} 
                             className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all group relative ${activeModule === item.id ? 'bg-blue-600/10 text-blue-400 border border-blue-400/20' : 'text-slate-400 hover:bg-white/[0.04] hover:text-white'}`}
@@ -865,7 +1104,7 @@ export default function CoordinatorDashboard() {
                                 stats={oversightStats}
                                 currentTime={currentTime}
                                 visits={visits}
-                                onLaunch={() => handleModuleChange('LAUNCH_STUDY')}
+                                onLaunch={startNewStudyLaunch}
                                 onNavigate={(id) => handleModuleChange(id as CCModule)}
                                 isAdmin={isAdmin}
                                 isLoading={loading}
@@ -874,7 +1113,7 @@ export default function CoordinatorDashboard() {
                         {activeModule === 'STUDIES' && (
                             <StudyDirectory
                                 studies={studies}
-                                onAdd={() => handleModuleChange('LAUNCH_STUDY')}
+                                onAdd={startNewStudyLaunch}
                                 onEdit={(s) => { setSelectedStudy(s); handleModuleChange('LAUNCH_STUDY'); }}
                                 onUpdateStatus={handleUpdateStudyStatus}
                                 isLoading={loading}
