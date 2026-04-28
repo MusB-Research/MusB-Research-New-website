@@ -969,6 +969,13 @@ class Consent(BaseMongoModel):
                     "actor": self.full_name,
                     "role": "PARTICIPANT"
                 })
+            
+            # Generate initial signed PDF BEFORE the first save so it's persisted
+            try:
+                from .utils.pdf_utils import generate_signed_consent_pdf
+                generate_signed_consent_pdf(self)
+            except Exception as e:
+                print(f"PDF Generation Error (Initial): {e}")
 
         # ── SINGLE authoritative save ──
         super().save(*args, **kwargs)
@@ -986,13 +993,6 @@ class Consent(BaseMongoModel):
                 pt.status = 'COMPLETED'
                 pt.completed_at = _now()
                 pt.save()
-
-            # Generate initial signed PDF
-            try:
-                from .utils.pdf_utils import generate_signed_consent_pdf
-                generate_signed_consent_pdf(self)
-            except Exception as e:
-                print(f"PDF Generation Error (Initial): {e}")
 
             # StaffTask notification for Coordinator
             try:
@@ -1058,7 +1058,7 @@ class Consent(BaseMongoModel):
             except Exception as e:
                 print(f"PDF Regeneration Error (CC): {e}")
 
-            super().save(update_fields=['signing_status', 'cc_verified_at', 'audit_trail'])
+            super().save(update_fields=['signing_status', 'cc_verified_at', 'audit_trail', 'signed_pdf'])
 
         # ── POST-SAVE side effects for PI sign transition ──
         if not is_new and self.pi_verified and not old_pi_verified:
@@ -1081,10 +1081,10 @@ class Consent(BaseMongoModel):
             except Exception as e:
                 print(f"PDF Regeneration Error (PI): {e}")
 
-            super().save(update_fields=['signing_status', 'pi_verified_at', 'audit_trail'])
+            super().save(update_fields=['signing_status', 'pi_verified_at', 'audit_trail', 'signed_pdf'])
 
         # ── Archival logic for when it becomes FULLY_SIGNED ──
-        if self.signing_status == 'FULLY_SIGNED' and ((self.cc_verified and not old_cc_verified) or (self.pi_verified and not old_pi_verified)):
+        if not is_new and self.signing_status == 'FULLY_SIGNED' and ((self.cc_verified and not old_cc_verified) or (self.pi_verified and not old_pi_verified)):
             try:
                 if self.signed_pdf:
                     from .models import Document

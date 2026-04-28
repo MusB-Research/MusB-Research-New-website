@@ -28,6 +28,9 @@ def generate_signed_consent_pdf(consent_obj):
     """
     Overlays signatures onto the original consent template PDF based on predefined coordinates.
     """
+    study = consent_obj.study
+    if not study:
+        return None
     if not consent_obj.template or not consent_obj.template.file:
         return None
 
@@ -38,7 +41,6 @@ def generate_signed_consent_pdf(consent_obj):
     # Predefined fields from template
     fields = consent_obj.template.placed_fields or []
     if not fields:
-        # Fallback to legacy if no fields, but for this new workflow we expect fields
         return None
 
     # 1. Group fields by page (1-based index)
@@ -67,28 +69,25 @@ def generate_signed_consent_pdf(consent_obj):
             
             for f in pages_to_fields[page_num]:
                 f_type = f.get('type')
-                # Map percentage (0-100) to points. 
-                # Note: ReportLab (0,0) is BOTTOM LEFT. Frontend (0,0) is TOP LEFT.
-                # So y_points = HEIGHT - (y_percent * HEIGHT / 100)
                 px = (f.get('x', 0) / 100.0) * WIDTH
                 py = HEIGHT - ((f.get('y', 0) / 100.0) * HEIGHT)
 
                 # DRAW LOGIC
                 if f_type == 'Participant Signature':
                     decode_and_draw_signature(can, consent_obj.participant_signature, px, py)
-                elif f_type in ['Participant Name', 'Legal Full Name', 'Full Name']:
+                elif f_type == 'Participant Name':
                     can.setFont("Helvetica-Bold", 10)
                     can.drawString(px, py, consent_obj.full_name or "")
-                elif f_type in ['Participant Date', 'Date', 'Signed Date']:
+                elif f_type == 'Participant Date':
                     can.setFont("Helvetica", 10)
                     dt = consent_obj.participant_signed_at or consent_obj.agreed_at
                     can.drawString(px, py, dt.strftime("%Y-%m-%d %H:%M") if dt else "")
                 elif f_type == 'CC Signature':
                     decode_and_draw_signature(can, consent_obj.cc_signature, px, py)
-                elif f_type in ['CC Name', 'Coordinator Name']:
+                elif f_type == 'CC Name':
                     can.setFont("Helvetica-Bold", 10)
                     can.drawString(px, py, consent_obj.cc_name or "")
-                elif f_type in ['PI Verification', 'PI Signature']:
+                elif f_type == 'PI Signature':
                     decode_and_draw_signature(can, consent_obj.pi_signature, px, py)
                 elif f_type == 'PI Name':
                     can.setFont("Helvetica-Bold", 10)
@@ -106,7 +105,7 @@ def generate_signed_consent_pdf(consent_obj):
     output_stream = io.BytesIO()
     writer.write(output_stream)
     
-    study_id = consent_obj.study.protocol_id if (consent_obj.study and consent_obj.study.protocol_id) else str(consent_obj.pk)
+    study_id = study.protocol_id or str(study.pk)
     filename = f"Consent_{study_id}_{consent_obj.pk}.pdf"
     consent_obj.signed_pdf.save(filename, ContentFile(output_stream.getvalue()), save=False)
     return filename

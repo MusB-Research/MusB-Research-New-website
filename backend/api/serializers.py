@@ -445,7 +445,7 @@ class StudySerializer(SanitizedModelSerializer):
                 data['consent_pdf_template'] = data.pop('consent_pdf_file')
 
             # Include study_questionnaires in KNOWN_FIELDS so it's not stripped
-            LOCAL_KNOWN = KNOWN_FIELDS | {'study_questionnaires', 'consent_pdf_template'}
+            LOCAL_KNOWN = KNOWN_FIELDS | {'study_questionnaires'}
             data = {k: v for k, v in data.items() if k not in FRONTEND_ONLY_FIELDS or k == 'study_questionnaires'}
 
         try:
