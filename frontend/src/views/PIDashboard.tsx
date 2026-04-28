@@ -35,8 +35,7 @@ import ParticipantTaskManagement from '../components/shared/ParticipantTaskManag
 import TeamInventoryModule from '../components/pi/panels/TeamInventoryModule';
 import StudyKitsModule from '../components/shared/StudyKitsModule';
 import { usePolling } from '@/hooks/usePolling';
-import InformedConsentManagement from '../components/shared/InformedConsentManagement';
-import EnrollmentWorkflow from '../components/shared/EnrollmentWorkflow';
+import ConsentOversight from '../components/coordinator/panels/ConsentOversight';
 
 
 import {
@@ -196,7 +195,6 @@ export default function PIDashboard() {
             'ANALYTICS': 'analytics',
             'SPONSORS': 'sponsors',
             'INVITATIONS': 'invitations',
-            'ENROLLMENT_WORKFLOW': 'enrollment-workflow',
             'CONSENT_NEW': 'consent-new',
             'PARTICIPANT_TASKS': 'participant-tasks'
         };
@@ -470,7 +468,6 @@ export default function PIDashboard() {
                 { id: 'PARTICIPANTS', label: 'Participants', icon: UsersRound },
                 { id: 'SUBJECT_REVIEW', label: 'Review', icon: Activity },
                 { id: 'FORMS', label: 'Forms', icon: ClipboardList },
-                { id: 'ENROLLMENT_WORKFLOW', label: 'Enrollment', icon: UserPlus },
                 { id: 'CONSENT', label: 'Consent', icon: ShieldCheck },
                 { id: 'VISITS', label: 'Visits', icon: Calendar },
                 { id: 'SPONSORS', label: 'Sponsors', icon: Building2 },
@@ -782,40 +779,12 @@ export default function PIDashboard() {
                     {activeModule === 'FORMS' && <FormsQuestionnairesModule />}
                     {activeModule === 'CONSENT' && (
                         <div className="bg-[#0B101B] rounded-[2.5rem] -mt-6">
-                            <InformedConsentManagement 
-                                role="PI" 
-                                studyTitle={studies.find(s => s.id === globalSelectedStudyId)?.title || "Current Study"}
-                                pendingParticipants={tasks
-                                    .filter(t => t.task_type === 'CONSENT_SIGNATURE' && !t.is_completed)
-                                    .map(t => ({
-                                        name: t.title.split('for ')[1] || 'Participant',
-                                        sid: t.reference_id || 'ID-PENDING',
-                                        date: new Date(t.created_at).toLocaleDateString(),
-                                        type: 'e-consent'
-                                    }))
-                                }
-                                stats={{
-                                    consented: participants.filter(p => p.status === 'CONSENTED' || p.status === 'ENROLLED' || p.status === 'RANDOMIZED' || p.status === 'ACTIVE').length,
-                                    awaitingCoSign: tasks.filter(t => t.task_type === 'CONSENT_SIGNATURE' && !t.is_completed).length,
-                                    paperPending: 0,
-                                    larConsent: 0
-                                }}
-                                archivedParticipants={participants
-                                    .filter(p => ['CONSENTED', 'ENROLLED', 'RANDOMIZED', 'ACTIVE', 'COMPLETED'].includes(p.status))
-                                    .map(p => ({
-                                        name: p.participant_sid, // Using SID for now as name might be encrypted
-                                        desc: `ICF-2026-${p.participant_sid} · E-consent · Status: ${p.status}`,
-                                        status: 'Complete',
-                                        color: 'text-emerald-500',
-                                        bg: 'bg-emerald-500/10'
-                                    }))
-                                }
-                            />
+                            <ConsentOversight />
                         </div>
                     )}
                     {activeModule === 'ENROLLMENT_WORKFLOW' && (
                         <div className="bg-[#0B101B] rounded-[2.5rem] -mt-6">
-                            <EnrollmentWorkflow role="PI" />
+                            <ParticipantOversight selectedStudyId={globalSelectedStudyId} />
                         </div>
                     )}
                     {activeModule === 'VISITS' && (

@@ -583,7 +583,7 @@ export default function StudyKitsModule({ selectedStudyId, preloadedStudies, pre
                                                             const tracking = prompt("Enter Carrier Tracking ID:", kit.tracking_number || "");
                                                             if (tracking) {
                                                                 handleUpdateKit(kit.id, { status: 'SHIPPED', tracking_number: tracking.trim() });
-                                                                alert(`DISPATCH SUCCESSFUL:\n\nKit ID: ${kit.kit_id}\nTracking: ${tracking}\n\nShipping manifesto transmitted to carrier.`);
+                                                                alert(`DISPATCH SUCCESSFUL:\n\nKit ID: ${kit.kit_number}\nTracking: ${tracking}\n\nShipping manifesto transmitted to carrier.`);
                                                             }
                                                         }}
                                                         className="px-6 py-4 bg-amber-600 text-white rounded-2xl text-[12px] font-black uppercase tracking-[0.2em] shadow-2xl shadow-amber-900/40 hover:scale-[1.03] transition-all"
@@ -592,7 +592,7 @@ export default function StudyKitsModule({ selectedStudyId, preloadedStudies, pre
                                                     </button>
                                                 ) : (
                                                     <button
-                                                        onClick={() => alert(`SYSTEM SYNC:\n\nRetrieving real-time tracking from carrier for Kit ${kit.kit_id}...\n\nStatus: ${kit.status} (Verified).`)}
+                                                        onClick={() => alert(`SYSTEM SYNC:\n\nRetrieving real-time tracking from carrier for Kit ${kit.kit_number}...\n\nStatus: ${kit.status} (Verified).`)}
                                                         className="px-6 py-4 bg-blue-600 text-white rounded-2xl text-[12px] font-black uppercase tracking-[0.2em] shadow-2xl shadow-blue-900/40 hover:scale-[1.03] transition-all"
                                                     >
                                                         SYNC STATUS

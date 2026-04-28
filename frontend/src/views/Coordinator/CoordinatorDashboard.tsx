@@ -31,8 +31,7 @@ import StaffTasksModule from '../../components/shared/StaffTasksModule';
 import ParticipantTaskManagement from '../../components/shared/ParticipantTaskManagement';
 import CompensationManagement from '../../components/coordinator/panels/CompensationManagement';
 import StudyKitsModule from '../../components/shared/StudyKitsModule';
-import InformedConsentManagement from '../../components/shared/InformedConsentManagement';
-import EnrollmentWorkflow from '../../components/shared/EnrollmentWorkflow';
+import ConsentOversight from '../../components/coordinator/panels/ConsentOversight';
 
 // Modular Page Components
 import { OperationsOversight } from './modules/OperationsOversight';
@@ -221,7 +220,6 @@ export default function CoordinatorDashboard() {
             'SPONSORS': 'sponsors',
 
             'COMPENSATION': 'compensation',
-            'INVITATIONS': 'invitations',
             'ENROLLMENT_WORKFLOW': 'enrollment-workflow',
             'LOGISTICS': 'logistics',
             'PARTICIPANT_TASKS': 'participant-tasks'
@@ -1169,40 +1167,12 @@ export default function CoordinatorDashboard() {
                         {activeModule === 'FORMS' && <FormsQuestionnairesModule selectedStudyId={globalSelectedStudyId} />}
                         {activeModule === 'CONSENT' && (
                             <div className="bg-[#0B101B] rounded-[2.5rem] -mt-6">
-                                <InformedConsentManagement 
-                                    role="Coordinator" 
-                                    studyTitle={studies.find(s => s.id === globalSelectedStudyId)?.title || "Current Study"}
-                                    pendingParticipants={globalTasks
-                                        .filter(t => t.task_type === 'CONSENT_SIGNATURE' && !t.is_completed)
-                                        .map(t => ({
-                                            name: t.title.split('for ')[1] || 'Participant',
-                                            sid: t.reference_id || 'ID-PENDING',
-                                            date: new Date(t.created_at).toLocaleDateString(),
-                                            type: 'e-consent'
-                                        }))
-                                    }
-                                    stats={{
-                                        consented: participants.filter(p => p.status === 'CONSENTED' || p.status === 'ENROLLED' || p.status === 'RANDOMIZED' || p.status === 'ACTIVE').length,
-                                        awaitingCoSign: globalTasks.filter(t => t.task_type === 'CONSENT_SIGNATURE' && !t.is_completed).length,
-                                        paperPending: 0,
-                                        larConsent: 0
-                                    }}
-                                    archivedParticipants={participants
-                                        .filter(p => ['CONSENTED', 'ENROLLED', 'RANDOMIZED', 'ACTIVE', 'COMPLETED'].includes(p.status))
-                                        .map(p => ({
-                                            name: p.participant_sid,
-                                            desc: `ICF-2026-${p.participant_sid} · E-consent · Status: ${p.status}`,
-                                            status: 'Complete',
-                                            color: 'text-emerald-500',
-                                            bg: 'bg-emerald-500/10'
-                                        }))
-                                    }
-                                />
+                                <ConsentOversight />
                             </div>
                         )}
                         {activeModule === 'ENROLLMENT_WORKFLOW' && (
                             <div className="bg-[#0B101B] rounded-[2.5rem] -mt-6">
-                                <EnrollmentWorkflow role="Coordinator" />
+                                <ParticipantOversight selectedStudyId={globalSelectedStudyId} />
                             </div>
                         )}
                         {activeModule === 'VISITS' && (

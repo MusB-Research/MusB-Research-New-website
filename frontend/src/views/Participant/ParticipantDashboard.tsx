@@ -34,7 +34,6 @@ import FormSignatureModal from './FormSignatureModal';
 import DiscoverStudiesView from './DiscoverStudiesView';
 import InstrumentModal from './InstrumentModal';
 import ParticipantBackground from './ParticipantBackground';
-import InformedConsentManagement from '../../components/shared/InformedConsentManagement';
 
 export default function ParticipantDashboard() {
     const navigate = useNavigate();
@@ -77,7 +76,6 @@ export default function ParticipantDashboard() {
         else if (route === 'visits') setActiveNav('Visits');
         else if (route === 'compensation') setActiveNav('Compensation');
         else if (route === 'kits') setActiveNav('Kits');
-        else if (route === 'consent-new') setActiveNav('Consent (New)');
         else if (route === 'profile') setActiveNav('Profile');
         else if (route === 'privacy') setActiveNav('Privacy & Data');
         else if (route === 'discover') setActiveNav('Discover Studies');
@@ -92,7 +90,6 @@ export default function ParticipantDashboard() {
             'Dashboard': '', 'Tasks': 'tasks', 'Logs': 'logs',
             'Messages': 'messages', 'Documents': 'documents', 'Reports': 'reports',
             'Visits': 'visits', 'Compensation': 'compensation', 'Kits': 'kits', 
-            'Consent (New)': 'consent-new',
             'Profile': 'profile', 'Privacy & Data': 'privacy',
             'Discover Studies': 'discover'
         };
@@ -1684,13 +1681,6 @@ export default function ParticipantDashboard() {
                                     participantSid={activeParticipant?.participant_sid}
                                     studyId={activeStudy?.protocol_id || activeStudy?.id}
                                 />
-                            )}
-                            {activeNav === 'Consent (New)' && (
-                                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                                    <div className="bg-white/50 backdrop-blur-sm border border-white/20 rounded-[2.5rem] p-4 lg:p-8">
-                                        <InformedConsentManagement />
-                                    </div>
-                                </div>
                             )}
                             {activeNav === 'Study Kit' && <StudyKitView isLoading={isDataLoading} study={activeStudy} onAction={handleNavClick} />}
                             {activeNav === 'Return Label' && <ReturnLabelView onBack={() => setActiveNav('Dashboard')} />}
