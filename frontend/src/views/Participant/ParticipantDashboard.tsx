@@ -405,31 +405,36 @@ export default function ParticipantDashboard() {
 
         // 3. eConsent Task Injection
         const mySignatures = safeArray(data.active_consents);
-        safeArray(data.available_consent_templates).filter((t: any) => {
-            const alreadySigned = mySignatures.some((sig: any) => 
-                (sig.template && getId(sig.template) === getId(t.id)) || 
-                (sig.study && getId(sig.study) === sId)
-            ) || justSignedTemplateIds.current.has(getId(t.id));
-            return !alreadySigned;
-        }).forEach((t: any) => {
-            const tId = getId(t.id);
-            if (!fetchedTasks.some((task: any) => getId(task) === `db-consent-${tId}`)) {
+        const hasSignedStudyConsent = mySignatures.some((sig: any) => 
+            (sig.study && getId(sig.study) === sId)
+        ) || justSignedTemplateIds.current.has(sId);
+
+        if (!hasSignedStudyConsent && s?.consent_content) {
+            const taskId = `db-consent-${sId}`;
+            if (!fetchedTasks.some((task: any) => getId(task) === taskId)) {
                 fetchedTasks.unshift({
-                    id: `db-consent-${tId}`,
+                    id: taskId,
                     study: sId,
                     participant: pId,
-                    title: `${t.title} (v${t.version})`,
+                    title: `Informed Consent Form`,
                     status: 'PENDING',
                     due_date: new Date().toISOString(),
                     visit_name: 'eConsent Hub',
                     timeline_group: 'Mandatory',
                     estimated_time: '15 min',
                     task_type: 'CONSENT',
-                    p_data: t,
-                    task_details: { task_type: 'CONSENT', description: `New Protocol Update: ${t.title}.` }
+                    p_data: { 
+                        id: sId, 
+                        title: s.title, 
+                        terms_content: s.consent_content, 
+                        version: '1.0',
+                        require_participant_sig: s.require_participant_sig,
+                        require_lar: s.require_lar
+                    },
+                    task_details: { task_type: 'CONSENT', description: `Please review and sign the informed consent form for this study.` }
                 });
             }
-        });
+        }
 
         // 4. Questionnaire Injection
         fetchedQues.forEach((q: any) => {

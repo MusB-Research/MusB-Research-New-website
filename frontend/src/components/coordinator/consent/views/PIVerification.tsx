@@ -133,14 +133,40 @@ export const PIVerification: React.FC<PIVerificationProps> = ({
                     </div>
                     <div style={S.badge(COLORS.accent)}><Clock size={12} /> Received: {activeRecord?.participantSignedDate}</div>
                 </div>
-                <div style={{ flex: 1, overflowY: 'auto', padding: '4rem 0', display: 'flex', justifyContent: 'center' }} className="custom-scrollbar">
-                    <PDFPage 
-                        pageNumber={activeConsent?.pageCount || 1} 
-                        placedFields={activeConsent?.placedFields || []} 
-                        width="800px" 
-                        signedFields={['Participant Signature', 'Participant Date', 'CC Signature']} 
-                        participantId={activeRecord?.participantId || activeRecord?.full_name}
-                    />
+                <div style={{ flex: 1, overflowY: 'auto', padding: '2rem 0', display: 'flex', justifyContent: 'center', backgroundColor: COLORS.bgDark }} className="custom-scrollbar">
+                    {piDocTab === 'signed' && activeRecord?.signed_pdf_url ? (
+                        <motion.div 
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            style={{ width: '90%', maxWidth: '900px', height: '1200px', backgroundColor: 'white', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)' }}
+                        >
+                            <iframe 
+                                src={`${activeRecord.signed_pdf_url}#toolbar=0`}
+                                style={{ width: '100%', height: '100%', border: 'none' }}
+                                title="Signed Consent Record"
+                            />
+                        </motion.div>
+                    ) : piDocTab === 'original' && activeConsent?.file_url ? (
+                        <motion.div 
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            style={{ width: '90%', maxWidth: '900px', height: '1200px', backgroundColor: 'white', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)' }}
+                        >
+                            <iframe 
+                                src={`${activeConsent.file_url}#toolbar=0`}
+                                style={{ width: '100%', height: '100%', border: 'none' }}
+                                title="Original IRB Template"
+                            />
+                        </motion.div>
+                    ) : (
+                        <PDFPage 
+                            pageNumber={activeConsent?.pageCount || 1} 
+                            placedFields={activeConsent?.placedFields || []} 
+                            width="800px" 
+                            signedFields={['Participant Signature', 'Participant Date', 'CC Signature']} 
+                            participantId={activeRecord?.participantId || activeRecord?.full_name}
+                        />
+                    )}
                 </div>
             </div>
 

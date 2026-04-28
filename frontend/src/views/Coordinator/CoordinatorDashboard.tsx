@@ -440,7 +440,7 @@ export default function CoordinatorDashboard() {
                 role: u.role ? u.role.toString().toUpperCase() : 'PARTICIPANT'
             })));
 
-            setSponsorOrganizations(sponsorsData || []);
+            setSponsorOrganizations(Array.isArray(sponsorsData) ? sponsorsData : (sponsorsData as any)?.results || []);
             setVisits(visitsData || []);
             setParticipants(participantsData || []);
             setGlobalTasks(staffTasksData || []);
@@ -483,8 +483,9 @@ export default function CoordinatorDashboard() {
         }
     }, [fetchCoordinatorContent]);
 
-    // Polling: Refresh all data every 10 seconds in the background
-    usePolling(() => fetchCoordinatorContent(false, true), 10000);
+    // Removed background polling per user request to reduce redundant network requests.
+    // Data is refreshed on mount and upon specific mutations (launch/update).
+    // usePolling(() => fetchCoordinatorContent(false, true), 10000);
 
     const toStudyAssignmentIds = (value: any) => {
         const list = Array.isArray(value) ? value : value ? [value] : [];
@@ -775,15 +776,40 @@ export default function CoordinatorDashboard() {
                 ? `${apiUrl}/api/studies/${selectedStudy.protocol_id || selectedStudy.id}/`
                 : `${apiUrl}/api/studies/`;
 
-            const res = await authFetch(url, { method: method, body: JSON.stringify(payload) });
+            const hasPdf = Boolean(formData.consent_pdf_file);
+
+            let res: Response;
+
+            if (hasPdf) {
+                // Use FormData only when a file is attached — JSON-stringify arrays so DRF parses them correctly
+                const body = new FormData();
+                Object.keys(payload).forEach(key => {
+                    const val = payload[key];
+                    if (Array.isArray(val)) {
+                        body.append(key, JSON.stringify(val));   // send as JSON string, backend must parse
+                    } else if (val !== null && val !== undefined) {
+                        body.append(key, String(val));
+                    }
+                });
+                body.append('consent_pdf_template', formData.consent_pdf_file);
+                res = await authFetch(url, { method, body });
+            } else {
+                // No file — send clean JSON; DRF handles arrays natively
+                res = await authFetch(url, {
+                    method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                });
+            }
 
             if (res.ok) {
                 const study = await res.json().catch(() => null);
+                addToast("Study launched and synchronized successfully!", "success");
                 await uploadStudyFiles(study || selectedStudy || payload, formData);
                 localStorage.removeItem('study_launch_draft');
                 handleModuleChange('STUDIES');
                 setSelectedStudy(null);
-                fetchCoordinatorContent();
+                fetchCoordinatorContent(true, true);
                 return true;
             }
 
@@ -796,6 +822,20 @@ export default function CoordinatorDashboard() {
         }
     };
 
+
+    const handleDeleteStudy = async (study: any) => {
+        const studyId = study?.id || study?.protocol_id;
+        const res = await authFetch(`${API}/api/studies/${studyId}/`, { method: 'DELETE' });
+        if (res.ok || res.status === 204) {
+            addToast(`Study ${study.protocol_id || 'Untitled'} deleted successfully`, 'success');
+            // Force skip cache to ensure deleted study disappears
+            fetchCoordinatorContent(true, true);
+        } else {
+            const err = await res.json().catch(() => null);
+            addToast(`Failed to delete study: ${err?.detail || res.statusText}`, 'danger');
+        }
+    };
+
     const handleUpdateStudyStatus = async (studyId: string, newStatus: string) => {
         try {
             const res = await authFetch(`${API}/api/studies/${studyId}/`, {
@@ -804,6 +844,8 @@ export default function CoordinatorDashboard() {
             });
             if (res.ok) {
                 setStudies(studies.map(s => s.id === studyId ? { ...s, status: newStatus, stage: newStatus } : s));
+                // Also fetch fresh data to sync other stats
+                fetchCoordinatorContent(false, true);
             }
         } catch (e) {
             console.error("Failed to update status", e);
@@ -1113,6 +1155,7 @@ export default function CoordinatorDashboard() {
                                 studies={studies}
                                 onAdd={startNewStudyLaunch}
                                 onEdit={(s) => { setSelectedStudy(s); handleModuleChange('LAUNCH_STUDY'); }}
+                                onDelete={handleDeleteStudy}
                                 onUpdateStatus={handleUpdateStudyStatus}
                                 isLoading={loading}
                             />

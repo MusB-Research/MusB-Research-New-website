@@ -23,6 +23,12 @@ export default function StudyConsent() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
     
+    // LAR Fields
+    const [isLar, setIsLar] = useState(false);
+    const [larName, setLarName] = useState('');
+    const [larRelationship, setLarRelationship] = useState('');
+    const [larReason, setLarReason] = useState('');
+    
     const contentRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -35,13 +41,6 @@ export default function StudyConsent() {
                 const sData = await sResponse.json();
                 setStudy(sData);
 
-                // 2. Fetch Active Template
-                const tResponse = await fetch(`${API}/api/consent-templates/?study_id=${id}&public=true`);
-                if (tResponse.ok) {
-                    const tData = await tResponse.json();
-                    const activeTemplate = Array.isArray(tData) ? tData[0] : (tData.results?.[0]);
-                    if (activeTemplate) setTemplate(activeTemplate);
-                }
             } catch (err) {
                 console.error("Consent init failed:", err);
                 navigate('/trials');
@@ -108,11 +107,14 @@ export default function StudyConsent() {
                 method: 'POST',
                 body: JSON.stringify({
                     study: study.pk || study.id, // Handles both API and Hardcoded fallback
-                    template: template?.id,
                     full_name: signature.trim(),
                     email: email || 'anonymous@musbresearch.com',
                     device_hash: deviceFingerprint,
-                    timezone_detected: timezone
+                    timezone_detected: timezone,
+                    is_lar: isLar,
+                    lar_name: isLar ? larName : '',
+                    lar_relationship: isLar ? larRelationship : '',
+                    lar_reason: isLar ? larReason : ''
                 })
             });
 
@@ -167,9 +169,9 @@ export default function StudyConsent() {
                     >
                         <h2 className="text-xl font-bold text-white uppercase mb-4 text-center">Protocol # {(study.protocol_id || study.id || "").toUpperCase()}</h2>
                         
-                        {template?.terms_content ? (
+                        {study?.consent_content ? (
                             <div className="prose prose-invert max-w-none">
-                                <p className="whitespace-pre-wrap">{template.terms_content}</p>
+                                <p className="whitespace-pre-wrap">{study.consent_content}</p>
                             </div>
                         ) : (
                             <div className="space-y-4">
@@ -234,6 +236,59 @@ export default function StudyConsent() {
                                     className="w-full bg-slate-950 border border-white/10 rounded-xl px-6 py-4 text-white text-lg font-mono outline-none focus:border-cyan-500/50 transition-colors"
                                 />
                             </div>
+
+                            {study.require_lar && (
+                                <div className="pt-6 border-t border-white/5 space-y-6">
+                                    <label className="flex items-center gap-4 cursor-pointer group">
+                                        <input 
+                                            type="checkbox"
+                                            checked={isLar}
+                                            onChange={(e) => setIsLar(e.target.checked)}
+                                            className="w-5 h-5 rounded border-white/10 bg-white/5 checked:bg-cyan-500 transition-all"
+                                        />
+                                        <span className="text-sm font-bold text-slate-300 uppercase tracking-widest">I am signing as a Legal Authorized Representative (LAR)</span>
+                                    </label>
+
+                                    {isLar && (
+                                        <motion.div 
+                                            initial={{ opacity: 0, y: -10 }} 
+                                            animate={{ opacity: 1, y: 0 }}
+                                            className="space-y-4 p-6 bg-white/5 rounded-2xl border border-white/10"
+                                        >
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                <div className="space-y-2">
+                                                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">LAR Full Name</label>
+                                                    <input 
+                                                        type="text" 
+                                                        value={larName}
+                                                        onChange={(e) => setLarName(e.target.value)}
+                                                        className="w-full bg-slate-950 border border-white/5 rounded-lg px-4 py-3 text-white text-sm outline-none focus:border-cyan-500/30"
+                                                    />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Relationship to Participant</label>
+                                                    <input 
+                                                        type="text" 
+                                                        value={larRelationship}
+                                                        onChange={(e) => setLarRelationship(e.target.value)}
+                                                        className="w-full bg-slate-950 border border-white/5 rounded-lg px-4 py-3 text-white text-sm outline-none focus:border-cyan-500/30"
+                                                    />
+                                                </div>
+                                            </div>
+                                            <div className="space-y-2">
+                                                <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Reason for LAR Signature</label>
+                                                <input 
+                                                    type="text" 
+                                                    value={larReason}
+                                                    onChange={(e) => setLarReason(e.target.value)}
+                                                    placeholder="e.g., Participant is a minor or incapacitated"
+                                                    className="w-full bg-slate-950 border border-white/5 rounded-lg px-4 py-3 text-white text-sm outline-none focus:border-cyan-500/30"
+                                                />
+                                            </div>
+                                        </motion.div>
+                                    )}
+                                </div>
+                            )}
 
                             <AnimatePresence>
                                 {error && (

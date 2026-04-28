@@ -59,5 +59,6 @@ urlpatterns = [
     path('innovation/settings/', views.InnovationPageSettingsView.as_view(), name='innovation-settings'),
 
 
+    path('study-consent/extract/', views.StudyConsentExtractView.as_view(), name='study-consent-extract'),
     path('', include(router.urls)),
 ]

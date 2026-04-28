@@ -384,8 +384,9 @@ export default function PIDashboard() {
         fetchAllData(true, false);
     }, [fetchAllData]);
 
-    // Polling: Refresh all data every 10 seconds in the background
-    usePolling(() => fetchAllData(false, true), 10000);
+    // Removed background polling per user request to reduce redundant network requests.
+    // Data is refreshed on mount and upon specific mutations.
+    // usePolling(() => fetchAllData(false, true), 10000);
 
     // [PERFORMANCE] One-time Dashboard Initialization
     useEffect(() => {
@@ -439,6 +440,7 @@ export default function PIDashboard() {
             if (res.ok) {
                 handleModuleChange('STUDIES');
                 setSelectedStudy(null);
+                fetchAllData(); // Re-fetch data immediately after mutation
             } else {
                 const err = await res.json();
                 console.error("Study Save Failed:", err);

@@ -187,8 +187,9 @@ export default function SponsorDashboard() {
     fetchData(true, false);
   }, []);
 
-  // Polling: Refresh all data every 10 seconds in the background
-  usePolling(() => fetchData(false, true), 10000);
+  // Removed background polling per user request to reduce redundant network requests.
+  // Data is refreshed on mount and upon specific mutations.
+  // usePolling(() => fetchData(false, true), 10000);
 
   const addToast = useCallback((toast: { type: string, message: string }) => {
     const id = Date.now().toString() + Math.random().toString();

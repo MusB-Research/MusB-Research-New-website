@@ -2,6 +2,9 @@ import React, { useState } from 'react';
 import { AlertCircle, X, Edit3, Check, ShieldCheck } from 'lucide-react';
 import { COLORS, S } from '../SubRevConstants';
 import { authFetch, API } from '../../../../utils/auth';
+import LifecycleTracker from '../clinical/LifecycleTracker';
+import ApprovalStatus from '../clinical/ApprovalStatus';
+import PIIRevealButton from '../clinical/PIIRevealButton';
 
 interface SubjectOverviewProps {
     participant: any;
@@ -12,7 +15,8 @@ interface SubjectOverviewProps {
 }
 
 export const SubjectOverview: React.FC<SubjectOverviewProps> = ({ 
-    participant, alerts = [], addToast, logAction, setParticipant
+    participant, alerts = [], addToast, logAction, setParticipant,
+    onApprove, onReveal, isApproving
 }) => {
     const [isEditingIds, setIsEditingIds] = useState(false);
     const [tempPid, setTempPid] = useState(participant.participant_sid || '');
@@ -73,6 +77,19 @@ export const SubjectOverview: React.FC<SubjectOverviewProps> = ({
                     ))}
                 </div>
             )}
+
+            {/* Clinical Lifecycle Tracker */}
+            <LifecycleTracker 
+                status={participant.status} 
+                updatedAt={participant.updated_at || participant.created_at} 
+            />
+
+            {/* Dual Approval System */}
+            <ApprovalStatus 
+                participant={participant} 
+                onApprove={onApprove} 
+                isProcessing={isApproving} 
+            />
 
             {/* IDENTITY MANAGEMENT SECTION (NEW) */}
             <div style={S.card} className="relative group overflow-hidden">
@@ -146,9 +163,9 @@ export const SubjectOverview: React.FC<SubjectOverviewProps> = ({
                     { l: 'Participant Age', v: formatVal(participant.age) },
                     { l: 'Sex', v: formatVal(participant.gender || participant.sex) },
                     { l: 'Assigned Study Arm', v: formatVal(participant.assigned_arm_name || participant.assigned_arm?.name || 'Default') },
-                    { l: 'Contact Email', v: formatVal(participant.display_email) },
-                    { l: 'Phone Number', v: formatVal(participant.display_phone) },
-                    { l: 'Home Address / Location', v: formatVal(participant.display_address) },
+                    { l: 'Contact Email', v: <PIIRevealButton field="email" maskedValue={participant.display_email} onReveal={onReveal} /> },
+                    { l: 'Phone Number', v: <PIIRevealButton field="phone" maskedValue={participant.display_phone} onReveal={onReveal} /> },
+                    { l: 'Home Address / Location', v: <PIIRevealButton field="address" maskedValue={participant.display_address} onReveal={onReveal} /> },
                     { l: 'Enrollment Date', v: participant.reviewed_at ? new Date(participant.reviewed_at).toLocaleDateString() : (participant.status === 'ENROLLED' ? new Date(participant.created_at).toLocaleDateString() : 'Pending Review') },
                     { l: 'Primary Condition', v: participant.condition || 'General' },
                     { l: 'Assigned Coordinator', v: formatVal(participant.coordinator_name || 'Unassigned') }
@@ -160,18 +177,7 @@ export const SubjectOverview: React.FC<SubjectOverviewProps> = ({
                 ))}
             </div>
 
-            {/* Enrollment Status Card (Minimal) */}
-            <div style={S.card} className="flex items-center justify-between border-l-4 border-l-indigo-500">
-                <div>
-                    <label style={S.label}>Enrollment Verification</label>
-                    <div className="text-xl font-bold text-white uppercase tracking-tight mt-1">
-                        Clinical Review Status: <span className="text-indigo-400">{participant.status || 'Active'}</span>
-                    </div>
-                </div>
-                <div className="hidden sm:block text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] italic opacity-50">
-                    Synchronized with Regulatory Vault
-                </div>
-            </div>
+            {/* Enrollment Status Card (Minimal) - Removed redundant, replaced by LifecycleTracker */}
         </div>
     );
 };

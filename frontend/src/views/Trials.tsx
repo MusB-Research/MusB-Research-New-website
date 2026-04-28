@@ -96,8 +96,8 @@ export default function Trials() {
         getStudies(true);
     }, []);
 
-    // Polling: Refresh data every 10 seconds in the background
-    usePolling(() => getStudies(false), 10000);
+    // Removed background polling per user request to reduce redundant network requests.
+    // usePolling(() => getStudies(false), 10000);
     
     const completedStatuses = ['Completed', 'Recruitment Completed', 'Analysis Underway', 'Progress Report Draft', 'Final Report Sent', 'Closed / Archived'];
 

@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from .models import (
-    Study, StudyAssignment, Participant, Visit, Form, FormResponse, 
-    Task, ParticipantTask, StaffTask, Consent, ConsentTemplate, Lead, CommunicationLog, 
+    Visit, Study, StudyAssignment, Participant, Form, FormResponse, Task, 
+    ParticipantTask, StaffTask, Consent, ConsentTemplate, Lead, CommunicationLog, 
     Compensation, LabResult, DataAuditLog, InterventionArm,
     News, Event, FacilityInquiry, Candidate, NewsletterSubscriber,
     BookletDownloadRequest, Partnership, Publication, EducationMaterial,
@@ -9,7 +9,8 @@ from .models import (
     DosingLog, AEReport, Document, Notification, ProgressReport,
     StudyActionRequest, DailyMedicationLog, AssignedForm, SponsorOrganization,
     StudyKit, QuestionnaireTemplate, StudyQuestionnaire, QuestionnaireScheduleInstance,
-    Technology, InnovationPageSettings, SponsorInquiry, TeamMember
+    Technology, InnovationPageSettings, SponsorInquiry, TeamMember,
+    ClinicalAuditLog, PIIRevealLog
 )
 from authentication.models import User, Invitation
 from authentication.security import decrypt_data
@@ -361,13 +362,11 @@ class StudySerializer(SanitizedModelSerializer):
     target_screened = serializers.IntegerField(required=False, default=0)
     study_questionnaires = serializers.JSONField(required=False, write_only=True)
 
-    # --- Read-only nested fields ---
+    # Read-only nested fields ---
     assigned_pis = UserSerializer(many=True, read_only=True)
     assigned_coordinators = UserSerializer(many=True, read_only=True)
     assigned_sponsors = UserSerializer(many=True, read_only=True)
     documents = DocumentSerializer(many=True, read_only=True)
-    # consent_templates is a reverse FK relation — MUST be read_only, never required on write
-    consent_templates = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
 
     PHASE_CHOICES = [
         ('N/A', 'N/A'),
@@ -382,6 +381,7 @@ class StudySerializer(SanitizedModelSerializer):
         ('BIOEQUIVALENCE', 'Bioequivalence'),
     ]
     phase = serializers.ChoiceField(choices=PHASE_CHOICES, required=False, allow_blank=True, default='N/A')
+    consent_pdf_url = serializers.SerializerMethodField()
 
     class Meta:
         model = Study
@@ -397,13 +397,20 @@ class StudySerializer(SanitizedModelSerializer):
             'launch_date', 'irb_status', 'target_subjects', 'target_screened', 'actual_screened',
             'proposal_source', 'proposal_submitted_date', 'agreement_signed_date',
             'contract_status', 'sponsor_contact_name', 'sponsor_contact_email',
-            'show_dosing_log', 'show_ae_report', 'show_lab_upload', 'is_archived',
             'reward_type', 'reward_logic', 'reward_config',
-            'consent_template_file', 'consent_templates', 'documents',
+            'consent_content', 'require_participant_sig', 'require_cc_verification', 'require_pi_signoff', 'require_lar',
+            'consent_pdf_template', 'consent_pdf_url',
+            'documents',
             'study_questionnaires', 'screener_config', 'avg_screener_duration',
             'rct_design', 'medication_supply', 'has_study_kit', 'consent_collection',
             'created_at', 'updated_at'
         ]
+
+    def get_consent_pdf_url(self, obj):
+        if not obj.consent_pdf_template: return None
+        request = self.context.get('request')
+        if request: return request.build_absolute_uri(obj.consent_pdf_template.url)
+        return obj.consent_pdf_template.url
 
     def to_representation(self, instance):
         ret = super().to_representation(instance)
@@ -428,12 +435,16 @@ class StudySerializer(SanitizedModelSerializer):
             'reward_amount', 'masking', 'indication', 'execution_type',
             'startDate', 'endDate',
             # Also strip these if frontend accidentally sends them (they are read-only relations)
-            'consent_templates', 'documents', 'assigned_pis', 'assigned_coordinators', 'assigned_sponsors'
+            'documents', 'assigned_pis', 'assigned_coordinators', 'assigned_sponsors'
         }
         if isinstance(data, dict):
+            # Map frontend keys to backend fields
+            if 'consent_pdf_file' in data:
+                data['consent_pdf_template'] = data.pop('consent_pdf_file')
+
             # Include study_questionnaires in KNOWN_FIELDS so it's not stripped
-            LOCAL_KNOWN = KNOWN_FIELDS | {'study_questionnaires'}
-            data = {k: v for k, v in data.items() if k not in FRONTEND_ONLY_FIELDS or k == 'study_questionnaires'}
+            LOCAL_KNOWN = KNOWN_FIELDS | {'study_questionnaires', 'consent_pdf_template'}
+            data = {k: v for k, v in data.items() if k in LOCAL_KNOWN or k not in FRONTEND_ONLY_FIELDS}
         try:
             return super().to_internal_value(data)
         except Exception as e:
@@ -457,7 +468,9 @@ class PublicStudySerializer(SanitizedModelSerializer):
             'id', 'title', 'protocol_id', 'description', 'condition', 
             'duration', 'location', 'compensation', 'status', 'stage', 
             'tags', 'created_at', 'screener_config',
-            'overview', 'benefit', 'participation_message'
+            'overview', 'benefit', 'participation_message',
+            'require_participant_sig', 'require_cc_verification', 
+            'require_pi_signoff', 'require_lar', 'consent_content'
         ]
         ordering = ['created_at']
 
@@ -780,7 +793,6 @@ class ConsentSerializer(SanitizedModelSerializer):
     id = ObjectIdField(read_only=True)
     pi_user_name = serializers.CharField(source='pi_user.full_name', read_only=True)
     cc_user_name = serializers.CharField(source='cc_user.full_name', read_only=True)
-    template_version = serializers.CharField(source='template.version', read_only=True)
     study_title = serializers.CharField(source='study.title', read_only=True)
     protocol_id = serializers.CharField(source='study.protocol_id', read_only=True)
     signed_pdf_url = serializers.SerializerMethodField()
@@ -793,12 +805,13 @@ class ConsentSerializer(SanitizedModelSerializer):
     class Meta:
         model = Consent
         fields = [
-            'id', 'study', 'template', 'participant', 'full_name', 'email', 
+            'id', 'study', 'participant', 'full_name', 'email', 
             'agreed_at', 'participant_signed_at', 'participant_signature',
             'cc_name', 'cc_signature', 'cc_verified', 'cc_verified_at', 'cc_user', 'cc_user_name',
             'pi_name', 'pi_signature', 'pi_verified', 'pi_verified_at', 'pi_user', 'pi_user_name',
             'signing_status', 'audit_trail', 'signed_pdf', 'signed_pdf_url',
-            'protocol_id', 'study_title', 'template_version', 'decrypted_name', 'is_valid'
+            'protocol_id', 'study_title', 'decrypted_name', 'is_valid',
+            'is_lar', 'lar_name', 'lar_relationship', 'lar_reason'
         ]
         read_only_fields = ['agreed_at', 'ip_address']
 
@@ -993,7 +1006,29 @@ class DailyMedicationLogSerializer(SanitizedModelSerializer):
         fields = ['id', 'participant', 'participant_sid', 'date', 'took_medicine', 'time_taken', 'full_dose', 'dose_amount', 'reason_missed', 'noticed_side_effects', 'side_effect_description', 'side_effect_start_time', 'side_effect_ongoing', 'severity', 'interfered_daily_activities', 'sought_medical_care', 'ae_additional_comments', 'overall_feeling', 'health_updates', 'supporting_file', 'is_draft', 'created_at', 'updated_at']
         read_only_fields = ['participant']
 
+
+
+class StudyKitSerializer(serializers.ModelSerializer):
+    participant_name = serializers.CharField(source='participant.user.get_full_name', read_only=True)
+    participant_id = serializers.CharField(source='participant.participant_sid', read_only=True)
+    protocol_id = serializers.CharField(source='study.protocol_id', read_only=True)
+
+    class Meta:
+        model = StudyKit
+        fields = [
+            'id', 'kit_number', 'kit_type', 'status', 'carrier', 
+            'tracking_number', 'address', 'shipping_label_url', 
+            'return_label_url', 'last_updated', 'created_at',
+            'participant_name', 'participant_id', 'protocol_id',
+            'study', 'participant'
+        ]
+        read_only_fields = ['last_updated', 'created_at']
+
 class ParticipantSerializer(SanitizedModelSerializer):
+    kits = StudyKitSerializer(many=True, read_only=True)
+    tasks = ParticipantTaskSerializer(many=True, read_only=True)
+
+
     id = serializers.CharField(read_only=True)
     gender = serializers.SerializerMethodField()
     user_details = UserSerializer(source='user', read_only=True)
@@ -1061,8 +1096,11 @@ class ParticipantSerializer(SanitizedModelSerializer):
             'display_name', 'display_email', 'display_phone', 'display_address',
             'created_at', 'updated_at', 'reviewed_at', 'reviewed_by', 'reviewer_name',
             'visits', 'ae_reports', 'daily_logs', 'lab_results', 'consent_records',
+            'kits', 'tasks',
+
             'coordinator_approved', 'coordinator_approved_at', 'coordinator_signature',
-            'pi_approved', 'pi_approved_at', 'pi_signature', 'approval_status'
+            'pi_approved', 'pi_approved_at', 'pi_signature', 'approval_status',
+            'consent_details', 'randomization_details', 'assigned_arm'
         ]
 
     def validate(self, data):
@@ -1320,3 +1358,15 @@ class StudyKitSerializer(serializers.ModelSerializer):
             'study', 'participant'
         ]
         read_only_fields = ['last_updated', 'created_at']
+
+class ClinicalAuditLogSerializer(SanitizedModelSerializer):
+    user_name = serializers.CharField(source='user.full_name', read_only=True)
+    class Meta:
+        model = ClinicalAuditLog
+        fields = '__all__'
+
+class PIIRevealLogSerializer(SanitizedModelSerializer):
+    user_name = serializers.CharField(source='user.full_name', read_only=True)
+    class Meta:
+        model = PIIRevealLog
+        fields = '__all__'

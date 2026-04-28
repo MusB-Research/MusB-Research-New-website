@@ -145,8 +145,8 @@ export default function Careers() {
         fetchJobs();
     }, []);
 
-    // Polling: Refresh data every 10 seconds in the background
-    usePolling(fetchJobs, 10000);
+    // Removed background polling per user request to reduce redundant network requests.
+    // usePolling(fetchJobs, 10000);
 
 
 

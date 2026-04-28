@@ -63,8 +63,9 @@ export const ParticipantSignView: React.FC<ParticipantSignViewProps> = ({
                             Please read the following <span className="text-white font-black italic">{activeConsent?.title}</span> document in its entirety before proceeding to the signature step.
                         </p>
                         <div 
-                            className="p-8 lg:p-16 bg-white rounded-3xl h-[600px] overflow-y-auto custom-scrollbar shadow-2xl shadow-black/50 text-slate-800 relative"
+                            className={`bg-white rounded-3xl h-[800px] overflow-hidden shadow-2xl shadow-black/50 text-slate-800 relative ${!activeConsent?.file_url ? 'p-8 lg:p-16 overflow-y-auto custom-scrollbar' : ''}`}
                             onScroll={(e) => {
+                                if (activeConsent?.file_url) return; // Scroll tracking for iframes is complex
                                 const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
                                 if (scrollTop + clientHeight >= scrollHeight - 50) {
                                     if (!hasScrolledFull) {
@@ -74,53 +75,72 @@ export const ParticipantSignView: React.FC<ParticipantSignViewProps> = ({
                                 }
                             }}
                         >
-                            <div className="space-y-12">
-                                <div className="text-center pb-8 border-b border-slate-100">
-                                    <h1 className="text-3xl font-black uppercase tracking-tighter mb-2">{activeConsent.title}</h1>
-                                    <p className="text-slate-500 font-bold uppercase tracking-widest text-[12px] italic">{activeConsent.study as any} • {activeConsent.irbNumber}</p>
-                                </div>
-                                
-                                {activeConsent.terms_content ? (
-                                    <section>
-                                        <h3 className="text-xl font-black uppercase italic mb-4">Protocol Terms</h3>
-                                        <div className="text-slate-600 leading-relaxed whitespace-pre-wrap">
-                                            {activeConsent.terms_content}
+                            {activeConsent?.file_url ? (
+                                <div className="w-full h-full relative">
+                                    <iframe 
+                                        src={`${activeConsent.file_url}#toolbar=0`}
+                                        style={{ width: '100%', height: '100%', border: 'none' }}
+                                        title="Consent Document"
+                                        onLoad={() => {
+                                            // Since we can't easily track iframe scroll, we'll auto-verify after a delay or just allow it
+                                            setTimeout(() => setHasScrolledFull(true), 2000);
+                                        }}
+                                    />
+                                    {!hasScrolledFull && (
+                                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-white to-transparent p-12 text-center pointer-events-none">
+                                            <p className="text-slate-400 font-bold uppercase tracking-widest text-[10px]">Read document to continue</p>
                                         </div>
-                                    </section>
-                                ) : (
-                                    <>
+                                    )}
+                                </div>
+                            ) : (
+                                <div className="space-y-12">
+                                    <div className="text-center pb-8 border-b border-slate-100">
+                                        <h1 className="text-3xl font-black uppercase tracking-tighter mb-2">{activeConsent.title}</h1>
+                                        <p className="text-slate-500 font-bold uppercase tracking-widest text-[12px] italic">{activeConsent.study as any} • {activeConsent.irbNumber}</p>
+                                    </div>
+                                    
+                                    {activeConsent.terms_content ? (
                                         <section>
-                                            <h3 className="text-xl font-black uppercase italic mb-4">1.0 Study Purpose</h3>
-                                            <p className="text-slate-600 leading-relaxed">
-                                                The purpose of this clinical trial is to evaluate the efficacy of the experimental protocol. You are being asked to participate voluntarily.
-                                            </p>
+                                            <h3 className="text-xl font-black uppercase italic mb-4">Protocol Terms</h3>
+                                            <div className="text-slate-600 leading-relaxed whitespace-pre-wrap">
+                                                {activeConsent.terms_content}
+                                            </div>
                                         </section>
-                                        <section>
-                                            <h3 className="text-xl font-black uppercase italic mb-4">2.0 Potential Risks</h3>
-                                            <p className="text-slate-600 leading-relaxed mb-4">
-                                                While the protocol is continually monitored, some participants may experience unknown risks.
-                                            </p>
-                                        </section>
-                                        <section>
-                                            <h3 className="text-xl font-black uppercase italic mb-4">3.0 Ethical Safeguards</h3>
-                                            <p className="text-slate-600 leading-relaxed">
-                                                Your participation is 100% voluntary. You may withdraw at any time for any reason. Your clinical data will be de-identified and stored securely.
-                                            </p>
-                                        </section>
-                                    </>
-                                )}
-                                <div className="h-[200px] bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center p-10 text-center gap-4">
-                                    <ShieldCheck size={40} className="text-indigo-200" />
-                                    <div>
-                                        <p className="text-slate-400 font-bold uppercase tracking-widest text-[12px] mb-1">Authenticated Regulatory Node</p>
-                                        <p className="text-slate-300 text-[12px] italic">Verified IRB Approval Stamp: {activeConsent.irbApprovalDate}</p>
+                                    ) : (
+                                        <>
+                                            <section>
+                                                <h3 className="text-xl font-black uppercase italic mb-4">1.0 Study Purpose</h3>
+                                                <p className="text-slate-600 leading-relaxed">
+                                                    The purpose of this clinical trial is to evaluate the efficacy of the experimental protocol. You are being asked to participate voluntarily.
+                                                </p>
+                                            </section>
+                                            <section>
+                                                <h3 className="text-xl font-black uppercase italic mb-4">2.0 Potential Risks</h3>
+                                                <p className="text-slate-600 leading-relaxed mb-4">
+                                                    While the protocol is continually monitored, some participants may experience unknown risks.
+                                                </p>
+                                            </section>
+                                            <section>
+                                                <h3 className="text-xl font-black uppercase italic mb-4">3.0 Ethical Safeguards</h3>
+                                                <p className="text-slate-600 leading-relaxed">
+                                                    Your participation is 100% voluntary. You may withdraw at any time for any reason. Your clinical data will be de-identified and stored securely.
+                                                </p>
+                                            </section>
+                                        </>
+                                    )}
+                                    <div className="h-[200px] bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center p-10 text-center gap-4">
+                                        <ShieldCheck size={40} className="text-indigo-200" />
+                                        <div>
+                                            <p className="text-slate-400 font-bold uppercase tracking-widest text-[12px] mb-1">Authenticated Regulatory Node</p>
+                                            <p className="text-slate-300 text-[12px] italic">Verified IRB Approval Stamp: {activeConsent.irbApprovalDate}</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="relative border border-slate-200 bg-slate-50 shadow-sm p-4 w-full">
+                                        <PDFPage pageNumber={1} width="100%" placedFields={activeConsent?.placedFields || []} />
                                     </div>
                                 </div>
-
-                                <div className="relative border border-slate-200 bg-slate-50 shadow-sm p-4 w-full">
-                                    <PDFPage pageNumber={1} width="100%" placedFields={activeConsent?.placedFields || []} />
-                                </div>
-                            </div>
+                            )}
                         </div>
                         <div className="flex justify-end mt-12 lg:mt-16">
                             <button 

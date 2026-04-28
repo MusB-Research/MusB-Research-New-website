@@ -30,8 +30,10 @@ interface SponsorsManagementProps {
 
 export default function SponsorsManagement({ onRefresh, selectedStudyId, preloadedStudies, isLoading }: SponsorsManagementProps & { preloadedStudies?: any[] }) {
   const [rawSponsors, setRawSponsors] = useState<any[]>([]);
+  const [organizations, setOrganizations] = useState<any[]>([]);
   const [allStudies, setAllStudies] = useState<any[]>(preloadedStudies || []);
   const [dataLoading, setDataLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<'INDIVIDUALS' | 'ORGANIZATIONS'>('INDIVIDUALS');
 
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
   const isMobile = windowWidth < 768;
@@ -47,7 +49,8 @@ export default function SponsorsManagement({ onRefresh, selectedStudyId, preload
     setDataLoading(true);
     try {
       const promises: Promise<any>[] = [
-        authFetch(`${API}/api/sponsors/`).then(r => r.json()).catch(() => [])
+        authFetch(`${API}/api/sponsors/`).then(r => r.json()).catch(() => []),
+        authFetch(`${API}/api/sponsor-organizations/`).then(r => r.json()).catch(() => [])
       ];
 
       // Only fetch studies if not preloaded
@@ -57,6 +60,7 @@ export default function SponsorsManagement({ onRefresh, selectedStudyId, preload
 
       const results = await Promise.all(promises);
       setRawSponsors(Array.isArray(results[0]) ? results[0] : (results[0].results || []));
+      setOrganizations(Array.isArray(results[1]) ? results[1] : (results[1].results || []));
 
       if (results.length > 1) {
         const stRes = results[1];
@@ -82,7 +86,7 @@ export default function SponsorsManagement({ onRefresh, selectedStudyId, preload
   const [newSponsor, setNewSponsor] = useState({ firstName: '', lastName: '', email: '', company: '' });
 
   const sponsors: Sponsor[] = useMemo(() => rawSponsors
-    .filter(u => !u.must_change_password && u.status !== 'PENDING' && u.status !== 'pending')
+    .filter(u => u.status !== 'PENDING' && u.status !== 'pending')
     .map(u => ({
       id: u.id,
       raw: u,
@@ -160,6 +164,11 @@ export default function SponsorsManagement({ onRefresh, selectedStudyId, preload
 
   const totalActive = sponsors.filter(s => s.status === 'Active').length;
 
+  const filteredOrgs = organizations.filter(o =>
+    (o.name || o.organization || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (o.email || '').toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   return (
     <div className="space-y-6">
       {/* ── Header Row ─────────────────────────────────────── */}
@@ -203,12 +212,30 @@ export default function SponsorsManagement({ onRefresh, selectedStudyId, preload
         ))}
       </div>
 
+      {/* ── Tabs ────────────────────────────────────────────── */}
+      <div className="flex border-b border-white/5 mb-6">
+        <button
+          onClick={() => setActiveTab('INDIVIDUALS')}
+          className={`px-8 py-4 text-[10px] font-black uppercase tracking-widest transition-all relative ${activeTab === 'INDIVIDUALS' ? 'text-cyan-400' : 'text-slate-500 hover:text-white'}`}
+        >
+          Individual Sponsors ({sponsors.length})
+          {activeTab === 'INDIVIDUALS' && <motion.div layoutId="activeSponsorTab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-cyan-400 shadow-[0_0_10px_rgba(34,211,238,0.5)]" />}
+        </button>
+        <button
+          onClick={() => setActiveTab('ORGANIZATIONS')}
+          className={`px-8 py-4 text-[10px] font-black uppercase tracking-widest transition-all relative ${activeTab === 'ORGANIZATIONS' ? 'text-cyan-400' : 'text-slate-500 hover:text-white'}`}
+        >
+          Organizations ({organizations.length})
+          {activeTab === 'ORGANIZATIONS' && <motion.div layoutId="activeSponsorTab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-cyan-400 shadow-[0_0_10px_rgba(34,211,238,0.5)]" />}
+        </button>
+      </div>
+
       {/* ── Search ─────────────────────────────────────────── */}
       <div className="relative">
         <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600" />
         <input
           type="text"
-          placeholder="Filter by name, company, or email..."
+          placeholder={`Filter ${activeTab === 'INDIVIDUALS' ? 'sponsors' : 'organizations'}...`}
           className="w-full bg-[#0a0b1a]/80 border border-white/5 rounded-2xl pl-12 pr-4 py-4 text-[13px] text-white outline-none focus:border-cyan-500/30 font-bold uppercase tracking-wider placeholder:text-slate-700 shadow-inner"
           value={searchTerm}
           onChange={e => setSearchTerm(e.target.value)}
@@ -312,115 +339,92 @@ export default function SponsorsManagement({ onRefresh, selectedStudyId, preload
             <table className="w-full text-left">
               <thead>
                 <tr className="border-b border-white/5 bg-white/[0.02]">
-                  {['Sponsor Personnel', 'Company', 'Portfolio', 'Registered', 'Access', 'Actions'].map((h, i) => (
-                    <th key={i} className="px-6 py-5 text-[10px] font-black text-slate-600 uppercase tracking-wider whitespace-nowrap">
-                      {h}
-                    </th>
-                  ))}
+                  {activeTab === 'INDIVIDUALS' ? (
+                    ['Sponsor Personnel', 'Company', 'Portfolio', 'Registered', 'Access', 'Actions'].map((h, i) => (
+                      <th key={i} className="px-6 py-5 text-[10px] font-black text-slate-600 uppercase tracking-wider whitespace-nowrap">{h}</th>
+                    ))
+                  ) : (
+                    ['Organization Name', 'Contact Info', 'Type', 'Linked Studies', 'Actions'].map((h, i) => (
+                      <th key={i} className="px-6 py-5 text-[10px] font-black text-slate-600 uppercase tracking-wider whitespace-nowrap">{h}</th>
+                    ))
+                  )}
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/[0.04]">
                 {dataLoading ? (
                   Array.from({ length: 5 }).map((_, i) => (
                     <tr key={i} className="border-b border-white/5">
-                      <td colSpan={6} className="px-6 py-8">
+                      <td colSpan={activeTab === 'INDIVIDUALS' ? 6 : 5} className="px-6 py-8">
                         <div className="flex items-center gap-4">
                           <Skeleton variant="circle" size="w-10 h-10" dark={true} />
                           <div className="flex-1 space-y-2">
                             <Skeleton variant="text" className="w-1/3 h-3" dark={true} />
                             <Skeleton variant="text" className="w-1/4 h-2 opacity-50" dark={true} />
                           </div>
-                          <div className="flex gap-4">
-                            <Skeleton variant="text" className="w-20 h-4" dark={true} />
-                            <Skeleton variant="text" className="w-20 h-4" dark={true} />
-                          </div>
                         </div>
                       </td>
                     </tr>
                   ))
-                ) : filteredSponsors.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="px-6 py-20 text-center">
-                      <Building2 className="w-12 h-12 text-slate-700 mx-auto mb-4" />
-                      <p className="text-[12px] text-slate-600 font-black uppercase tracking-wider">
-                        {searchTerm ? 'No sponsors match your search' : 'No sponsor records found'}
-                      </p>
-                    </td>
-                  </tr>
-                ) : (
-                  filteredSponsors.map(s => (
-                    <tr key={s.id} className="hover:bg-white/[0.02] transition-colors group">
-                      {/* Sponsor Info */}
-                      <td className="px-6 py-5">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 shrink-0">
-                            <Building2 className="w-5 h-5" />
+                ) : activeTab === 'INDIVIDUALS' ? (
+                  filteredSponsors.length === 0 ? (
+                    <tr><td colSpan={6} className="px-6 py-20 text-center text-slate-600 font-bold uppercase text-[11px] tracking-widest">No sponsors found</td></tr>
+                  ) : (
+                    filteredSponsors.map(s => (
+                      <tr key={s.id} className="hover:bg-white/[0.02] transition-colors group">
+                        <td className="px-6 py-5">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 shrink-0"><Building2 className="w-5 h-5" /></div>
+                            <div className="min-w-0">
+                              <p className="text-[13px] font-black text-white italic truncate uppercase tracking-tight leading-none">{s.name}</p>
+                              <p className="text-[11px] text-slate-500 font-bold tracking-wider mt-1 truncate">{s.email}</p>
+                            </div>
                           </div>
-                          <div className="min-w-0">
-                            <p className="text-[13px] font-black text-white italic truncate uppercase tracking-tight leading-none">{s.name}</p>
-                            <p className="text-[11px] text-slate-500 font-bold tracking-wider mt-1 truncate">{s.email}</p>
-                          </div>
-                        </div>
-                      </td>
-                      {/* Company */}
-                      <td className="px-6 py-5">
-                        <span className="text-[12px] text-slate-400 font-bold uppercase tracking-wider">{s.company}</span>
-                      </td>
-                      {/* Portfolio */}
-                      <td className="px-6 py-5">
-                        {s.studies.length === 0 ? (
-                          <span className="text-[11px] text-slate-700 italic font-bold uppercase">None</span>
-                        ) : (
+                        </td>
+                        <td className="px-6 py-5"><span className="text-[12px] text-slate-400 font-bold uppercase tracking-wider">{s.company}</span></td>
+                        <td className="px-6 py-5">
                           <div className="flex flex-wrap gap-1.5 max-w-[200px]">
                             {s.studies.slice(0, 2).map((st, i) => (
                               <span key={i} className="px-2.5 py-1 bg-white/5 border border-white/10 rounded-lg text-[10px] font-black text-slate-500 uppercase tracking-wider truncate max-w-[160px]">{st}</span>
                             ))}
-                            {s.studies.length > 2 && (
-                              <span className="px-2.5 py-1 bg-cyan-500/10 border border-cyan-500/20 rounded-lg text-[10px] font-black text-cyan-500 uppercase tracking-wider">+{s.studies.length - 2}</span>
-                            )}
                           </div>
-                        )}
-                      </td>
-                      {/* Registered */}
-                      <td className="px-6 py-5">
-                        <span className="text-[11px] text-slate-400 font-bold uppercase tracking-wider whitespace-nowrap">{s.registeredDate}</span>
-                      </td>
-                      {/* Access status */}
-                      <td className="px-6 py-5">
-                        <div className="flex flex-col gap-1.5">
-                          <button
-                            onClick={() => handleToggleStatus(s)}
-                            disabled={updatingId === s.id}
-                            className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider border flex items-center gap-2 transition-all disabled:opacity-50 w-fit ${
-                              s.status === 'Active'
-                                ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20'
-                                : 'bg-red-500/10 text-red-400 border-red-500/20 hover:bg-red-500/20'
-                            }`}
-                          >
-                            {updatingId === s.id && <Loader2 className="w-3 h-3 animate-spin" />}
+                        </td>
+                        <td className="px-6 py-5"><span className="text-[11px] text-slate-400 font-bold uppercase tracking-wider">{s.registeredDate}</span></td>
+                        <td className="px-6 py-5">
+                          <button onClick={() => handleToggleStatus(s)} className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider border ${s.status === 'Active' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-red-500/10 text-red-400 border-red-500/20'}`}>
                             {s.status === 'Active' ? 'AUTHORIZED' : 'DISABLED'}
                           </button>
-                          {s.mustChangePassword && (
-                            <button
-                              onClick={() => handleResendCredentials(s.id, s.email)}
-                              className="px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider border border-indigo-500/20 bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20 transition-all flex items-center gap-2 w-fit"
-                            >
-                              <Mail className="w-3 h-3" /> RESEND
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                      {/* Actions */}
-                      <td className="px-6 py-5">
-                        <button
-                          onClick={() => setSelectedSponsor(s)}
-                          className="p-2.5 bg-white/5 border border-white/10 rounded-xl text-slate-600 hover:text-cyan-400 hover:border-cyan-500/30 transition-all shadow-xl"
-                        >
-                          <Eye className="w-4 h-4" />
-                        </button>
-                      </td>
-                    </tr>
-                  ))
+                        </td>
+                        <td className="px-6 py-5">
+                          <button onClick={() => setSelectedSponsor(s)} className="p-2.5 bg-white/5 border border-white/10 rounded-xl text-slate-600 hover:text-cyan-400 transition-all"><Eye className="w-4 h-4" /></button>
+                        </td>
+                      </tr>
+                    ))
+                  )
+                ) : (
+                  filteredOrgs.length === 0 ? (
+                    <tr><td colSpan={5} className="px-6 py-20 text-center text-slate-600 font-bold uppercase text-[11px] tracking-widest">No organizations found</td></tr>
+                  ) : (
+                    filteredOrgs.map(o => (
+                      <tr key={o.id} className="hover:bg-white/[0.02] transition-colors group">
+                        <td className="px-6 py-5">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 shrink-0"><Building2 className="w-5 h-5" /></div>
+                            <p className="text-[13px] font-black text-white italic truncate uppercase tracking-tight leading-none">{o.name || o.organization}</p>
+                          </div>
+                        </td>
+                        <td className="px-6 py-5">
+                          <p className="text-[11px] text-slate-400 font-bold tracking-wider">{o.email || 'No email registered'}</p>
+                        </td>
+                        <td className="px-6 py-5"><span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">{o.type || 'Sponsor'}</span></td>
+                        <td className="px-6 py-5">
+                           <span className="text-[11px] text-slate-600 italic font-bold uppercase">Click to view linked studies</span>
+                        </td>
+                        <td className="px-6 py-5">
+                          <button className="p-2.5 bg-white/5 border border-white/10 rounded-xl text-slate-600 hover:text-blue-400 transition-all"><Eye className="w-4 h-4" /></button>
+                        </td>
+                      </tr>
+                    ))
+                  )
                 )}
               </tbody>
             </table>

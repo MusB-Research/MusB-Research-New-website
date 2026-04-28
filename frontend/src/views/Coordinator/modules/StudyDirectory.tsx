@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, ChevronRight, CheckCircle2, Clock, PlayCircle, Activity, Building, Layout, ExternalLink } from 'lucide-react';
+import { Plus, ChevronRight, CheckCircle2, Clock, PlayCircle, Activity, Building, Layout, ExternalLink, Trash2, AlertTriangle } from 'lucide-react';
 import { SkeletonLoader } from '../../../components/shared/SkeletonLoader';
 
 interface Study {
@@ -16,6 +16,7 @@ interface StudyDirectoryProps {
     studies: Study[];
     onAdd: () => void;
     onEdit: (s: Study) => void;
+    onDelete?: (s: Study) => Promise<void> | void;
     onUpdateStatus?: (id: string, status: string) => void;
     isLoading?: boolean;
 }
@@ -44,12 +45,26 @@ export const StudyDirectory: React.FC<StudyDirectoryProps> = ({
     studies,
     onAdd,
     onEdit,
+    onDelete,
     onUpdateStatus,
     isLoading = false
 }) => {
     const [windowWidth, setWindowWidth] = useState(window.innerWidth);
     const isMobile = windowWidth < 768;
     const isTablet = windowWidth >= 768 && windowWidth < 1024;
+    const [confirmDelete, setConfirmDelete] = useState<Study | null>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
+
+    const handleDeleteConfirm = async () => {
+        if (!confirmDelete || !onDelete) return;
+        setIsDeleting(true);
+        try {
+            await onDelete(confirmDelete);
+        } finally {
+            setIsDeleting(false);
+            setConfirmDelete(null);
+        }
+    };
 
     useEffect(() => {
         const handleResize = () => setWindowWidth(window.innerWidth);
@@ -164,9 +179,19 @@ export const StudyDirectory: React.FC<StudyDirectoryProps> = ({
                                                 ))}
                                             </select>
                                         </div>
-                                        <button className="p-3 bg-blue-600 text-white rounded-xl shadow-lg shadow-blue-600/20">
-                                            <ChevronRight className="w-4 h-4" />
-                                        </button>
+                                        <div className="flex items-center gap-2">
+                                            {onDelete && (
+                                                <button
+                                                    onClick={(e) => { e.stopPropagation(); setConfirmDelete(s); }}
+                                                    className="p-3 bg-red-500/10 text-red-400 border border-red-500/20 rounded-xl hover:bg-red-500/20 transition-all"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
+                                            )}
+                                            <button className="p-3 bg-blue-600 text-white rounded-xl shadow-lg shadow-blue-600/20">
+                                                <ChevronRight className="w-4 h-4" />
+                                            </button>
+                                        </div>
                                     </div>
                                 </motion.div>
                             ))
@@ -221,9 +246,20 @@ export const StudyDirectory: React.FC<StudyDirectoryProps> = ({
                                                     </div>
                                                 </td>
                                                 <td className="sticky right-0 px-8 py-10 text-right bg-[#0B101B] group-hover:bg-[#0E131E] z-10 shadow-[-10px_0_15px_-10px_rgba(0,0,0,0.5)] border-l border-white/5">
-                                                    <button className="p-4 bg-white/5 border border-white/10 rounded-2xl text-slate-500 group-hover:text-white group-hover:bg-blue-600 group-hover:border-blue-500 transition-all shadow-xl">
-                                                        <ChevronRight className="w-5 h-5" />
-                                                    </button>
+                                                    <div className="flex items-center justify-end gap-2">
+                                                        {onDelete && (
+                                                            <button
+                                                                onClick={(e) => { e.stopPropagation(); setConfirmDelete(s); }}
+                                                                className="p-3.5 bg-red-500/5 border border-red-500/10 rounded-2xl text-red-500/40 hover:text-red-400 hover:bg-red-500/10 hover:border-red-500/30 transition-all"
+                                                                title="Delete study"
+                                                            >
+                                                                <Trash2 className="w-4 h-4" />
+                                                            </button>
+                                                        )}
+                                                        <button className="p-4 bg-white/5 border border-white/10 rounded-2xl text-slate-500 group-hover:text-white group-hover:bg-blue-600 group-hover:border-blue-500 transition-all shadow-xl">
+                                                            <ChevronRight className="w-5 h-5" />
+                                                        </button>
+                                                    </div>
                                                 </td>
                                             </tr>
                                         ))}
@@ -234,6 +270,59 @@ export const StudyDirectory: React.FC<StudyDirectoryProps> = ({
                     </div>
                 )}
             </div>
+
+
+        {/* Delete Confirmation Modal */}
+        <AnimatePresence>
+            {confirmDelete && (
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[200] flex items-center justify-center p-4"
+                    onClick={() => !isDeleting && setConfirmDelete(null)}
+                >
+                    <motion.div
+                        initial={{ scale: 0.9, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        exit={{ scale: 0.9, opacity: 0 }}
+                        onClick={(e) => e.stopPropagation()}
+                        className="bg-[#0F172A] border border-red-500/20 rounded-2xl p-8 w-full max-w-md shadow-2xl"
+                    >
+                        <div className="flex items-center gap-4 mb-6">
+                            <div className="w-12 h-12 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center justify-center">
+                                <AlertTriangle className="w-6 h-6 text-red-400" />
+                            </div>
+                            <div>
+                                <h3 className="text-white font-black text-lg uppercase italic tracking-tight">Delete Study?</h3>
+                                <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mt-0.5">This action cannot be undone</p>
+                            </div>
+                        </div>
+                        <div className="bg-white/5 border border-white/10 rounded-xl p-4 mb-6">
+                            <p className="text-[11px] font-black text-blue-400 font-mono tracking-widest uppercase">{confirmDelete.protocol_id}</p>
+                            <p className="text-white font-bold italic uppercase tracking-tight mt-1">{confirmDelete.title}</p>
+                        </div>
+                        <p className="text-slate-400 text-sm mb-8">Are you sure you want to permanently delete this study and all its associated data?</p>
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => setConfirmDelete(null)}
+                                disabled={isDeleting}
+                                className="flex-1 py-3.5 rounded-xl font-black text-[11px] tracking-widest uppercase bg-white/5 text-slate-400 border border-white/10 hover:bg-white/10 transition-all disabled:opacity-50"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleDeleteConfirm}
+                                disabled={isDeleting}
+                                className="flex-1 py-3.5 rounded-xl font-black text-[11px] tracking-widest uppercase bg-red-600 text-white hover:bg-red-500 transition-all shadow-lg shadow-red-600/20 disabled:opacity-60"
+                            >
+                                {isDeleting ? 'Deleting...' : 'Delete Study'}
+                            </button>
+                        </div>
+                    </motion.div>
+                </motion.div>
+            )}
+        </AnimatePresence>
         </div>
     );
 };
