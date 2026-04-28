@@ -946,6 +946,7 @@ class Consent(BaseMongoModel):
     def save(self, *args, **kwargs):
         is_new = self.pk is None
         old_pi_verified = False
+        old_cc_verified = False
 
         if not is_new:
             try:

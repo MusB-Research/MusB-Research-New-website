@@ -75,19 +75,19 @@ def generate_signed_consent_pdf(consent_obj):
                 # DRAW LOGIC
                 if f_type == 'Participant Signature':
                     decode_and_draw_signature(can, consent_obj.participant_signature, px, py)
-                elif f_type == 'Participant Name':
+                elif f_type in ['Participant Name', 'Legal Full Name', 'Full Name']:
                     can.setFont("Helvetica-Bold", 10)
                     can.drawString(px, py, consent_obj.full_name or "")
-                elif f_type == 'Participant Date':
+                elif f_type in ['Participant Date', 'Date', 'Signed Date']:
                     can.setFont("Helvetica", 10)
                     dt = consent_obj.participant_signed_at or consent_obj.agreed_at
                     can.drawString(px, py, dt.strftime("%Y-%m-%d %H:%M") if dt else "")
                 elif f_type == 'CC Signature':
                     decode_and_draw_signature(can, consent_obj.cc_signature, px, py)
-                elif f_type == 'CC Name':
+                elif f_type in ['CC Name', 'Coordinator Name']:
                     can.setFont("Helvetica-Bold", 10)
                     can.drawString(px, py, consent_obj.cc_name or "")
-                elif f_type == 'PI Signature':
+                elif f_type in ['PI Verification', 'PI Signature']:
                     decode_and_draw_signature(can, consent_obj.pi_signature, px, py)
                 elif f_type == 'PI Name':
                     can.setFont("Helvetica-Bold", 10)
