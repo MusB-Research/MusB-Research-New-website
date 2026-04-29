@@ -212,8 +212,8 @@ export default function News() {
         fetchData(true, false);
     }, []);
 
-    // Polling: Refresh data every 10 seconds in the background
-    usePolling(() => fetchData(false, true), 10000);
+    // Removed background polling per user request to reduce redundant network requests.
+    // usePolling(() => fetchData(false, true), 10000);
 
 
     const filteredItems = useMemo(() => {

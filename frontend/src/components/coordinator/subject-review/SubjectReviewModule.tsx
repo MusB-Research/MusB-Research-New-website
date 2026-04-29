@@ -1,9 +1,9 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { authFetch, API } from '../../../utils/auth';
+import { authFetch, API, getRole } from '../../../utils/auth';
 import { 
     AlertCircle, Info, ShieldAlert, Bookmark, ArrowLeft, Loader2, Target, Activity,
-    ChevronDown
+    ChevronDown, CheckCircle2
 } from 'lucide-react';
 import { COLORS, S } from './SubRevConstants';
 import { SubjectOverview } from './views/SubjectOverview';
@@ -15,6 +15,12 @@ import { DocumentRegistry } from './views/DocumentRegistry';
 import { SubjectAuditTrail } from './views/SubjectAuditTrail';
 import { SummaryPanel } from './components/SummaryPanel';
 import { ActionFooter } from './components/ActionFooter';
+import LifecycleTracker from './clinical/LifecycleTracker';
+import ApprovalStatus from './clinical/ApprovalStatus';
+import PIIRevealButton from './clinical/PIIRevealButton';
+import ClinicalAuditTrail from './clinical/ClinicalAuditTrail';
+import ClinicalEnrollmentWorkflow from './clinical/ClinicalEnrollmentWorkflow';
+import InformedConsentWorkflow from './clinical/InformedConsentWorkflow';
 
 // --- TYPES ---
 interface AE {
@@ -70,7 +76,8 @@ export default function CCC_SubjectReviewModule({
     participantId?: string, 
     selectedStudyId?: string, 
     preloadedTracking?: any,
-    initialTab?: string 
+    initialTab?: string,
+    onClose?: () => void
 }) {
     // State
     const [participant, setParticipant] = useState<any>(null);
@@ -86,6 +93,9 @@ export default function CCC_SubjectReviewModule({
     const [confirmModal, setConfirmModal] = useState<{ message: string, type: string, onConfirm: () => void } | null>(null);
     const [screeningNotes, setScreeningNotes] = useState('');
     const [isMobile, setIsMobile] = useState(false);
+    const [clinicalLogs, setClinicalLogs] = useState<any[]>([]);
+    const [piiLogs, setPiiLogs] = useState<any[]>([]);
+    const [isApproving, setIsApproving] = useState(false);
 
     useEffect(() => {
         const checkMobile = () => {
@@ -128,6 +138,64 @@ export default function CCC_SubjectReviewModule({
             setLoading(false);
         }
     }, [participantId]);
+
+    const fetchAuditLogs = useCallback(async () => {
+        if (!participantId) return;
+        try {
+            const res = await authFetch(`${API}/api/participants/${participantId}/audit_logs/`);
+            if (res.ok) {
+                const data = await res.json();
+                setClinicalLogs(data.clinical_logs || []);
+                setPiiLogs(data.pii_access_logs || []);
+            }
+        } catch (err) {
+            console.error("Failed to fetch audit logs:", err);
+        }
+    }, [participantId]);
+
+    useEffect(() => {
+        fetchData();
+        fetchAuditLogs();
+    }, [fetchData, fetchAuditLogs]);
+
+    const handleDualApproval = async (type: 'coordinator' | 'pi', signature: string) => {
+        setIsApproving(true);
+        try {
+            const res = await authFetch(`${API}/api/participants/${participantId}/approve_dual/`, {
+                method: 'POST',
+                body: JSON.stringify({ type, signature })
+            });
+            if (res.ok) {
+                addToast(`${type.toUpperCase()} signature recorded successfully.`);
+                fetchData();
+                fetchAuditLogs();
+            } else {
+                const err = await res.json();
+                addToast(err.error || "Approval failed.", "error");
+            }
+        } catch (err) {
+            addToast("Network error during approval.", "error");
+        } finally {
+            setIsApproving(false);
+        }
+    };
+
+    const handlePIIReveal = async (field: string, reason: string) => {
+        try {
+            const res = await authFetch(`${API}/api/participants/${participantId}/reveal_pii/`, {
+                method: 'POST',
+                body: JSON.stringify({ field, reason })
+            });
+            if (res.ok) {
+                const data = await res.json();
+                fetchAuditLogs(); // Refresh logs after reveal
+                return data.value;
+            }
+            return "Error revealing data";
+        } catch (err) {
+            return "Connection error";
+        }
+    };
 
     const [screenerSchema, setScreenerSchema] = useState<any>(null);
     useEffect(() => {
@@ -269,8 +337,8 @@ export default function CCC_SubjectReviewModule({
         };
     }, [participant, screenerSchema]);
 
-    React.useEffect(() => {
-        fetchData();
+    useEffect(() => {
+        // Handled by consolidated useEffect above
     }, [fetchData]);
 
     const addToast = useCallback((message: string, type: string = 'success') => {
@@ -368,7 +436,7 @@ export default function CCC_SubjectReviewModule({
     );
 
     const alerts: any[] = []; 
-    const tabs = ['Overview', 'Screening Review', 'Outcomes', 'Safety', 'Core Diagnostics', 'Artifacts', 'Audit'];
+    const tabs = ['Overview', 'Enrollment Workflow', 'Informed Consent', 'Screening Review', 'Outcomes', 'Safety', 'Core Diagnostics', 'Artifacts', 'Audit'];
 
     return (
         <div style={{...S.panel, backgroundColor: '#0B1221', color: '#CBD5E1'}}>
@@ -396,30 +464,50 @@ export default function CCC_SubjectReviewModule({
                         </div>
                     </div>
                 </div>
-                <div className="flex items-center gap-2 md:gap-3 flex-wrap">
-                    <button 
-                        onClick={handleToggleFlag}
-                        className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-4 md:px-5 py-2.5 border rounded-lg text-[10px] font-black uppercase tracking-[0.2em] transition-all ${participant.is_flagged ? 'bg-amber-500 text-white border-amber-500' : 'bg-transparent border-[#1F2937] text-slate-400 hover:text-white hover:bg-white/5'}`}
-                    >
-                        <Bookmark size={14} fill={participant.is_flagged ? "currentColor" : "none"} /> 
-                        {participant.is_flagged ? 'FLAGGED' : 'FLAG'}
-                    </button>
-                    <button 
-                        onClick={() => handleReviewDecision('ELIGIBLE')}
-                        className="flex-1 md:flex-none px-4 md:px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-[10px] font-black uppercase tracking-[0.2em] transition-all shadow-lg shadow-emerald-900/10"
-                    >
-                        Approve
-                    </button>
-                    <button 
-                        onClick={() => setConfirmModal({
-                            message: `Terminate participation for ${participant.participant_sid}? This action is irreversible.`,
-                            type: 'danger',
-                            onConfirm: () => handleWithdraw('PI decision during subject review.')
-                        })}
-                        className="flex-1 md:flex-none px-4 md:px-6 py-2.5 bg-rose-600 hover:bg-rose-500 text-white rounded-lg text-[10px] font-black uppercase tracking-[0.2em] transition-all shadow-lg shadow-rose-900/10"
-                    >
-                        Withdraw
-                    </button>
+                <div className="flex items-center gap-2 md:gap-3 flex-wrap w-full md:w-auto justify-end">
+                    {/* ACTION BUTTONS: Only show if status is reviewable and current user hasn't signed yet */}
+                    {['NEW', 'PENDING_REVIEW', 'ELIGIBLE'].includes(processedParticipant.status) && !(
+                        (getRole() === 'COORDINATOR' && processedParticipant.coordinator_approved) ||
+                        (getRole() === 'PI' && processedParticipant.pi_approved)
+                    ) ? (
+                        <>
+                            <button 
+                                onClick={handleToggleFlag}
+                                className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-4 md:px-5 py-2.5 border rounded-lg text-[10px] font-black uppercase tracking-[0.2em] transition-all ${participant.is_flagged ? 'bg-amber-500 text-white border-amber-500' : 'bg-transparent border-[#1F2937] text-slate-400 hover:text-white hover:bg-white/5'}`}
+                            >
+                                <Bookmark size={14} fill={participant.is_flagged ? "currentColor" : "none"} /> 
+                                {participant.is_flagged ? 'FLAGGED' : 'FLAG'}
+                            </button>
+                            
+                            <button 
+                                onClick={() => handleReviewDecision('ELIGIBLE')}
+                                className="flex-1 md:flex-none px-4 md:px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-[10px] font-black uppercase tracking-[0.2em] transition-all shadow-lg shadow-emerald-900/10"
+                            >
+                                Approve
+                            </button>
+                            
+                            <button 
+                                onClick={() => setConfirmModal({
+                                    message: `Terminate participation for ${participant.participant_sid}? This action is irreversible.`,
+                                    type: 'danger',
+                                    onConfirm: () => handleWithdraw('PI decision during subject review.')
+                                })}
+                                className="flex-1 md:flex-none px-4 md:px-6 py-2.5 bg-rose-600 hover:bg-rose-500 text-white rounded-lg text-[10px] font-black uppercase tracking-[0.2em] transition-all shadow-lg shadow-rose-900/10"
+                            >
+                                Withdraw
+                            </button>
+                        </>
+                    ) : (
+                        /* Show Status Indicator if already approved or enrolled */
+                        <div className="flex items-center gap-3 px-4 md:px-6 py-2.5 bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 rounded-lg">
+                            <CheckCircle2 size={14} className="animate-pulse" />
+                            <span className="text-[10px] font-black uppercase tracking-widest italic">
+                                {processedParticipant.status === 'ENROLLED' || processedParticipant.status === 'ACTIVE' 
+                                    ? 'Subject Active in Protocol' 
+                                    : 'Review Completed (Pending Signatures)'}
+                            </span>
+                        </div>
+                    )}
                 </div>
             </header>
 
@@ -467,14 +555,53 @@ export default function CCC_SubjectReviewModule({
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: -10 }}
                             transition={{ duration: 0.2 }}
-                        >
-                            {activeTab === 'Overview' && <SubjectOverview participant={processedParticipant} alerts={[]} addToast={addToast} logAction={logAction} setParticipant={setParticipant} />}
+                        >                             {activeTab === 'Enrollment Workflow' && (
+                                <ClinicalEnrollmentWorkflow 
+                                    participant={processedParticipant} 
+                                    onApprove={handleDualApproval}
+                                    onRandomize={async () => {
+                                        try {
+                                            const res = await authFetch(`${API}/api/participants/${participantId}/randomize/`, { method: 'POST' });
+                                            if (res.ok) {
+                                                addToast("Participant randomized successfully.");
+                                                fetchData();
+                                            }
+                                        } catch (err) {
+                                            addToast("Randomization failed.", "error");
+                                        }
+                                    }}
+                                    addToast={addToast}
+                                />
+                            )}
+                            {activeTab === 'Informed Consent' && (
+                                <InformedConsentWorkflow 
+                                    participant={processedParticipant} 
+                                />
+                            )}
+
+                            {activeTab === 'Overview' && (
+                                <SubjectOverview 
+                                    participant={processedParticipant} 
+                                    alerts={[]} 
+                                    addToast={addToast} 
+                                    logAction={logAction} 
+                                    setParticipant={setParticipant}
+                                    onApprove={handleDualApproval}
+                                    onReveal={handlePIIReveal}
+                                    isApproving={isApproving}
+                                />
+                            )}
                             {activeTab === 'Screening Review' && <EligibilityAudit participant={processedParticipant} screeningNotes={screeningNotes} setScreeningNotes={setScreeningNotes} logAction={logAction} />}
                             {activeTab === 'Outcomes' && <ClinicalOutcomes participant={processedParticipant} />}
                             {activeTab === 'Safety' && <SafetySignals participant={processedParticipant} />}
                             {activeTab === 'Core Diagnostics' && <LabParameters participant={processedParticipant} />}
                             {activeTab === 'Artifacts' && <DocumentRegistry participant={processedParticipant} />}
-                            {activeTab === 'Audit' && <SubjectAuditTrail auditLog={auditLog} />}
+                            {activeTab === 'Audit' && (
+                                <ClinicalAuditTrail 
+                                    clinicalLogs={clinicalLogs} 
+                                    piiLogs={piiLogs} 
+                                />
+                            )}
                         </motion.div>
                     </AnimatePresence>
                 </main>

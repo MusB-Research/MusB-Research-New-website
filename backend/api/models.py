@@ -135,6 +135,15 @@ class Study(BaseMongoModel):
         ('HYBRID', 'Hybrid (Both Modes)')
     ], default='ECONSENT')
     consent_collection = models.JSONField(default=list, blank=True)
+    
+    # E-Consent Workflow Configuration
+    consent_content = models.TextField(blank=True, help_text="Textual terms displayed for participant review")
+    require_participant_sig = models.BooleanField(default=True)
+    require_cc_verification = models.BooleanField(default=True)
+    require_pi_signoff = models.BooleanField(default=True)
+    require_lar = models.BooleanField(default=False)
+    consent_pdf_template = models.FileField(upload_to='study_consents/', null=True, blank=True, help_text="Original PDF template for overlaying signatures")
+
 
     # Operational Parameters (Requirement 12.2)
     rct_design = models.CharField(max_length=50, blank=True, null=True)
@@ -215,6 +224,14 @@ class Study(BaseMongoModel):
     notifications_enabled = models.BooleanField(default=True)
     show_dosing_log = models.BooleanField(default=True)
     show_ae_report = models.BooleanField(default=True)
+    
+    # Randomization Config
+    is_blinded = models.BooleanField(default=True)
+    randomization_method = models.CharField(max_length=50, default='SIMPLE', choices=[
+        ('SIMPLE', 'Simple Randomization'),
+        ('BLOCK', 'Block Randomization'),
+        ('STRATIFIED', 'Stratified Randomization')
+    ])
     
     # Legacy field - moved to ConsentTemplate model
     consent_template_file = models.FileField(upload_to='consent_templates/', null=True, blank=True)
@@ -328,18 +345,17 @@ class Participant(BaseMongoModel):
     # Section 18.3: unique study-linked ID
     participant_sid = models.CharField(max_length=50, unique=False, verbose_name="Participant Study ID", db_index=True)
     
-    # Enrollment Tracking
+    # Enrollment Tracking (Requirement 1: Aligned Lifecycle)
     status = models.CharField(max_length=30, default='NEW', db_index=True, choices=[
-        ('RECRUITING', 'Recruiting'),
+        ('NEW', 'New'),
         ('PENDING_REVIEW', 'Pending Review'),
         ('ELIGIBLE', 'Eligible'),
-        ('INELIGIBLE', 'Not Eligible'),
-        ('ENROLLED', 'Enrolled'),
+        ('INELIGIBLE', 'Ineligible'),
         ('CONSENTED', 'Consented'),
         ('RANDOMIZED', 'Randomized'),
         ('ACTIVE', 'Active'),
-        ('COMPLETED', 'Study Completed'),
-        ('DROPPED', 'Dropped'),
+        ('COMPLETED', 'Completed'),
+        ('DROPPED', 'Dropped / Withdrawn'),
     ])
 
     # Eligibility Form Data
@@ -366,6 +382,10 @@ class Participant(BaseMongoModel):
         ('FULLY_APPROVED', 'Fully Approved & Enrolled'),
         ('REJECTED', 'Rejected / Ineligible'),
     ])
+
+    # E-Consent Audit Data (Requirement 3)
+    consent_details = models.JSONField(default=dict, blank=True, help_text="Store IP, User Agent, Document Version, and Signature Type")
+    randomization_details = models.JSONField(default=dict, blank=True, help_text="Store randomization date, method, and seed if applicable")
     
     # Demographics (PII - only visible to Admin/PI/Coordinator)
     gender = models.CharField(max_length=20, blank=True)
@@ -401,6 +421,52 @@ class Participant(BaseMongoModel):
             invalidate_cache("participant_dashboard", user_id=self.user_id)
             invalidate_cache("participant_me", user_id=self.user_id)
             invalidate_cache("participants_list", user_id=self.user_id)
+
+class ClinicalAuditLog(BaseMongoModel):
+    """Protocol Requirement 11: Track all status changes, approvals, and system actions"""
+    study = models.ForeignKey(Study, on_delete=models.SET_NULL, null=True, blank=True, related_name='clinical_audit_logs')
+    participant = models.ForeignKey(Participant, on_delete=models.SET_NULL, null=True, blank=True, related_name='clinical_audit_logs')
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
+    
+    action = models.CharField(max_length=100) # STATUS_CHANGE, APPROVAL, CONSENT_SIGN, RANDOMIZATION
+    details = models.JSONField(default=dict, blank=True) # { 'from': 'NEW', 'to': 'ELIGIBLE' }
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    user_agent = models.TextField(blank=True, null=True)
+    timestamp = models.DateTimeField(auto_now_add=True)
+
+    @classmethod
+    def log(cls, action, participant=None, study=None, user=None, details=None, request=None):
+        ip = None
+        ua = None
+        if request:
+            ip = request.META.get('HTTP_X_FORWARDED_FOR', request.META.get('REMOTE_ADDR'))
+            if ip and ',' in ip:
+                ip = ip.split(',')[0].strip()
+            ua = request.META.get('HTTP_USER_AGENT', '')[:512]
+        
+        return cls.objects.create(
+            action=action,
+            participant=participant,
+            study=study or (participant.study if participant else None),
+            user=user or (request.user if request and request.user.is_authenticated else None),
+            details=details or {},
+            ip_address=ip,
+            user_agent=ua
+        )
+
+    class Meta(BaseMongoModel.Meta):
+        ordering = ['-timestamp']
+
+class PIIRevealLog(BaseMongoModel):
+    """Protocol Requirement 7: Log every access to sensitive data"""
+    participant = models.ForeignKey(Participant, on_delete=models.CASCADE, related_name='reveal_logs')
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    fields_revealed = models.JSONField(default=list) # ['email', 'phone']
+    reason = models.CharField(max_length=255, blank=True)
+    timestamp = models.DateTimeField(auto_now_add=True)
+
+    class Meta(BaseMongoModel.Meta):
+        ordering = ['-timestamp']
 
 class InterventionArm(BaseMongoModel):
     study = models.ForeignKey(Study, on_delete=models.CASCADE, related_name='arms')
@@ -825,11 +891,16 @@ class ConsentTemplate(BaseMongoModel):
 class Consent(BaseMongoModel):
     """Immutable record of electronic informed consent (eConsent)"""
     study = models.ForeignKey(Study, on_delete=models.CASCADE, related_name='consent_records', db_index=True)
-    template = models.ForeignKey(ConsentTemplate, on_delete=models.PROTECT, related_name='executions', null=True, db_index=True)
     participant = models.ForeignKey(Participant, on_delete=models.SET_NULL, null=True, blank=True, related_name='consent_records', db_index=True)
     
     full_name = models.CharField(max_length=255, verbose_name="Electronic Signature")
     email = models.EmailField()
+    
+    # LAR Fields
+    is_lar = models.BooleanField(default=False)
+    lar_name = models.CharField(max_length=255, blank=True)
+    lar_relationship = models.CharField(max_length=100, blank=True)
+    lar_reason = models.CharField(max_length=255, blank=True)
     
     agreed_at = models.DateTimeField(auto_now_add=True)
     participant_signed_at = models.DateTimeField(null=True, blank=True)
@@ -876,6 +947,7 @@ class Consent(BaseMongoModel):
     def save(self, *args, **kwargs):
         is_new = self.pk is None
         old_pi_verified = False
+        old_cc_verified = False
 
         if not is_new:
             try:
@@ -899,6 +971,13 @@ class Consent(BaseMongoModel):
                     "actor": self.full_name,
                     "role": "PARTICIPANT"
                 })
+            
+            # Generate initial signed PDF BEFORE the first save so it's persisted
+            try:
+                from .utils.pdf_utils import generate_signed_consent_pdf
+                generate_signed_consent_pdf(self)
+            except Exception as e:
+                print(f"PDF Generation Error (Initial): {e}")
 
         # ── SINGLE authoritative save ──
         super().save(*args, **kwargs)
@@ -932,13 +1011,6 @@ class Consent(BaseMongoModel):
             except Exception as e:
                 print(f"StaffTask creation error: {e}")
 
-            # Generate initial signed PDF
-            try:
-                from .utils.pdf_utils import generate_signed_consent_pdf
-                generate_signed_consent_pdf(self)
-            except Exception as e:
-                print(f"PDF Generation Error (Initial): {e}")
-
         # ── POST-SAVE side effects for CC sign transition ──
         if not is_new and self.cc_verified and not old_cc_verified:
             from django.utils.timezone import now as _now
@@ -947,6 +1019,8 @@ class Consent(BaseMongoModel):
             requires_pi = False
             if self.template:
                 requires_pi = self.template.require_pi_signoff
+            elif self.study:
+                requires_pi = self.study.require_pi_signoff
             
             if requires_pi and not self.pi_verified:
                 self.signing_status = 'AWAITING_PI'
@@ -978,7 +1052,15 @@ class Consent(BaseMongoModel):
                 "actor": self.cc_name or "Coordinator",
                 "role": "COORDINATOR"
             })
-            super().save(update_fields=['signing_status', 'cc_verified_at', 'audit_trail'])
+            
+            # REGENERATE PDF
+            try:
+                from .utils.pdf_utils import generate_signed_consent_pdf
+                generate_signed_consent_pdf(self)
+            except Exception as e:
+                print(f"PDF Regeneration Error (CC): {e}")
+
+            super().save(update_fields=['signing_status', 'cc_verified_at', 'audit_trail', 'signed_pdf'])
 
         # ── POST-SAVE side effects for PI sign transition ──
         if not is_new and self.pi_verified and not old_pi_verified:
@@ -993,13 +1075,19 @@ class Consent(BaseMongoModel):
                 "actor": self.pi_name or "Principal Investigator",
                 "role": "PI"
             })
-            super().save(update_fields=['signing_status', 'pi_verified_at', 'audit_trail'])
+
+            # REGENERATE PDF
+            try:
+                from .utils.pdf_utils import generate_signed_consent_pdf
+                generate_signed_consent_pdf(self)
+            except Exception as e:
+                print(f"PDF Regeneration Error (PI): {e}")
+
+            super().save(update_fields=['signing_status', 'pi_verified_at', 'audit_trail', 'signed_pdf'])
 
         # ── Archival logic for when it becomes FULLY_SIGNED ──
         if not is_new and self.signing_status == 'FULLY_SIGNED' and ((self.cc_verified and not old_cc_verified) or (self.pi_verified and not old_pi_verified)):
             try:
-                from .utils.pdf_utils import generate_signed_consent_pdf
-                generate_signed_consent_pdf(self)
                 if self.signed_pdf:
                     from .models import Document
                     doc_title = f"Executed Consent - {self.study.protocol_id}"

@@ -27,3 +27,6 @@ redis==5.0.4
 django-redis==5.4.0
 pyotp==2.9.0
 qrcode==8.2
+pypdf==4.1.0
+reportlab==4.1.0
+pdfrw==0.4

@@ -130,43 +130,142 @@ export default function ScreenerBuilder({
         if (!file) return;
 
         setIsExtracting(true);
-        setStatusMessage({ text: `Analyzing ${file.name}...`, type: 'success' });
-        await new Promise(resolve => setTimeout(resolve, 3500));
+        setStatusMessage({ text: `Deep analyzing ${file.name}...`, type: 'success' });
 
-        const mockExtracted: Question[] = [
-            {
-                id: `sq_ai_${Math.random().toString(36).substr(2, 9)}`,
-                type: 'choice',
-                label: 'What is your current age range?',
-                placeholder: '',
-                required: true,
-                options: ['18-35', '36-50', '51-65', '65+'],
-                allow_multiple: false
-            },
-            {
-                id: `sq_ai_${Math.random().toString(36).substr(2, 9)}`,
-                type: 'choice',
-                label: 'Have you been diagnosed with any of the following conditions?',
-                placeholder: '',
-                required: true,
-                options: ['Type 2 Diabetes', 'Hypertension', 'Asthma', 'None of the above'],
-                allow_multiple: true
-            },
-            {
-                id: `sq_ai_${Math.random().toString(36).substr(2, 9)}`,
-                type: 'choice',
-                label: 'Are you currently taking any prescription medications?',
-                placeholder: '',
-                required: true,
-                options: ['Yes', 'No'],
-                allow_multiple: false
+        try {
+            // 1. Upload as a temporary Template for processing
+            const formData = new FormData();
+            formData.append('pdf_file', file);
+            formData.append('name', `Extraction_${file.name.split('.')[0]}_${Date.now()}`);
+            formData.append('mode', 'PDF');
+
+            const uploadRes = await authFetch(`${API}/api/questionnaire-templates/`, {
+                method: 'POST',
+                body: formData
+            });
+
+            if (!uploadRes.ok) throw new Error("Upload failed");
+            const templateData = await uploadRes.json();
+            const tempId = templateData.id;
+
+            // 2. Trigger Extraction
+            const extractRes = await authFetch(`${API}/api/questionnaire-templates/${tempId}/extract_text/`);
+            if (!extractRes.ok) throw new Error("Extraction failed");
+            const data = await extractRes.json();
+            const rawLines: string[] = data.lines || [];
+
+            if (rawLines.length === 0) {
+                setStatusMessage({ text: "No text found in document. Is it a scanned image?", type: 'error' });
+                return;
             }
-        ];
 
-        setQuestions([...questions, ...mockExtracted]);
-        setIsExtracting(false);
-        setStatusMessage({ text: `Extracted ${mockExtracted.length} questions.`, type: 'success' });
-        if (fileInputRef.current) fileInputRef.current.value = '';
+            // 3. Process into Blocks (Logic synced with QuestionnaireBuilder)
+            const blocks: string[] = [];
+            let currentBlock = "";
+            for (const line of rawLines) {
+                const trimmed = line.trim();
+                if (!trimmed || trimmed.startsWith('©') || trimmed.includes('All rights reserved') || /page\s+\d+/i.test(trimmed)) continue;
+
+                const isNewQuestion = /^(\d+[\.\)]|[A-G][\.\)]|[\u2022\u25cf\-\u25a1])\s+/.test(trimmed);
+                const isSectionHeader = /^(PART|SECTION|BLOCK)\s+\d+/i.test(trimmed) || (trimmed.toUpperCase() === trimmed && trimmed.length < 50 && trimmed.length > 5);
+
+                if ((isNewQuestion || isSectionHeader) && currentBlock) {
+                    blocks.push(currentBlock.trim());
+                    currentBlock = trimmed;
+                } else {
+                    currentBlock += (currentBlock ? " " : "") + trimmed;
+                }
+            }
+            if (currentBlock) blocks.push(currentBlock.trim());
+
+            // 4. Identify Global Scoring Scale
+            let globalScale: string[] = [];
+            const scaleDetectPattern = /(\d)\s*[=\-:]\s*([A-Z][A-Z\s]+?)(?=\s+\d|\s*$)/g;
+            for (const b of blocks.slice(0, 5)) {
+                let match;
+                while ((match = scaleDetectPattern.exec(b)) !== null) {
+                    globalScale.push(`${match[1]} ${match[2].trim()}`);
+                }
+                if (globalScale.length > 0) break;
+            }
+
+            // 5. Transform Blocks into Screener Questions
+            const extractedQs: Question[] = [];
+            for (const block of blocks) {
+                // Ignore blocks that are likely just headers/instructions
+                if (!/^(\d+[\.\)]|[A-G][\.\)]|[\u2022\u25cf\-\u25a1])/.test(block) && block.length < 20) continue;
+
+                let options: string[] = [];
+                let label = block;
+
+                // Clinical Pattern A: Binary (0 for NO, 1 for YES)
+                if (/\(0 for NO, 1 for YES\)/i.test(block)) {
+                    label = block.replace(/\(0 for NO, 1 for YES\)/i, '').trim();
+                    options = ["0 - NO", "1 - YES"];
+                }
+                // Pattern B: Explicit Inline Options (e.g., 0 None 1 Some)
+                else {
+                    const inlineScorePattern = /(\d)\s*[=\-:]?\s*([A-Za-z][A-Za-z\s\/\\,\(\)-]+?)(?=\s+\d|\s*$)/g;
+                    const inlineMatches = [...block.matchAll(inlineScorePattern)];
+                    if (inlineMatches.length > 1) {
+                        options = inlineMatches.map(m => `${m[1]} ${m[2].trim()}`);
+                        const firstMatchIdx = block.search(/\d\s*[=\-:]?\s*[A-Za-z]/);
+                        if (firstMatchIdx > 5) label = block.substring(0, firstMatchIdx).trim();
+                    } else if (globalScale.length > 0 && block.match(/\s(\d\s*){2,}\d\s?$/)) {
+                        label = block.replace(/\s(\d\s*)+$/, '').trim();
+                        options = [...globalScale];
+                    }
+                }
+
+                // Advanced Cleaning: Strip leaked table headers and response keywords
+                let cleanLabel = label.replace(/^\d+[\.\)]\s+/, '').replace(/^[A-G][\.\)]\s+/, '').trim();
+
+                const responseKeywords = [
+                    'No problem', 'Mild', 'Moderate', 'Severe', 'Very severe',
+                    'None', 'Some', 'A lot', 'Extreme',
+                    'Yes', 'No', 'N/A', 'Not at all', 'Somewhat', 'Very much',
+                    'Rarely', 'Occasionally', 'Frequently', 'Always'
+                ];
+
+                // Pattern: Strip anything after a pipe or multiple spaces if it matches a keyword
+                const cleanupPattern = new RegExp(`\\s*(\\||\\s{2,})\\s*(${responseKeywords.join('|')}).*$`, 'i');
+                cleanLabel = cleanLabel.replace(cleanupPattern, '').trim();
+
+                // Specific check for the user's PDF table headers leaking (split by pipe)
+                if (cleanLabel.includes('|')) {
+                    const parts = cleanLabel.split('|');
+                    if (parts[0].trim().length > 5) {
+                        cleanLabel = parts[0].trim();
+                    }
+                }
+
+                if (cleanLabel.length < 4) continue;
+
+                extractedQs.push({
+                    id: `sq_ai_${Math.random().toString(36).substr(2, 9)}`,
+                    type: options.length > 0 ? 'choice' : 'short_text',
+                    label: cleanLabel,
+                    placeholder: options.length > 0 ? 'Select an option...' : 'Enter your response...',
+                    required: true,
+                    options: options.length > 0 ? options : undefined,
+                    allow_multiple: false
+                });
+            }
+
+            if (extractedQs.length > 0) {
+                setQuestions(prev => [...prev, ...extractedQs]);
+                setStatusMessage({ text: `Successfully extracted ${extractedQs.length} questions.`, type: 'success' });
+            } else {
+                setStatusMessage({ text: "Could not identify specific questions in document.", type: 'error' });
+            }
+
+        } catch (err) {
+            console.error("Extraction Error:", err);
+            setStatusMessage({ text: 'AI Extraction failed. Please try "Smart Import" instead.', type: 'error' });
+        } finally {
+            setIsExtracting(false);
+            if (fileInputRef.current) fileInputRef.current.value = '';
+        }
     };
 
     const handleSmartImport = () => {

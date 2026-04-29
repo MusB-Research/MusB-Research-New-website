@@ -6,7 +6,7 @@ import {
     ShieldCheck, Gift, FlaskConical
 } from 'lucide-react';
 import { Card, Badge, Skeleton } from './SharedComponents';
-import { CURRENCY_SYMBOLS } from '../../components/coordinator/LaunchStudyForm';
+import { getCurrencySymbol } from '../../utils/format';
 
 const CompensationView = ({ study, compensations = [], tasks = [], visits = [], onAction, isLoading = false }: any) => {
     const activeData = compensations.length > 0 ? compensations : [];
@@ -14,7 +14,7 @@ const CompensationView = ({ study, compensations = [], tasks = [], visits = [], 
     const handleDownload = () => {
         if (!history || history.length === 0) return;
         const csvHeaders = "Study Name,Description,Reward Method,Date,Amount,Status\n";
-        const currencySymbol = CURRENCY_SYMBOLS[study?.compensation_currency] || '$';
+        const currencySymbol = getCurrencySymbol(study?.compensation_currency);
         const csvRows = history.map((h: any) =>
             `"${h.study}","${h.desc}","${h.method}","${h.date}","${currencySymbol}${h.amount.toFixed(2)}","${h.status}"`
         ).join("\n");
@@ -96,7 +96,7 @@ const CompensationView = ({ study, compensations = [], tasks = [], visits = [], 
                     </div>
                     <div className="flex flex-col items-end">
                         <span className="text-[10px] font-bold text-[#1E88E5] uppercase tracking-[0.2em] mb-0.5">Lifetime Disbursement</span>
-                        <span className="text-4xl font-bold tracking-tighter text-[#1A2B49]">{CURRENCY_SYMBOLS[study?.compensation_currency] || '$'}{totalEarned.toFixed(2)}</span>
+                        <span className="text-4xl font-bold tracking-tighter text-[#1A2B49]">{getCurrencySymbol(study?.compensation_currency)}{totalEarned.toFixed(2)}</span>
                     </div>
                 </div>
 
@@ -106,7 +106,7 @@ const CompensationView = ({ study, compensations = [], tasks = [], visits = [], 
                             <CheckCircle className="w-3.5 h-3.5 text-[#4CAF50]" /> Verified Earnings
                         </h4>
                         <div className="flex items-center justify-between">
-                            <span className="text-2xl font-bold text-[#1A2B49] tracking-tight">{CURRENCY_SYMBOLS[study?.compensation_currency] || '$'}{totalEarned.toFixed(2)}</span>
+                            <span className="text-2xl font-bold text-[#1A2B49] tracking-tight">{getCurrencySymbol(study?.compensation_currency)}{totalEarned.toFixed(2)}</span>
                             <Badge color={totalEarned > 0 ? 'green' : 'slate'}>{totalEarned > 0 ? 'Paid' : 'Idle'}</Badge>
                         </div>
                     </div>
@@ -115,7 +115,7 @@ const CompensationView = ({ study, compensations = [], tasks = [], visits = [], 
                             <Clock className="w-3.5 h-3.5 text-[#1E88E5]" /> Pending Approval
                         </h4>
                         <div className="flex items-center justify-between">
-                            <span className="text-2xl font-bold text-[#1A2B49] tracking-tight">{CURRENCY_SYMBOLS[study?.compensation_currency] || '$'}{pendingPayment.toFixed(2)}</span>
+                            <span className="text-2xl font-bold text-[#1A2B49] tracking-tight">{getCurrencySymbol(study?.compensation_currency)}{pendingPayment.toFixed(2)}</span>
                             <Badge color="blue">{pendingPayment > 0 ? 'Processing' : 'No Queue'}</Badge>
                         </div>
                     </div>
@@ -181,7 +181,7 @@ const CompensationView = ({ study, compensations = [], tasks = [], visits = [], 
                                     <td className="px-5 py-4 text-[11px] font-bold text-[#5F6F89] uppercase tracking-widest">{row.desc}</td>
                                     <td className="px-5 py-4 text-[11px] font-bold text-[#8A99B3] uppercase tracking-tight">{row.method}</td>
                                     <td className="px-5 py-4 text-[11px] font-bold text-[#1A2B49] uppercase">{row.date}</td>
-                                    <td className="px-5 py-4 text-[13px] font-bold text-[#1E88E5] tracking-tight">{CURRENCY_SYMBOLS[study?.compensation_currency] || '$'}{row.amount.toFixed(2)}</td>
+                                    <td className="px-5 py-4 text-[13px] font-bold text-[#1E88E5] tracking-tight">{getCurrencySymbol(study?.compensation_currency)}{row.amount.toFixed(2)}</td>
                                     <td className="px-5 py-4"><Badge color={row.status === 'PAID' ? 'green' : 'blue'}>{row.status}</Badge></td>
                                 </tr>
                             )) : (

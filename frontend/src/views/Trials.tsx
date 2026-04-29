@@ -28,15 +28,20 @@ import { authFetch, API } from '../utils/auth';
 
 
 import { usePolling } from '@/hooks/usePolling';
+import { getCurrencySymbol } from '@/utils/format';
 
 export default function Trials() {
     const [selectedCondition, setSelectedCondition] = useState('All');
     const [selectedType, setSelectedType] = useState('All');
     const [searchQuery, setSearchQuery] = useState('');
     const [openFaq, setOpenFaq] = useState<number | null>(null);
-    const [studies, setStudies] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [studies, setStudies] = useState<any[]>([]);
     const [showCompleted, setShowCompleted] = useState(false);
+    const [selectedStudy, setSelectedStudy] = useState<any | null>(null);
+    const [currency, setCurrency] = useState('USD');
+
+// Manual currencySigns removed in favor of Intl.NumberFormat utility
 
     const getStudies = async (showLoading: boolean = true) => {
         if (showLoading) setLoading(true);
@@ -69,6 +74,7 @@ export default function Trials() {
                     id: s.protocol_id || s.id,
                     db_id: s.id, // Needed for chronological sort
                     title: s.title,
+                    full_title: s.full_title || '',
                     description: s.description || '',
                     overview: s.overview || '',
                     benefit: s.benefit || '',
@@ -96,8 +102,8 @@ export default function Trials() {
         getStudies(true);
     }, []);
 
-    // Polling: Refresh data every 10 seconds in the background
-    usePolling(() => getStudies(false), 10000);
+    // Removed background polling per user request to reduce redundant network requests.
+    // usePolling(() => getStudies(false), 10000);
     
     const completedStatuses = ['Completed', 'Recruitment Completed', 'Analysis Underway', 'Progress Report Draft', 'Final Report Sent', 'Closed / Archived'];
 
@@ -362,13 +368,13 @@ export default function Trials() {
                                 {showCompleted ? 'Explore our past research and findings.' : 'Explore open studies. Spots can fill quickly.'}
                             </p>
                         </div>
-                        <div className="bg-slate-900/40 backdrop-blur-xl p-4 rounded-3xl border border-white/10 flex gap-4">
-                            <div className="relative">
+                        <div className="bg-slate-900/40 backdrop-blur-xl p-3 md:p-4 rounded-3xl border border-white/10 flex flex-wrap md:flex-nowrap items-center gap-4 w-full md:w-auto">
+                            <div className="relative flex-1 min-w-[200px] md:min-w-[300px]">
                                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
                                 <input
                                     type="text"
                                     placeholder="Search studies..."
-                                    className="pl-12 pr-6 py-3 bg-white/5 border border-white/10 rounded-2xl outline-none focus:border-cyan-500 transition-all text-sm font-bold text-white placeholder:text-slate-600"
+                                    className="w-full pl-12 pr-6 py-3 bg-white/5 border border-white/10 rounded-2xl outline-none focus:border-cyan-500 transition-all text-sm font-bold text-white placeholder:text-slate-600"
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
                                 />
@@ -376,7 +382,7 @@ export default function Trials() {
 
                             <div className="h-8 w-px bg-white/10 mx-2 hidden md:block" />
 
-                            <label className="flex items-center gap-3 px-4 py-2 bg-white/5 rounded-2xl border border-white/5 hover:bg-white/10 transition-all cursor-pointer group">
+                            <label className="flex items-center gap-3 px-5 py-3 bg-white/5 rounded-2xl border border-white/5 hover:bg-white/10 transition-all cursor-pointer group shrink-0 ml-auto md:ml-0">
                                 <div className="relative flex items-center justify-center">
                                     <input
                                         type="checkbox"
@@ -393,85 +399,202 @@ export default function Trials() {
                         </div>
                     </div>
 
-                    <div className="flex flex-wrap gap-3 mb-12">
-                        {conditions.map(c => (
-                            <button
-                                key={c}
-                                onClick={() => setSelectedCondition(c)}
-                                className={`px-6 py-3 rounded-xl font-bold text-[12px] uppercase tracking-widest transition-all ${selectedCondition === c ? 'bg-cyan-500 text-slate-900' : 'bg-white/5 text-slate-400 hover:bg-white/10'}`}
+                    <div className="flex flex-wrap items-center justify-between gap-6 mb-12">
+                        <div className="flex flex-wrap items-center gap-3 md:gap-4">
+                            {conditions.map(c => (
+                                <button
+                                    key={c}
+                                    onClick={() => setSelectedCondition(c)}
+                                    className={`px-8 py-3.5 rounded-xl font-black text-[11px] uppercase tracking-[0.15em] transition-all shadow-lg ${
+                                        selectedCondition === c 
+                                        ? 'bg-cyan-500 text-slate-900 shadow-cyan-500/20' 
+                                        : 'bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white border border-white/5'
+                                    }`}
+                                >
+                                    {c}
+                                </button>
+                            ))}
+                        </div>
+
+                        <div className="flex items-center gap-4 bg-slate-900/40 backdrop-blur-xl p-2 rounded-2xl border border-white/10">
+                            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-4">Currency</span>
+                            <select
+                                value={currency}
+                                onChange={(e) => setCurrency(e.target.value)}
+                                className="bg-transparent text-white text-[11px] font-black uppercase tracking-widest outline-none cursor-pointer pr-4"
                             >
-                                {c}
-                            </button>
-                        ))}
+                                {['USD', 'EUR', 'GBP', 'CAD', 'AUD', 'INR'].map(c => (
+                                    <option key={c} value={c} className="bg-slate-900">{c} ({getCurrencySymbol(c)})</option>
+                                ))}
+                            </select>
+                        </div>
                     </div>
 
-                    <div className="relative bg-slate-950/40 backdrop-blur-xl rounded-3xl border border-white/10 p-8 md:pt-16 md:pb-8 md:px-16 overflow-hidden group/container">
-                        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-cyan-500/5 blur-[120px] rounded-full"></div>
+                    <AnimatePresence mode="wait">
+                        {selectedStudy ? (
+                            <motion.div
+                                key="details"
+                                initial={{ opacity: 0, x: 50 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                exit={{ opacity: 0, x: -50 }}
+                                className="relative bg-slate-950/40 backdrop-blur-xl rounded-[3rem] border border-white/10 p-8 md:p-16 overflow-hidden"
+                            >
+                                <button 
+                                    onClick={() => setSelectedStudy(null)}
+                                    className="absolute top-8 right-8 text-slate-500 hover:text-white transition-colors flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em]"
+                                >
+                                    &larr; Back to List
+                                </button>
 
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 relative z-10">
-                            {filteredStudies.map((study) => (
-                                <div key={study.id} className="group border border-white/5 rounded-[3rem] p-6 md:p-10 bg-slate-900/40 hover:bg-slate-900 hover:border-cyan-500/30 transition-all flex flex-col relative overflow-hidden shadow-2xl">
-                                    <div className="absolute -inset-1 bg-gradient-to-tr from-cyan-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
-                                    <div className="flex justify-between items-start mb-8">
-                                        <div className="space-y-4">
-                                            <div className={`inline-block px-4 py-1.5 rounded-full text-[12px] font-black uppercase tracking-widest ${study.status === 'Recruiting' ? 'bg-cyan-500/10 text-cyan-400' :
-                                                    study.status === 'Upcoming' ? 'bg-emerald-500/10 text-emerald-400' :
-                                                        study.status === 'Paused' ? 'bg-amber-500/10 text-amber-400' :
-                                                            completedStatuses.includes(study.status) ? 'bg-slate-500/10 text-slate-400 opacity-60' :
-                                                                'bg-cyan-500/10 text-cyan-400'
-                                                }`}>
-                                                {study.status}
-                                            </div>
-                                            <h3 className="text-3xl font-black text-white group-hover:text-cyan-400 transition-colors uppercase">{study.title}</h3>
+                                <div className="max-w-4xl mx-auto space-y-12">
+                                    <div className="space-y-6">
+                                        <div className={`inline-block px-4 py-1.5 rounded-full text-[12px] font-black uppercase tracking-widest bg-cyan-500/10 text-cyan-400`}>
+                                            {selectedStudy.status}
                                         </div>
-                                        <div className="flex flex-wrap gap-2 justify-end max-w-[200px]">
-                                            {(study.tags || []).map((tag: string) => (
-                                                <span key={tag} className="px-2 py-1 bg-white/5 rounded-lg text-[12px] font-bold text-slate-500 uppercase tracking-widest">{tag}</span>
+                                        <h2 className="text-4xl md:text-6xl font-black text-white uppercase italic tracking-tighter leading-none">{selectedStudy.title}</h2>
+                                        <div className="flex flex-wrap gap-4">
+                                            {selectedStudy.tags.map((tag: string) => (
+                                                <span key={tag} className="px-3 py-1 bg-white/5 rounded-lg text-[12px] font-bold text-slate-500 uppercase tracking-widest">{tag}</span>
                                             ))}
                                         </div>
                                     </div>
-                                    <div className="mb-10 flex-grow scrollbar-hide max-h-[400px] overflow-y-auto pr-4">
-                                        {renderDescription(study.description)}
-                                    </div>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
-                                        <div className="bg-white/2 rounded-2xl p-4 border border-white/5 flex items-center gap-4">
-                                            <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-slate-500 group-hover:text-cyan-400 transition-colors shrink-0">
-                                                <DollarSign className="w-5 h-5" />
+
+                                    <div className="grid md:grid-cols-2 gap-12 border-y border-white/5 py-12">
+                                        <div className="space-y-8">
+                                            <div>
+                                                <h3 className="text-[11px] font-black text-cyan-400 uppercase tracking-[0.3em] mb-4">Brief Summary</h3>
+                                                <div className="prose prose-invert prose-sm">
+                                                    {renderDescription(selectedStudy.description)}
+                                                </div>
                                             </div>
                                             <div>
-                                                <div className="text-[12px] font-black uppercase tracking-widest text-slate-600 mb-1">Compensation</div>
-                                                <div className="text-sm font-bold text-white">{study.compensation}</div>
+                                                <h3 className="text-[11px] font-black text-cyan-400 uppercase tracking-[0.3em] mb-4">Overview</h3>
+                                                <div className="prose prose-invert prose-sm">
+                                                    {renderDescription(selectedStudy.overview)}
+                                                </div>
                                             </div>
                                         </div>
-                                        <div className="bg-white/2 rounded-2xl p-4 border border-white/5 flex items-center gap-4">
-                                            <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-slate-500 group-hover:text-cyan-400 transition-colors shrink-0">
-                                                <Clock className="w-5 h-5" />
+                                        <div className="space-y-8">
+                                            <div>
+                                                <h3 className="text-[11px] font-black text-cyan-400 uppercase tracking-[0.3em] mb-4">Benefits for Participants</h3>
+                                                <div className="prose prose-invert prose-sm">
+                                                    {renderDescription(selectedStudy.benefit)}
+                                                </div>
                                             </div>
                                             <div>
-                                                <div className="text-[12px] font-black uppercase tracking-widest text-slate-600 mb-1">Duration</div>
-                                                <div className="text-sm font-bold text-white">{study.duration}</div>
+                                                <h3 className="text-[11px] font-black text-cyan-400 uppercase tracking-[0.3em] mb-4">Participation Message</h3>
+                                                <div className="prose prose-invert prose-sm">
+                                                    {renderDescription(selectedStudy.participation_message)}
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
-                                    {study.status === 'Recruiting' ? (
+
+                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                                        <div className="bg-white/2 rounded-2xl p-6 border border-white/5">
+                                            <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest mb-2">Compensation</p>
+                                            <p className="text-xl font-black text-white italic">{getCurrencySymbol(currency)}{selectedStudy.compensation.replace(/[^0-9.]/g, '') || selectedStudy.compensation}</p>
+                                        </div>
+                                        <div className="bg-white/2 rounded-2xl p-6 border border-white/5">
+                                            <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest mb-2">Duration</p>
+                                            <p className="text-xl font-black text-white italic">{selectedStudy.duration}</p>
+                                        </div>
+                                        <div className="bg-white/2 rounded-2xl p-6 border border-white/5">
+                                            <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest mb-2">Condition</p>
+                                            <p className="text-xl font-black text-white italic">{selectedStudy.condition}</p>
+                                        </div>
+                                        <div className="bg-white/2 rounded-2xl p-6 border border-white/5">
+                                            <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest mb-2">Type</p>
+                                            <p className="text-xl font-black text-white italic">{selectedStudy.type}</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="pt-8 flex flex-col md:flex-row gap-6">
                                         <Link
-                                            to={`/studies/${study.id}`}
-                                            className="block w-full text-center py-5 rounded-2xl font-black text-sm uppercase tracking-widest transition-all bg-cyan-500 text-slate-900 hover:bg-white"
+                                            to={`/studies/${selectedStudy.id}`}
+                                            className="flex-1 text-center py-6 rounded-[2rem] font-black text-sm uppercase tracking-widest transition-all bg-cyan-500 text-slate-900 hover:bg-white shadow-2xl shadow-cyan-500/20"
                                         >
-                                            Join Study
+                                            Join Study Now
                                         </Link>
-                                    ) : (
                                         <button
-                                            disabled
-                                            className="w-full py-5 rounded-2xl font-black text-sm uppercase tracking-widest transition-all bg-white/5 text-slate-600 cursor-not-allowed uppercase italic tracking-[0.2em]"
+                                            onClick={() => setSelectedStudy(null)}
+                                            className="px-12 py-6 rounded-[2rem] font-black text-sm uppercase tracking-widest transition-all bg-white/5 text-white hover:bg-white/10 border border-white/10"
                                         >
-                                            {study.status === 'Completed' ? 'Participation Ended' : 'Study Unavailable'}
+                                            Cancel
                                         </button>
-                                    )}
+                                    </div>
                                 </div>
-                            ))}
-                        </div>
-                    </div>
+                            </motion.div>
+                        ) : (
+                            <motion.div
+                                key="list"
+                                initial={{ opacity: 0, x: -50 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                exit={{ opacity: 0, x: 50 }}
+                                className="relative bg-slate-950/40 backdrop-blur-xl rounded-3xl border border-white/10 p-8 md:pt-16 md:pb-8 md:px-16 overflow-hidden group/container"
+                            >
+                                <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-cyan-500/5 blur-[120px] rounded-full"></div>
+
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 relative z-10">
+                                    {filteredStudies.map((study) => (
+                                        <div key={study.id} className="group border border-white/5 rounded-[3rem] p-6 md:p-10 bg-slate-900/40 hover:bg-slate-900 hover:border-cyan-500/30 transition-all flex flex-col relative overflow-hidden shadow-2xl">
+                                            <div className="absolute -inset-1 bg-gradient-to-tr from-cyan-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
+                                            <div className="flex justify-between items-start mb-8">
+                                                <div className="space-y-4">
+                                                    <div className={`inline-block px-4 py-1.5 rounded-full text-[12px] font-black uppercase tracking-widest ${study.status === 'Recruiting' ? 'bg-cyan-500/10 text-cyan-400' :
+                                                            study.status === 'Upcoming' ? 'bg-emerald-500/10 text-emerald-400' :
+                                                                study.status === 'Paused' ? 'bg-amber-500/10 text-amber-400' :
+                                                                    completedStatuses.includes(study.status) ? 'bg-slate-500/10 text-slate-400 opacity-60' :
+                                                                        'bg-cyan-500/10 text-cyan-400'
+                                                        }`}>
+                                                        {study.status}
+                                                    </div>
+                                                    <h3 className="text-3xl font-black text-white group-hover:text-cyan-400 transition-colors uppercase">{study.title}</h3>
+                                                </div>
+                                                <div className="flex flex-wrap gap-2 justify-end max-w-[200px]">
+                                                    {(study.tags || []).map((tag: string) => (
+                                                        <span key={tag} className="px-2 py-1 bg-white/5 rounded-lg text-[12px] font-bold text-slate-500 uppercase tracking-widest">{tag}</span>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                            <div className="mb-10 flex-grow scrollbar-hide max-h-[120px] overflow-hidden relative">
+                                                <div className="text-slate-400 font-medium line-clamp-3 leading-relaxed">
+                                                    {study.description}
+                                                </div>
+                                                <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-slate-900/40 to-transparent pointer-events-none" />
+                                            </div>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
+                                                <div className="bg-white/2 rounded-2xl p-4 border border-white/5 flex items-center gap-4">
+                                                    <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-slate-500 group-hover:text-cyan-400 transition-colors shrink-0">
+                                                        <DollarSign className="w-5 h-5" />
+                                                    </div>
+                                                    <div>
+                                                        <div className="text-[12px] font-black uppercase tracking-widest text-slate-600 mb-1">Compensation</div>
+                                                        <div className="text-sm font-bold text-white">{getCurrencySymbol(currency)}{study.compensation.replace(/[^0-9.]/g, '') || study.compensation}</div>
+                                                    </div>
+                                                </div>
+                                                <div className="bg-white/2 rounded-2xl p-4 border border-white/5 flex items-center gap-4">
+                                                    <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-slate-500 group-hover:text-cyan-400 transition-colors shrink-0">
+                                                        <Clock className="w-5 h-5" />
+                                                    </div>
+                                                    <div>
+                                                        <div className="text-[12px] font-black uppercase tracking-widest text-slate-600 mb-1">Duration</div>
+                                                        <div className="text-sm font-bold text-white">{study.duration}</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <button
+                                                onClick={() => setSelectedStudy(study)}
+                                                className="block w-full text-center py-5 rounded-2xl font-black text-sm uppercase tracking-widest transition-all bg-white/5 text-white hover:bg-cyan-500 hover:text-slate-900 border border-white/10"
+                                            >
+                                                View Details
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
                 </section >
 
 

@@ -242,9 +242,17 @@ export default function Layout({ children }: LayoutProps) {
                                                 )}
                                             </div>
                                         </Link>
+                                        <Link
+                                            to={dashboardLink}
+                                            onClick={() => setIsMenuOpen(false)}
+                                            className="w-full flex items-center justify-center gap-3 p-4 rounded-2xl border-2 border-slate-200 text-slate-600 font-black text-sm uppercase tracking-widest hover:bg-slate-900 hover:text-white transition-all shadow-sm group"
+                                        >
+                                            <User className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                                            Dashboard
+                                        </Link>
                                         <button
                                             onClick={() => { clearToken(); window.location.href = "/"; }}
-                                            className="w-[38px] h-[38px] rounded-full border-[1.5px] border-slate-200 flex items-center justify-center text-slate-600 hover:text-slate-900 hover:border-slate-300 hover:bg-slate-50 transition-all shrink-0 ml-1"
+className="w-[38px] h-[38px] rounded-full border-[1.5px] border-slate-200 flex items-center justify-center text-slate-600 hover:text-slate-900 hover:border-slate-300 hover:bg-slate-50 transition-all shrink-0 ml-1"
                                             title="Logout"
                                         >
                                             <LogOut className="w-[18px] h-[18px] translate-x-[1px]" strokeWidth={2} />

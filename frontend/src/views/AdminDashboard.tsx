@@ -202,8 +202,9 @@ export default function AdminDashboard() {
         fetchAllData(false);
     }, [navigate]);
 
-    // Polling: Refresh all data every 10 seconds in the background
-    usePolling(() => fetchAllData(true), 10000);
+    // Removed background polling per user request to reduce redundant network requests.
+    // Data is refreshed on mount and upon specific mutations.
+    // usePolling(() => fetchAllData(true), 10000);
 
     const handleCreateStudy = async (formData: any) => {
         try {

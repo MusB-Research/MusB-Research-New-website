@@ -55,6 +55,7 @@ export interface ConsentTemplate {
     placedFields: ConsentField[];
     auditLog: AuditEntry[];
     terms_content?: string;
+    file_url?: string;
 }
 
 export interface ConsentField {
@@ -97,6 +98,9 @@ export interface ConsentRecord {
     status: string;
     locked: boolean;
     auditLog: AuditEntry[];
+    signed_pdf_url?: string;
+    decrypted_name?: string;
+    signing_status?: string;
 }
 
 

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Loader2, ClipboardCheck, ArrowRight, Clock, MapPin, DollarSign, ChevronRight, Activity, Filter, Info, LayoutGrid, List, Banknote, Save } from 'lucide-react';
 import { authFetch, API } from '../../utils/auth';
-import { CURRENCY_SYMBOLS } from '../../components/coordinator/LaunchStudyForm';
+import { getCurrencySymbol } from '../../utils/format';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Card, Badge, Skeleton } from './SharedComponents';
@@ -297,7 +297,7 @@ export default function DiscoverStudiesView({ loading: externalLoading, userProf
                                         </div>
                                         {study.compensation && (
                                                 <div className="px-2.5 py-1 bg-[#F0FDF4] border border-[#DCFCE7] rounded-full flex items-center gap-1.5">
-                                                    <span className="text-[11px] font-bold text-[#166534]">{CURRENCY_SYMBOLS[study.compensation_currency] || '$'}{study.compensation}</span>
+                                                    <span className="text-[11px] font-bold text-[#166534]">{getCurrencySymbol(study.compensation_currency)}{study.compensation}</span>
                                                     <span className="w-1 h-1 rounded-full bg-[#166534]/30" />
                                                     <span className="text-[10px] font-bold text-[#166534] uppercase tracking-wide">You will be compensated</span>
                                                 </div>

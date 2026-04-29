@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { authFetch, API } from '../../../utils/auth';
+import { authFetch, API, getRole } from '../../../utils/auth';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     Users, Search, MessageSquare, User, ChevronRight,
@@ -23,6 +23,9 @@ interface ParticipantRow {
     risk: 'Low' | 'Medium' | 'High';
     tasksTotal: number;
     tasksCompleted: number;
+    coordinatorApproved: boolean;
+    piApproved: boolean;
+    approvalStatus: string;
 }
 
 type TabKey = 'All' | 'Pending Review' | 'Enrolled' | 'Active' | 'Completed' | 'Ineligible';
@@ -281,6 +284,9 @@ export default function ParticipantOversight({
                 risk: 'Low',
                 tasksTotal: p.tasks_total || 0,
                 tasksCompleted: p.tasks_completed || 0,
+                coordinatorApproved: p.coordinator_approved || false,
+                piApproved: p.pi_approved || false,
+                approvalStatus: p.approval_status || 'PENDING_INITIAL_REVIEW',
             }));
             setParticipants(mapped);
             setInternalLoading(false);
@@ -333,6 +339,9 @@ export default function ParticipantOversight({
                 risk: 'Low',
                 tasksTotal: 0,
                 tasksCompleted: 0,
+                coordinatorApproved: p.coordinator_approved || false,
+                piApproved: p.pi_approved || false,
+                approvalStatus: p.approval_status || 'PENDING_INITIAL_REVIEW',
             }));
             setParticipants(mapped);
         } catch (err: any) {
@@ -364,8 +373,10 @@ export default function ParticipantOversight({
                 p.id === reviewModal.id 
                     ? { 
                         ...p, 
-                        rawStatus: reviewModal.decision === 'ACCEPT' ? 'ENROLLED' : 'INELIGIBLE',
-                        displayStatus: reviewModal.decision === 'ACCEPT' ? 'Enrolled' : 'Not Eligible'
+                        coordinatorApproved: getRole() === 'COORDINATOR' ? (reviewModal.decision === 'ACCEPT') : p.coordinatorApproved,
+                        piApproved: getRole() === 'PI' ? (reviewModal.decision === 'ACCEPT') : p.piApproved,
+                        rawStatus: reviewModal.decision === 'ACCEPT' ? (p.piApproved || getRole() === 'PI' ? 'ENROLLED' : 'PENDING_REVIEW') : 'INELIGIBLE',
+                        displayStatus: reviewModal.decision === 'ACCEPT' ? (p.piApproved || getRole() === 'PI' ? 'Enrolled' : 'Coordinator Reviewed') : 'Not Eligible'
                       } 
                     : p
             ));
@@ -768,31 +779,42 @@ export default function ParticipantOversight({
                                                     )}
                                                 </div>
                                                 <div className="flex items-center gap-2">
-                                                    {p.rawStatus === 'PENDING_REVIEW' ? (
+                                                    <button 
+                                                        onClick={() => onOpenProfile?.(p.id)}
+                                                        className="flex items-center gap-2 px-3 py-2 bg-blue-600/10 border border-blue-500/20 text-blue-400 rounded-xl text-[10px] font-black uppercase tracking-widest italic active:scale-[0.95] transition-all"
+                                                    >
+                                                        <User className="w-3 h-3" />
+                                                        Profile
+                                                    </button>
+                                                    {p.rawStatus === 'PENDING_REVIEW' && (
                                                         <>
-                                                            <button 
-                                                                onClick={() => setReviewModal({ id: p.id, name: p.name, decision: 'REJECT' })}
-                                                                className="flex items-center gap-1.5 px-3 py-2 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-all active:scale-[0.95]"
-                                                            >
-                                                                <X className="w-3 h-3" />
-                                                                <span className="text-[10px] font-black uppercase tracking-widest italic">Reject</span>
-                                                            </button>
-                                                            <button 
-                                                                onClick={() => setReviewModal({ id: p.id, name: p.name, decision: 'ACCEPT' })}
-                                                                className="flex items-center gap-1.5 px-3 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all active:scale-[0.95] shadow-lg shadow-blue-600/20"
-                                                            >
-                                                                <CheckCheck className="w-3 h-3" />
-                                                                <span className="text-[10px] font-black uppercase tracking-widest italic">Enroll</span>
-                                                            </button>
+                                                            {((getRole() === 'COORDINATOR' && !p.coordinatorApproved) || 
+                                                              (getRole() === 'PI' && !p.piApproved) || 
+                                                              (['ADMIN', 'SUPER_ADMIN'].includes(getRole()))) ? (
+                                                                <>
+                                                                    <button 
+                                                                        onClick={() => setReviewModal({ id: p.id, name: p.name, decision: 'REJECT' })}
+                                                                        className="flex items-center gap-1.5 px-3 py-2 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-all active:scale-[0.95]"
+                                                                    >
+                                                                        <X className="w-3 h-3" />
+                                                                        <span className="text-[10px] font-black uppercase tracking-widest italic">Reject</span>
+                                                                    </button>
+                                                                    <button 
+                                                                        onClick={() => setReviewModal({ id: p.id, name: p.name, decision: 'ACCEPT' })}
+                                                                        className="flex items-center gap-1.5 px-3 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all active:scale-[0.95] shadow-lg shadow-blue-600/20"
+                                                                    >
+                                                                        <CheckCheck className="w-3 h-3" />
+                                                                        <span className="text-[10px] font-black uppercase tracking-widest italic">Enroll</span>
+                                                                    </button>
+                                                                </>
+                                                            ) : (
+                                                                <div className="px-4 py-2 bg-blue-500/10 border border-blue-500/20 rounded-xl">
+                                                                    <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest italic">
+                                                                        {p.coordinatorApproved ? 'Pending PI Approval' : 'Pending Review'}
+                                                                    </span>
+                                                                </div>
+                                                            )}
                                                         </>
-                                                    ) : (
-                                                        <button 
-                                                            onClick={() => onOpenProfile?.(p.id)}
-                                                            className="flex items-center gap-2 px-4 py-2 bg-teal-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest italic shadow-lg shadow-teal-600/20 active:scale-[0.95] transition-all"
-                                                        >
-                                                            Profile
-                                                            <ChevronRight className="w-3 h-3" />
-                                                        </button>
                                                     )}
                                                 </div>
                                             </div>
@@ -857,9 +879,16 @@ export default function ParticipantOversight({
 
                                             {/* Status */}
                                             <td className="px-6 py-5 align-middle border-r border-white/5">
-                                                <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border text-[11px] font-black uppercase tracking-widest ${getStatusStyle(p.rawStatus)}`}>
-                                                    <div className={`w-1.5 h-1.5 rounded-full bg-current ${p.rawStatus === 'PENDING_REVIEW' ? 'animate-ping' : 'animate-pulse'}`} />
-                                                    {p.displayStatus}
+                                                <div className={`inline-flex flex-col gap-1 px-3 py-1.5 rounded-xl border ${getStatusStyle(p.rawStatus)}`}>
+                                                    <div className="flex items-center gap-2 text-[11px] font-black uppercase tracking-widest">
+                                                        <div className={`w-1.5 h-1.5 rounded-full bg-current ${p.rawStatus === 'PENDING_REVIEW' ? 'animate-ping' : 'animate-pulse'}`} />
+                                                        {p.displayStatus}
+                                                    </div>
+                                                    {p.rawStatus === 'PENDING_REVIEW' && p.coordinatorApproved && (
+                                                        <span className="text-[9px] font-black opacity-60 uppercase tracking-widest ml-3.5">
+                                                            Pending PI
+                                                        </span>
+                                                    )}
                                                 </div>
                                             </td>
 
@@ -912,14 +941,24 @@ export default function ParticipantOversight({
                                                 <div className="flex items-center justify-end gap-2 whitespace-nowrap">
                                                     {p.rawStatus === 'PENDING_REVIEW' && (
                                                         <div className="flex items-center gap-1.5">
-                                                            <button onClick={() => setReviewModal({ id: p.id, name: p.name, decision: 'ACCEPT' })}
-                                                                className="px-4 py-2 bg-blue-600 hover:bg-white hover:text-blue-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 flex items-center gap-1.5 shadow-lg shadow-blue-600/10">
-                                                                <CheckCheck className="w-3 h-3" /> Enroll
-                                                            </button>
-                                                            <button onClick={() => setReviewModal({ id: p.id, name: p.name, decision: 'REJECT' })}
-                                                                className="px-4 py-2 bg-red-600/80 hover:bg-white hover:text-red-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 flex items-center gap-1.5">
-                                                                <X className="w-3 h-3" /> Reject
-                                                            </button>
+                                                            {((getRole() === 'COORDINATOR' && !p.coordinatorApproved) || 
+                                                              (getRole() === 'PI' && !p.piApproved) || 
+                                                              (['ADMIN', 'SUPER_ADMIN'].includes(getRole()))) ? (
+                                                                <>
+                                                                    <button onClick={() => setReviewModal({ id: p.id, name: p.name, decision: 'ACCEPT' })}
+                                                                        className="px-4 py-2 bg-blue-600 hover:bg-white hover:text-blue-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 flex items-center gap-1.5 shadow-lg shadow-blue-600/10">
+                                                                        <CheckCheck className="w-3 h-3" /> Enroll
+                                                                    </button>
+                                                                    <button onClick={() => setReviewModal({ id: p.id, name: p.name, decision: 'REJECT' })}
+                                                                        className="px-4 py-2 bg-red-600/80 hover:bg-white hover:text-red-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 flex items-center gap-1.5">
+                                                                        <X className="w-3 h-3" /> Reject
+                                                                    </button>
+                                                                </>
+                                                            ) : (
+                                                                <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest italic px-3">
+                                                                    {p.coordinatorApproved ? 'Awaiting PI' : 'Review Recorded'}
+                                                                </span>
+                                                            )}
                                                         </div>
                                                     )}
                                                     {/* Send Compensation — only for enrolled/active/completed */}

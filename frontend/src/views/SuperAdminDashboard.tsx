@@ -895,8 +895,8 @@ export default function SuperAdminDashboard() {
     }
   }, [API, navigate, addToast]);
 
-  // Automated synchronization every 10 seconds
-  usePolling(fetchData, 10000);
+  // Removed background polling per user request to reduce redundant network requests.
+  // usePolling(fetchData, 10000);
 
   useEffect(() => {
     const user = localStorage.getItem('user') || sessionStorage.getItem('user');
@@ -935,8 +935,8 @@ export default function SuperAdminDashboard() {
     fetchData(true);
   }, [fetchData]);
 
-  // Polling: Refresh dashboard every 10 seconds in the background (silent)
-  usePolling(() => fetchData(false, true), 10000);
+  // Removed background polling per user request to reduce redundant network requests.
+  // usePolling(() => fetchData(false, true), 10000);
 
   useEffect(() => {
     if (studyInquiries.length > 0) {

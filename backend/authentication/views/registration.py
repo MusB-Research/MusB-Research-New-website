@@ -220,11 +220,12 @@ def complete_profile(request):
                     return Response({'error': f'Invalid file format for {label}. Please upload PDF, JPG, or PNG.'}, status=status.HTTP_400_BAD_REQUEST)
 
     # Core Identity Update
-    if not user.first_name:
-        user.first_name = data.get('first_name', '')
-    if not user.last_name:
-        user.last_name = data.get('last_name', '')
+    first_name = data.get('first_name', user.first_name)
+    last_name = data.get('last_name', user.last_name)
+    user.first_name = first_name
+    user.last_name = last_name
     user.middle_name = data.get('middle_name', user.middle_name)
+    user.full_name = f"{first_name} {last_name}".strip()
     
     # Extended Demographics
     user.gender = data.get('gender', user.gender)
@@ -270,30 +271,12 @@ def complete_profile(request):
         ip_address=ip_address,
     )
 
+    from .auth import get_user_data_dict
     response = Response({
         'message': 'Profile synchronized and secured.',
         'access': access_token,
-        'user': {
-            'email':        user.email,
-            'affiliation':  getattr(user, 'affiliation', 'musb'),
-            'status':       getattr(user, 'status', 'active'),
-            'picture':      user.profile_picture or '',
-            'must_reset':   user.must_change_password,
-            'profile_incomplete': False,
-            'mobile_number': user.decrypted_phone or '',
-            'full_address': decrypt_data(user.full_address) if user.full_address else '',
-            'city': decrypt_data(user.city) if user.city else '',
-            'state': decrypt_data(user.state) if user.state else '',
-            'zip_code': user.zip_code or '',
-            'country': user.country or '',
-            'place_of_origin': decrypt_data(user.place_of_origin) if user.place_of_origin else '',
-            'timezone': user.timezone or 'UTC',
-            'date_of_birth': user.date_of_birth,
-            'age': user.age,
-            'medical_licence': user.medical_licence,
-            'insurance_certificate': user.insurance_certificate,
-            'cv_document': user.cv_document,
-        }
+        'refresh': refresh_token,
+        'user': get_user_data_dict(user)
     })
     return _set_auth_cookies(response, access_token, refresh_token)
 

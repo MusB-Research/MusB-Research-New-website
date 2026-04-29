@@ -57,6 +57,7 @@ export default function QuestionnaireBuilder({ initialTemplate, initialTab, onSe
     const [templates, setTemplates] = useState<Template[]>([]);
     const [isUploading, setIsUploading] = useState(false);
     const [previewPdf, setPreviewPdf] = useState<string | null>(null);
+    const [previewData, setPreviewData] = useState<Template | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     // Builder State
@@ -248,7 +249,28 @@ export default function QuestionnaireBuilder({ initialTemplate, initialTab, onSe
                     }
 
                     // Cleaning
-                    const cleanLabel = label.replace(/^\d+[\.\)]\s+/, '').replace(/^[A-G][\.\)]\s+/, '').trim();
+                    // Advanced Cleaning: Strip leaked table headers and response keywords
+                    let cleanLabel = label.replace(/^\d+[\.\)]\s+/, '').replace(/^[A-G][\.\)]\s+/, '').trim();
+                    
+                    const responseKeywords = [
+                        'No problem', 'Mild', 'Moderate', 'Severe', 'Very severe',
+                        'None', 'Some', 'A lot', 'Extreme',
+                        'Yes', 'No', 'N/A', 'Not at all', 'Somewhat', 'Very much',
+                        'Rarely', 'Occasionally', 'Frequently', 'Always'
+                    ];
+                    
+                    // Pattern: Strip anything after a pipe or multiple spaces if it matches a keyword
+                    const cleanupPattern = new RegExp(`\\s*(\\||\\s{2,})\\s*(${responseKeywords.join('|')}).*$`, 'i');
+                    cleanLabel = cleanLabel.replace(cleanupPattern, '').trim();
+                    
+                    // Specific check for the user's PDF table headers leaking
+                    if (cleanLabel.includes('|')) {
+                        const parts = cleanLabel.split('|');
+                        if (parts[0].trim().length > 5) {
+                            cleanLabel = parts[0].trim();
+                        }
+                    }
+
                     if (cleanLabel.length < 3) continue;
 
                     suggested.push({
@@ -395,17 +417,17 @@ export default function QuestionnaireBuilder({ initialTemplate, initialTab, onSe
 
     return (
         <div className="flex flex-col gap-8">
-            <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-3xl font-black text-white italic uppercase tracking-tighter leading-none">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+                <div className="max-w-2xl">
+                    <h1 className="text-2xl md:text-3xl lg:text-4xl font-black text-white italic uppercase tracking-tighter leading-none">
                         Clinical Instrument Library
                     </h1>
-                    <p className="text-sm text-slate-400 mt-2 font-medium opacity-70">
+                    <p className="text-xs md:text-sm text-slate-400 mt-2 font-medium opacity-70">
                         {viewMode === 'LIBRARY' ? "Manage clinical assessment templates and PDF protocols." : "Design structured electronic case report forms."}
                     </p>
                 </div>
 
-                <div className="flex items-center gap-4">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
                     <button
                         onClick={() => {
                             if (viewMode === 'BUILDER') {
@@ -416,22 +438,22 @@ export default function QuestionnaireBuilder({ initialTemplate, initialTab, onSe
                             }
                             setViewMode(viewMode === 'LIBRARY' ? 'BUILDER' : 'LIBRARY');
                         }}
-                        className="px-6 py-3 rounded-xl border border-white/10 text-[11px] font-black text-slate-400 uppercase tracking-widest hover:bg-white/5 transition-all"
+                        className="px-6 py-3 rounded-xl border border-white/10 text-[11px] font-black text-slate-400 uppercase tracking-widest hover:bg-white/5 transition-all whitespace-nowrap"
                     >
                         {viewMode === 'LIBRARY' ? 'Open Form Designer' : 'Back to Library'}
                     </button>
                     {viewMode === 'LIBRARY' && (
-                        <>
+                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
                             <input type="file" hidden ref={fileInputRef} onChange={handlePdfUpload} accept=".pdf" />
                             <button
                                 onClick={() => fileInputRef.current?.click()}
                                 disabled={isUploading}
-                                className="flex items-center gap-3 px-8 py-3 bg-indigo-600 rounded-xl text-[12px] font-black text-white uppercase tracking-widest hover:bg-indigo-500 transition-all shadow-xl shadow-indigo-500/20"
+                                className="flex items-center justify-center gap-3 px-8 py-3 bg-indigo-600 rounded-xl text-[12px] font-black text-white uppercase tracking-widest hover:bg-indigo-500 transition-all shadow-xl shadow-indigo-500/20 whitespace-nowrap"
                             >
                                 <Upload className="w-4 h-4" />
                                 {isUploading ? 'Uploading...' : 'Quick PDF Ingest'}
                             </button>
-                        </>
+                        </div>
                     )}
                 </div>
             </div>
@@ -488,14 +510,18 @@ export default function QuestionnaireBuilder({ initialTemplate, initialTab, onSe
                                         {selectedTemplates?.includes(t.id) ? 'Selected' : 'Select for Study'}
                                     </button>
                                 )}
-                                {t.pdf_file && (
-                                    <button
-                                        onClick={() => setPreviewPdf(getFullUrl(t.pdf_file))}
-                                        className="flex-1 flex items-center justify-center gap-2 py-3 bg-white/5 rounded-xl text-[10px] font-black text-slate-400 uppercase tracking-widest hover:text-white transition-all"
-                                    >
-                                        <Eye className="w-3 h-3" /> Preview
-                                    </button>
-                                )}
+                                <button
+                                    onClick={() => {
+                                        if (t.pdf_file) {
+                                            setPreviewPdf(getFullUrl(t.pdf_file));
+                                        } else {
+                                            setPreviewData(t);
+                                        }
+                                    }}
+                                    className="flex-1 flex items-center justify-center gap-2 py-3 bg-white/5 rounded-xl text-[10px] font-black text-slate-400 uppercase tracking-widest hover:text-white transition-all"
+                                >
+                                    <Eye className="w-3 h-3" /> Preview
+                                </button>
                                 <button
                                     onClick={() => {
                                         setEditingId(t.id);
@@ -793,6 +819,103 @@ export default function QuestionnaireBuilder({ initialTemplate, initialTab, onSe
                     </>
                 )}
             </AnimatePresence>
+            <AnimatePresence>
+                {previewData && (
+                    <>
+                        <motion.div
+                            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                            onClick={() => setPreviewData(null)}
+                            className="fixed inset-0 bg-black/90 backdrop-blur-2xl z-[300]"
+                        />
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}
+                            className="fixed inset-0 flex items-center justify-center z-[301] p-4 md:p-8"
+                        >
+                            <div className="bg-[#0f172a] w-full max-w-4xl max-h-[90vh] rounded-[2.5rem] border border-white/10 shadow-2xl flex flex-col overflow-hidden relative">
+                                <div className="p-8 border-b border-white/5 bg-white/[0.02] flex items-center justify-between">
+                                    <div className="flex items-center gap-6">
+                                        <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 flex items-center justify-center text-indigo-400 border border-indigo-500/20">
+                                            <Wand2 className="w-6 h-6" />
+                                        </div>
+                                        <div>
+                                            <h4 className="text-xl font-black text-white uppercase italic tracking-tighter leading-none">Structured Preview</h4>
+                                            <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest mt-1">Live Participant-Facing Interface</p>
+                                        </div>
+                                    </div>
+                                    <button onClick={() => setPreviewData(null)} className="p-3 text-slate-500 hover:text-white transition-all hover:bg-white/5 rounded-2xl">
+                                        <X className="w-6 h-6" />
+                                    </button>
+                                </div>
+                                
+                                <div className="flex-1 overflow-y-auto p-12 space-y-12">
+                                    <div className="max-w-2xl">
+                                        <h2 className="text-4xl font-black text-white uppercase italic leading-tight mb-4">{previewData.name}</h2>
+                                        {previewData.json_structure?.instructions && (
+                                            <p className="text-slate-400 font-bold text-lg leading-relaxed">{previewData.json_structure.instructions}</p>
+                                        )}
+                                    </div>
+
+                                    <div className="space-y-10">
+                                        {(previewData.json_structure?.questions || []).map((q, idx) => (
+                                            <div key={q.id} className="space-y-4">
+                                                <div className="flex items-start gap-4">
+                                                    <span className="text-xs font-black text-slate-700 mt-1">0{idx + 1}</span>
+                                                    <label className="text-xl font-black text-white uppercase tracking-tight italic">{q.label}</label>
+                                                </div>
+                                                
+                                                <div className="pl-8">
+                                                    {q.type === 'short_text' && (
+                                                        <input disabled placeholder={q.placeholder || 'Your response...'} className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white opacity-50 cursor-not-allowed" />
+                                                    )}
+                                                    {q.type === 'yesno' && (
+                                                        <div className="flex gap-4">
+                                                            {['YES', 'NO'].map(opt => (
+                                                                <div key={opt} className="px-8 py-4 bg-white/5 border border-white/10 rounded-2xl text-[12px] font-black text-slate-400 uppercase tracking-widest opacity-50">
+                                                                    {opt}
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                    {(q.type === 'choice' || q.type === 'dropdown') && (
+                                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                                            {(q.options || []).map(opt => (
+                                                                <div key={opt} className="px-6 py-4 bg-white/5 border border-white/10 rounded-2xl text-[12px] font-bold text-slate-300 opacity-50 flex items-center gap-4">
+                                                                    <div className="w-2 h-2 rounded-full border border-white/30" />
+                                                                    {opt}
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                    {q.type === 'date' && (
+                                                        <div className="w-full max-w-xs bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-slate-500 opacity-50 flex items-center justify-between">
+                                                            <span className="text-[12px] font-black uppercase tracking-widest">Select Date</span>
+                                                            <Calendar className="w-4 h-4" />
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div className="p-8 bg-white/[0.02] border-t border-white/5 flex items-center justify-between">
+                                    <div className="flex items-center gap-4">
+                                        <div className="flex -space-x-2">
+                                            {[1, 2, 3].map(i => (
+                                                <div key={i} className="w-8 h-8 rounded-full bg-white/10 border-2 border-[#0f172a] flex items-center justify-center text-[10px] font-black text-white">P</div>
+                                            ))}
+                                        </div>
+                                        <p className="text-[10px] text-slate-600 font-black uppercase tracking-widest">Interactive Sandbox Mode</p>
+                                    </div>
+                                    <button onClick={() => setPreviewData(null)} className="px-8 py-3 bg-indigo-600 rounded-xl text-[12px] font-black text-white uppercase tracking-widest hover:bg-indigo-500 transition-all shadow-xl shadow-indigo-600/20">
+                                        Finish Review
+                                    </button>
+                                </div>
+                            </div>
+                        </motion.div>
+                    </>
+                )}
+            </AnimatePresence>
 
             {/* Source Text Selector Sidebar */}
             <AnimatePresence>
@@ -905,7 +1028,12 @@ export default function QuestionnaireBuilder({ initialTemplate, initialTab, onSe
             </AnimatePresence>
             <AnimatePresence>
                 {statusMessage && (
-                    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }} className={`fixed bottom-8 right-8 px-6 py-4 rounded-xl border flex items-center gap-3 z-[1000] backdrop-blur-xl ${statusMessage.type === 'success' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-rose-500/10 border-rose-500/20 text-rose-400'}`}>
+                    <motion.div 
+                        initial={{ opacity: 0, y: 20 }} 
+                        animate={{ opacity: 1, y: 0 }} 
+                        exit={{ opacity: 0, y: 20 }} 
+                        className={`fixed bottom-8 right-8 px-6 py-4 rounded-xl border flex items-center gap-3 z-[1000] backdrop-blur-xl ${statusMessage.type === 'success' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-rose-500/10 border-rose-500/20 text-rose-400'}`}
+                    >
                         {statusMessage.type === 'success' ? <CheckCircle2 className="w-4 h-4" /> : <AlertTriangle className="w-4 h-4" />}
                         <span className="text-[10px] font-black uppercase tracking-widest">{statusMessage.text}</span>
                     </motion.div>
@@ -914,3 +1042,4 @@ export default function QuestionnaireBuilder({ initialTemplate, initialTab, onSe
         </div>
     );
 }
+

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { User, MapPin, Globe, CheckCircle2, ArrowRight, ArrowLeft, ShieldCheck, Heart, CalendarDays, ChevronLeft, ChevronRight } from 'lucide-react';
 import { authFetch, saveToken, saveUser, getUser, API } from '../../utils/auth';
@@ -79,8 +79,21 @@ export default function ProfileSetup() {
 
     const user = getUser();
     const userRole = (user?.role || '').toUpperCase();
-    const isProfessional = userRole === 'PI' || userRole === 'COORDINATOR';
+    const isProfessional = ['PI', 'COORDINATOR'].includes(userRole);
     const totalSteps = isProfessional ? 4 : 3;
+
+    useEffect(() => {
+        const user = getUser();
+        if (user && !user.profile_incomplete) {
+            // Already complete, send to dashboard
+            const dashboardPath = (user.role || 'participant').toLowerCase() === 'coordinator' 
+                ? '/dashboard/coordinator' 
+                : (user.role || 'participant').toLowerCase() === 'pi'
+                ? '/dashboard/pi'
+                : '/dashboard/participant';
+            navigate(dashboardPath);
+        }
+    }, [navigate]);
 
     const handleNext = () => setStep(step + 1);
     const handleBack = () => setStep(step - 1);
@@ -115,10 +128,12 @@ export default function ProfileSetup() {
 
             // Update local user info and token
             const storedUser = getUser() || {};
+            // Backend now returns full user object via get_user_data_dict
             const updatedUser = { ...storedUser, ...data.user, profile_incomplete: false };
             saveUser(updatedUser);
             
             if (data.access) {
+                // refresh token is now explicitly returned in the body too
                 saveToken(data.access, updatedUser.role || 'PARTICIPANT', undefined, data.refresh);
                 window.dispatchEvent(new Event('auth-token-changed'));
             }
@@ -128,8 +143,10 @@ export default function ProfileSetup() {
                 const role = (updatedUser.role || 'participant').toLowerCase();
                 if (role === 'super_admin') {
                     window.location.href = '/dashboard/super-admin';
-                } else if (role === 'admin' || role === 'coordinator') {
+                } else if (role === 'admin') {
                     window.location.href = '/dashboard/admin';
+                } else if (role === 'coordinator') {
+                    window.location.href = '/dashboard/coordinator';
                 } else if (role === 'pi') {
                     window.location.href = '/dashboard/pi';
                 } else if (role === 'sponsor') {
@@ -155,21 +172,25 @@ export default function ProfileSetup() {
                 animate={{ opacity: 1, y: 0 }}
                 className="w-full max-w-2xl bg-[#0f1133]/60 backdrop-blur-3xl border border-white/10 rounded-[4rem] p-12 md:p-16 shadow-2xl relative z-10"
              >
-                {/* Progress Header */}
-                <div className="flex items-center justify-between mb-16 px-4">
+                {/* Progress Header - Improved Alignment and Spacing */}
+                <div className="flex items-center mb-16 relative">
                     {Array.from({ length: totalSteps }, (_, i) => i + 1).map((s) => (
-                        <div key={s} className="flex items-center gap-4 group">
-                            <div className={`w-10 h-10 rounded-2xl flex items-center justify-center font-black transition-all ${step === s ? 'bg-cyan-500 text-slate-900 shadow-[0_0_20px_rgba(6,182,212,0.4)] scale-110' : 
-                                step > s ? 'bg-cyan-500/20 text-cyan-500 border border-cyan-500/30' : 'bg-white/5 text-slate-600 border border-white/5'}`}>
-                                {s === totalSteps && step === totalSteps ? <CheckCircle2 className="w-5 h-5" /> : s}
-                            </div>
-                            <div className="hidden sm:block">
-                                <p className={`text-[12px] font-black uppercase tracking-widest ${step >= s ? 'text-white' : 'text-slate-700'}`}>
+                        <React.Fragment key={s}>
+                            <div className="flex flex-col items-center gap-2 z-10">
+                                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black transition-all ${step === s ? 'bg-cyan-500 text-slate-900 shadow-[0_0_20px_rgba(6,182,212,0.4)] scale-110' : 
+                                    step > s ? 'bg-cyan-500/20 text-cyan-500 border border-cyan-500/30' : 'bg-white/5 text-slate-600 border border-white/5'}`}>
+                                    {s === totalSteps && step === totalSteps ? <CheckCircle2 className="w-5 h-5" /> : s}
+                                </div>
+                                <p className={`absolute -bottom-7 text-[10px] font-black uppercase tracking-widest whitespace-nowrap ${step >= s ? 'text-white' : 'text-slate-700'}`}>
                                     {s === 1 ? 'Identity' : s === 2 ? 'Locality' : s === 3 && isProfessional ? 'Credentials' : 'Ready'}
                                 </p>
                             </div>
-                            {s < totalSteps && <div className={`w-8 h-[1px] mx-2 ${step > s ? 'bg-cyan-500/30' : 'bg-white/5'}`} />}
-                        </div>
+                            {s < totalSteps && (
+                                <div className="flex-1 h-[2px] mx-4 relative top-[-10px]">
+                                    <div className={`absolute inset-0 transition-all duration-500 ${step > s ? 'bg-cyan-500' : 'bg-white/5'}`} />
+                                </div>
+                            )}
+                        </React.Fragment>
                     ))}
                 </div>
 
@@ -188,24 +209,24 @@ export default function ProfileSetup() {
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                <div className="space-y-3 flex flex-col items-start px-2">
+                                <div className="space-y-3 flex flex-col items-start">
                                     <label className="text-[12px] font-black text-[#555a7a] uppercase tracking-widest italic text-left">First Name</label>
-                                    <input name="first_name" value={formData.first_name} onChange={handleChange} placeholder="John" className="w-full bg-black/40 border border-white/5 rounded-2xl px-6 py-4 text-white placeholder:text-slate-800 outline-none focus:border-cyan-500/40 transition-all font-bold" />
+                                    <input name="first_name" value={formData.first_name} onChange={handleChange} placeholder="John" className="w-full h-[60px] bg-black/40 border border-white/5 rounded-2xl px-6 text-white placeholder:text-slate-800 outline-none focus:border-cyan-500/40 transition-all font-bold" />
                                 </div>
-                                <div className="space-y-3 flex flex-col items-start px-2">
+                                <div className="space-y-3 flex flex-col items-start">
                                     <label className="text-[12px] font-black text-[#555a7a] uppercase tracking-widest italic text-left">Middle Name</label>
-                                    <input name="middle_name" value={formData.middle_name} onChange={handleChange} placeholder="Optional" className="w-full bg-black/40 border border-white/5 rounded-2xl px-6 py-4 text-white placeholder:text-slate-800 outline-none focus:border-cyan-500/40 transition-all font-bold" />
+                                    <input name="middle_name" value={formData.middle_name} onChange={handleChange} placeholder="Optional" className="w-full h-[60px] bg-black/40 border border-white/5 rounded-2xl px-6 text-white placeholder:text-slate-800 outline-none focus:border-cyan-500/40 transition-all font-bold" />
                                 </div>
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                <div className="space-y-3 flex flex-col items-start px-2">
+                                <div className="space-y-3 flex flex-col items-start">
                                     <label className="text-[12px] font-black text-[#555a7a] uppercase tracking-widest italic text-left">Last Name</label>
-                                    <input name="last_name" value={formData.last_name} onChange={handleChange} placeholder="Doe" className="w-full bg-black/40 border border-white/5 rounded-2xl px-6 py-4 text-white placeholder:text-slate-800 outline-none focus:border-cyan-500/40 transition-all font-bold" />
+                                    <input name="last_name" value={formData.last_name} onChange={handleChange} placeholder="Doe" className="w-full h-[60px] bg-black/40 border border-white/5 rounded-2xl px-6 text-white placeholder:text-slate-800 outline-none focus:border-cyan-500/40 transition-all font-bold" />
                                 </div>
-                                <div className="space-y-3 flex flex-col items-start px-2">
+                                <div className="space-y-3 flex flex-col items-start">
                                     <label className="text-[12px] font-black text-[#555a7a] uppercase tracking-widest italic text-left">Gender Identity</label>
-                                    <select name="gender" value={formData.gender} onChange={handleChange} className="w-full bg-black/40 border border-white/5 rounded-2xl px-6 py-4 text-white outline-none focus:border-cyan-500/40 transition-all font-bold appearance-none">
+                                    <select name="gender" value={formData.gender} onChange={handleChange} className="w-full h-[60px] bg-black/40 border border-white/5 rounded-2xl px-6 text-white outline-none focus:border-cyan-500/40 transition-all font-bold appearance-none">
                                         <option value="">Select Gender</option>
                                         <option value="Male">Male</option>
                                         <option value="Female">Female</option>
@@ -215,23 +236,23 @@ export default function ProfileSetup() {
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                <div className="space-y-3 flex flex-col items-start px-2">
+                                <div className="space-y-3 flex flex-col items-start">
                                     <label className="text-[12px] font-black text-[#555a7a] uppercase tracking-widest italic text-left">Birth Date</label>
                                     <input
                                         type="date"
                                         name="date_of_birth"
                                         value={formData.date_of_birth}
                                         onChange={(e) => handleDOBChange(e.target.value)}
-                                        className="w-full bg-black/40 border border-white/5 rounded-2xl px-6 py-4 text-white outline-none focus:border-cyan-500/40 transition-all font-bold"
+                                        className="w-full h-[60px] bg-black/40 border border-white/5 rounded-2xl px-6 text-white outline-none focus:border-cyan-500/40 transition-all font-bold"
                                     />
                                 </div>
-                                <div className="space-y-3 flex flex-col items-start px-2">
+                                <div className="space-y-3 flex flex-col items-start">
                                     <label className="text-[12px] font-black text-[#555a7a] uppercase tracking-widest italic text-left">Current Age</label>
                                     <input 
                                         readOnly 
                                         value={formData.age} 
                                         placeholder="Auto-calculated" 
-                                        className="w-full bg-black/20 border border-white/5 rounded-2xl px-6 py-4 text-cyan-400 outline-none font-bold" 
+                                        className="w-full h-[60px] bg-black/20 border border-white/5 rounded-2xl px-6 text-cyan-400 outline-none font-bold" 
                                     />
                                 </div>
                             </div>
@@ -256,44 +277,44 @@ export default function ProfileSetup() {
                             </div>
 
                             <div className="space-y-6">
-                                <div className="space-y-3 flex flex-col items-start px-2">
+                                <div className="space-y-3 flex flex-col items-start">
                                     <label className="text-[12px] font-black text-[#555a7a] uppercase tracking-widest italic text-left">Full Residential Address</label>
-                                    <input name="full_address" value={formData.full_address} onChange={handleChange} placeholder="123 Research Way, Lab 4" className="w-full bg-black/40 border border-white/5 rounded-2xl px-6 py-4 text-white placeholder:text-slate-800 outline-none focus:border-purple-500/40 transition-all font-bold" />
+                                    <input name="full_address" value={formData.full_address} onChange={handleChange} placeholder="123 Research Way, Lab 4" className="w-full h-[60px] bg-black/40 border border-white/5 rounded-2xl px-6 text-white placeholder:text-slate-800 outline-none focus:border-purple-500/40 transition-all font-bold" />
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-8">
-                                    <div className="space-y-3 flex flex-col items-start px-2">
+                                    <div className="space-y-3 flex flex-col items-start">
                                         <label className="text-[12px] font-black text-[#555a7a] uppercase tracking-widest italic text-left">City</label>
-                                        <input name="city" value={formData.city} onChange={handleChange} placeholder="Metro" className="w-full bg-black/40 border border-white/5 rounded-2xl px-6 py-4 text-white placeholder:text-slate-800 outline-none focus:border-purple-500/40 transition-all font-bold" />
+                                        <input name="city" value={formData.city} onChange={handleChange} placeholder="Metro" className="w-full h-[60px] bg-black/40 border border-white/5 rounded-2xl px-6 text-white placeholder:text-slate-800 outline-none focus:border-purple-500/40 transition-all font-bold" />
                                     </div>
-                                    <div className="space-y-3 flex flex-col items-start px-2">
+                                    <div className="space-y-3 flex flex-col items-start">
                                         <label className="text-[12px] font-black text-[#555a7a] uppercase tracking-widest italic text-left">State / Province</label>
-                                        <input name="state" value={formData.state} onChange={handleChange} placeholder="Zone A" className="w-full bg-black/40 border border-white/5 rounded-2xl px-6 py-4 text-white placeholder:text-slate-800 outline-none focus:border-purple-500/40 transition-all font-bold" />
+                                        <input name="state" value={formData.state} onChange={handleChange} placeholder="Zone A" className="w-full h-[60px] bg-black/40 border border-white/5 rounded-2xl px-6 text-white placeholder:text-slate-800 outline-none focus:border-purple-500/40 transition-all font-bold" />
                                     </div>
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-8">
-                                    <div className="space-y-3 flex flex-col items-start px-2">
+                                    <div className="space-y-3 flex flex-col items-start">
                                         <label className="text-[12px] font-black text-[#555a7a] uppercase tracking-widest italic text-left">ZIP / PIN Code</label>
-                                        <input name="zip_code" value={formData.zip_code} onChange={handleChange} placeholder="12345" className="w-full bg-black/40 border border-white/5 rounded-2xl px-6 py-4 text-white placeholder:text-slate-800 outline-none focus:border-purple-500/40 transition-all font-bold" />
+                                        <input name="zip_code" value={formData.zip_code} onChange={handleChange} placeholder="12345" className="w-full h-[60px] bg-black/40 border border-white/5 rounded-2xl px-6 text-white placeholder:text-slate-800 outline-none focus:border-purple-500/40 transition-all font-bold" />
                                     </div>
-                                    <div className="space-y-3 flex flex-col items-start px-2">
+                                    <div className="space-y-3 flex flex-col items-start">
                                         <label className="text-[12px] font-black text-[#555a7a] uppercase tracking-widest italic text-left">Country</label>
-                                        <input name="country" value={formData.country} onChange={handleChange} placeholder="USA" className="w-full bg-black/40 border border-white/5 rounded-2xl px-6 py-4 text-white placeholder:text-slate-800 outline-none focus:border-purple-500/40 transition-all font-bold" />
+                                        <input name="country" value={formData.country} onChange={handleChange} placeholder="USA" className="w-full h-[60px] bg-black/40 border border-white/5 rounded-2xl px-6 text-white placeholder:text-slate-800 outline-none focus:border-purple-500/40 transition-all font-bold" />
                                     </div>
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-8">
-                                    <div className="space-y-3 flex flex-col items-start px-2">
+                                    <div className="space-y-3 flex flex-col items-start">
                                         <label className="text-[12px] font-black text-[#555a7a] uppercase tracking-widest italic text-left">Place of Origin / Birth</label>
-                                        <div className="relative">
+                                        <div className="relative w-full">
                                             <Globe className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-700" />
-                                            <input name="place_of_origin" value={formData.place_of_origin} onChange={handleChange} placeholder="City, Country" className="w-full bg-black/40 border border-white/5 rounded-[1.5rem] pl-16 pr-6 py-4 text-white placeholder:text-slate-800 outline-none focus:border-purple-500/40 transition-all font-bold" />
+                                            <input name="place_of_origin" value={formData.place_of_origin} onChange={handleChange} placeholder="City, Country" className="w-full h-[60px] bg-black/40 border border-white/5 rounded-[1.5rem] pl-16 pr-6 text-white placeholder:text-slate-800 outline-none focus:border-purple-500/40 transition-all font-bold" />
                                         </div>
                                     </div>
-                                    <div className="space-y-3 flex flex-col items-start px-2">
+                                    <div className="space-y-3 flex flex-col items-start">
                                         <label className="text-[12px] font-black text-[#555a7a] uppercase tracking-widest italic text-left">Mobile Number</label>
-                                        <input name="mobile_number" value={formData.mobile_number} onChange={handleChange} placeholder="+1 234 567 8900" className="w-full bg-black/40 border border-white/5 rounded-[1.5rem] px-6 py-4 text-white placeholder:text-slate-800 outline-none focus:border-purple-500/40 transition-all font-bold" />
+                                        <input name="mobile_number" value={formData.mobile_number} onChange={handleChange} placeholder="+1 234 567 8900" className="w-full h-[60px] bg-black/40 border border-white/5 rounded-[1.5rem] px-6 text-white placeholder:text-slate-800 outline-none focus:border-purple-500/40 transition-all font-bold" />
                                     </div>
                                 </div>
                             </div>
@@ -306,7 +327,7 @@ export default function ProfileSetup() {
 
                             <div className="flex gap-4">
                                 <button onClick={handleBack} className="flex-1 py-6 bg-white/5 border border-white/5 text-[#555a7a] rounded-[2rem] font-black text-[12px] uppercase tracking-widest hover:bg-white/10 transition-all flex items-center justify-center gap-2">
-                                    <ArrowLeft className="w-4 h-4" /> Finalize Setup
+                                    <ArrowLeft className="w-4 h-4" /> Back to Identity
                                 </button>
                                 <button onClick={isProfessional ? handleNext : handleSubmit} disabled={isLoading || !formData.full_address || !formData.city || !formData.state || !formData.zip_code || !formData.country || !formData.place_of_origin || !formData.mobile_number} className="flex-[2] py-6 bg-purple-600 text-white rounded-[2rem] font-black text-[12px] uppercase tracking-[0.3em] italic shadow-xl shadow-purple-900/40 hover:scale-[1.02] transition-all flex items-center justify-center gap-4 disabled:opacity-50 disabled:hover:scale-100 disabled:cursor-not-allowed">
                                     {isProfessional ? (
@@ -338,7 +359,7 @@ export default function ProfileSetup() {
                                     { id: 'insurance_certificate', label: 'Insurance Certificate', icon: MapPin },
                                     { id: 'cv_document', label: 'Professional CV', icon: User }
                                 ].map((doc) => (
-                                    <div key={doc.id} className="space-y-3 flex flex-col items-start px-2">
+                                    <div key={doc.id} className="space-y-3 flex flex-col items-start">
                                         <label className="text-[12px] font-black text-[#555a7a] uppercase tracking-widest italic text-left">{doc.label} (PDF, JPEG, PNG)</label>
                                         <div className="relative group w-full">
                                             <doc.icon className={`absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 transition-colors ${files[doc.id] ? 'text-emerald-400' : 'text-slate-700'}`} />
@@ -347,7 +368,7 @@ export default function ProfileSetup() {
                                                 name={doc.id} 
                                                 onChange={handleFileChange}
                                                 accept=".pdf,.jpg,.jpeg,.png"
-                                                className="w-full bg-black/40 border border-white/5 rounded-2xl pl-16 pr-6 py-4 text-white file:hidden cursor-pointer hover:border-emerald-500/30 transition-all font-bold text-[12px]"
+                                                className="w-full h-[60px] bg-black/40 border border-white/5 rounded-2xl pl-16 pr-6 text-white file:hidden cursor-pointer hover:border-emerald-500/30 transition-all font-bold text-[12px]"
                                             />
                                             {!files[doc.id] && <span className="absolute right-6 top-1/2 -translate-y-1/2 text-[12px] font-black text-slate-500 uppercase tracking-widest pointer-events-none">Click to Upload</span>}
                                             {files[doc.id] && <span className="absolute right-6 top-1/2 -translate-y-1/2 text-[12px] font-black text-emerald-400 uppercase tracking-widest pointer-events-none flex items-center gap-1"><CheckCircle2 className="w-3 h-3"/> Selected</span>}

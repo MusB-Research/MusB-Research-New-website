@@ -2,6 +2,10 @@ from rest_framework import viewsets, permissions, status, parsers, serializers
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.decorators import action
+from rest_framework.parsers import MultiPartParser, FormParser
+from pypdf import PdfReader
+from rest_framework.parsers import MultiPartParser, FormParser
+from pypdf import PdfReader
 from .models import (
     Visit, Study, StudyAssignment, Participant, Form, FormResponse, Task, 
     ParticipantTask, StaffTask, Consent, ConsentTemplate, Lead, CommunicationLog, 
@@ -13,6 +17,7 @@ from .models import (
     StudyActionRequest, DailyMedicationLog, AssignedForm, SponsorOrganization,
     StudyKit, QuestionnaireTemplate, StudyQuestionnaire, QuestionnaireScheduleInstance,
     Technology, InnovationPageSettings, SponsorInquiry, TeamMember,
+ClinicalAuditLog, PIIRevealLog,
     StaffMember, Advisor, ClinicalCollaborator
 )
 
@@ -39,8 +44,8 @@ from .serializers import (
     PublicStudySerializer, StudyKitSerializer, QuestionnaireTemplateSerializer, QuestionnaireTemplateBriefSerializer, StudyQuestionnaireSerializer,
     QuestionnaireScheduleInstanceSerializer, QuestionnaireScheduleInstanceBriefSerializer,
     TechnologySerializer, InnovationPageSettingsSerializer, SponsorInquirySerializer, InvitationSerializer,
-    TeamMemberSerializer, StaffMemberSerializer, AdvisorSerializer,
-    ClinicalCollaboratorSerializer
+TeamMemberSerializer, ClinicalAuditLogSerializer, PIIRevealLogSerializer,
+    StaffMemberSerializer, AdvisorSerializer, ClinicalCollaboratorSerializer
 )
 
 from authentication.models import User, AuditLog, Invitation
@@ -298,6 +303,11 @@ class StudyViewSet(WorkflowContentMixin, viewsets.ModelViewSet):
             
         # Invalidate cache so it shows up globally
         invalidate_cache("studies_list")
+
+    def perform_destroy(self, instance):
+        instance.delete()
+        invalidate_cache("studies_list")
+        invalidate_cache("coordinator_summary")
 
     @action(detail=True, methods=['get'], permission_classes=[IsAdminOrCoordinator])
     @cache_api_response("study_stats", timeout=300)
@@ -630,6 +640,7 @@ class StudyViewSet(WorkflowContentMixin, viewsets.ModelViewSet):
 class PublicStudyViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = PublicStudySerializer
     permission_classes = [permissions.AllowAny]
+    authentication_classes = []
     lookup_field = 'protocol_id'
 
 
@@ -885,6 +896,128 @@ class ParticipantViewSet(SoftPaginationMixin, viewsets.ModelViewSet):
         serializer = self.get_serializer(participant)
         return Response(serializer.data)
 
+    @action(detail=True, methods=['post'], permission_classes=[IsAdminOrCoordinator])
+    def approve_dual(self, request, participant_sid=None):
+        """Clinical Requirement 2: Dual Approval System (Coordinator + PI)"""
+        participant = self.get_object()
+        user = request.user
+        role = (user.role or '').upper()
+        
+        if role not in ['COORDINATOR', 'PI', 'ADMIN', 'SUPER_ADMIN']:
+            return Response({'error': 'Unauthorized: Only Coordinators or PIs can approve enrollment.'}, status=403)
+            
+        approval_type = request.data.get('type') # 'coordinator' or 'pi'
+        signature = request.data.get('signature')
+        
+        if not signature:
+            return Response({'error': 'E-Signature is required for approval.'}, status=400)
+            
+        now = timezone.now()
+        
+        if approval_type == 'coordinator' or role == 'COORDINATOR':
+            participant.coordinator_approved = True
+            participant.coordinator_approved_at = now
+            participant.coordinator_signature = signature
+            ClinicalAuditLog.log('COORDINATOR_APPROVAL', participant=participant, request=request, details={'signature': 'SIGNED'})
+        
+        if approval_type == 'pi' or role == 'PI':
+            participant.pi_approved = True
+            participant.pi_approved_at = now
+            participant.pi_signature = signature
+            ClinicalAuditLog.log('PI_APPROVAL', participant=participant, request=request, details={'signature': 'SIGNED'})
+            
+        # If both approved, move to ELIGIBLE (or CONSENTED if they already signed)
+        if participant.coordinator_approved and participant.pi_approved:
+            old_status = participant.status
+            if participant.status in ['NEW', 'PENDING_REVIEW']:
+                participant.status = 'ELIGIBLE'
+                ClinicalAuditLog.log('STATUS_CHANGE', participant=participant, request=request, details={'from': old_status, 'to': 'ELIGIBLE', 'reason': 'Dual Approval Complete'})
+        
+        participant.save()
+        return Response(ParticipantSerializer(participant).data)
+
+    @action(detail=True, methods=['post'], permission_classes=[IsAdminOrCoordinator])
+    def randomize(self, request, participant_sid=None):
+        """Clinical Requirement 4: Randomization Engine"""
+        participant = self.get_object()
+        study = participant.study
+        
+        if participant.status != 'CONSENTED':
+            return Response({'error': 'Participant must be in CONSENTED status before randomization.'}, status=400)
+            
+        # Logic for randomization
+        import random
+        arms = list(study.arms.all())
+        if not arms:
+            # Fallback if no arms defined: Create Control/Experimental
+            arm_name = random.choice(['Group A', 'Group B'])
+        else:
+            # Simple equal probability randomization (can be enhanced to blocked/stratified)
+            arm = random.choice(arms)
+            arm_name = arm.name
+            participant.assigned_arm = arm
+            
+        participant.status = 'RANDOMIZED'
+        participant.randomization_details = {
+            'method': study.randomization_method or 'SIMPLE_RANDOM',
+            'timestamp': timezone.now().isoformat(),
+            'arm_assigned': arm_name,
+            'blinded': study.is_blinded
+        }
+        
+        ClinicalAuditLog.log('RANDOMIZATION', participant=participant, request=request, details=participant.randomization_details)
+        participant.save()
+        
+        # Auto-create next steps (e.g. Baseline Visit)
+        Visit.objects.get_or_create(
+            participant=participant,
+            visit_type='BASELINE',
+            defaults={'status': 'PENDING', 'scheduled_date': timezone.now() + timezone.timedelta(days=7)}
+        )
+        
+        return Response(ParticipantSerializer(participant).data)
+
+    @action(detail=True, methods=['post'], permission_classes=[IsAdminOrCoordinator])
+    def reveal_pii(self, request, participant_sid=None):
+        """Clinical Requirement 7: PII Security (Masking + Reveal Logging)"""
+        participant = self.get_object()
+        field = request.data.get('field') # 'email', 'phone', 'address'
+        reason = request.data.get('reason')
+        
+        if not reason:
+            return Response({'error': 'A reason for PII reveal must be provided for audit purposes.'}, status=400)
+            
+        PIIRevealLog.objects.create(
+            participant=participant,
+            user=request.user,
+            field_accessed=field,
+            reason=reason,
+            ip_address=request.META.get('REMOTE_ADDR'),
+            user_agent=request.META.get('HTTP_USER_AGENT')
+        )
+        
+        # Return the actual decrypted value (handled by UserSerializer property)
+        user = participant.user
+        val = 'N/A'
+        if user:
+            if field == 'email': val = user.email
+            elif field == 'phone': val = user.decrypted_phone
+            elif field == 'address': val = user.decrypted_address
+            
+        return Response({'value': val})
+
+    @action(detail=True, methods=['get'], permission_classes=[IsAdminOrCoordinator])
+    def audit_logs(self, request, participant_sid=None):
+        """Clinical Requirement 11: Audit Retrieval"""
+        participant = self.get_object()
+        logs = ClinicalAuditLog.objects.filter(participant=participant).order_by('-timestamp')
+        reveal_logs = PIIRevealLog.objects.filter(participant=participant).order_by('-timestamp')
+        
+        return Response({
+            'clinical_logs': ClinicalAuditLogSerializer(logs, many=True).data,
+            'pii_access_logs': PIIRevealLogSerializer(reveal_logs, many=True).data
+        })
+
     @action(detail=False, methods=['get'], permission_classes=[permissions.IsAuthenticated])
     @cache_api_response("dashboard_quick", timeout=600)  # Cache for 10 minutes
     def dashboard_quick(self, request):
@@ -999,14 +1132,10 @@ class ParticipantViewSet(SoftPaginationMixin, viewsets.ModelViewSet):
             participant_id=p_id
         ).select_related('visit', 'task')[:50])
         
-        # Batch 4: Consent & Templates
+        # Batch 4: Consent
         consent_list = list(Consent.objects.filter(
             participant_id=p_id
-        ).select_related('template', 'study')[:30])
-        
-        consent_templates_list = list(ConsentTemplate.objects.filter(
-            study_id=s_id, status='ACTIVE'
-        )[:20])
+        ).select_related('study')[:30])
         
         # Batch 5: Logs & Support
         logs_list = list(DailyMedicationLog.objects.filter(
@@ -1076,7 +1205,6 @@ class ParticipantViewSet(SoftPaginationMixin, viewsets.ModelViewSet):
             'conversations': ClinicalConversationSerializer(conversations_list, many=True).data,
             'assigned_forms': AssignedFormSerializer(assigned_forms_list, many=True).data,
             'active_consents': ConsentSerializer(consent_list, many=True).data,
-            'available_consent_templates': ConsentTemplateSerializer(consent_templates_list, many=True).data,
             'medication_logs': DailyMedicationLogSerializer(logs_list, many=True).data,
             'help_requests': StaffTaskSerializer(help_requests_list, many=True).data,
             'server_time': timezone.now(),
@@ -1913,27 +2041,17 @@ class ConsentViewSet(viewsets.ModelViewSet):
         if not study_obj and participant:
             study_obj = participant.study
 
-        # ── 3. Resolve Template ──
-        template_id = self.request.data.get('template', '')
-        template = None
-        if template_id and bson.ObjectId.is_valid(str(template_id)):
-            template = ConsentTemplate.objects.filter(pk=str(template_id)).first()
-        if not template and study_obj:
-            template = ConsentTemplate.objects.filter(
-                study=study_obj, status='ACTIVE'
-            ).order_by('-version').first()
-
-        # ── 4. Idempotent: prevent duplicate consent for same participant+template ──
-        if participant and template:
+        # ── 3. Idempotent: prevent duplicate consent for same participant+study ──
+        if participant and study_obj:
             existing = Consent.objects.filter(
-                participant=participant, template=template
+                participant=participant, study=study_obj
             ).exclude(signing_status='REJECTED').first()
             if existing:
                 raise serializers.ValidationError({
                     'detail': 'ALREADY_SIGNED',
                     'consent_id': str(existing.pk),
                     'signing_status': existing.signing_status,
-                    'message': 'Consent already recorded for this participant and template.'
+                    'message': 'Consent already recorded for this participant and study.'
                 })
 
         # ── 5. Auto-fill name/email from authenticated user ──
@@ -1948,7 +2066,6 @@ class ConsentViewSet(viewsets.ModelViewSet):
         consent = serializer.save(
             participant=participant,
             study=study_obj,
-            template=template,
             email=auto_email,
             full_name=auto_full_name,
             agreed_at=now(),
@@ -2733,6 +2850,7 @@ class InvitationViewSet(viewsets.ModelViewSet):
 class NewsViewSet(viewsets.ModelViewSet):
     queryset = News.objects.all().order_by('-published_at')
     serializer_class = NewsSerializer
+    authentication_classes = []
 
     def get_permissions(self):
         # Public can read; authenticated staff can create/edit/delete
@@ -2793,6 +2911,7 @@ class StaffTaskViewSet(viewsets.ModelViewSet):
 class EventViewSet(viewsets.ModelViewSet):
     queryset = Event.objects.all().order_by('-date')
     serializer_class = EventSerializer
+    authentication_classes = []
 
     def get_permissions(self):
         if self.action in ['list', 'retrieve']:
@@ -2852,6 +2971,7 @@ class FacilityInquiryView(APIView):
 
 class CandidateApplyView(viewsets.ViewSet):
     permission_classes = [permissions.AllowAny]
+    authentication_classes = []
     @action(detail=False, methods=['post'])
     def apply(self, request):
         serializer = CandidateSerializer(data=request.data)
@@ -2862,6 +2982,7 @@ class CandidateApplyView(viewsets.ViewSet):
 
 class SubscribeNewsletterView(APIView):
     permission_classes = [permissions.AllowAny]
+    authentication_classes = []
     def post(self, request):
         email = request.data.get('email')
         user_type = request.data.get('userType', 'BUSINESS')
@@ -2879,6 +3000,7 @@ class SubscribeNewsletterView(APIView):
 
 class BookletDownloadRequestCreateView(APIView):
     permission_classes = [permissions.AllowAny]
+    authentication_classes = []
     def post(self, request):
         serializer = BookletDownloadRequestSerializer(data=request.data)
         if serializer.is_valid():
@@ -3963,3 +4085,32 @@ class StudyKitViewSet(viewsets.ModelViewSet):
             )
             
         return Response({'status': 'RECEIVED', 'participant_status': 'ACTIVE'})
+
+class StudyConsentExtractView(APIView):
+    """
+    AI Extraction helper: Reads an uploaded PDF and returns raw text content
+    to assist coordinators in populating study consent fields.
+    """
+    parser_classes = (parsers.MultiPartParser, parsers.FormParser)
+    permission_classes = [IsAdminOrCoordinator]
+
+    def post(self, request, *args, **kwargs):
+        file_obj = request.FILES.get('file')
+        if not file_obj:
+            return Response({"error": "No file uploaded"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            reader = PdfReader(file_obj)
+            text = ""
+            for page in reader.pages:
+                extracted = page.extract_text()
+                if extracted:
+                    text += extracted + "\n\n"
+            
+            return Response({
+                "text": text.strip(),
+                "page_count": len(reader.pages)
+            })
+        except Exception as e:
+            logger.error(f"PDF Extraction failed: {str(e)}")
+            return Response({"error": f"Failed to extract text: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

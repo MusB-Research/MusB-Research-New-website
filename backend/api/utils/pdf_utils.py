@@ -20,10 +20,17 @@ def decode_and_draw_signature(can, sig_data, px, py, width=120, height=45):
     except Exception as e:
         print(f"Signature decoding error: {e}")
 
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image as PlatypusImage
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.units import inch
+
 def generate_signed_consent_pdf(consent_obj):
     """
     Overlays signatures onto the original consent template PDF based on predefined coordinates.
     """
+    study = consent_obj.study
+    if not study:
+        return None
     if not consent_obj.template or not consent_obj.template.file:
         return None
 
@@ -47,14 +54,14 @@ def generate_signed_consent_pdf(consent_obj):
     # 2. Prepare for PyPDF2 merge
     reader = PdfReader(template_path)
     writer = PdfWriter()
-    
+
     # PDF dimensions (Letter is 612 x 792 points)
     WIDTH, HEIGHT = 612, 792
 
     for i in range(len(reader.pages)):
         page = reader.pages[i]
         page_num = i + 1
-        
+
         if page_num in pages_to_fields:
             # Create overlay for this specific page
             packet = io.BytesIO()
@@ -62,19 +69,16 @@ def generate_signed_consent_pdf(consent_obj):
             
             for f in pages_to_fields[page_num]:
                 f_type = f.get('type')
-                # Map percentage (0-100) to points. 
-                # Note: ReportLab (0,0) is BOTTOM LEFT. Frontend (0,0) is TOP LEFT.
-                # So y_points = HEIGHT - (y_percent * HEIGHT / 100)
                 px = (f.get('x', 0) / 100.0) * WIDTH
                 py = HEIGHT - ((f.get('y', 0) / 100.0) * HEIGHT)
-                
+
                 # DRAW LOGIC
                 if f_type == 'Participant Signature':
                     decode_and_draw_signature(can, consent_obj.participant_signature, px, py)
-                elif f_type in ['Participant Name', 'Legal Full Name']:
+                elif f_type in ['Participant Name', 'Legal Full Name', 'Full Name']:
                     can.setFont("Helvetica-Bold", 10)
                     can.drawString(px, py, consent_obj.full_name or "")
-                elif f_type in ['Participant Date', 'Date']:
+                elif f_type in ['Participant Date', 'Date', 'Signed Date']:
                     can.setFont("Helvetica", 10)
                     dt = consent_obj.participant_signed_at or consent_obj.agreed_at
                     can.drawString(px, py, dt.strftime("%Y-%m-%d %H:%M") if dt else "")
@@ -83,7 +87,7 @@ def generate_signed_consent_pdf(consent_obj):
                 elif f_type in ['CC Name', 'Coordinator Name']:
                     can.setFont("Helvetica-Bold", 10)
                     can.drawString(px, py, consent_obj.cc_name or "")
-                elif (f_type == 'PI Verification' or f_type == 'PI Signature'):
+                elif f_type in ['PI Verification', 'PI Signature']:
                     decode_and_draw_signature(can, consent_obj.pi_signature, px, py)
                 elif f_type == 'PI Name':
                     can.setFont("Helvetica-Bold", 10)
@@ -94,14 +98,14 @@ def generate_signed_consent_pdf(consent_obj):
             overlay_reader = PdfReader(packet)
             if len(overlay_reader.pages) > 0:
                 page.merge_page(overlay_reader.pages[0])
-        
+
         writer.add_page(page)
 
     # 3. Finalize
     output_stream = io.BytesIO()
     writer.write(output_stream)
     
-    study_id = consent_obj.study.protocol_id or str(consent_obj.study.pk)
+    study_id = study.protocol_id or str(study.pk)
     filename = f"Consent_{study_id}_{consent_obj.pk}.pdf"
     consent_obj.signed_pdf.save(filename, ContentFile(output_stream.getvalue()), save=False)
     return filename
