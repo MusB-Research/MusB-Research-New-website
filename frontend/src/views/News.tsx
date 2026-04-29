@@ -139,10 +139,11 @@ export default function News() {
                 const newsArray = Array.isArray(newsData) ? newsData : (newsData.results || []);
                 combined = [...combined, ...newsArray.map((n: any) => ({
                     ...n,
-                    type: n.is_success_story ? 'Success Story' : 'News',
+                    type: 'News',
                     title: decodeEntities(n.title || 'Untitled News'),
-                    excerpt: stripToPlainText(n.excerpt || n.content || 'No excerpt available.'),
+                    excerpt: stripToPlainText(n.content || n.description || n.summary || 'No description available.'),
                     date: new Date(n.published_at || n.created_at || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+                    rawDate: new Date(n.published_at || n.created_at || Date.now()).getTime(),
                     imageUrl: getMediaUrl(n.image_url || n.image)
                 }))];
             }
@@ -156,6 +157,7 @@ export default function News() {
                     title: decodeEntities(e.title || e.name || 'Untitled Event'),
                     excerpt: stripToPlainText(e.description || e.excerpt || 'No description available.'),
                     date: new Date(e.date || e.event_date || e.created_at || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+                    rawDate: new Date(e.date || e.event_date || e.created_at || Date.now()).getTime(),
                     imageUrl: getMediaUrl(e.image_url || e.image)
                 }))];
             }
@@ -169,6 +171,7 @@ export default function News() {
                     title: decodeEntities(p.name || p.partner_name || p.title || 'New Partnership'),
                     excerpt: stripToPlainText(p.description || p.collaboration_details || 'Partnership details not provided.'),
                     date: new Date(p.announcement_date || p.created_at || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+                    rawDate: new Date(p.announcement_date || p.created_at || Date.now()).getTime(),
                     imageUrl: getMediaUrl(p.logo_url || p.logo)
                 }))];
             }
@@ -182,6 +185,7 @@ export default function News() {
                     title: decodeEntities(p.title || 'Untitled Publication'),
                     excerpt: stripToPlainText(p.abstract || p.summary || 'No abstract available.'),
                     date: new Date(p.publication_date || p.created_at || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+                    rawDate: new Date(p.publication_date || p.created_at || Date.now()).getTime(),
                     imageUrl: getMediaUrl(p.image_url || p.image)
                 }))];
             }
@@ -197,6 +201,7 @@ export default function News() {
                         title: decodeEntities(e.title || 'Untitled Material'),
                         excerpt: stripToPlainText(e.content || e.description || e.summary || 'Educational video content available.'),
                         date: new Date(e.created_at || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+                        rawDate: new Date(e.created_at || Date.now()).getTime(),
                         imageUrl: ytId ? `https://img.youtube.com/vi/${ytId}/maxresdefault.jpg` : getMediaUrl(e.file_url || e.file || e.attachment),
                         youtubeId: ytId
                     };
@@ -205,8 +210,13 @@ export default function News() {
 
             // If we got real data, use it; otherwise fallback to hardcoded
             if (combined.length > 0) {
-                // Sort descending by date
-                combined.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+                // Sort descending by date, then by ID as a tie-breaker for "newest first"
+                combined.sort((a, b) => {
+                    const dateDiff = b.rawDate - a.rawDate;
+                    if (dateDiff !== 0) return dateDiff;
+                    // String comparison for MongoDB hex IDs works well for chronological order if created at same time
+                    return (b.id || "").toString().localeCompare((a.id || "").toString());
+                });
                 setNewsItems(combined);
             } else {
                 setNewsItems(HARDCODED_NEWS);

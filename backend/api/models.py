@@ -269,6 +269,7 @@ class News(models.Model):
     title = models.CharField(max_length=255)
     content = models.TextField()
     type = models.CharField(max_length=50, blank=True)
+    sequence = models.IntegerField(default=0)
     published_at = models.DateTimeField(auto_now_add=True)
     created_at = models.DateTimeField(auto_now_add=True)
     image = models.ImageField(upload_to='news_images/', null=True, blank=True)
@@ -277,6 +278,7 @@ class Event(models.Model):
     title = models.CharField(max_length=255)
     description = models.TextField()
     date = models.DateTimeField()
+    sequence = models.IntegerField(default=0)
     image = models.ImageField(upload_to='event_images/', null=True, blank=True)
 
 class FacilityInquiry(models.Model):
@@ -1367,6 +1369,7 @@ class BookletDownloadRequest(models.Model):
 class Partnership(BaseMongoModel):
     name = models.CharField(max_length=255)
     description = models.TextField()
+    sequence = models.IntegerField(default=0)
     logo = models.ImageField(upload_to='partnership_logos/', max_length=1024, blank=True, null=True)
     link = models.URLField(blank=True, null=True)
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='authored_partnerships')
@@ -1453,6 +1456,7 @@ class Publication(BaseMongoModel):
     title = models.CharField(max_length=255)
     authors = models.TextField()
     journal = models.CharField(max_length=255)
+    sequence = models.IntegerField(default=0)
     publication_date = models.DateField()
     link = models.URLField(blank=True, null=True)
     abstract = models.TextField(blank=True, null=True)
@@ -1472,6 +1476,7 @@ class EducationMaterial(BaseMongoModel):
     title = models.CharField(max_length=255)
     content = models.TextField(blank=True, null=True)
     category = models.CharField(max_length=100, blank=True)
+    sequence = models.IntegerField(default=0)
     file = models.FileField(upload_to='education_materials/', blank=True, null=True)
     youtube_url = models.URLField(blank=True, null=True)
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='authored_education')

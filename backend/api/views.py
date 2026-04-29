@@ -2848,7 +2848,7 @@ class InvitationViewSet(viewsets.ModelViewSet):
         })
 
 class NewsViewSet(viewsets.ModelViewSet):
-    queryset = News.objects.all().order_by('-published_at')
+    queryset = News.objects.all().order_by('-sequence', '-published_at')
     serializer_class = NewsSerializer
     authentication_classes = []
 
@@ -2909,7 +2909,7 @@ class StaffTaskViewSet(viewsets.ModelViewSet):
         return Response({'status': 'task marked as completed'})
 
 class EventViewSet(viewsets.ModelViewSet):
-    queryset = Event.objects.all().order_by('-date')
+    queryset = Event.objects.all().order_by('-sequence', '-date')
     serializer_class = EventSerializer
     authentication_classes = []
 
@@ -3016,7 +3016,7 @@ class BookletDownloadRequestCreateView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class PartnershipViewSet(WorkflowContentMixin, viewsets.ModelViewSet):
-    queryset = Partnership.objects.all().order_by('-created_at')
+    queryset = Partnership.objects.all().order_by('-sequence', '-created_at')
     serializer_class = PartnershipSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
     parser_classes = (parsers.MultiPartParser, parsers.FormParser, parsers.JSONParser)
@@ -3042,7 +3042,7 @@ class PartnershipViewSet(WorkflowContentMixin, viewsets.ModelViewSet):
 
 
 class PublicationViewSet(WorkflowContentMixin, viewsets.ModelViewSet):
-    queryset = Publication.objects.all().order_by('-publication_date')
+    queryset = Publication.objects.all().order_by('-sequence', '-publication_date')
     serializer_class = PublicationSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
@@ -3067,7 +3067,7 @@ class PublicationViewSet(WorkflowContentMixin, viewsets.ModelViewSet):
 
 
 class EducationMaterialViewSet(WorkflowContentMixin, viewsets.ModelViewSet):
-    queryset = EducationMaterial.objects.all().order_by('-created_at')
+    queryset = EducationMaterial.objects.all().order_by('-sequence', '-created_at')
     serializer_class = EducationMaterialSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
     parser_classes = (parsers.MultiPartParser, parsers.FormParser, parsers.JSONParser)
