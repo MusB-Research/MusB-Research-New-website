@@ -786,7 +786,7 @@ export default function SuperAdminDashboard() {
   const resolveImageUrl = (path: string | null) => {
     if (!path) return null;
     if (path.startsWith('http')) return path;
-    const baseUrl = API || 'http://localhost:8000';
+    const baseUrl = (API || 'http://localhost:8000').replace(/\/$/, '');
     // Ensure we don't double up /media/
     const cleanPath = path.startsWith('/') ? path.substring(1) : path;
     if (cleanPath.startsWith('media/')) {
@@ -1796,9 +1796,7 @@ export default function SuperAdminDashboard() {
     const renderCard = (displayData: any, index: number, category: 'leadership' | 'advisors' | 'staff' | 'collaborators', systemUser: any = null) => {
       const isUser = !!systemUser;
       const member = displayData;
-      const imageUrl = member.image 
-        ? (member.image.startsWith('http') ? member.image : `${API || 'http://localhost:8000'}/media/${member.image}`)
-        : null;
+      const imageUrl = resolveImageUrl(member.image);
       
       return (
         <motion.div 
