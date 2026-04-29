@@ -33,4 +33,4 @@ class JobPosting(models.Model):
         return self.title
 
     class Meta:
-        ordering = ['-is_featured', '-publish_date']
+        ordering = ['-created_at']

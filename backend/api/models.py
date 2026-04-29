@@ -1293,11 +1293,12 @@ class Partnership(BaseMongoModel):
     def __str__(self):
         return f"{self.name} ({self.status})"
 
-class TeamMember(BaseMongoModel):
+class AbstractTeamMember(BaseMongoModel):
     CATEGORY_CHOICES = [
         ('leadership', 'Leadership'),
         ('advisors', 'Advisors'),
         ('staff', 'Operational Staff'),
+        ('collaborators', 'Clinical Collaborators'),
     ]
     STATUS_CHOICES = [
         ('Active', 'Active'),
@@ -1326,10 +1327,39 @@ class TeamMember(BaseMongoModel):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta(BaseMongoModel.Meta):
+        abstract = True
         ordering = ['display_order', 'created_at']
 
     def __str__(self):
         return f"{self.name} ({self.category})"
+
+class TeamMember(AbstractTeamMember):
+    class Meta(AbstractTeamMember.Meta):
+        abstract = False
+        db_table = 'api_teammember'
+
+class StaffMember(AbstractTeamMember):
+    class Meta(AbstractTeamMember.Meta):
+        abstract = False
+        db_table = 'api_staffmember'
+        verbose_name = 'Operational Staff'
+        verbose_name_plural = 'Operational Staff'
+
+class Advisor(AbstractTeamMember):
+    class Meta(AbstractTeamMember.Meta):
+        abstract = False
+        db_table = 'api_advisor'
+        verbose_name = 'Strategic Advisor'
+        verbose_name_plural = 'Strategic Advisors'
+
+class ClinicalCollaborator(AbstractTeamMember):
+    class Meta(AbstractTeamMember.Meta):
+        abstract = False
+        db_table = 'api_clinicalcollaborator'
+        verbose_name = 'Clinical Collaborator'
+        verbose_name_plural = 'Clinical Collaborators'
+
+
 
 class Publication(BaseMongoModel):
     title = models.CharField(max_length=255)

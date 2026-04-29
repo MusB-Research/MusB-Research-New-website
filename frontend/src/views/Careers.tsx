@@ -75,40 +75,6 @@ const HARDCODED_CATEGORIES: CareerCategory[] = [
     { id: '6', name: 'Students & Internships', description: 'Interns, trainees, and fellows.', icon: 'graduation-cap' }
 ];
 
-const HARDCODED_JOBS: JobOpening[] = [
-    {
-        id: '1', title: 'Senior Clinical Research Coordinator', department: 'Clinical Research',
-        location: 'Tampa, FL (On-site)', type: 'Full-time', experienceLevel: 'Senior',
-        summary: 'Lead the management of complex clinical trials in microbiome and metabolic health.',
-        description: '',
-        isFeatured: true,
-        status: 'Live'
-    },
-    {
-        id: '2', title: 'Research Associate - Biotics & Omics', department: 'Research & Innovation',
-        location: 'Tampa, FL (Hybrid)', type: 'Full-time', experienceLevel: 'Mid-level',
-        summary: 'Support bench-top research in our multi-omics laboratory.',
-        description: '',
-        isFeatured: false,
-        status: 'Live'
-    },
-    {
-        id: '3', title: 'Laboratory Technician', department: 'Laboratory & Diagnostics',
-        location: 'Tampa, FL (On-site)', type: 'Full-time', experienceLevel: 'Entry-level',
-        summary: 'Execute standard laboratory protocols for clinical sample processing.',
-        description: '',
-        isFeatured: false,
-        status: 'Live'
-    },
-    {
-        id: '4', title: 'Clinical Data Analyst', department: 'Data & Biostatistics',
-        location: 'Remote / Tampa, FL', type: 'Contract', experienceLevel: 'Mid-level',
-        summary: 'Perform statistical cleaning and analysis of microbiome-based clinical data.',
-        description: '',
-        isFeatured: false,
-        status: 'Live'
-    }
-];
 
 const API_ROOT = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
@@ -216,9 +182,14 @@ export default function Careers() {
 
                     <div className="relative group">
                         <div className="absolute inset-0 bg-gradient-to-tr from-cyan-500/30 to-indigo-500/30 rounded-[4rem] blur-[120px] opacity-20 group-hover:opacity-40 transition-opacity"></div>
-                        <div className="relative rounded-[4rem] overflow-hidden border border-white/10 aspect-[4/3] shadow-2xl">
-                            <div className="w-full h-full bg-gradient-to-br from-cyan-500/20 to-indigo-500/20 group-hover:scale-105 transition-transform duration-1000"></div>
-                            <div className="absolute bottom-8 left-8 right-8 bg-slate-950/80 backdrop-blur-xl p-8 rounded-3xl border border-white/10 flex items-center justify-between">
+                        <div className="relative rounded-[4rem] overflow-hidden border border-white/10 aspect-[4/3] shadow-2xl bg-slate-900">
+                            <img 
+                                src="/graduation.webp" 
+                                alt="Careers and Graduation" 
+                                className="w-full h-full object-cover object-bottom group-hover:scale-110 transition-transform duration-1000 opacity-80 group-hover:opacity-100"
+                            />
+                            <div className="absolute inset-0 bg-gradient-to-t from-slate-950/60 to-transparent"></div>
+                            <div className="absolute bottom-0 left-0 right-0 bg-slate-950/90 backdrop-blur-xl p-4 md:p-5 border-t border-white/10 flex items-center justify-between">
                                 <div className="space-y-1">
                                     <div className="text-white font-black text-base uppercase tracking-widest">Science. Integrity. Impact.</div>
                                     <div className="text-slate-400 text-[12px] font-bold">Leading clinical breakthroughs in Tampa Bay.</div>

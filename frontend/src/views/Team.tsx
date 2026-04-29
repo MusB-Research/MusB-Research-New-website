@@ -2,127 +2,22 @@ import React, { useEffect, useState } from 'react';
 import { Linkedin, ChevronDown, ChevronUp, Building2, Users, Stethoscope, Briefcase, Activity, FileText, ShieldCheck } from 'lucide-react';
 import { authFetch, API } from '../utils/auth';
 
-export const LEADERSHIP_DATA = [
-    {
-        name: "Dr. Shalini Jain",
-        role: "CEO and Co-Founder",
-        bio: "Dr. Shalini Jain, CEO and Co-Founder of MusB Research, is a seasoned translational scientist with over 24 years of experience in biotics, functional foods, and microbiome research. Her scientific expertise integrates basic science, mechanistic biology, and clinical translation to transform laboratory discoveries into real-world health solutions.",
-        expanded_bio: "Dr. Shalini Jain is CEO and Co-Founder of MusB Research and a seasoned translational scientist with more than 24 years of experience in biotics, functional foods, and microbiome research. She received her training from the National Dairy Research Institute and conducted advanced research at globally respected institutions including the University of Illinois Urbana-Champaign, the US National Institutes of Health (NIH), Wake Forest School of Medicine, and USF Morsani College of Medicine.\n\nHer scientific expertise spans microbiome science, immunology, brain health, women’s health, cancer, metabolic disorders, diabetes, obesity, nutrition, and environmental toxicants. Dr. Jain has led multidisciplinary research programs integrating basic science, mechanistic biology, and clinical translation.\n\nShe is deeply committed to transforming laboratory discoveries into real-world health solutions. With a strong vision for industry collaboration, she has built MusB Research as a high-quality scientific platform that supports rigorous, evidence-based validation of natural products. Her goal is to position MusB Research as an extended R&D arm for industry partners, ensuring scientific excellence, regulatory readiness, and strong consumer confidence.",
-        image: "/images/team/shalini_jain.webp",
-        linkedin_url: "https://www.linkedin.com/in/shaliniscientist/",
-        expertise_tags: ["Microbiome Science", "Immunology", "Clinical Translation", "Biotics"],
-        areas_of_expertise: [
-            "Microbiome Science", "Immunology", "Brain Health", "Women's Health",
-            "Cancer", "Metabolic Disorders", "Diabetes", "Obesity", "Nutrition", "Environmental Toxicants"
-        ],
-        affiliations: [
-            "National Dairy Research Institute",
-            "University of Illinois Urbana-Champaign",
-            "National Institutes of Health (NIH)",
-            "Wake Forest School of Medicine",
-            "USF Morsani College of Medicine"
-        ],
-        publications: []
-    },
-    {
-        name: "Dr. Hariom Yadav",
-        role: "Co-Founder",
-        bio: "Dr. Hariom Yadav, Co-Founder of MusB Research, is a globally recognized translational scientist with over 25 years of transformative experience in microbiome and biotics research. His work centers on translating cutting-edge discoveries into clinically validated solutions for metabolic health, longevity, and the gut–brain axis.",
-        expanded_bio: "Dr. Hariom Yadav is Co-Founder of MusB Research and a globally recognized translational scientist with more than 25 years of transformative experience in microbiome and biotics research. He has been trained and conducted research at world-renowned institutions including the US National Institutes of Health (NIH), Wake Forest School of Medicine, and USF Morsani College of Medicine. His work centers on translating cutting-edge discoveries into clinically validated solutions for metabolic health, longevity, and the gut–brain axis.\n\nDr. Yadav has led pioneering programs investigating probiotics and postbiotics in aging biology, metabolic disorders, cognitive decline, leaky gut, and systemic inflammation (inflammaging). His expertise supports a rigorous, evidence-based scientific platform for the validation of natural products, positioning MusB Research as an extended R&D arm for industry partners, ensuring scientific excellence, regulatory readiness, and strong consumer confidence.",
-        image: "/images/team/hariom_yadav.webp",
-        linkedin_url: "https://www.linkedin.com/in/yadavhariom/",
-        expertise_tags: ["Microbiome", "Metabolic Health", "Longevity", "Gut-Brain Axis"],
-        areas_of_expertise: [
-            "Microbiome Research", "Probiotics & Postbiotics", "Aging Biology",
-            "Metabolic Disorders", "Cognitive Decline", "Leaky Gut", "Systemic Inflammation"
-        ],
-        affiliations: [
-            "National Institutes of Health (NIH)",
-            "Wake Forest School of Medicine",
-            "USF Morsani College of Medicine"
-        ],
-        publications: []
+
+
+const getImageUrl = (path: string | null) => {
+    if (!path) return null;
+    if (path.startsWith('http')) return path;
+    const baseUrl = API || 'http://localhost:8000';
+    const cleanPath = path.startsWith('/') ? path.substring(1) : path;
+    if (cleanPath.startsWith('media/')) {
+       return `${baseUrl}/${cleanPath}`;
     }
-];
-
-export const ADVISORS_DATA = [
-    {
-        name: "Douglas Lynch",
-        advisory_role: "Business Development Advisory Board Member",
-        expertise_area: "Sales & Marketing",
-        organization: "Organic and Natural Health Association",
-        bio: "DOUGLAS LYNCH is an award-winning, global sales/marketing executive with over three decades of experience commercializing supplements, functional foods, medical foods, cosmeceuticals, animal health, and proprietary bioactive ingredients. He combines C-suite, omni-channel sales and marketing leadership, with IP-portfolio management expertise. Douglas has developed hundreds of consumer products for global markets. An entrepreneur, Douglas partners with universities, public and private entities to develop non-pharmaceutical solutions for age-related conditions. Douglas advises multinationals and start-ups on sales and marketing tactics. He’s a frequent, global speaker on consumer trends, and serves on the board of the Organic and Natural Health Association in Washington, D.C.",
-        image: "/images/team/dougla_lynch.webp",
-        linkedin_url: "https://www.linkedin.com/in/marketwellnutritionceo/"
-    },
-    {
-        name: "NAGENDRA RANGAVAJLA, Ph.D., FACN",
-        advisory_role: "Business Development Advisory Board Member",
-        expertise_area: "R&D Strategy & Innovation",
-        organization: "Former Abbott / Nestlé Executive",
-        bio: "Nagendra Rangavajla, Ph.D., FACN, is a strategic R&D leader with over 25 years of experience driving innovation from discovery to commercialization for global CPG leaders like Abbott, Nestlé, and Mead Johnson, as well as high-growth startups like Califia Farms and one.bio. He specializes in building robust science and technology roadmaps that link consumer insights to differentiated products across functional ingredients, beverages, and nutritional categories. His expertise spans the entire lifecycle of innovation, from ingredient scouting and bioconversion to managing complex clinical efficacy studies and global regulatory strategies.\n\nAs a seasoned advisor, Nagendra has expertise in scaling R&D operations, having optimized organizational processes to increase speed, productivity and innovation culture. He is a prolific innovator with over 20 patents and 50 publications, particularly in the areas of gut health, cognition, metabolic wellness, etc., and leverages a deep network of academic and external partners to help emerging companies navigate the transition from discovery to global distribution.",
-        image: "/images/team/nagendra_rangavajla.webp",
-        linkedin_url: "https://www.linkedin.com/in/nagendra-rangavajla-053584/"
-    },
-    {
-        name: "Peter As Alphonse",
-        advisory_role: "Business Development Advisory Board Member",
-        expertise_area: "Scientific & Regulatory Affairs",
-        organization: "Stelioz Solutions Inc.",
-        bio: "Peter Alphonse, PhD, CFS\nScientific and Regulatory Affairs Consultant, Stelioz Solutions Inc.\n\nDr. Peter Alphonse is the Scientific and Regulatory Affairs Consultant at Stelioz Solutions Inc., a specialized consultancy serving the natural health product, nutraceutical, dietary supplement, functional food, and veterinary health product sectors. He provides comprehensive regulatory and scientific leadership, supporting companies from early-stage concept development through successful market commercialization in Canada and the United States.\n\nAt Stelioz Solutions Inc., (www.steliozsolutions.com) Dr. Alphonse leads Health Canada NPN and site license applications, FDA food and dietary supplement compliance, GMP and quality systems implementation, labeling and packaging review, and SFCR licensing. The firm also offers clinical research strategy, scientific and technical writing, health claim substantiation, formulation development, analytical testing guidance, and regulatory pathway planning.\n\nWith a PhD in Human Nutritional Sciences and extensive experience in regulatory affairs, research, and product innovation, Dr. Alphonse is committed to advancing science-based wellness solutions that meet the highest standards of quality, safety, and compliance.",
-        image: "/images/team/peter_alphonse.webp",
-        linkedin_url: ""
-    },
-    {
-        name: "Sean M. Garvey, Ph.D",
-        advisory_role: "Business Development Advisory Board Member",
-        expertise_area: "Nutritional Science & Business Development",
-        organization: "Strategic Advisor",
-        bio: "Sean Garvey, PhD, is an R&D and innovation leader with more than 25 years of experience spanning academia, medical nutrition, therapeutics, and B2B probiotics and enzymes, with a strong focus on microbiome and gut health. He brings deep expertise in clinical and preclinical research, scientific affairs, and strategic partnerships, with a track record that includes 34 peer‑reviewed publications, multiple patents, and successful leadership of enzyme and probiotic clinical trials supporting commercial product launches. As President and Founder of SAPIOME LLC, Dr. Garvey now advises nutraceutical and “-biotics” companies on pipeline strategy, external innovation, and evidence generation, experience he applies in his role on the Business Development Advisory Board of MusB Research to help sponsors design rigorous studies and unlock the commercial value of microbiome, gut health, and longevity innovations.",
-        image: "/images/team/sean_m_garvey.webp",
-        linkedin_url: "https://www.linkedin.com/in/sean-garvey-phd-638a253/"
-    },
-    {
-        name: "Dr. Paulo Binetti",
-        advisory_role: "Business Development Advisory Board Member",
-        expertise_area: "Bioengineering & Venture Finance",
-        organization: "VitaDAO / LongGame",
-        bio: "Paolo Binetti is one of the top contributors of VitaDAO, a web3 organization funding longevity drug discovery. He is also an advisor for LongGame, a longevity biotech VC, a venture fellow for Healthspan Capital, another longevity biotech VC, as well as a biotech expert for Capital Cell, a crowd equity platform. Previously he held positions in strategy, business development, portfolio management, and program management, in industry and government.\n\nBorn and raised in Milano, Italy, Paolo holds a PhD in controls, robotics and bioengineering from the University of Pisa, a MS in aerospace engineering from Politecnico di Milano, a specialization in bioinformatics from the University of California San Diego, a certificate in drug discovery and development from Harvard Medical School, and a certificate in venture finance from the University of Oxford.",
-        image: "/images/team/Paulo Binetti Image.webp",
-        linkedin_url: "https://www.linkedin.com/in/paolo-binetti-1a3a991/"
-    }
-];
-
-const COLLABORATORS_DATA = [
-    { id: 1, name: 'Unilever', logo: '' },
-    { id: 2, name: 'Synbiotic Health', logo: '' },
-    { id: 3, name: 'Vidya Herbs', logo: '' },
-    { id: 4, name: 'Biova', logo: '' },
-    { id: 5, name: 'India Glycol Ltd', logo: '' },
-    { id: 6, name: 'APT Testing and Research Pvt. Ltd.', logo: '' },
-    { id: 7, name: 'Croissance Clinical Research', logo: '' },
-    { id: 8, name: 'Clintek', logo: '' },
-    { id: 9, name: 'Zeda AI', logo: '' },
-    { id: 10, name: 'Excel Imaging Center', logo: '' },
-    { id: 11, name: 'Bay Area Gastroenterology Associates LLC', logo: '' },
-];
-
-export const STAFF_DATA = [
-    { name: "Vaishnavi S", role: "Business & Administration Manager", dept: "Operations" },
-    { name: "Indushekar Manjunatha", role: "Clinical Coordinator", dept: "Clinical Research" },
-    { name: "Falguni Kanani", role: "Community Outreach Liaison", dept: "Public Relations" },
-    { name: "Alain Ramirez", role: "Laboratory Technician", dept: "Lab Services" },
-    { name: "Andreas Mbah", role: "Medical Laboratory Director", dept: "Diagnostics" },
-    { name: "Jason Chandler", role: "IT Professional", dept: "Technology" },
-    { name: "Shray Paliwal", role: "Research Intern", dept: "Scientific Support" },
-    { name: "Osula Ebiuwa", role: "Research Intern", dept: "Scientific Support" },
-    { name: "Barenya Prasad Mishra", role: "Digital Health Platform Developer", dept: "Product Engineering" },
-    { name: "Brijesh Kumar", role: "Junior Software Engineer", dept: "Software Development" }
-];
-
+    return `${baseUrl}/media/${cleanPath}`;
+};
 
 const TeamMemberCard = ({ member }: { member: any }) => {
     const [isOpen, setIsOpen] = useState(false);
+    const imageUrl = getImageUrl(member.image);
 
     return (
         <div className="group bg-white/5 backdrop-blur-xl rounded-[2.5rem] border-2 border-white/10 overflow-hidden hover:border-cyan-400/50 transition-all duration-500 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)] flex flex-col">
@@ -130,12 +25,15 @@ const TeamMemberCard = ({ member }: { member: any }) => {
                 {/* Headshot */}
                 <div className="flex-shrink-0 relative md:ml-4">
                     <div className="w-40 h-52 md:w-48 md:h-64 rounded-[2.5rem] bg-gradient-to-br from-cyan-500/20 to-indigo-500/20 border-2 border-white/10 flex items-center justify-center overflow-hidden shadow-2xl group-hover:scale-105 transition-transform duration-500">
-                        {member.image ? (
+                        {imageUrl ? (
                             <img
-                                src={member.image}
+                                src={imageUrl}
                                 alt={member.name}
                                 loading="lazy"
                                 className={`w-full h-full object-cover ${member.name.includes('Shalini') ? 'object-[50%_35%]' : member.name.includes('Hariom') ? 'object-[50%_25%]' : ''}`}
+                                onError={(e: any) => {
+                                    e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(member.name)}&background=0d8abc&color=fff`;
+                                }}
                             />
                         ) : (
                             <div className="w-full h-full flex flex-col items-center justify-center bg-slate-900/50">
@@ -145,6 +43,7 @@ const TeamMemberCard = ({ member }: { member: any }) => {
                         )}
                     </div>
                 </div>
+
 
                 {/* Content */}
                 <div className="w-full space-y-3">
@@ -166,6 +65,13 @@ const TeamMemberCard = ({ member }: { member: any }) => {
                         <p className="text-cyan-400 font-bold uppercase tracking-widest text-sm flex items-center gap-2">
                             <Briefcase className="w-4 h-4" /> {member.role}
                         </p>
+                        {member.dept && (
+                            <div className="flex flex-wrap gap-2 pt-2">
+                                <span className="inline-block px-3 py-1 rounded-lg bg-white/5 border border-white/10 text-[12px] font-bold text-slate-500 uppercase tracking-widest group-hover:text-slate-300 group-hover:border-white/20 transition-all">
+                                    {member.dept}
+                                </span>
+                            </div>
+                        )}
                     </div>
 
                     <p className="text-slate-400 text-base leading-relaxed line-clamp-3">{member.bio}</p>
@@ -279,6 +185,7 @@ const TeamMemberCard = ({ member }: { member: any }) => {
 
 const AdvisorCard = ({ advisor }: { advisor: any }) => {
     const [isOpen, setIsOpen] = useState(false);
+    const imageUrl = getImageUrl(advisor.image);
 
     return (
         <div className="group bg-white/5 backdrop-blur-xl rounded-[2.5rem] border-2 border-white/10 overflow-hidden hover:border-indigo-400/50 transition-all duration-500 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)] flex flex-col">
@@ -286,8 +193,17 @@ const AdvisorCard = ({ advisor }: { advisor: any }) => {
                 {/* Left Side: Portrait Image */}
                 <div className="flex-shrink-0 relative md:ml-4">
                     <div className="w-40 h-52 md:w-44 md:h-56 rounded-[2rem] bg-gradient-to-br from-indigo-500/20 to-purple-500/20 border-2 border-white/10 flex items-center justify-center overflow-hidden shadow-2xl group-hover:scale-105 transition-transform duration-500">
-                        {advisor.image ? (
-                            <img src={advisor.image} alt={advisor.name} loading="lazy" className="w-full h-full object-cover" />
+                        {imageUrl ? (
+                            <img 
+                                src={imageUrl} 
+                                alt={advisor.name} 
+                                loading="lazy" 
+                                className="w-full h-full object-cover" 
+                                onError={(e: any) => {
+                                    e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(advisor.name)}&background=4f46e5&color=fff`;
+                                }}
+                            />
+
                         ) : (
                             <div className="w-full h-full flex flex-col items-center justify-center bg-slate-900/50">
                                 <Users className="w-10 h-10 text-slate-400 mb-2" />
@@ -304,15 +220,14 @@ const AdvisorCard = ({ advisor }: { advisor: any }) => {
                         <p className="text-[12px] font-black uppercase tracking-[0.2em] text-indigo-400 leading-tight">
                             {advisor.advisory_role}
                         </p>
+                        {(advisor.dept || advisor.expertise_area) && (
+                            <div className="flex flex-wrap gap-2 pt-1 justify-center md:justify-start">
+                                <span className="inline-block px-2 py-0.5 rounded-md bg-purple-500/10 border border-purple-500/20 text-[10px] font-black text-purple-400 uppercase tracking-widest">
+                                    {advisor.dept || advisor.expertise_area}
+                                </span>
+                            </div>
+                        )}
                     </div>
-
-                    <div className="space-y-4">
-                        <div className="space-y-1.5 text-left">
-                            <span className="text-[12px] font-black text-slate-500 uppercase tracking-widest block">Expertise</span>
-                            <span className="px-3 py-1 text-[12px] font-black bg-indigo-400/10 text-indigo-400 rounded-lg border border-indigo-400/20 uppercase tracking-tight inline-block">
-                                {advisor.expertise_area}
-                            </span>
-                        </div>
 
                         {advisor.organization && (
                             <div className="space-y-1.5 text-left">
@@ -320,7 +235,7 @@ const AdvisorCard = ({ advisor }: { advisor: any }) => {
                                 <p className="text-sm text-slate-300 font-bold tracking-tight">{advisor.organization}</p>
                             </div>
                         )}
-                    </div>
+
                 </div>
             </div>
 
@@ -429,8 +344,6 @@ const AdvisorCard = ({ advisor }: { advisor: any }) => {
 };
 
 const StaffCard = ({ staff }: { staff: any }) => {
-    const [isOpen, setIsOpen] = useState(false);
-    const hasBio = !!staff.bio;
 
     return (
         <div className="group bg-white/5 backdrop-blur-xl rounded-[2.5rem] p-8 border-2 border-white/10 hover:border-cyan-400/50 hover:bg-white/10 transition-all duration-500 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)] flex flex-col items-center text-center relative overflow-hidden h-full">
@@ -449,27 +362,11 @@ const StaffCard = ({ staff }: { staff: any }) => {
                     </p>
                 </div>
 
-                <div className="pt-2">
-                    <span className="inline-block px-3 py-1 rounded-lg bg-white/5 border border-white/10 text-[12px] font-bold text-slate-500 uppercase tracking-widest group-hover:text-slate-300 group-hover:border-white/20 transition-all">
-                        {staff.dept}
-                    </span>
-                </div>
-
-                {hasBio && (
-                    <button 
-                        onClick={() => setIsOpen(!isOpen)}
-                        className="mt-6 w-full py-3 bg-white/5 hover:bg-cyan-500/20 rounded-2xl border border-white/10 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-cyan-400 transition-all flex items-center justify-center gap-2"
-                    >
-                        {isOpen ? 'Close Summary' : 'View Summary'}
-                        {isOpen ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-                    </button>
-                )}
-
-                {isOpen && hasBio && (
-                    <div className="mt-6 pt-6 border-t border-white/5 text-left animate-in slide-in-from-top-2 duration-300">
-                        <p className="text-xs text-slate-400 leading-relaxed italic">
-                            {staff.bio}
-                        </p>
+                {staff.dept && (
+                    <div className="flex flex-wrap gap-2 pt-2 justify-center">
+                        <span className="inline-block px-3 py-1 rounded-lg bg-white/5 border border-white/10 text-[12px] font-bold text-slate-500 uppercase tracking-widest group-hover:text-slate-300 group-hover:border-white/20 transition-all">
+                            {staff.dept}
+                        </span>
                     </div>
                 )}
             </div>
@@ -481,7 +378,8 @@ export default function Team() {
     const [staffRecords, setStaffRecords] = useState({
         leadership: [] as any[],
         advisors: [] as any[],
-        staff: [] as any[]
+        staff: [] as any[],
+        collaborators: [] as any[]
     });
 
     useEffect(() => {
@@ -494,11 +392,12 @@ export default function Team() {
                 setStaffRecords({
                     leadership: members.filter((member: any) => member.category === 'leadership'),
                     advisors: members.filter((member: any) => member.category === 'advisors'),
-                    staff: members.filter((member: any) => member.category === 'staff')
+                    staff: members.filter((member: any) => member.category === 'staff'),
+                    collaborators: members.filter((member: any) => member.category === 'collaborators')
                 });
             } catch (error) {
                 console.error('Failed to load team members:', error);
-                setStaffRecords({ leadership: [], advisors: [], staff: [] });
+                setStaffRecords({ leadership: [], advisors: [], staff: [], collaborators: [] });
             }
         };
 
@@ -661,63 +560,34 @@ export default function Team() {
                         </div>
                     </div>
 
-                    {/* Row 1: 4 cards */}
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                        {COLLABORATORS_DATA.slice(0, 4).map((collaborator) => (
+                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
+                        {staffRecords.collaborators.map((collaborator) => (
                             <div
                                 key={collaborator.id}
                                 className="group bg-white/5 backdrop-blur-xl rounded-[2rem] p-6 border-2 border-white/10 hover:border-purple-400/50 hover:bg-white/10 transition-all duration-500 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)] text-center"
                             >
                                 <div className="w-20 h-20 mx-auto rounded-xl bg-gradient-to-br from-purple-500/20 to-pink-500/20 border-2 border-white/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-500 overflow-hidden">
                                     {collaborator.logo ? (
-                                        <img src={collaborator.logo} alt={collaborator.name} loading="lazy" className="w-full h-full object-cover" />
+                                        <img 
+                                            src={getImageUrl(collaborator.logo) || collaborator.logo} 
+                                            alt={collaborator.name} 
+                                            loading="lazy" 
+                                            className="w-full h-full object-cover" 
+                                        />
                                     ) : (
                                         <Building2 className="w-10 h-10 text-purple-400" />
                                     )}
                                 </div>
                                 <h3 className="text-lg font-black text-white leading-tight">{collaborator.name}</h3>
-                            </div>
-                        ))}
-                    </div>
-
-                    {/* Row 2: 4 cards */}
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mt-6">
-                        {COLLABORATORS_DATA.slice(4, 8).map((collaborator) => (
-                            <div
-                                key={collaborator.id}
-                                className="group bg-white/5 backdrop-blur-xl rounded-[2rem] p-6 border-2 border-white/10 hover:border-purple-400/50 hover:bg-white/10 transition-all duration-500 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)] text-center"
-                            >
-                                <div className="w-20 h-20 mx-auto rounded-xl bg-gradient-to-br from-purple-500/20 to-pink-500/20 border-2 border-white/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-500 overflow-hidden">
-                                    {collaborator.logo ? (
-                                        <img src={collaborator.logo} alt={collaborator.name} className="w-full h-full object-cover" />
-                                    ) : (
-                                        <Building2 className="w-10 h-10 text-purple-400" />
-                                    )}
-                                </div>
-                                <h3 className="text-lg font-black text-white leading-tight">{collaborator.name}</h3>
-                            </div>
-                        ))}
-                    </div>
-
-                    {/* Row 3: 3 cards centered */}
-                    <div className="flex justify-center mt-6">
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 w-full max-w-[75%]">
-                            {COLLABORATORS_DATA.slice(8, 11).map((collaborator) => (
-                                <div
-                                    key={collaborator.id}
-                                    className="group bg-white/5 backdrop-blur-xl rounded-[2rem] p-6 border-2 border-white/10 hover:border-purple-400/50 hover:bg-white/10 transition-all duration-500 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)] text-center"
-                                >
-                                    <div className="w-20 h-20 mx-auto rounded-xl bg-gradient-to-br from-purple-500/20 to-pink-500/20 border-2 border-white/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-500 overflow-hidden">
-                                        {collaborator.logo ? (
-                                            <img src={collaborator.logo} alt={collaborator.name} className="w-full h-full object-cover" />
-                                        ) : (
-                                            <Building2 className="w-10 h-10 text-purple-400" />
-                                        )}
+                                {collaborator.dept && (
+                                    <div className="flex flex-wrap gap-2 pt-2 justify-center">
+                                        <span className="inline-block px-3 py-1 rounded-lg bg-white/5 border border-white/10 text-[10px] font-bold text-slate-500 uppercase tracking-widest group-hover:text-slate-300 group-hover:border-white/20 transition-all">
+                                            {collaborator.dept}
+                                        </span>
                                     </div>
-                                    <h3 className="text-lg font-black text-white leading-tight">{collaborator.name}</h3>
-                                </div>
-                            ))}
-                        </div>
+                                )}
+                            </div>
+                        ))}
                     </div>
                 </div>
             </section>

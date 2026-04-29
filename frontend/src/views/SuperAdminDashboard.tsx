@@ -555,12 +555,14 @@ export default function SuperAdminDashboard() {
   const emptyStaffRecords = {
     leadership: [] as any[],
     advisors: [] as any[],
-    staff: [] as any[]
+    staff: [] as any[],
+    collaborators: [] as any[]
   };
   const groupTeamMembers = useCallback((members: any[] = []) => ({
     leadership: members.filter((member: any) => member.category === 'leadership'),
     advisors: members.filter((member: any) => member.category === 'advisors'),
-    staff: members.filter((member: any) => member.category === 'staff')
+    staff: members.filter((member: any) => member.category === 'staff'),
+    collaborators: members.filter((member: any) => member.category === 'collaborators')
   }), []);
   const navigate = useNavigate();
   const location = useLocation();
@@ -704,7 +706,7 @@ export default function SuperAdminDashboard() {
   const [isEditStaffModalOpen, setIsEditStaffModalOpen] = useState(false);
   const [editingStaff, setEditingStaff] = useState<any>(null);
   const [isAddStaffModalOpen, setIsAddStaffModalOpen] = useState(false);
-  const [addingStaffCategory, setAddingStaffCategory] = useState<'leadership' | 'advisors' | 'staff'>('staff');
+  const [addingStaffCategory, setAddingStaffCategory] = useState<'leadership' | 'advisors' | 'staff' | 'collaborators'>('staff');
   const [isRemoveStaffConfirmOpen, setIsRemoveStaffConfirmOpen] = useState(false);
   const [staffToRemove, setStaffToRemove] = useState<any>(null);
   const [newStaffData, setNewStaffData] = useState<any>({ 
@@ -778,6 +780,28 @@ export default function SuperAdminDashboard() {
   // ═══════════════════════════════════════════
   // DATA FETCHING
   // ═══════════════════════════════════════════
+  // UTILS: MEDIA & EXTENSION MITIGATION
+  // ═══════════════════════════════════════════
+
+  const resolveImageUrl = (path: string | null) => {
+    if (!path) return null;
+    if (path.startsWith('http')) return path;
+    const baseUrl = API || 'http://localhost:8000';
+    // Ensure we don't double up /media/
+    const cleanPath = path.startsWith('/') ? path.substring(1) : path;
+    if (cleanPath.startsWith('media/')) {
+       return `${baseUrl}/${cleanPath}`;
+    }
+    return `${baseUrl}/media/${cleanPath}`;
+  };
+
+  const extensionProps = {
+    spellCheck: false,
+    "data-gramm": "false",
+    "data-quillbot-disable": "true",
+    autoComplete: "off"
+  };
+
 
   const fetchData = useCallback(async (isInitial = false, isSilent = false) => {
     if (isInitial) setLoading(true);
@@ -843,8 +867,15 @@ export default function SuperAdminDashboard() {
       if (tmRes.ok) {
         const raw = await tmRes.json();
         const members = Array.isArray(raw) ? raw : (raw.results || []);
+        console.log("Team members synchronized:", { total: members.length, categories: { 
+          leadership: members.filter((m: any) => m.category === 'leadership').length,
+          advisors: members.filter((m: any) => m.category === 'advisors').length,
+          staff: members.filter((m: any) => m.category === 'staff').length,
+          collaborators: members.filter((m: any) => m.category === 'collaborators').length
+        }});
         setStaffRecords(groupTeamMembers(members));
       }
+
       try {
         const aRes = await authFetch(`${apiUrl}/api/auth/admin/audit-logs/`, fetchOpts);
         if (aRes.ok) {
@@ -939,11 +970,17 @@ export default function SuperAdminDashboard() {
   const refreshDashboard = () => fetchData();
 
   const handleRemoveStaff = async () => {
-    if (!staffToRemove?.id) return;
+    if (!staffToRemove || !staffToRemove.id) {
+      addToast('Invalid removal target: Missing ID', 'error');
+      return;
+    }
     try {
       const apiUrl = API || 'http://localhost:8000';
       const res = await authFetch(`${apiUrl}/api/team-members/${staffToRemove.id}/`, { method: 'DELETE' });
-      if (!res.ok) throw new Error('Delete failed');
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.detail || errorData.error || 'Deletion request refused by core');
+      }
       setStaffRecords((prev: any) => ({
         ...prev,
         [staffToRemove.category]: prev[staffToRemove.category as keyof typeof prev].filter((item: any) => item.id !== staffToRemove.id)
@@ -963,19 +1000,26 @@ export default function SuperAdminDashboard() {
       return;
     }
     const category = addingStaffCategory;
+    
+    // Calculate display_order to ensure new member is added at the end
+    const currentMembers = staffRecords[category as keyof typeof staffRecords] || [];
+    const maxOrder = currentMembers.reduce((max: number, m: any) => Math.max(max, m.display_order || 0), 0);
+    const nextOrder = maxOrder + 1;
+
     const formatted: any = {
       ...newStaffData,
       category,
       status: 'Active',
-      [category === 'advisors' ? 'advisory_role' : 'role']: newStaffData.role,
-      [category === 'advisors' ? 'expertise_area' : 'dept']: newStaffData.dept,
+      display_order: nextOrder,
+      [category === 'advisors' || category === 'collaborators' ? 'advisory_role' : 'role']: newStaffData.role,
+      [category === 'advisors' || category === 'collaborators' ? 'expertise_area' : 'dept']: newStaffData.dept,
       expertise_tags: newStaffData.expertise_tags ? newStaffData.expertise_tags.split(',').map((s: string) => s.trim()).filter(Boolean) : [],
       affiliations: newStaffData.affiliations ? newStaffData.affiliations.split('\n').map((s: string) => s.trim()).filter(Boolean) : [],
       publications: newStaffData.publications ? newStaffData.publications.split('\n').map((s: string) => s.trim()).filter(Boolean) : [],
     };
     
     // Clean up temporary fields ONLY if they were replaced by specialized advisor fields
-    if (category === 'advisors') {
+    if (category === 'advisors' || category === 'collaborators') {
       delete formatted.role;
       delete formatted.dept;
     }
@@ -986,7 +1030,8 @@ export default function SuperAdminDashboard() {
         body: JSON.stringify(formatted)
       });
       if (!res.ok) {
-        throw new Error('Create failed');
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.detail || errorData.error || 'Creation protocol rejected by core');
       }
       const created = await res.json();
       setStaffRecords((prev: any) => ({
@@ -1005,8 +1050,9 @@ export default function SuperAdminDashboard() {
         publications: ''
       });
       addToast(`${category.charAt(0).toUpperCase() + category.slice(1)} record added successfully`, 'success');
-    } catch (err) {
-      addToast('Failed to save team member to database', 'error');
+    } catch (err: any) {
+      console.error("Team creation failed:", err);
+      addToast(err.message || 'Failed to save team member to database', 'error');
     }
   };
 
@@ -1744,34 +1790,38 @@ export default function SuperAdminDashboard() {
   // PAGE: TEAM
   // ═══════════════════════════════════════════
 
-  const TeamPage = ({ users, viewDetails, staffRecords }: any) => {
+  const TeamPage = ({ users, viewDetails, staffRecords, API }: any) => {
     const internalUsers = (users || []).filter((u: any) => ['SUPER_ADMIN', 'ADMIN', 'PI', 'COORDINATOR'].includes(u.role));
 
     const renderCard = (displayData: any, index: number, category: 'leadership' | 'advisors' | 'staff', systemUser: any = null) => {
       const isUser = !!systemUser;
       const member = displayData;
+      const imageUrl = member.image 
+        ? (member.image.startsWith('http') ? member.image : `${API || 'http://localhost:8000'}/media/${member.image}`)
+        : null;
       
       return (
         <motion.div 
+          key={member.id || `${category}-${index}`}
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ delay: (index % 5) * 0.05 }}
           whileHover={{ y: -10, scale: 1.02 }}
-          className="group relative"
+          className="group relative h-full"
         >
           <div className="absolute inset-0 bg-gradient-to-br from-[#7c3aed]/20 to-cyan-500/20 rounded-[2.5rem] blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
           
-          <div className="relative h-full bg-[#0f1133]/60 backdrop-blur-xl border border-white/10 rounded-[2.5rem] p-8 md:p-10 flex flex-col gap-8 overflow-hidden shadow-2xl transition-all duration-500">
+          <div className="relative h-full bg-[#0f1133]/60 backdrop-blur-xl border border-white/10 rounded-[2.5rem] p-6 md:p-8 flex flex-col gap-4 overflow-hidden shadow-2xl transition-all duration-500">
             <div className="absolute -top-12 -right-12 w-24 h-24 bg-[#7c3aed]/10 rounded-full blur-3xl group-hover:bg-[#7c3aed]/20 transition-all duration-700" />
             
-            <div className="flex flex-col md:flex-row items-center md:items-start text-center md:text-left gap-8 flex-1">
+            <div className="flex flex-col md:flex-row items-center md:items-start text-center md:text-left gap-6 flex-1">
               <div className="absolute top-8 right-8 flex gap-2 opacity-0 group-hover:opacity-100 transition-all z-20">
                 {category !== 'staff' && (
                   <button 
                     onClick={(e) => { 
                       e.stopPropagation(); 
-                      setEditingStaff(isUser ? { ...systemUser, designation: member.role || member.advisory_role, isSystemUser: true } : { ...member, isSystemUser: false, originalIndex: index, category }); 
+                      setEditingStaff(isUser ? { ...systemUser, ...member, designation: member.role || member.advisory_role, isSystemUser: true, directoryId: member.id } : { ...member, isSystemUser: false, originalIndex: index, category }); 
                       setIsEditStaffModalOpen(true); 
                     }}
                     className="p-3 bg-white/5 hover:bg-cyan-500/20 border border-white/10 rounded-2xl text-white/40 hover:text-cyan-400 transition-all"
@@ -1783,7 +1833,7 @@ export default function SuperAdminDashboard() {
                 <button 
                   onClick={(e) => { 
                     e.stopPropagation(); 
-                    setStaffToRemove({ category, index, name: member.name });
+                    setStaffToRemove({ category, index, name: member.name, id: member.id });
                     setIsRemoveStaffConfirmOpen(true);
                   }}
                   className="p-3 bg-white/5 hover:bg-red-500/20 border border-white/10 rounded-2xl text-white/40 hover:text-red-400 transition-all"
@@ -1793,10 +1843,17 @@ export default function SuperAdminDashboard() {
                 </button>
               </div>
               <div className="relative shrink-0">
-                <div className="w-28 h-28 p-1.5 bg-gradient-to-br from-[#7c3aed] via-cyan-500 to-purple-500 rounded-[2.2rem] shadow-[0_0_30px_rgba(124,58,237,0.3)] group-hover:shadow-[0_0_50px_rgba(124,58,237,0.5)] transition-all duration-500">
-                  <div className="w-full h-full bg-[#0a0b1a] rounded-[2rem] flex items-center justify-center overflow-hidden border border-white/10 relative">
-                    {member.image ? (
-                      <img src={member.image} alt={member.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                <div className="w-24 h-24 p-1 bg-gradient-to-br from-[#7c3aed] via-cyan-500 to-purple-500 rounded-[2rem] shadow-[0_0_20px_rgba(124,58,237,0.3)] group-hover:shadow-[0_0_40px_rgba(124,58,237,0.5)] transition-all duration-500">
+                  <div className="w-full h-full bg-[#0a0b1a] rounded-[1.8rem] flex items-center justify-center overflow-hidden border border-white/10 relative">
+                    {imageUrl ? (
+                      <img 
+                        src={imageUrl} 
+                        alt={member.name} 
+                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
+                        onError={(e: any) => {
+                          e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(member.name)}&background=0d8abc&color=fff`;
+                        }}
+                      />
                     ) : (
                       <span className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-br from-white to-white/30 italic">
                         {member.name ? member.name[0] : '?'}
@@ -1828,47 +1885,49 @@ export default function SuperAdminDashboard() {
               </div>
             </div>
 
-            <div className="w-full mt-4 pt-6 border-t border-white/5 flex flex-col justify-center">
-              {isUser ? (
-                <button
-                  onClick={() => viewDetails({
-                    ...systemUser,
-                    ...member,
-                    category,
-                    index,
-                    designation: member.role || member.advisory_role || 'Staff Member',
-                    image: member.image
-                  })}
-                  className="w-full group/btn relative overflow-hidden py-4 bg-white/5 border border-white/10 text-white rounded-2xl font-black text-[11px] uppercase tracking-[0.2em] italic transition-all hover:bg-white/10 hover:border-cyan-400/50"
-                >
-                  <span className="relative z-10 flex items-center justify-center gap-2">
-                    View Profile <Eye className="w-3 h-3 group-hover/btn:scale-110 transition-transform" />
-                  </span>
-                  <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/10 to-purple-500/10 opacity-0 group-hover/btn:opacity-100 transition-opacity duration-500" />
-                </button>
-              ) : (
-                <button
-                  onClick={() => viewDetails({
-                    ...member,
-                    category,
-                    index,
-                    id: member.id || `static-${index}-${member.name.replace(/\s+/g, '-')}`,
-                    status: member.status || 'Active',
-                    created: 'Directory Record',
-                    role: member.system_role || (member.role || member.advisory_role || 'Staff').toUpperCase(),
-                    email: 'No System Account',
-                    mobile_number: 'N/A',
-                    full_address: 'N/A'
-                  })}
-                  className="w-full group/btn relative overflow-hidden py-4 bg-white/5 border border-white/10 text-white rounded-2xl font-black text-[11px] uppercase tracking-[0.2em] italic transition-all hover:bg-white/10 hover:border-cyan-400/50"
-                >
-                  <span className="relative z-10 flex items-center justify-center gap-2">
-                    View Profile <Eye className="w-3 h-3 group-hover/btn:scale-110 transition-transform" />
-                  </span>
-                  <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/10 to-purple-500/10 opacity-0 group-hover/btn:opacity-100 transition-opacity duration-500" />
-                </button>
-              )}
-            </div>
+            {category !== 'collaborators' && (
+              <div className="w-full mt-2 pt-4 border-t border-white/5 flex flex-col justify-center">
+                {isUser ? (
+                  <button
+                    onClick={() => viewDetails({
+                      ...systemUser,
+                      ...member,
+                      category,
+                      index,
+                      designation: member.role || member.advisory_role || 'Staff Member',
+                      image: member.image
+                    })}
+                    className="w-full group/btn relative overflow-hidden py-4 bg-white/5 border border-white/10 text-white rounded-2xl font-black text-[11px] uppercase tracking-[0.2em] italic transition-all hover:bg-white/10 hover:border-cyan-400/50"
+                  >
+                    <span className="relative z-10 flex items-center justify-center gap-2">
+                      View Profile <Eye className="w-3 h-3 group-hover/btn:scale-110 transition-transform" />
+                    </span>
+                    <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/10 to-purple-500/10 opacity-0 group-hover/btn:opacity-100 transition-opacity duration-500" />
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => viewDetails({
+                      ...member,
+                      category,
+                      index,
+                      id: member.id || `static-${index}-${member.name.replace(/\s+/g, '-')}`,
+                      status: member.status || 'Active',
+                      created: 'Directory Record',
+                      role: member.system_role || (member.role || member.advisory_role || 'Staff').toUpperCase(),
+                      email: 'No System Account',
+                      mobile_number: 'N/A',
+                      full_address: 'N/A'
+                    })}
+                    className="w-full group/btn relative overflow-hidden py-4 bg-white/5 border border-white/10 text-white rounded-2xl font-black text-[11px] uppercase tracking-[0.2em] italic transition-all hover:bg-white/10 hover:border-cyan-400/50"
+                  >
+                    <span className="relative z-10 flex items-center justify-center gap-2">
+                      View Profile <Eye className="w-3 h-3 group-hover/btn:scale-110 transition-transform" />
+                    </span>
+                    <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/10 to-purple-500/10 opacity-0 group-hover/btn:opacity-100 transition-opacity duration-500" />
+                  </button>
+                )}
+              </div>
+            )}
           </div>
         </motion.div>
       );
@@ -1946,6 +2005,20 @@ export default function SuperAdminDashboard() {
           </div>
         </section>
 
+        {/* CLINICAL COLLABORATORS SECTION */}
+        <section className="space-y-10">
+          <SectionHeader 
+            title="Clinical Collaborators" 
+            subtitle="Medical professionals and research partners"
+            icon={Network}
+            color="text-emerald-500"
+            onAdd={() => { setAddingStaffCategory('collaborators'); setIsAddStaffModalOpen(true); }}
+          />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
+            {staffRecords.collaborators.map((member: any, i: number) => renderCard(member, i, 'collaborators', null))}
+          </div>
+        </section>
+
         {/* STAFF SECTION */}
         <section className="space-y-10">
           <SectionHeader 
@@ -1970,7 +2043,7 @@ export default function SuperAdminDashboard() {
         {/* Dynamic Intel Footer */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 pt-12 border-t border-white/5">
           {[
-            { label: 'Network Reach', val: staffRecords.leadership.length + staffRecords.advisors.length + staffRecords.staff.length, sub: 'Global Personnel Units', icon: Globe, color: 'text-cyan-500' },
+            { label: 'Network Reach', val: staffRecords.leadership.length + staffRecords.advisors.length + staffRecords.staff.length + staffRecords.collaborators.length, sub: 'Global Personnel Units', icon: Globe, color: 'text-cyan-500' },
             { label: 'System Access', val: internalUsers.length, sub: 'Authenticated Operators', icon: ShieldCheck, color: 'text-[#7c3aed]' },
             { label: 'Operational Nodes', val: 12, sub: 'Clinical Departments', icon: Activity, color: 'text-emerald-500' },
           ].map((stat, i) => (
@@ -2535,7 +2608,8 @@ export default function SuperAdminDashboard() {
             />
           )}
           {currentPage === 'SPONSOR_LEADS' && <SponsorLeadsPage studyInquiries={studyInquiries} handlePageChange={handlePageChange} />}
-          {currentPage === 'TEAM' && <TeamPage users={users} viewDetails={viewDetails} staffRecords={staffRecords} />}
+          {currentPage === 'TEAM' && <TeamPage users={users} viewDetails={viewDetails} staffRecords={staffRecords} API={API} />}
+
           {currentPage === 'INQUIRIES' && (
             <InquiriesPage
               studyInquiries={studyInquiries}
@@ -2614,8 +2688,15 @@ export default function SuperAdminDashboard() {
                 <div className="relative -mt-12 mb-8 flex items-end gap-6">
                   <div className="w-24 h-24 rounded-3xl bg-[#0a0b1a] border-4 border-[#0d0e2b] flex items-center justify-center text-3xl font-black text-white italic shadow-2xl overflow-hidden relative">
                     <div className="absolute inset-0 bg-gradient-to-br from-[#7c3aed]/20 to-cyan-500/20" />
-                    {selectedUser.image ? (
-                      <img src={selectedUser.image} alt={selectedUser.name} className="w-full h-full object-cover relative z-10" />
+                    {resolveImageUrl(selectedUser.image) ? (
+                      <img 
+                        src={resolveImageUrl(selectedUser.image)!} 
+                        alt={selectedUser.name} 
+                        className="w-full h-full object-cover relative z-10" 
+                        onError={(e: any) => {
+                          e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(selectedUser.name)}&background=0d8abc&color=fff`;
+                        }}
+                      />
                     ) : (
                       <span className="relative z-10">{(selectedUser.name?.[0] || 'U').toUpperCase()}</span>
                     )}
@@ -2794,7 +2875,12 @@ export default function SuperAdminDashboard() {
                   <button 
                     onClick={() => {
                       setIsUserDetailOpen(false);
-                      setStaffToRemove({ category: selectedUser.category, index: selectedUser.index });
+                      setStaffToRemove({ 
+                        category: selectedUser.category, 
+                        index: selectedUser.index,
+                        id: selectedUser.id,
+                        name: selectedUser.name
+                      });
                       setIsRemoveStaffConfirmOpen(true);
                     }} 
                     className="flex-1 py-4 bg-red-500/5 hover:bg-red-600 text-red-500 hover:text-white border border-red-500/10 hover:border-red-600 rounded-[1.5rem] text-[10px] font-black uppercase tracking-[0.15em] italic transition-all flex items-center justify-center gap-2 shadow-xl hover:shadow-red-600/30 group/remove"
@@ -2832,44 +2918,66 @@ export default function SuperAdminDashboard() {
                 <div className="space-y-8">
                   {/* CORE INFO SECTION */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {editingStaff.category === 'collaborators' && (
+                      <div className="space-y-3">
+                        <label className="text-[11px] font-black text-[#555a7a] uppercase tracking-widest px-1 italic">Name</label>
+                        <input 
+                          type="text" 
+                          defaultValue={editingStaff.name}
+                          onChange={(e) => setEditingStaff({ ...editingStaff, newName: e.target.value })}
+                          className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white font-bold italic focus:border-cyan-500/50 outline-none transition-all"
+                          placeholder="e.g. Synbiotic Health"
+                          {...extensionProps}
+                        />
+                      </div>
+                    )}
                     <div className="space-y-3">
-                      <label className="text-[11px] font-black text-[#555a7a] uppercase tracking-widest px-1 italic">Professional Designation</label>
+                      <label className="text-[11px] font-black text-[#555a7a] uppercase tracking-widest px-1 italic">
+                        {editingStaff.category === 'collaborators' ? 'Staff' : 'Professional Designation'}
+                      </label>
                       <input 
                         type="text" 
                         defaultValue={editingStaff.designation || editingStaff.role}
                         onChange={(e) => setEditingStaff({ ...editingStaff, newDesignation: e.target.value })}
                         className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white font-bold italic focus:border-cyan-500/50 outline-none transition-all"
-                        placeholder="e.g. Chief Operations Officer"
+                        placeholder={editingStaff.category === 'collaborators' ? "e.g. Staff" : "e.g. Chief Operations Officer"}
+                        {...extensionProps}
                       />
                     </div>
 
                     <div className="space-y-3">
-                      <label className="text-[11px] font-black text-[#555a7a] uppercase tracking-widest px-1 italic">Department / Focus Area</label>
+                      <label className="text-[11px] font-black text-[#555a7a] uppercase tracking-widest px-1 italic">
+                        {editingStaff.category === 'collaborators' ? 'Global Operation' : 'Department / Focus Area'}
+                      </label>
                       <input 
                         type="text" 
-                        defaultValue={editingStaff.dept || editingStaff.expertise_area || 'Global Operations'}
+                        defaultValue={editingStaff.dept || editingStaff.expertise_area || (editingStaff.category === 'collaborators' ? 'Global Operations' : '')}
                         onChange={(e) => setEditingStaff({ ...editingStaff, newDept: e.target.value })}
                         className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white font-bold italic focus:border-cyan-500/50 outline-none transition-all"
-                        placeholder="e.g. Product Engineering"
+                        placeholder={editingStaff.category === 'collaborators' ? "e.g. Global Operations" : "e.g. Product Engineering"}
+                        {...extensionProps}
                       />
                     </div>
                   </div>
 
                   {/* SCIENTIFIC PROFILE EXTENSIONS */}
                     <div className="space-y-8 pt-10 border-t border-white/5">
-                      <div className="space-y-3">
-                        <label className="text-[11px] font-black text-purple-400 uppercase tracking-widest px-1 italic flex items-center gap-2">
-                          <FileText className="w-3 h-3" /> {editingStaff.category === 'staff' ? 'Professional Summary' : 'Short Biography (Summary Card)'}
-                        </label>
-                        <textarea 
-                          defaultValue={editingStaff.bio}
-                          onChange={(e) => setEditingStaff({ ...editingStaff, newBio: e.target.value })}
-                          className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white font-medium text-sm focus:border-purple-500/50 outline-none transition-all h-32 custom-scrollbar leading-relaxed"
-                          placeholder={editingStaff.category === 'staff' ? "Enter professional summary..." : "Brief summary for the team card..."}
-                        ></textarea>
-                      </div>
+                      {editingStaff.category !== 'collaborators' && (
+                        <div className="space-y-3">
+                          <label className="text-[11px] font-black text-purple-400 uppercase tracking-widest px-1 italic flex items-center gap-2">
+                            <FileText className="w-3 h-3" /> {editingStaff.category === 'staff' ? 'Professional Summary' : 'Short Biography (Summary Card)'}
+                          </label>
+                          <textarea 
+                            defaultValue={editingStaff.bio}
+                            onChange={(e) => setEditingStaff({ ...editingStaff, newBio: e.target.value })}
+                            className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white font-medium text-sm focus:border-purple-500/50 outline-none transition-all h-32 custom-scrollbar leading-relaxed"
+                            placeholder={editingStaff.category === 'staff' ? "Enter professional summary..." : "Brief summary for the team card..."}
+                            {...extensionProps}
+                          ></textarea>
+                        </div>
+                      )}
 
-                      {editingStaff.category !== 'staff' && (
+                      {editingStaff.category !== 'staff' && editingStaff.category !== 'collaborators' && (
                         <>
                           <div className="space-y-3">
                             <label className="text-[11px] font-black text-cyan-400 uppercase tracking-widest px-1 italic flex items-center gap-2">
@@ -2880,6 +2988,7 @@ export default function SuperAdminDashboard() {
                               onChange={(e) => setEditingStaff({ ...editingStaff, newExpandedBio: e.target.value })}
                               className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white font-medium text-sm focus:border-cyan-500/50 outline-none transition-all h-48 custom-scrollbar leading-relaxed"
                               placeholder="Full professional history and vision..."
+                              {...extensionProps}
                             ></textarea>
                           </div>
 
@@ -2891,6 +3000,7 @@ export default function SuperAdminDashboard() {
                                 onChange={(e) => setEditingStaff({ ...editingStaff, newTags: e.target.value })}
                                 className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white font-bold italic focus:border-cyan-500/50 outline-none transition-all h-24 text-xs"
                                 placeholder="Microbiome, Immunology, Brain Health..."
+                                {...extensionProps}
                               ></textarea>
                             </div>
                             <div className="space-y-3">
@@ -2900,6 +3010,7 @@ export default function SuperAdminDashboard() {
                                 onChange={(e) => setEditingStaff({ ...editingStaff, newAffiliations: e.target.value })}
                                 className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white font-bold italic focus:border-cyan-500/50 outline-none transition-all h-24 text-xs"
                                 placeholder="University of Illinois, NIH..."
+                                {...extensionProps}
                               ></textarea>
                             </div>
                           </div>
@@ -2913,6 +3024,7 @@ export default function SuperAdminDashboard() {
                               onChange={(e) => setEditingStaff({ ...editingStaff, newPublications: e.target.value })}
                               className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white font-bold italic focus:border-cyan-500/50 outline-none transition-all h-32 text-xs leading-relaxed"
                               placeholder="Title, Journal, Year..."
+                              {...extensionProps}
                             ></textarea>
                           </div>
                         </>
@@ -2958,12 +3070,48 @@ export default function SuperAdminDashboard() {
                       const updatedTags = editingStaff.newTags ? editingStaff.newTags.split(',').map((t: string) => t.trim()) : editingStaff.expertise_tags;
                       const updatedAffiliations = editingStaff.newAffiliations ? editingStaff.newAffiliations.split('\n').map((t: string) => t.trim()).filter(Boolean) : editingStaff.affiliations;
                       const updatedPublications = editingStaff.newPublications ? editingStaff.newPublications.split('\n').map((t: string) => t.trim()).filter(Boolean) : editingStaff.publications;
+                      const updatedName = editingStaff.newName || editingStaff.name;
 
-                      // 2. Update Directory Records State (Frontend)
+                      // 2. Persist to Backend Directory
+                      try {
+                        const directoryId = editingStaff.directoryId || editingStaff.id;
+                        const payload = {
+                          name: updatedName,
+                          role: updatedDesignation,
+                          advisory_role: updatedDesignation,
+                          dept: updatedDept,
+                          expertise_area: updatedDept,
+                          bio: updatedBio,
+                          expanded_bio: updatedExpandedBio,
+                          expertise_tags: updatedTags,
+                          affiliations: updatedAffiliations,
+                          publications: updatedPublications,
+                          system_role: updatedRole
+                        };
+
+                        const response = await authFetch(`${API}/api/team-members/${directoryId}/`, {
+                          method: 'PATCH',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify(payload)
+                        });
+
+                        if (!response.ok) {
+                          const errorData = await response.json().catch(() => ({}));
+                          addToast(errorData.detail || "Database synchronization failed", "error");
+                          return;
+                        }
+                      } catch (error) {
+                        console.error("Profile synchronization error:", error);
+                        addToast("Network failure during profile synchronization", "error");
+                        return;
+                      }
+
+                      // 3. Update Directory Records State (Frontend)
                       setStaffRecords((prev: any) => {
                         const updateList = (list: any[]) => list.map(m => 
                           (m.name === editingStaff.name) ? { 
                             ...m, 
+                            name: updatedName,
                             role: updatedDesignation, 
                             advisory_role: updatedDesignation,
                             system_role: updatedRole,
@@ -2979,7 +3127,8 @@ export default function SuperAdminDashboard() {
                         return {
                           leadership: updateList(prev.leadership),
                           advisors: updateList(prev.advisors),
-                          staff: updateList(prev.staff)
+                          staff: updateList(prev.staff),
+                          collaborators: updateList(prev.collaborators)
                         };
                       });
 
@@ -3078,56 +3227,64 @@ export default function SuperAdminDashboard() {
               <div className="space-y-8">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   <div className="space-y-3">
-                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1 italic">Full Name</label>
+                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1 italic">
+                      {addingStaffCategory === 'collaborators' ? 'Name' : 'Full Name'}
+                    </label>
                     <input 
                       type="text" 
-                      placeholder="e.g. Dr. Jane Smith"
+                      placeholder={addingStaffCategory === 'collaborators' ? "e.g. Synbiotic Health" : "e.g. Dr. Jane Smith"}
                       className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white font-bold focus:border-cyan-500/50 transition-all outline-none italic"
                       value={newStaffData.name}
                       onChange={(e) => setNewStaffData({...newStaffData, name: e.target.value})}
+                      {...extensionProps}
                     />
                   </div>
                   <div className="space-y-3">
                     <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1 italic">
-                      {addingStaffCategory === 'advisors' ? 'Advisory Role' : 'Professional Role'}
+                      {addingStaffCategory === 'collaborators' ? 'Staff' : (addingStaffCategory === 'advisors' ? 'Advisory Role' : 'Professional Role')}
                     </label>
                     <input 
                       type="text" 
-                      placeholder="e.g. Chief Scientist"
+                      placeholder={addingStaffCategory === 'collaborators' ? "e.g. Staff" : "e.g. Chief Scientist"}
                       className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white font-bold focus:border-cyan-500/50 transition-all outline-none italic"
                       value={newStaffData.role}
                       onChange={(e) => setNewStaffData({...newStaffData, role: e.target.value})}
+                      {...extensionProps}
                     />
                   </div>
                 </div>
 
                 <div className="space-y-3">
                   <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1 italic">
-                    {addingStaffCategory === 'advisors' ? 'Expertise Area' : 'Department'}
+                    {addingStaffCategory === 'collaborators' ? 'Global Operation' : (addingStaffCategory === 'advisors' ? 'Expertise Area' : 'Department')}
                   </label>
                   <input 
                     type="text" 
-                    placeholder={addingStaffCategory === 'advisors' ? "e.g. Regulatory Affairs" : "e.g. Clinical Operations"}
+                    placeholder={addingStaffCategory === 'collaborators' ? "e.g. Global Operations" : (addingStaffCategory === 'advisors' ? "e.g. Regulatory Affairs" : "e.g. Clinical Operations")}
                     className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white font-bold focus:border-cyan-500/50 transition-all outline-none italic"
                     value={newStaffData.dept}
                     onChange={(e) => setNewStaffData({...newStaffData, dept: e.target.value})}
+                    {...extensionProps}
                   />
                 </div>
 
                 <div className="space-y-6">
-                  <div className="space-y-3">
-                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1 italic">
-                      {addingStaffCategory === 'staff' ? 'Professional Summary' : 'SHORT BIOGRAPHY (SUMMARY CARD)'}
-                    </label>
-                    <textarea 
-                      placeholder={addingStaffCategory === 'staff' ? "Brief professional summary..." : "Professional summary for the card view..."}
-                      className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white font-medium focus:border-cyan-500/50 transition-all outline-none h-28 resize-none italic"
-                      value={newStaffData.bio}
-                      onChange={(e) => setNewStaffData({...newStaffData, bio: e.target.value})}
-                    ></textarea>
-                  </div>
+                  {addingStaffCategory !== 'collaborators' && (
+                    <div className="space-y-3">
+                      <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1 italic">
+                        {addingStaffCategory === 'staff' ? 'Professional Summary' : 'SHORT BIOGRAPHY (SUMMARY CARD)'}
+                      </label>
+                      <textarea 
+                        placeholder={addingStaffCategory === 'staff' ? "Brief professional summary..." : "Professional summary for the card view..."}
+                        className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white font-medium focus:border-cyan-500/50 transition-all outline-none h-28 resize-none italic"
+                        value={newStaffData.bio}
+                        onChange={(e) => setNewStaffData({...newStaffData, bio: e.target.value})}
+                        {...extensionProps}
+                      ></textarea>
+                    </div>
+                  )}
 
-                  {addingStaffCategory !== 'staff' && (
+                  {addingStaffCategory !== 'staff' && addingStaffCategory !== 'collaborators' && (
                     <>
                       <div className="space-y-3">
                         <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1 italic">FULL PROFESSIONAL BACKGROUND (EXPANDED BIO)</label>
@@ -3136,6 +3293,7 @@ export default function SuperAdminDashboard() {
                           className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white font-medium focus:border-cyan-500/50 transition-all outline-none h-32 resize-none italic"
                           value={newStaffData.expanded_bio}
                           onChange={(e) => setNewStaffData({...newStaffData, expanded_bio: e.target.value})}
+                          {...extensionProps}
                         ></textarea>
                       </div>
 
@@ -3147,6 +3305,7 @@ export default function SuperAdminDashboard() {
                           className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white font-bold focus:border-cyan-500/50 transition-all outline-none italic"
                           value={newStaffData.expertise_tags}
                           onChange={(e) => setNewStaffData({...newStaffData, expertise_tags: e.target.value})}
+                          {...extensionProps}
                         />
                       </div>
 
@@ -3158,6 +3317,7 @@ export default function SuperAdminDashboard() {
                             className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white font-medium focus:border-cyan-500/50 transition-all outline-none h-32 resize-none italic"
                             value={newStaffData.affiliations}
                             onChange={(e) => setNewStaffData({...newStaffData, affiliations: e.target.value})}
+                            {...extensionProps}
                           ></textarea>
                         </div>
                         <div className="space-y-3">
@@ -3167,6 +3327,7 @@ export default function SuperAdminDashboard() {
                             className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white font-medium focus:border-cyan-500/50 transition-all outline-none h-32 resize-none italic"
                             value={newStaffData.publications}
                             onChange={(e) => setNewStaffData({...newStaffData, publications: e.target.value})}
+                            {...extensionProps}
                           ></textarea>
                         </div>
                       </div>

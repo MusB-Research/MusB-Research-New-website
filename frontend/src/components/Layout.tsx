@@ -116,196 +116,89 @@ export default function Layout({ children }: LayoutProps) {
         return <>{children}</>;
     }
 
+    const isMellowPage = location.pathname.includes('mellow-consortium');
+
     return (
         <div className="min-h-screen flex flex-col font-sans text-slate-100 relative">
             {/* Animated Mesh Background */}
             <AnimatedBackground />
 
-            {/* Sticky Header */}
-            <header className="fixed top-0 left-0 right-0 z-50 glass-nav h-20 md:h-24 transition-all duration-500">
-                <div className="max-w-[1800px] mx-auto px-4 md:px-6 2xl:px-12 h-full flex items-center justify-between gap-2 xl:gap-6">
-                    {/* Logo - Acts as Home button opening in new tab */}
-                    <a
-                        href="/"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex-shrink-0 flex items-center gap-3 group"
-                    >
-                        <div className="h-14 md:h-[4.2rem] bg-black backdrop-blur-md rounded-2xl shadow-xl border border-black group-hover:scale-105 transition-all duration-300 flex items-center justify-center overflow-hidden">
-                            <img src="/logo.jpg" alt="MusB™ Research" className="h-full w-auto object-contain brightness-100" />
-                        </div>
-                    </a>
+            {/* Sticky Header - Hidden on Mellow Consortium specialized page */}
+            {!isMellowPage && (
+                <header className="fixed top-0 left-0 right-0 z-50 glass-nav h-20 md:h-24 transition-all duration-500">
+                    <div className="max-w-[1800px] mx-auto px-4 md:px-6 2xl:px-12 h-full flex items-center justify-between gap-2 xl:gap-6">
+                        {/* Logo - Acts as Home button opening in new tab */}
+                        <a
+                            href="/"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex-shrink-0 flex items-center gap-3 group"
+                        >
+                            <div className="h-14 md:h-[4.2rem] bg-black backdrop-blur-md rounded-2xl shadow-xl border border-black group-hover:scale-105 transition-all duration-300 flex items-center justify-center overflow-hidden">
+                                <img src="/logo.jpg" alt="MusB™ Research" className="h-full w-auto object-contain brightness-100" />
+                            </div>
+                        </a>
 
-                    {/* Right-aligned Navigation Group */}
-                    <div className="hidden xl:flex items-center gap-2 2xl:gap-6 ml-auto">
-                        {/* Desktop Navigation */}
-                        <nav className={`flex items-center ${isTrialsPage ? 'gap-3 2xl:gap-8' : 'gap-1 2xl:gap-4'}`}>
-                            {navItems.map((item) => (
-                                <div
-                                    key={item.label}
-                                    className="relative group/nav"
-                                    onMouseEnter={() => item.children && setOpenDropdown(item.label)}
-                                    onMouseLeave={() => setOpenDropdown(null)}
-                                >
-                                    {item.path === '#' ? (
-                                        <div
-                                            className="text-[11px] font-black tracking-[0.1em] uppercase transition-all hover:text-cyan-600 flex items-center gap-1 2xl:gap-1.5 py-8 cursor-pointer text-slate-900 whitespace-nowrap"
-                                        >
-                                            {item.label}
-                                            <ChevronDown className={`w-3 h-3 transition-transform duration-300 ${openDropdown === item.label ? 'rotate-180' : ''}`} />
-                                            <span className={`absolute bottom-6 left-0 w-full h-0.5 bg-cyan-600 transform origin-left transition-transform duration-300 ${openDropdown === item.label ? 'scale-x-100' : 'scale-x-0 group-hover/nav:scale-x-100'}`}></span>
-                                        </div>
-                                    ) : (
-                                        <Link
-                                            to={item.path}
-                                            className={`text-[10px] 2xl:text-[11px] font-black tracking-[0.08em] lg:tracking-[0.1em] uppercase transition-all hover:text-cyan-600 flex items-center gap-1 2xl:gap-1.5 py-8 whitespace-nowrap ${location.pathname === item.path ? 'text-cyan-600' : 'text-slate-900'
-                                                }`}
-                                        >
-                                            {item.label}
-                                            {item.children && <ChevronDown className={`w-3 h-3 transition-transform duration-300 ${openDropdown === item.label ? 'rotate-180' : ''}`} />}
-                                            <span className={`absolute bottom-6 left-0 w-full h-0.5 bg-cyan-600 transform origin-left transition-transform duration-300 ${location.pathname === item.path ? 'scale-x-100' : 'scale-x-0 group-hover/nav:scale-x-100'}`}></span>
-                                        </Link>
-                                    )}
-
-                                    {/* Dropdown Menu */}
-                                    {item.children && (
-                                        <div className={`absolute top-full left-1/2 -translate-x-1/2 w-64 bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-slate-200 p-2 transition-all duration-300 transform origin-top ${openDropdown === item.label ? 'opacity-100 scale-100 pointer-events-auto translate-y-0' : 'opacity-0 scale-95 pointer-events-none -translate-y-2'
-                                            }`}>
-                                            <div className="space-y-1">
-                                                {item.children.map((child) => (
-                                                    <Link
-                                                        key={child.path + child.label}
-                                                        to={child.path}
-                                                        onClick={() => setOpenDropdown(null)}
-                                                        className="block px-5 py-3 rounded-xl text-[12px] font-bold uppercase tracking-wider text-slate-700 hover:bg-slate-50 hover:text-cyan-600 transition-all"
-                                                    >
-                                                        {child.label}
-                                                    </Link>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-                            ))}
-                        </nav>
-
-                        {/* CTA Buttons */}
-                        <div className="flex items-center gap-1.5 2xl:gap-3">
-                            {isTrialsPage ? (
-                                <>
-                                    <Link
-                                        to="/trials#current-studies"
-                                        className="bg-cyan-500 text-slate-900 px-3 2xl:px-6 py-2.5 rounded-xl font-black text-[11px] uppercase tracking-[0.1em] hover:bg-white hover:-translate-y-0.5 transition-all shadow-xl shadow-cyan-500/20 flex items-center gap-1 2xl:gap-2 whitespace-nowrap"
+                        {/* Right-aligned Navigation Group */}
+                        <div className="hidden xl:flex items-center gap-2 2xl:gap-6 ml-auto">
+                            {/* Desktop Navigation */}
+                            <nav className={`flex items-center ${isTrialsPage ? 'gap-3 2xl:gap-8' : 'gap-1 2xl:gap-4'}`}>
+                                {navItems.map((item) => (
+                                    <div
+                                        key={item.label}
+                                        className="relative group/nav"
+                                        onMouseEnter={() => item.children && setOpenDropdown(item.label)}
+                                        onMouseLeave={() => setOpenDropdown(null)}
                                     >
-                                        Check Eligibility
-                                        <ArrowRight className="w-4 h-4" />
-                                    </Link>
-                                </>
-                            ) : (
-                                <>
-                                    <Link
-                                        to="/trials"
-                                        className="bg-cyan-500 text-slate-900 px-3 2xl:px-6 py-2.5 rounded-xl font-black text-[11px] uppercase tracking-[0.1em] hover:bg-white hover:-translate-y-0.5 transition-all shadow-xl shadow-cyan-500/20 flex items-center gap-1 2xl:gap-2 whitespace-nowrap"
-                                    >
-                                        Join a Study
-                                        <ArrowRight className="w-4 h-4" />
-                                    </Link>
-
-                                </>
-                            )}
-                            {!isLoggedIn() ? (
-                                <button
-                                    onClick={redirectToLogin}
-                                    className="bg-slate-900 text-white px-3 2xl:px-6 py-2.5 rounded-xl font-black text-[11px] uppercase tracking-[0.1em] hover:bg-cyan-500 hover:text-slate-900 transition-all shadow-xl flex items-center gap-1 2xl:gap-2 whitespace-nowrap"
-                                >
-                                    <LogIn className="w-4 h-4" />
-                                    Sign In
-                                </button>
-                            ) : (
-                                <>
-                                    <Link
-                                        to={dashboardLink}
-                                        className="flex items-center gap-2 group ml-1 md:ml-2"
-                                    >
-                                        <div className="text-right hidden sm:flex flex-col justify-center max-w-[80px] md:max-w-[120px]">
-                                            <div className="text-[10px] font-black uppercase tracking-[0.05em] text-slate-800 leading-tight">DASHBOARD</div>
-                                            <div className="text-[#00d8ff] text-sm md:text-base font-black leading-tight tracking-tight group-hover:text-[#00c4e8] transition-colors truncate">{userName}</div>
-                                        </div>
-                                        <div className="w-[38px] h-[38px] rounded-[12px] border-[2px] border-[#00d8ff] overflow-hidden flex items-center justify-center bg-white shadow-sm group-hover:scale-105 transition-transform shrink-0">
-                                            {userObj?.profile_image ? (
-                                                <img src={userObj.profile_image} alt={userName} className="w-full h-full object-cover" />
-                                            ) : (
-                                                <User className="w-[20px] h-[20px] text-[#00d8ff]" strokeWidth={2.5} />
-                                            )}
-                                        </div>
-                                    </Link>
-                                    <button
-                                        onClick={() => { clearToken(); window.location.href = "/"; }}
-                                        className="w-[38px] h-[38px] rounded-full border-[1.5px] border-slate-200 flex items-center justify-center text-slate-600 hover:text-slate-900 hover:border-slate-300 hover:bg-slate-50 transition-all shrink-0 ml-1"
-                                        title="Logout"
-                                    >
-                                        <LogOut className="w-[18px] h-[18px] translate-x-[1px]" strokeWidth={2} />
-                                    </button>
-                                </>
-                            )}
-                        </div>
-                    </div>
-
-                    {/* Mobile Menu Toggle */}
-                    <button
-                        className="xl:hidden p-2 md:p-3 text-slate-900 hover:text-cyan-600 bg-slate-100 rounded-lg border border-slate-200"
-                        onClick={() => setIsMenuOpen(!isMenuOpen)}
-                    >
-                        {isMenuOpen ? <X className="w-5 h-5 md:w-6 md:h-6" /> : <Menu className="w-5 h-5 md:w-6 md:h-6" />}
-                    </button>
-                </div>
-
-                {/* Mobile Menu */}
-                {isMenuOpen && (
-                    <div className="xl:hidden absolute top-20 md:top-24 left-4 right-4 md:left-6 md:right-6 bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl animate-in fade-in slide-in-from-top-4 z-40 overflow-hidden border border-slate-200 max-h-[calc(100vh-6rem)] md:max-h-[calc(100vh-8rem)] overflow-y-auto">
-                        <div className="p-4 space-y-2">
-                            {navItems.map((item) => (
-                                <div key={item.label}>
-                                    {item.children ? (
-                                        <div className="space-y-1">
-                                            <div className="px-4 py-3 text-[12px] font-black uppercase tracking-[0.2em] text-cyan-600/60 mt-4 first:mt-0">
+                                        {item.path === '#' ? (
+                                            <div
+                                                className="text-[11px] font-black tracking-[0.1em] uppercase transition-all hover:text-cyan-600 flex items-center gap-1 2xl:gap-1.5 py-8 cursor-pointer text-slate-900 whitespace-nowrap"
+                                            >
                                                 {item.label}
+                                                <ChevronDown className={`w-3 h-3 transition-transform duration-300 ${openDropdown === item.label ? 'rotate-180' : ''}`} />
+                                                <span className={`absolute bottom-6 left-0 w-full h-0.5 bg-cyan-600 transform origin-left transition-transform duration-300 ${openDropdown === item.label ? 'scale-x-100' : 'scale-x-0 group-hover/nav:scale-x-100'}`}></span>
                                             </div>
-                                            {item.children.map((child) => (
-                                                <Link
-                                                    key={child.path + child.label}
-                                                    to={child.path}
-                                                    onClick={() => setIsMenuOpen(false)}
-                                                    className={`block p-4 rounded-xl text-base font-bold uppercase tracking-widest border border-transparent ${location.pathname === child.path
-                                                        ? 'bg-slate-100 text-cyan-600 border-slate-200'
-                                                        : 'text-slate-700 hover:bg-slate-50'
-                                                        }`}
-                                                >
-                                                    {child.label}
-                                                </Link>
-                                            ))}
-                                        </div>
-                                    ) : (
-                                        <Link
-                                            to={item.path}
-                                            onClick={() => setIsMenuOpen(false)}
-                                            className={`block p-4 rounded-xl text-base font-bold uppercase tracking-widest border border-transparent ${location.pathname === item.path
-                                                ? 'bg-slate-100 text-cyan-600 border-slate-200'
-                                                : 'text-slate-700 hover:bg-slate-50'
-                                                }`}
-                                        >
-                                            {item.label}
-                                        </Link>
-                                    )}
-                                </div>
-                            ))}
-                            <div className="pt-6 space-y-3">
+                                        ) : (
+                                            <Link
+                                                to={item.path}
+                                                className={`text-[10px] 2xl:text-[11px] font-black tracking-[0.08em] lg:tracking-[0.1em] uppercase transition-all hover:text-cyan-600 flex items-center gap-1 2xl:gap-1.5 py-8 whitespace-nowrap ${location.pathname === item.path ? 'text-cyan-600' : 'text-slate-900'
+                                                    }`}
+                                            >
+                                                {item.label}
+                                                {item.children && <ChevronDown className={`w-3 h-3 transition-transform duration-300 ${openDropdown === item.label ? 'rotate-180' : ''}`} />}
+                                                <span className={`absolute bottom-6 left-0 w-full h-0.5 bg-cyan-600 transform origin-left transition-transform duration-300 ${location.pathname === item.path ? 'scale-x-100' : 'scale-x-0 group-hover/nav:scale-x-100'}`}></span>
+                                            </Link>
+                                        )}
+
+                                        {/* Dropdown Menu */}
+                                        {item.children && (
+                                            <div className={`absolute top-full left-1/2 -translate-x-1/2 w-64 bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-slate-200 p-2 transition-all duration-300 transform origin-top ${openDropdown === item.label ? 'opacity-100 scale-100 pointer-events-auto translate-y-0' : 'opacity-0 scale-95 pointer-events-none -translate-y-2'
+                                                }`}>
+                                                <div className="space-y-1">
+                                                    {item.children.map((child) => (
+                                                        <Link
+                                                            key={child.path + child.label}
+                                                            to={child.path}
+                                                            onClick={() => setOpenDropdown(null)}
+                                                            className="block px-5 py-3 rounded-xl text-[12px] font-bold uppercase tracking-wider text-slate-700 hover:bg-slate-50 hover:text-cyan-600 transition-all"
+                                                        >
+                                                            {child.label}
+                                                        </Link>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
+                            </nav>
+
+                            {/* CTA Buttons */}
+                            <div className="flex items-center gap-1.5 2xl:gap-3">
                                 {isTrialsPage ? (
                                     <>
                                         <Link
                                             to="/trials#current-studies"
-                                            onClick={() => setIsMenuOpen(false)}
-                                            className="block w-full text-center bg-cyan-500 text-slate-900 p-4 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-white transition-all flex items-center justify-center gap-2"
+                                            className="bg-cyan-500 text-slate-900 px-3 2xl:px-6 py-2.5 rounded-xl font-black text-[11px] uppercase tracking-[0.1em] hover:bg-white hover:-translate-y-0.5 transition-all shadow-xl shadow-cyan-500/20 flex items-center gap-1 2xl:gap-2 whitespace-nowrap"
                                         >
                                             Check Eligibility
                                             <ArrowRight className="w-4 h-4" />
@@ -313,61 +206,172 @@ export default function Layout({ children }: LayoutProps) {
                                     </>
                                 ) : (
                                     <>
-
                                         <Link
                                             to="/trials"
-                                            onClick={() => setIsMenuOpen(false)}
-                                            className="block w-full text-center bg-cyan-500 text-slate-900 p-4 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-white transition-all flex items-center justify-center gap-2"
+                                            className="bg-cyan-500 text-slate-900 px-3 2xl:px-6 py-2.5 rounded-xl font-black text-[11px] uppercase tracking-[0.1em] hover:bg-white hover:-translate-y-0.5 transition-all shadow-xl shadow-cyan-500/20 flex items-center gap-1 2xl:gap-2 whitespace-nowrap"
                                         >
-                                            Join Study
+                                            Join a Study
                                             <ArrowRight className="w-4 h-4" />
                                         </Link>
+
                                     </>
                                 )}
                                 {!isLoggedIn() ? (
                                     <button
                                         onClick={redirectToLogin}
-                                        className="w-full bg-slate-900 text-white p-4 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-cyan-500 hover:text-slate-900 transition-all flex items-center justify-center gap-2"
+                                        className="bg-slate-900 text-white px-3 2xl:px-6 py-2.5 rounded-xl font-black text-[11px] uppercase tracking-[0.1em] hover:bg-cyan-500 hover:text-slate-900 transition-all shadow-xl flex items-center gap-1 2xl:gap-2 whitespace-nowrap"
                                     >
-                                        <LogIn className="w-5 h-5" />
+                                        <LogIn className="w-4 h-4" />
                                         Sign In
                                     </button>
                                 ) : (
-                                    <div className="space-y-3">
+                                    <>
                                         <Link
                                             to={dashboardLink}
-                                            onClick={() => setIsMenuOpen(false)}
-                                            className="w-full flex items-center gap-4 bg-slate-50 p-3 rounded-2xl border border-slate-200 transition-all hover:bg-slate-100"
+                                            className="flex items-center gap-2 group ml-1 md:ml-2"
                                         >
-                                            <div className="w-12 h-12 rounded-2xl border-2 border-cyan-400 overflow-hidden flex items-center justify-center bg-white shrink-0 shadow-sm">
+                                            <div className="text-right hidden sm:flex flex-col justify-center max-w-[80px] md:max-w-[120px]">
+                                                <div className="text-[10px] font-black uppercase tracking-[0.05em] text-slate-800 leading-tight">DASHBOARD</div>
+                                                <div className="text-[#00d8ff] text-sm md:text-base font-black leading-tight tracking-tight group-hover:text-[#00c4e8] transition-colors truncate">{userName}</div>
+                                            </div>
+                                            <div className="w-[38px] h-[38px] rounded-[12px] border-[2px] border-[#00d8ff] overflow-hidden flex items-center justify-center bg-white shadow-sm group-hover:scale-105 transition-transform shrink-0">
                                                 {userObj?.profile_image ? (
                                                     <img src={userObj.profile_image} alt={userName} className="w-full h-full object-cover" />
                                                 ) : (
-                                                    <User className="w-6 h-6 text-cyan-500" />
+                                                    <User className="w-[20px] h-[20px] text-[#00d8ff]" strokeWidth={2.5} />
                                                 )}
-                                            </div>
-                                            <div className="flex-1 text-left">
-                                                <div className="text-[12px] font-black uppercase tracking-[0.2em] text-slate-400 leading-none mb-1">DASHBOARD</div>
-                                                <div className="text-cyan-500 text-base font-black capitalize leading-none">{userName}</div>
-                                            </div>
-                                            <div className="w-10 h-10 rounded-full border border-slate-200 flex items-center justify-center text-slate-400 shrink-0">
-                                                <ArrowRight className="w-4 h-4" />
                                             </div>
                                         </Link>
                                         <button
                                             onClick={() => { clearToken(); window.location.href = "/"; }}
-                                            className="w-full flex items-center justify-center gap-3 p-4 rounded-2xl border-2 border-slate-200 text-slate-600 font-black text-sm uppercase tracking-widest hover:bg-slate-900 hover:text-white transition-all shadow-sm group"
+                                            className="w-[38px] h-[38px] rounded-full border-[1.5px] border-slate-200 flex items-center justify-center text-slate-600 hover:text-slate-900 hover:border-slate-300 hover:bg-slate-50 transition-all shrink-0 ml-1"
+                                            title="Logout"
                                         >
-                                            <LogOut className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                                            Logout
+                                            <LogOut className="w-[18px] h-[18px] translate-x-[1px]" strokeWidth={2} />
                                         </button>
-                                    </div>
+                                    </>
                                 )}
                             </div>
                         </div>
+
+                        {/* Mobile Menu Toggle */}
+                        <button
+                            className="xl:hidden p-2 md:p-3 text-slate-900 hover:text-cyan-600 bg-slate-100 rounded-lg border border-slate-200"
+                            onClick={() => setIsMenuOpen(!isMenuOpen)}
+                        >
+                            {isMenuOpen ? <X className="w-5 h-5 md:w-6 md:h-6" /> : <Menu className="w-5 h-5 md:w-6 md:h-6" />}
+                        </button>
                     </div>
-                )}
-            </header>
+
+                    {/* Mobile Menu */}
+                    {isMenuOpen && (
+                        <div className="xl:hidden absolute top-20 md:top-24 left-4 right-4 md:left-6 md:right-6 bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl animate-in fade-in slide-in-from-top-4 z-40 overflow-hidden border border-slate-200 max-h-[calc(100vh-6rem)] md:max-h-[calc(100vh-8rem)] overflow-y-auto">
+                            <div className="p-4 space-y-2">
+                                {navItems.map((item) => (
+                                    <div key={item.label}>
+                                        {item.children ? (
+                                            <div className="space-y-1">
+                                                <div className="px-4 py-3 text-[12px] font-black uppercase tracking-[0.2em] text-cyan-600/60 mt-4 first:mt-0">
+                                                    {item.label}
+                                                </div>
+                                                {item.children.map((child) => (
+                                                    <Link
+                                                        key={child.path + child.label}
+                                                        to={child.path}
+                                                        onClick={() => setIsMenuOpen(false)}
+                                                        className={`block p-4 rounded-xl text-base font-bold uppercase tracking-widest border border-transparent ${location.pathname === child.path
+                                                            ? 'bg-slate-100 text-cyan-600 border-slate-200'
+                                                            : 'text-slate-700 hover:bg-slate-50'
+                                                            }`}
+                                                    >
+                                                        {child.label}
+                                                    </Link>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <Link
+                                                to={item.path}
+                                                onClick={() => setIsMenuOpen(false)}
+                                                className={`block p-4 rounded-xl text-base font-bold uppercase tracking-widest border border-transparent ${location.pathname === item.path
+                                                    ? 'bg-slate-100 text-cyan-600 border-slate-200'
+                                                    : 'text-slate-700 hover:bg-slate-50'
+                                                    }`}
+                                            >
+                                                {item.label}
+                                            </Link>
+                                        )}
+                                    </div>
+                                ))}
+                                <div className="pt-6 space-y-3">
+                                    {isTrialsPage ? (
+                                        <>
+                                            <Link
+                                                to="/trials#current-studies"
+                                                onClick={() => setIsMenuOpen(false)}
+                                                className="block w-full text-center bg-cyan-500 text-slate-900 p-4 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-white transition-all flex items-center justify-center gap-2"
+                                            >
+                                                Check Eligibility
+                                                <ArrowRight className="w-4 h-4" />
+                                            </Link>
+                                        </>
+                                    ) : (
+                                        <>
+
+                                            <Link
+                                                to="/trials"
+                                                onClick={() => setIsMenuOpen(false)}
+                                                className="block w-full text-center bg-cyan-500 text-slate-900 p-4 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-white transition-all flex items-center justify-center gap-2"
+                                            >
+                                                Join Study
+                                                <ArrowRight className="w-4 h-4" />
+                                            </Link>
+                                        </>
+                                    )}
+                                    {!isLoggedIn() ? (
+                                        <button
+                                            onClick={redirectToLogin}
+                                            className="w-full bg-slate-900 text-white p-4 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-cyan-500 hover:text-slate-900 transition-all flex items-center justify-center gap-2"
+                                        >
+                                            <LogIn className="w-5 h-5" />
+                                            Sign In
+                                        </button>
+                                    ) : (
+                                        <div className="space-y-3">
+                                            <Link
+                                                to={dashboardLink}
+                                                onClick={() => setIsMenuOpen(false)}
+                                                className="w-full flex items-center gap-4 bg-slate-50 p-3 rounded-2xl border border-slate-200 transition-all hover:bg-slate-100"
+                                            >
+                                                <div className="w-12 h-12 rounded-2xl border-2 border-cyan-400 overflow-hidden flex items-center justify-center bg-white shrink-0 shadow-sm">
+                                                    {userObj?.profile_image ? (
+                                                        <img src={userObj.profile_image} alt={userName} className="w-full h-full object-cover" />
+                                                    ) : (
+                                                        <User className="w-6 h-6 text-cyan-500" />
+                                                    )}
+                                                </div>
+                                                <div className="flex-1 text-left">
+                                                    <div className="text-[12px] font-black uppercase tracking-[0.2em] text-slate-400 leading-none mb-1">DASHBOARD</div>
+                                                    <div className="text-cyan-500 text-base font-black capitalize leading-none">{userName}</div>
+                                                </div>
+                                                <div className="w-10 h-10 rounded-full border border-slate-200 flex items-center justify-center text-slate-400 shrink-0">
+                                                    <ArrowRight className="w-4 h-4" />
+                                                </div>
+                                            </Link>
+                                            <button
+                                                onClick={() => { clearToken(); window.location.href = "/"; }}
+                                                className="w-full flex items-center justify-center gap-3 p-4 rounded-2xl border-2 border-slate-200 text-slate-600 font-black text-sm uppercase tracking-widest hover:bg-slate-900 hover:text-white transition-all shadow-sm group"
+                                            >
+                                                <LogOut className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                                                Logout
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </header>
+            )}
 
             {/* Main Content */}
             <main className="flex-grow w-full min-h-screen">

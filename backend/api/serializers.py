@@ -9,8 +9,10 @@ from .models import (
     DosingLog, AEReport, Document, Notification, ProgressReport,
     StudyActionRequest, DailyMedicationLog, AssignedForm, SponsorOrganization,
     StudyKit, QuestionnaireTemplate, StudyQuestionnaire, QuestionnaireScheduleInstance,
-    Technology, InnovationPageSettings, SponsorInquiry, TeamMember
+    Technology, InnovationPageSettings, SponsorInquiry, TeamMember,
+    StaffMember, Advisor, ClinicalCollaborator
 )
+
 from authentication.models import User, Invitation
 from authentication.security import decrypt_data
 from .utils.sanitizers import sanitize_html
@@ -1249,10 +1251,7 @@ class QuestionnaireScheduleInstanceBriefSerializer(SanitizedModelSerializer):
         return {'full_name': obj.participant.user.full_name if obj.participant and obj.participant.user else 'Subject'}
 
 
-class QuestionnaireScheduleInstanceSerializer(SanitizedModelSerializer):
-    class Meta:
-        model = QuestionnaireScheduleInstance
-        fields = '__all__'
+
 
 class TechnologySerializer(SanitizedModelSerializer):
     class Meta:
@@ -1260,9 +1259,46 @@ class TechnologySerializer(SanitizedModelSerializer):
         fields = '__all__'
 
 class TeamMemberSerializer(SanitizedModelSerializer):
+    def to_representation(self, instance):
+        ret = super().to_representation(instance)
+        if not ret.get('category'):
+            ret['category'] = 'leadership'
+        return ret
     class Meta:
         model = TeamMember
         fields = '__all__'
+
+class StaffMemberSerializer(SanitizedModelSerializer):
+    def to_representation(self, instance):
+        ret = super().to_representation(instance)
+        if not ret.get('category'):
+            ret['category'] = 'staff'
+        return ret
+    class Meta:
+        model = StaffMember
+        fields = '__all__'
+
+class AdvisorSerializer(SanitizedModelSerializer):
+    def to_representation(self, instance):
+        ret = super().to_representation(instance)
+        if not ret.get('category'):
+            ret['category'] = 'advisors'
+        return ret
+    class Meta:
+        model = Advisor
+        fields = '__all__'
+
+class ClinicalCollaboratorSerializer(SanitizedModelSerializer):
+    def to_representation(self, instance):
+        ret = super().to_representation(instance)
+        if not ret.get('category'):
+            ret['category'] = 'collaborators'
+        return ret
+    class Meta:
+        model = ClinicalCollaborator
+        fields = '__all__'
+
+
 
 class InnovationPageSettingsSerializer(SanitizedModelSerializer):
     class Meta:

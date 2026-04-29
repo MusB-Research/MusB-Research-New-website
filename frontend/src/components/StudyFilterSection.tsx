@@ -9,28 +9,42 @@ import { Condition } from '../types';
 export default function StudyFilterSection() {
     const [selectedCondition, setSelectedCondition] = useState<Condition | 'All'>('All');
     const [selectedType, setSelectedType] = useState<'All' | 'Paid Studies' | 'Free Testing'>('All');
+    const [selectedStatus, setSelectedStatus] = useState<'All' | 'Currently Recruiting' | 'Completed Studies'>('All');
     const [studies, setStudies] = useState<Study[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [dynamicConditions, setDynamicConditions] = useState<string[]>([]);
+
     useEffect(() => {
         setIsLoading(true);
         fetchStudies().then((data) => {
             let filtered: any[] = data;
+            
+            // Filter by Condition
             if (selectedCondition !== 'All') {
                 const normalizeCondition = (c: string) => (c || '').toLowerCase().replace(/['’]/g, '');
                 filtered = filtered.filter(s => normalizeCondition(s.condition) === normalizeCondition(selectedCondition));
             }
+            
+            // Filter by Type
             if (selectedType === 'Paid Studies') {
                 filtered = filtered.filter(s => s.is_paid);
             } else if (selectedType === 'Free Testing') {
                 filtered = filtered.filter(s => s.is_free_testing);
             }
+
+            // Filter by Status
+            if (selectedStatus === 'Currently Recruiting') {
+                filtered = filtered.filter(s => s.status === 'Recruiting');
+            } else if (selectedStatus === 'Completed Studies') {
+                filtered = filtered.filter(s => s.status === 'Completed');
+            }
+
             setStudies(filtered as any[]);
             const cats = Array.from(new Set(data.map(s => s.condition).filter(Boolean)));
             setDynamicConditions(cats);
             setIsLoading(false);
         });
-    }, [selectedCondition, selectedType]);
+    }, [selectedCondition, selectedType, selectedStatus]);
 
 
     const displayedStudies = studies.slice(0, 3); // Display 3 trials as requested
@@ -41,46 +55,60 @@ export default function StudyFilterSection() {
             <div className="absolute top-0 right-0 w-1/3 h-full bg-gradient-to-l from-white/5 via-transparent to-transparent pointer-events-none"></div>
 
             <div className="max-w-[1700px] mx-auto px-4 md:px-12 relative z-10">
-                <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-12 mb-16">
-                    <div className="space-y-6 max-w-2xl">
-                        <h2 className="text-5xl md:text-6xl font-black text-white tracking-tight leading-tight">
-                            Ongoing Clinical Study
-                        </h2>
-                        <p className="text-xl text-slate-400 font-medium">
-                            Explore ongoing clinical research studies and see if you qualify to participate.
-                        </p>
-                    </div>
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8 mb-6">
+                    <h2 className="text-5xl md:text-6xl font-black text-white tracking-tight leading-tight md:whitespace-nowrap">
+                        {selectedStatus === 'Completed Studies' ? 'Completed Clinical Studies' : 'Ongoing Clinical Studies'}
+                    </h2>
 
-                    {/* Filter Bar */}
-                    <div className="flex flex-wrap items-center gap-6 p-4 bg-white/5 backdrop-blur-xl rounded-3xl shadow-xl border border-white/10">
+                    {/* Filter Bar Row */}
+                    <div className="flex flex-wrap items-center gap-3 p-2 bg-white/5 backdrop-blur-xl rounded-[2rem] shadow-2xl border border-white/10">
                         <div className="relative group">
                             <select
                                 value={selectedCondition}
                                 onChange={(e) => setSelectedCondition(e.target.value as any)}
-                                className="appearance-none bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl px-6 py-4 pr-12 text-slate-200 font-bold focus:ring-2 focus:ring-cyan-500 cursor-pointer outline-none transition-all w-full md:w-64"
+                                className="appearance-none bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl px-4 py-3 pr-10 text-slate-200 font-bold focus:ring-2 focus:ring-cyan-500 cursor-pointer outline-none transition-all w-full md:w-44 text-sm"
                             >
                                 <option value="All" className="bg-slate-900 text-white">All Conditions</option>
                                 {dynamicConditions.map(c => (
                                     <option key={c} value={c} className="bg-slate-900 text-white">{c}</option>
                                 ))}
                             </select>
-                            <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500 pointer-events-none group-hover:text-cyan-400 transition-colors" />
+                            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none group-hover:text-cyan-400 transition-colors" />
                         </div>
 
                         <div className="relative group">
                             <select
                                 value={selectedType}
                                 onChange={(e) => setSelectedType(e.target.value as any)}
-                                className="appearance-none bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl px-6 py-4 pr-12 text-slate-200 font-bold focus:ring-2 focus:ring-cyan-500 cursor-pointer outline-none transition-all w-full md:w-64"
+                                className="appearance-none bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl px-4 py-3 pr-10 text-slate-200 font-bold focus:ring-2 focus:ring-cyan-500 cursor-pointer outline-none transition-all w-full md:w-44 text-sm"
                             >
                                 <option value="All" className="bg-slate-900 text-white">All Study Types</option>
                                 <option value="Paid Studies" className="bg-slate-900 text-white">Paid Studies</option>
                                 <option value="Free Testing" className="bg-slate-900 text-white">Free Testing</option>
                             </select>
-                            <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500 pointer-events-none group-hover:text-cyan-400 transition-colors" />
+                            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none group-hover:text-cyan-400 transition-colors" />
+                        </div>
+
+                        <div className="relative group">
+                            <select
+                                value={selectedStatus}
+                                onChange={(e) => setSelectedStatus(e.target.value as any)}
+                                className="appearance-none bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl px-4 py-3 pr-10 text-slate-200 font-bold focus:ring-2 focus:ring-cyan-500 cursor-pointer outline-none transition-all w-full md:w-44 text-sm"
+                            >
+                                <option value="All" className="bg-slate-900 text-white">All Status</option>
+                                <option value="Currently Recruiting" className="bg-slate-900 text-white">Currently Recruiting</option>
+                                <option value="Completed Studies" className="bg-slate-900 text-white">Completed Studies</option>
+                            </select>
+                            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none group-hover:text-cyan-400 transition-colors" />
                         </div>
                     </div>
                 </div>
+
+                <p className="text-xl text-slate-400 font-medium mb-16 max-w-3xl">
+                    {selectedStatus === 'Completed Studies' 
+                        ? 'Browse our past research and historical clinical study data.' 
+                        : 'Explore ongoing clinical research studies and see if you qualify to participate.'}
+                </p>
 
                 {/* Study Cards Grid */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-8 mb-16 min-h-[400px]">

@@ -138,6 +138,7 @@ DATABASES = {
     }
 }
 
+
 CACHES = {
     'default': {
         'BACKEND': 'django_redis.cache.RedisCache',
@@ -183,7 +184,12 @@ CELERY_BEAT_SCHEDULE = {
 
 # Silence AutoField checks for built-in Django apps (admin, auth, contenttypes)
 # that hardcode AutoField. The MongoDB backend handles these at runtime.
-SILENCED_SYSTEM_CHECKS = ['mongodb.E001']
+# Silence common MongoDB and Django 6.x compatibility warnings
+SILENCED_SYSTEM_CHECKS = [
+    'mongodb.E001', # AutoField check
+    'auth.W004',    # Permission model id check
+    'fields.W342',   # JSONField default check for MongoDB
+]
 
 
 # Password validation
@@ -374,3 +380,9 @@ REST_FRAMEWORK = {
 
 # Essential for HttpOnly cookies (Consolidated)
 CORS_ALLOW_CREDENTIALS = True
+
+# Suppress non-critical third-party warnings in terminal
+import warnings
+warnings.filterwarnings('ignore', category=DeprecationWarning, module='mongodb')
+warnings.filterwarnings('ignore', category=DeprecationWarning, module='django_mongodb_backend')
+warnings.filterwarnings('ignore', category=RuntimeWarning, module='django.db.models.fields')

@@ -23,8 +23,7 @@ const slides = [
             "Community-based clinical trials and translational research under one umbrella"
         ],
         primaryCTA: "Find a Clinical Study",
-        secondaryCTA: "Work With Us (Sponsors & Partners)",
-        image: "/hero-1.png"
+        secondaryCTA: "Work With Us (Sponsors & Partners)"
     },
     {
         id: 2,
@@ -35,8 +34,7 @@ const slides = [
             "Bridging the gap between clinical excellence and commercial success"
         ],
         primaryCTA: "Our Research",
-        secondaryCTA: "Partner With Us",
-        image: "/hero-2.png"
+        secondaryCTA: "Partner With Us"
     }
 ];
 
@@ -1484,18 +1482,6 @@ export default function Home() {
                                     className={`absolute inset-0 transition-all duration-1000 ease-in-out ${isActive ? 'opacity-100 z-10' : 'opacity-0 z-0'
                                         }`}
                                 >
-                                    {/* Background Image with Overlay */}
-                                    <div className="absolute inset-0 z-0">
-                                        <img
-                                            src={slide.image}
-                                            alt=""
-                                            loading="lazy"
-                                            className={`w-full h-full object-cover transition-transform duration-[10000ms] ease-linear ${isActive ? 'scale-110' : 'scale-100'}`}
-                                        />
-                                        <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-[2px]"></div>
-                                        <div className="absolute inset-0 bg-gradient-to-b from-slate-950/40 via-transparent to-slate-950/80"></div>
-                                    </div>
-
                                     <div className={`relative z-10 h-full max-w-[1800px] mx-auto px-6 md:px-12 w-full flex flex-col items-center justify-start lg:justify-center pt-36 pb-48 md:pt-48 lg:pt-32 md:pb-12 transform transition-all duration-1000 ${isActive ? 'scale-100 -translate-y-6 md:-translate-y-8 lg:-translate-y-12' : 'scale-95 translate-y-12'}`}>
 
 
@@ -1774,13 +1760,8 @@ export default function Home() {
                                 <div className="relative animate-fade-in-up stagger-1 h-[500px] rounded-[4rem] overflow-hidden group">
                                     <div className="absolute inset-0 bg-gradient-to-tr from-cyan-500/30 to-cyan-500/30 blur-[80px] z-0"></div>
                                     <div className="relative w-full h-full bg-white/5 backdrop-blur-xl border border-white/10 rounded-[4rem] p-4 overflow-hidden shadow-2xl z-10 transition-all duration-700">
-                                        <div className="w-full h-full rounded-[3.5rem] overflow-hidden relative">
-                                            <img
-                                                src="/why-choose-us.webp"
-                                                alt="MUSB Research Innovation"
-                                                className="w-full h-full object-cover opacity-60 group-hover:opacity-100 group-hover:scale-110 animate-slow-zoom transition-all duration-1000 ease-out"
-                                            />
-                                            <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-transparent opacity-80 group-hover:opacity-40 transition-opacity duration-700"></div>
+                                        <div className="w-full h-full rounded-[3.5rem] overflow-hidden relative bg-gradient-to-br from-cyan-500/20 to-transparent">
+                                            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(6,182,212,0.15)_0%,transparent_70%)] animate-pulse"></div>
                                         </div>
                                         <div className="absolute inset-x-8 bottom-8 p-10 rounded-3xl bg-slate-950/80 backdrop-blur-md border border-white/10 space-y-3 transform group-hover:-translate-y-2 transition-transform duration-700 z-20">
                                             <h4 className="text-white font-black text-xl md:text-2xl uppercase tracking-wider">Mission-Driven Innovation</h4>
@@ -1896,13 +1877,8 @@ export default function Home() {
 
                             <div className="relative group h-full">
                                 <div className="absolute -inset-4 bg-gradient-to-tr from-cyan-500/20 to-cyan-500/20 blur-3xl opacity-50 group-hover:opacity-75 transition-opacity"></div>
-                                <div className="relative aspect-square rounded-[4rem] bg-cyan-500/5 border border-white/10 overflow-hidden flex items-center justify-center">
-                                    <img
-                                        src="/facilities-infrastructure.webp"
-                                        alt="MUSB Research Facilities"
-                                        className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-100 group-hover:scale-110 animate-slow-zoom transition-all duration-1000 ease-out"
-                                    />
-                                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent opacity-60 group-hover:opacity-40 transition-opacity duration-700"></div>
+                                <div className="relative aspect-square rounded-[4rem] bg-cyan-500/5 border border-white/10 overflow-hidden flex items-center justify-center bg-gradient-to-br from-cyan-500/10 to-transparent">
+                                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(6,182,212,0.1)_0%,transparent_70%)] animate-pulse"></div>
                                     <div className="absolute bottom-12 left-12 right-12 p-8 glass-dark rounded-3xl border border-white/10 backdrop-blur-md transform group-hover:-translate-y-2 transition-transform duration-700 z-10">
                                         <p className="text-slate-300 italic text-sm">"Our facility is more than just a lab; it's a hub of clinical innovation designed with participant care at its core."</p>
                                     </div>

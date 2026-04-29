@@ -12,8 +12,10 @@ from .models import (
     DosingLog, AEReport, Document, Notification, ProgressReport,
     StudyActionRequest, DailyMedicationLog, AssignedForm, SponsorOrganization,
     StudyKit, QuestionnaireTemplate, StudyQuestionnaire, QuestionnaireScheduleInstance,
-    Technology, InnovationPageSettings, SponsorInquiry, TeamMember
+    Technology, InnovationPageSettings, SponsorInquiry, TeamMember,
+    StaffMember, Advisor, ClinicalCollaborator
 )
+
 import logging
 
 logger = logging.getLogger(__name__)
@@ -37,8 +39,10 @@ from .serializers import (
     PublicStudySerializer, StudyKitSerializer, QuestionnaireTemplateSerializer, QuestionnaireTemplateBriefSerializer, StudyQuestionnaireSerializer,
     QuestionnaireScheduleInstanceSerializer, QuestionnaireScheduleInstanceBriefSerializer,
     TechnologySerializer, InnovationPageSettingsSerializer, SponsorInquirySerializer, InvitationSerializer,
-    TeamMemberSerializer
+    TeamMemberSerializer, StaffMemberSerializer, AdvisorSerializer,
+    ClinicalCollaboratorSerializer
 )
+
 from authentication.models import User, AuditLog, Invitation
 from django.db.models import Q, Count, Case, When, IntegerField, FloatField, Avg
 from django.utils import timezone
@@ -2878,7 +2882,14 @@ class BookletDownloadRequestCreateView(APIView):
     def post(self, request):
         serializer = BookletDownloadRequestSerializer(data=request.data)
         if serializer.is_valid():
-            serializer.save()
+            instance = serializer.save()
+            # Trigger Email Notification via Resend
+            try:
+                from .utils.resend_utils import send_booklet_request_email
+                send_booklet_request_email(instance.id)
+            except Exception as e:
+                logger.error(f"Failed to trigger booklet request email: {e}")
+            
             return Response({"status": "success", "message": "Download request logged."}, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -3741,20 +3752,65 @@ class TeamMemberViewSet(viewsets.ModelViewSet):
             return [permissions.AllowAny()]
         return [permissions.IsAuthenticated()]
 
-    def get_queryset(self):
-        queryset = TeamMember.objects.all().order_by('display_order', 'created_at')
-        category = self.request.query_params.get('category')
-        status_filter = self.request.query_params.get('status')
-
+    def list(self, request, *args, **kwargs):
+        """Aggregate team members from TeamMember, StaffMember, Advisor, and ClinicalCollaborator models."""
+        category = request.query_params.get('category')
+        status_filter = request.query_params.get('status')
+        
+        # 1. Fetch from all collections
+        tm_qs = TeamMember.objects.all()
+        sm_qs = StaffMember.objects.all()
+        ad_qs = Advisor.objects.all()
+        cc_qs = ClinicalCollaborator.objects.all()
+        
+        # 2. Apply filters to each
         if category:
-            queryset = queryset.filter(category=category)
+            tm_qs = tm_qs.filter(category=category)
+            sm_qs = sm_qs.filter(category=category)
+            ad_qs = ad_qs.filter(category=category)
+            cc_qs = cc_qs.filter(category=category)
         if status_filter:
-            queryset = queryset.filter(status=status_filter)
+            tm_qs = tm_qs.filter(status=status_filter)
+            sm_qs = sm_qs.filter(status=status_filter)
+            ad_qs = ad_qs.filter(status=status_filter)
+            cc_qs = cc_qs.filter(status=status_filter)
+            
+        # 3. RBAC filter (unless super admin, only show active)
+        user = request.user
+        is_admin = user.is_authenticated and (user.role or '').upper() in ['SUPER_ADMIN', 'ADMIN']
+        if not is_admin:
+            tm_qs = tm_qs.filter(status='Active')
+            sm_qs = sm_qs.filter(status='Active')
+            ad_qs = ad_qs.filter(status='Active')
+            cc_qs = cc_qs.filter(status='Active')
+            
+        # 4. Serialize all
+        tm_data = TeamMemberSerializer(tm_qs, many=True).data
+        sm_data = StaffMemberSerializer(sm_qs, many=True).data
+        ad_data = AdvisorSerializer(ad_qs, many=True).data
+        cc_data = ClinicalCollaboratorSerializer(cc_qs, many=True).data
 
-        user = self.request.user
-        if user.is_authenticated and (user.role or '').upper() in ['SUPER_ADMIN', 'ADMIN']:
-            return queryset
-        return queryset.filter(status='Active')
+        
+        # 5. Combine and Sort
+        combined = tm_data + sm_data + ad_data + cc_data
+        # Sort by display_order, then created_at (if available)
+        combined.sort(key=lambda x: (x.get('display_order') or 0, x.get('created_at') or ''))
+        
+        return Response(combined)
+
+    def get_object(self):
+        """Search for the object across all four team models."""
+        pk = self.kwargs.get('pk')
+        for model in [TeamMember, StaffMember, Advisor, ClinicalCollaborator]:
+            try:
+                obj = model.objects.get(pk=pk)
+                # Ensure we use the correct model for later operations
+                self.model_class = model
+                return obj
+            except (model.DoesNotExist, ValueError):
+                continue
+        from django.http import Http404
+        raise Http404
 
     def _assert_can_manage(self):
         role = (self.request.user.role or '').upper()
@@ -3763,15 +3819,45 @@ class TeamMemberViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         self._assert_can_manage()
-        serializer.save()
+        category = self.request.data.get('category', 'staff')
+        
+        try:
+            # Route to the correct collection based on category
+            if category == 'staff':
+                serializer.instance = StaffMember.objects.create(**serializer.validated_data)
+            elif category == 'advisors':
+                serializer.instance = Advisor.objects.create(**serializer.validated_data)
+            elif category == 'collaborators':
+                serializer.instance = ClinicalCollaborator.objects.create(**serializer.validated_data)
+            else:
+                # default to leadership or catch-all TeamMember
+                serializer.save()
+            logger.info(f"Successfully created team member in {category} collection: {serializer.instance.id if serializer.instance else 'N/A'}")
+        except Exception as e:
+            logger.exception(f"Error creating team member in {category} collection: {e}")
+            raise serializers.ValidationError({"detail": f"Database error during creation: {str(e)}"})
 
     def perform_update(self, serializer):
         self._assert_can_manage()
-        serializer.save()
+        try:
+            # The instance returned by get_object() is already from the correct collection
+            serializer.save()
+            logger.info(f"Successfully updated team member: {serializer.instance.id if serializer.instance else 'unknown'}")
+        except Exception as e:
+            logger.exception(f"Error updating team member: {e}")
+            raise serializers.ValidationError({"detail": f"Database error during update: {str(e)}"})
 
     def perform_destroy(self, instance):
         self._assert_can_manage()
-        instance.delete()
+        try:
+            member_id = getattr(instance, 'id', 'unknown')
+            instance.delete()
+            logger.info(f"Successfully deleted team member: {member_id}")
+        except Exception as e:
+            logger.exception(f"Error deleting team member: {e}")
+            raise serializers.ValidationError({"detail": f"Database error during deletion: {str(e)}"})
+
+
 
 class InnovationPageSettingsView(APIView):
     permission_classes = [permissions.AllowAny]
