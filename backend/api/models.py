@@ -1406,7 +1406,7 @@ class AbstractTeamMember(BaseMongoModel):
     areas_of_expertise = models.JSONField(default=list, blank=True)
     affiliations = models.JSONField(default=list, blank=True)
     publications = models.JSONField(default=list, blank=True)
-    image = models.CharField(max_length=512, blank=True, default='')
+    image = models.ImageField(upload_to='team/', null=True, blank=True)
     linkedin_url = models.CharField(max_length=512, blank=True, default='')
     system_role = models.CharField(max_length=50, blank=True, default='')
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Active')

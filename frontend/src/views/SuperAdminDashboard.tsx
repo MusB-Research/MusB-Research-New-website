@@ -718,7 +718,8 @@ export default function SuperAdminDashboard() {
     expanded_bio: '',
     expertise_tags: '',
     affiliations: '',
-    publications: ''
+    publications: '',
+    image: null
   });
   const [activities, setActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
@@ -997,28 +998,37 @@ export default function SuperAdminDashboard() {
     const maxOrder = currentMembers.reduce((max: number, m: any) => Math.max(max, m.display_order || 0), 0);
     const nextOrder = maxOrder + 1;
 
-    const formatted: any = {
-      ...newStaffData,
-      category,
-      status: 'Active',
-      display_order: nextOrder,
-      [category === 'advisors' || category === 'collaborators' ? 'advisory_role' : 'role']: newStaffData.role,
-      [category === 'advisors' || category === 'collaborators' ? 'expertise_area' : 'dept']: newStaffData.dept,
-      expertise_tags: newStaffData.expertise_tags ? newStaffData.expertise_tags.split(',').map((s: string) => s.trim()).filter(Boolean) : [],
-      affiliations: newStaffData.affiliations ? newStaffData.affiliations.split('\n').map((s: string) => s.trim()).filter(Boolean) : [],
-      publications: newStaffData.publications ? newStaffData.publications.split('\n').map((s: string) => s.trim()).filter(Boolean) : [],
-    };
+    const formData = new FormData();
+    formData.append('name', newStaffData.name);
+    formData.append('category', category);
+    formData.append('status', 'Active');
+    formData.append('display_order', nextOrder.toString());
     
-    // Clean up temporary fields ONLY if they were replaced by specialized advisor fields
-    if (category === 'advisors' || category === 'collaborators') {
-      delete formatted.role;
-      delete formatted.dept;
+    const roleKey = (category === 'advisors' || category === 'collaborators') ? 'advisory_role' : 'role';
+    const deptKey = (category === 'advisors' || category === 'collaborators') ? 'expertise_area' : 'dept';
+    
+    formData.append(roleKey, newStaffData.role);
+    formData.append(deptKey, newStaffData.dept);
+    formData.append('bio', newStaffData.bio);
+    formData.append('expanded_bio', newStaffData.expanded_bio);
+    
+    const tags = newStaffData.expertise_tags ? newStaffData.expertise_tags.split(',').map((s: string) => s.trim()).filter(Boolean) : [];
+    const affs = newStaffData.affiliations ? newStaffData.affiliations.split('\n').map((s: string) => s.trim()).filter(Boolean) : [];
+    const pubs = newStaffData.publications ? newStaffData.publications.split('\n').map((s: string) => s.trim()).filter(Boolean) : [];
+    
+    formData.append('expertise_tags', JSON.stringify(tags));
+    formData.append('affiliations', JSON.stringify(affs));
+    formData.append('publications', JSON.stringify(pubs));
+    
+    if (newStaffData.image) {
+      formData.append('image', newStaffData.image);
     }
+
     try {
       const apiUrl = API || 'http://localhost:8000';
       const res = await authFetch(`${apiUrl}/api/team-members/`, {
         method: 'POST',
-        body: JSON.stringify(formatted)
+        body: formData
       });
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
@@ -2949,6 +2959,33 @@ export default function SuperAdminDashboard() {
                     </div>
                   </div>
 
+                  {/* IMAGE UPLOAD SECTION */}
+                  {editingStaff.category !== 'collaborators' && editingStaff.category !== 'staff' && (
+                    <div className="space-y-3">
+                      <label className="text-[11px] font-black text-[#555a7a] uppercase tracking-widest px-1 italic">Update Profile Image</label>
+                      <div className="flex items-center gap-6 p-6 bg-white/5 rounded-3xl border border-dashed border-white/10">
+                        <div className="w-20 h-20 rounded-2xl bg-white/5 flex items-center justify-center overflow-hidden border border-white/10 shrink-0">
+                          {editingStaff.newImage ? (
+                            <img src={URL.createObjectURL(editingStaff.newImage)} alt="Preview" className="w-full h-full object-cover" />
+                          ) : editingStaff.image ? (
+                            <img src={getMediaUrl(editingStaff.image)} alt="Current" className="w-full h-full object-cover" />
+                          ) : (
+                            <Users className="w-8 h-8 text-slate-700" />
+                          )}
+                        </div>
+                        <div className="space-y-2">
+                          <input 
+                            type="file" 
+                            accept="image/*"
+                            onChange={(e) => setEditingStaff({ ...editingStaff, newImage: e.target.files?.[0] })}
+                            className="text-xs text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-[10px] file:font-black file:uppercase file:bg-cyan-500/10 file:text-cyan-400 hover:file:bg-cyan-500/20 cursor-pointer"
+                          />
+                          <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Select a new photo to replace the current one.</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   {/* SCIENTIFIC PROFILE EXTENSIONS */}
                     <div className="space-y-8 pt-10 border-t border-white/5">
                       {editingStaff.category !== 'collaborators' && (
@@ -3064,24 +3101,26 @@ export default function SuperAdminDashboard() {
                       // 2. Persist to Backend Directory
                       try {
                         const directoryId = editingStaff.directoryId || editingStaff.id;
-                        const payload = {
-                          name: updatedName,
-                          role: updatedDesignation,
-                          advisory_role: updatedDesignation,
-                          dept: updatedDept,
-                          expertise_area: updatedDept,
-                          bio: updatedBio,
-                          expanded_bio: updatedExpandedBio,
-                          expertise_tags: updatedTags,
-                          affiliations: updatedAffiliations,
-                          publications: updatedPublications,
-                          system_role: updatedRole
-                        };
+                        const formData = new FormData();
+                        formData.append('name', updatedName);
+                        formData.append('role', updatedDesignation);
+                        formData.append('advisory_role', updatedDesignation);
+                        formData.append('dept', updatedDept);
+                        formData.append('expertise_area', updatedDept);
+                        formData.append('bio', updatedBio);
+                        formData.append('expanded_bio', updatedExpandedBio);
+                        formData.append('expertise_tags', JSON.stringify(updatedTags));
+                        formData.append('affiliations', JSON.stringify(updatedAffiliations));
+                        formData.append('publications', JSON.stringify(updatedPublications));
+                        formData.append('system_role', updatedRole);
+                        
+                        if (editingStaff.newImage) {
+                          formData.append('image', editingStaff.newImage);
+                        }
 
                         const response = await authFetch(`${API}/api/team-members/${directoryId}/`, {
                           method: 'PATCH',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify(payload)
+                          body: formData
                         });
 
                         if (!response.ok) {
@@ -3256,6 +3295,31 @@ export default function SuperAdminDashboard() {
                     {...extensionProps}
                   />
                 </div>
+
+                {/* IMAGE UPLOAD SECTION */}
+                {addingStaffCategory !== 'collaborators' && addingStaffCategory !== 'staff' && (
+                  <div className="space-y-4">
+                    <label className="block text-[11px] font-black text-[#555a7a] uppercase tracking-widest italic">Profile Image</label>
+                    <div className="flex items-center gap-6 p-6 bg-white/5 rounded-3xl border border-dashed border-white/10">
+                      <div className="w-20 h-20 rounded-2xl bg-white/5 flex items-center justify-center overflow-hidden border border-white/10 shrink-0">
+                        {newStaffData.image ? (
+                          <img src={URL.createObjectURL(newStaffData.image)} alt="Preview" className="w-full h-full object-cover" />
+                        ) : (
+                          <Users className="w-8 h-8 text-slate-700" />
+                        )}
+                      </div>
+                      <div className="space-y-2">
+                        <input 
+                          type="file" 
+                          accept="image/*"
+                          onChange={(e) => setNewStaffData({...newStaffData, image: e.target.files?.[0]})}
+                          className="text-xs text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-[10px] file:font-black file:uppercase file:bg-cyan-500/10 file:text-cyan-400 hover:file:bg-cyan-500/20 cursor-pointer"
+                        />
+                        <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">JPG, PNG or WEBP. Max 2MB recommended.</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 <div className="space-y-6">
                   {addingStaffCategory !== 'collaborators' && (

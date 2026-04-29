@@ -1300,6 +1300,12 @@ class TechnologySerializer(SanitizedModelSerializer):
         fields = '__all__'
 
 class TeamMemberSerializer(SanitizedModelSerializer):
+    image_url = serializers.SerializerMethodField()
+    def get_image_url(self, obj):
+        if not obj.image: return None
+        request = self.context.get('request')
+        if request: return request.build_absolute_uri(obj.image.url)
+        return obj.image.url
     def to_representation(self, instance):
         ret = super().to_representation(instance)
         if not ret.get('category'):
@@ -1310,6 +1316,12 @@ class TeamMemberSerializer(SanitizedModelSerializer):
         fields = '__all__'
 
 class StaffMemberSerializer(SanitizedModelSerializer):
+    image_url = serializers.SerializerMethodField()
+    def get_image_url(self, obj):
+        if not obj.image: return None
+        request = self.context.get('request')
+        if request: return request.build_absolute_uri(obj.image.url)
+        return obj.image.url
     def to_representation(self, instance):
         ret = super().to_representation(instance)
         if not ret.get('category'):
@@ -1320,6 +1332,12 @@ class StaffMemberSerializer(SanitizedModelSerializer):
         fields = '__all__'
 
 class AdvisorSerializer(SanitizedModelSerializer):
+    image_url = serializers.SerializerMethodField()
+    def get_image_url(self, obj):
+        if not obj.image: return None
+        request = self.context.get('request')
+        if request: return request.build_absolute_uri(obj.image.url)
+        return obj.image.url
     def to_representation(self, instance):
         ret = super().to_representation(instance)
         if not ret.get('category'):
@@ -1330,6 +1348,12 @@ class AdvisorSerializer(SanitizedModelSerializer):
         fields = '__all__'
 
 class ClinicalCollaboratorSerializer(SanitizedModelSerializer):
+    image_url = serializers.SerializerMethodField()
+    def get_image_url(self, obj):
+        if not obj.image: return None
+        request = self.context.get('request')
+        if request: return request.build_absolute_uri(obj.image.url)
+        return obj.image.url
     def to_representation(self, instance):
         ret = super().to_representation(instance)
         if not ret.get('category'):
