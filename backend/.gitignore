@@ -9,6 +9,9 @@ db.sqlite3
 db.sqlite3-journal
 media/
 !media/advisors/
+!media/team/
+!media/about/
+!media/news_images/
 staticfiles/
 
 # Environment variables
