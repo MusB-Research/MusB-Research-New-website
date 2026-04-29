@@ -2677,9 +2677,9 @@ export default function SuperAdminDashboard() {
                 <div className="relative -mt-12 mb-8 flex items-end gap-6">
                   <div className="w-24 h-24 rounded-3xl bg-[#0a0b1a] border-4 border-[#0d0e2b] flex items-center justify-center text-3xl font-black text-white italic shadow-2xl overflow-hidden relative">
                     <div className="absolute inset-0 bg-gradient-to-br from-[#7c3aed]/20 to-cyan-500/20" />
-                    {resolveImageUrl(selectedUser.image) ? (
+                    {getMediaUrl(selectedUser.image) ? (
                       <img 
-                        src={resolveImageUrl(selectedUser.image)!} 
+                        src={getMediaUrl(selectedUser.image)!} 
                         alt={selectedUser.name} 
                         className="w-full h-full object-cover relative z-10" 
                         onError={(e: any) => {

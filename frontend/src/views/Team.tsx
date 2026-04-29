@@ -177,7 +177,7 @@ const TeamMemberCard = ({ member }: { member: any }) => {
 
 const AdvisorCard = ({ advisor }: { advisor: any }) => {
     const [isOpen, setIsOpen] = useState(false);
-    const imageUrl = getImageUrl(advisor.image);
+    const imageUrl = getMediaUrl(advisor.image);
 
     return (
         <div className="group bg-white/5 backdrop-blur-xl rounded-[2.5rem] border-2 border-white/10 overflow-hidden hover:border-indigo-400/50 transition-all duration-500 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)] flex flex-col">
@@ -561,7 +561,7 @@ export default function Team() {
                                 <div className="w-20 h-20 mx-auto rounded-xl bg-gradient-to-br from-purple-500/20 to-pink-500/20 border-2 border-white/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-500 overflow-hidden">
                                     {collaborator.logo ? (
                                         <img 
-                                            src={getImageUrl(collaborator.logo) || collaborator.logo} 
+                                            src={getMediaUrl(collaborator.logo) || collaborator.logo} 
                                             alt={collaborator.name} 
                                             loading="lazy" 
                                             className="w-full h-full object-cover" 
