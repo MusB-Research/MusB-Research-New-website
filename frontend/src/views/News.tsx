@@ -82,6 +82,13 @@ const decodeEntities = (str: string): string => {
 
 
 
+const getYoutubeId = (url: string) => {
+    if (!url) return null;
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+    const match = url.match(regExp);
+    return (match && match[2].length === 11) ? match[2] : null;
+};
+
 export default function News() {
     const [activeCategory, setActiveCategory] = useState<NewsType | 'All'>('All');
     const [searchQuery, setSearchQuery] = useState('');
@@ -182,14 +189,18 @@ export default function News() {
             if (eduRes.ok) {
                 const eduData = await eduRes.json();
                 const eduArray = Array.isArray(eduData) ? eduData : (eduData.results || []);
-                combined = [...combined, ...eduArray.map((e: any) => ({
-                    ...e,
-                    type: 'Educational Material',
-                    title: decodeEntities(e.title || 'Untitled Material'),
-                    excerpt: stripToPlainText(e.content || e.description || e.summary || 'No description available.'),
-                    date: new Date(e.created_at || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-                    imageUrl: getMediaUrl(e.file_url || e.file || e.attachment)
-                }))];
+                combined = [...combined, ...eduArray.map((e: any) => {
+                    const ytId = getYoutubeId(e.youtube_url);
+                    return {
+                        ...e,
+                        type: 'Educational Material',
+                        title: decodeEntities(e.title || 'Untitled Material'),
+                        excerpt: stripToPlainText(e.content || e.description || e.summary || 'Educational video content available.'),
+                        date: new Date(e.created_at || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+                        imageUrl: ytId ? `https://img.youtube.com/vi/${ytId}/maxresdefault.jpg` : getMediaUrl(e.file_url || e.file || e.attachment),
+                        youtubeId: ytId
+                    };
+                })];
             }
 
             // If we got real data, use it; otherwise fallback to hardcoded
@@ -444,12 +455,23 @@ export default function News() {
                                                 return (
                                                     <div key={item.id} className={`group bg-white/5 border border-white/5 rounded-[2.5rem] overflow-hidden flex flex-col hover:bg-white/10 hover:border-white/10 ${accent.border} transition-all duration-300 shadow-xl`}>
                                                         <div className="aspect-[16/10] overflow-hidden relative">
-                                                            <img 
-                                                                src={getMediaUrl(item.imageUrl)} 
-                                                                onError={handleImageError}
-                                                                alt={item.title} 
-                                                                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-                                                            />
+                                                            {item.youtubeId ? (
+                                                                <iframe
+                                                                    className="w-full h-full"
+                                                                    src={`https://www.youtube.com/embed/${item.youtubeId}`}
+                                                                    title={item.title}
+                                                                    frameBorder="0"
+                                                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                                                    allowFullScreen
+                                                                ></iframe>
+                                                            ) : (
+                                                                <img 
+                                                                    src={getMediaUrl(item.imageUrl)} 
+                                                                    onError={handleImageError}
+                                                                    alt={item.title} 
+                                                                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                                                                />
+                                                            )}
                                                             <div className="absolute top-4 left-4">
                                                                 <span className={`flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-950/80 backdrop-blur-md text-[12px] font-black uppercase tracking-widest border border-white/10 ${accent.badge}`}>
                                                                     <Icon className="w-3 h-3" />

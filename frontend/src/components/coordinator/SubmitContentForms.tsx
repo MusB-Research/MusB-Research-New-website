@@ -276,6 +276,7 @@ export default function SubmitContentForms({ userRole }: { userRole: string }) {
         abstract: '',
         category: '',
         file: null as File | null,
+        youtube_url: '',
     });
 
     const isSuperAdmin = ['SUPER_ADMIN', 'ADMIN'].includes(userRole);
@@ -313,10 +314,9 @@ export default function SubmitContentForms({ userRole }: { userRole: string }) {
                 if (formData.abstract) body.append('abstract', formData.abstract);
             } else if (activeForm === 'education') {
                 body.append('title', formData.title);
-                body.append('content', formData.description);
+                body.append('content', formData.description || formData.title);
                 body.append('category', formData.category);
-                if (formData.file) body.append('file', formData.file);
-                if (formData.link) body.append('link', formData.link);
+                if (formData.youtube_url) body.append('youtube_url', formData.youtube_url);
             }
 
             const endpointMap: Record<string, string> = {
@@ -329,7 +329,7 @@ export default function SubmitContentForms({ userRole }: { userRole: string }) {
                 setFormData({
                     title: '', description: '', image: null, is_success_story: false, event_date: '',
                     name: '', link: '', authors: '', journal: '', publication_date: '', abstract: '',
-                    category: '', file: null,
+                    category: '', file: null, youtube_url: '',
                 });
             } else {
                 const errJson = await res.json().catch(() => null);
@@ -472,47 +472,47 @@ export default function SubmitContentForms({ userRole }: { userRole: string }) {
                                             placeholder="e.g., Patient Guide" />
                                     </div>
                                     <div className="col-span-1 space-y-2">
-                                        <label className="text-xs font-bold text-purple-400 uppercase tracking-wider">File</label>
-                                        <label className="relative flex flex-col items-center justify-center w-full h-32 bg-white/5 border-2 border-dashed border-white/10 rounded-xl cursor-pointer hover:border-purple-500/50 transition-all group">
-                                            <FileText className="w-8 h-8 mb-2 text-slate-500 group-hover:text-purple-400 transition-colors" />
-                                            <p className="text-xs font-bold text-slate-500 uppercase tracking-wider group-hover:text-white">
-                                                {formData.file ? `✓ ${formData.file.name}` : 'Click to upload'}
-                                            </p>
-                                            <input type="file" className="hidden"
-                                                onChange={e => { const f = e.target.files?.[0]; if (f) set({ file: f }); }} />
-                                        </label>
+                                        <label className="text-xs font-bold text-red-500 uppercase tracking-wider">YouTube Link</label>
+                                        <input required type="url" value={formData.youtube_url}
+                                            onChange={e => set({ youtube_url: e.target.value })}
+                                            className="w-full bg-white/5 border border-white/10 rounded-xl px-6 py-4 text-base text-white font-bold outline-none focus:border-red-500/50"
+                                            placeholder="https://www.youtube.com/watch?v=..." />
                                     </div>
                                 </>
                             )}
                         </div>
 
-                        {/* ── Link Field (ALL forms) ── */}
-                        <div className="space-y-2">
-                            <label className="text-xs font-bold text-cyan-400 uppercase tracking-wider flex items-center gap-2">
-                                <LinkIcon className="w-4 h-4" /> Link (Optional)
-                            </label>
-                            <input
-                                type="url"
-                                value={formData.link}
-                                onChange={e => set({ link: e.target.value })}
-                                className="w-full bg-white/5 border border-white/10 rounded-xl px-6 py-4 text-base text-white font-medium outline-none focus:border-cyan-500/50 transition-all placeholder:text-slate-700"
-                                placeholder="https://example.com"
-                            />
-                            {/* Live clickable preview */}
-                            <LinkPreview url={formData.link} />
-                        </div>
+                        {/* ── Link Field (ALL forms except education) ── */}
+                        {activeForm !== 'education' && (
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold text-cyan-400 uppercase tracking-wider flex items-center gap-2">
+                                    <LinkIcon className="w-4 h-4" /> Link (Optional)
+                                </label>
+                                <input
+                                    type="url"
+                                    value={formData.link}
+                                    onChange={e => set({ link: e.target.value })}
+                                    className="w-full bg-white/5 border border-white/10 rounded-xl px-6 py-4 text-base text-white font-medium outline-none focus:border-cyan-500/50 transition-all placeholder:text-slate-700"
+                                    placeholder="https://example.com"
+                                />
+                                {/* Live clickable preview */}
+                                <LinkPreview url={formData.link} />
+                            </div>
+                        )}
 
                         {/* ── Rich Text Content ── */}
-                        <div className="space-y-2">
-                            <label className="text-xs font-bold text-[#555a7a] uppercase tracking-wider flex items-center gap-2">
-                                <ShieldCheck className="w-4 h-4 text-purple-400" /> Content
-                            </label>
-                            <RichTextEditor
-                                value={formData.description}
-                                onChange={html => set({ description: html })}
-                                placeholder={`Enter detailed content for the ${activeForm}…`}
-                            />
-                        </div>
+                        {activeForm !== 'education' && (
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold text-[#555a7a] uppercase tracking-wider flex items-center gap-2">
+                                    <ShieldCheck className="w-4 h-4 text-purple-400" /> Content
+                                </label>
+                                <RichTextEditor
+                                    value={formData.description}
+                                    onChange={html => set({ description: html })}
+                                    placeholder={`Enter detailed content for the ${activeForm}…`}
+                                />
+                            </div>
+                        )}
 
                         {/* News: Success Story Toggle */}
                         {activeForm === 'news' && (

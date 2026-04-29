@@ -101,6 +101,8 @@ export interface NewsItem {
     location?: string;
     registrationLink?: string;
     tags?: string[];
+    youtube_url?: string;
+    youtubeId?: string;
 }
 
 export interface CareerCategory {

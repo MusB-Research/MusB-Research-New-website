@@ -1470,9 +1470,10 @@ class Publication(BaseMongoModel):
 
 class EducationMaterial(BaseMongoModel):
     title = models.CharField(max_length=255)
-    content = models.TextField()
+    content = models.TextField(blank=True, null=True)
     category = models.CharField(max_length=100, blank=True)
     file = models.FileField(upload_to='education_materials/', blank=True, null=True)
+    youtube_url = models.URLField(blank=True, null=True)
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='authored_education')
     status = models.CharField(max_length=20, choices=[
         ('pending', 'Pending'),

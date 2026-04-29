@@ -13,6 +13,13 @@ function decodeEntities(str: string): string {
     return txt.value;
 }
 
+const getYoutubeId = (url: string) => {
+    if (!url) return null;
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+    const match = url.match(regExp);
+    return (match && match[2].length === 11) ? match[2] : null;
+};
+
 /**
  * Render rich content:
  * - If it contains HTML tags → render as HTML (dangerouslySetInnerHTML)
@@ -160,8 +167,19 @@ export default function NewsDetail() {
                         {title}
                     </h1>
 
-                    {/* Cover image */}
-                    {item.image_url && (
+                    {/* Cover image or YouTube video */}
+                    {getYoutubeId(item.youtube_url) ? (
+                        <div className="rounded-2xl overflow-hidden border border-white/10 aspect-video">
+                            <iframe
+                                className="w-full h-full"
+                                src={`https://www.youtube.com/embed/${getYoutubeId(item.youtube_url)}`}
+                                title={title}
+                                frameBorder="0"
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                allowFullScreen
+                            ></iframe>
+                        </div>
+                    ) : item.image_url && (
                         <div className="rounded-2xl overflow-hidden border border-white/10">
                             <img
                                 src={getMediaUrl(item.image_url || item.image)}
