@@ -11,6 +11,31 @@ export default function InformedConsentWorkflow({ participant }: InformedConsent
     const [coordinatorSubTab, setCoordinatorSubTab] = useState<'Pending co-sign' | 'Paper consent upload' | 'Consent archive' | 'AI Consent Builder'>('AI Consent Builder');
     const [participantSubTab, setParticipantSubTab] = useState<'E-consent flow' | 'Minor / LAR flow' | 'After signing'>('Minor / LAR flow');
     
+    // AI Builder States
+    const [isExtracting, setIsExtracting] = useState(false);
+    const [extractedText, setExtractedText] = useState('');
+    const [showSmartImportModal, setShowSmartImportModal] = useState(false);
+    const [smartImportText, setSmartImportText] = useState('');
+    const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        
+        setIsExtracting(true);
+        // Simulate extraction
+        setTimeout(() => {
+            setExtractedText(`Extracted content from ${file.name}...\n\nSection 1: Study Purpose\nThis study aims to evaluate...`);
+            setIsExtracting(false);
+        }, 2000);
+    };
+
+    const handleSmartImport = () => {
+        setExtractedText(smartImportText);
+        setShowSmartImportModal(false);
+        setSmartImportText('');
+    };
+
     const studyName = participant.study_name || 'Beat the Bloat Study';
     const participantName = participant.display_name || 'Subject';
     const participantInitials = participantName.split(' ').map((n: string) => n[0]).join('').slice(0, 2) || 'S';
@@ -191,8 +216,8 @@ export default function InformedConsentWorkflow({ participant }: InformedConsent
                     </div>
 
                     <div className="col-span-8">
-                        <div className="bg-[#121212] border border-white/10 rounded-2xl p-6 h-full min-h-[300px] relative">
-                            {!extractedText ? (
+                        <div className="bg-[#121212] border border-white/10 rounded-2xl p-6 h-full min-h-[400px] relative">
+                            {!extractedText && !isExtracting ? (
                                 <div className="flex flex-col items-center justify-center h-full text-center opacity-30">
                                     <FileText className="w-12 h-12 mb-4" />
                                     <p className="text-sm font-bold uppercase tracking-widest">Extracted text will appear here</p>
@@ -200,32 +225,72 @@ export default function InformedConsentWorkflow({ participant }: InformedConsent
                             ) : (
                                 <div className="h-full flex flex-col">
                                     <div className="flex items-center justify-between mb-4">
-                                        <h4 className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">Extracted Content Preview</h4>
-                                        <div className="flex items-center gap-1 bg-white/5 border border-white/10 rounded-lg p-1">
-                                            <button className="p-1.5 hover:bg-white/10 rounded text-slate-400 hover:text-white transition-colors"><Bold className="w-3.5 h-3.5" /></button>
-                                            <button className="p-1.5 hover:bg-white/10 rounded text-slate-400 hover:text-white transition-colors"><Italic className="w-3.5 h-3.5" /></button>
-                                            <button className="p-1.5 hover:bg-white/10 rounded text-slate-400 hover:text-white transition-colors"><Underline className="w-3.5 h-3.5" /></button>
-                                            <div className="w-[1px] h-4 bg-white/10 mx-1" />
-                                            <button className="p-1.5 hover:bg-white/10 rounded text-slate-400 hover:text-white transition-colors"><Link className="w-3.5 h-3.5" /></button>
-                                            <button onClick={() => setExtractedText('')} className="p-1.5 hover:bg-white/10 rounded text-slate-400 hover:text-rose-400 transition-colors"><X className="w-3.5 h-3.5" /></button>
+                                        <h4 className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">
+                                            {isExtracting ? 'AI Analysis in Progress...' : 'Extracted Content & Field Mapping'}
+                                        </h4>
+                                        {!isExtracting && (
+                                            <div className="flex items-center gap-1">
+                                                <button onClick={() => setExtractedText('')} className="p-1.5 hover:bg-white/10 rounded text-slate-400 hover:text-rose-400 transition-colors"><X className="w-3.5 h-3.5" /></button>
+                                            </div>
+                                        )}
+                                    </div>
+                                    
+                                    {isExtracting ? (
+                                        <div className="flex-1 flex flex-col items-center justify-center space-y-6">
+                                            <div className="relative">
+                                                <div className="w-20 h-20 border-2 border-pink-500/20 rounded-full animate-ping absolute" />
+                                                <div className="w-20 h-20 border-t-2 border-pink-500 rounded-full animate-spin" />
+                                            </div>
+                                            <div className="space-y-2 text-center">
+                                                <p className="text-pink-500 font-black uppercase tracking-widest text-xs animate-pulse">Scanning Document Structure</p>
+                                                <p className="text-[10px] text-slate-500 uppercase tracking-widest">Identifying PII & Legal Clauses</p>
+                                            </div>
                                         </div>
-                                    </div>
-                                    <textarea
-                                        value={extractedText}
-                                        onChange={(e) => setExtractedText(e.target.value)}
-                                        className="flex-1 w-full bg-transparent text-slate-300 text-sm leading-relaxed outline-none border-none resize-none overflow-y-auto"
-                                    />
-                                    <div className="mt-6 flex justify-end gap-3">
-                                        <button 
-                                            onClick={() => setExtractedText('')}
-                                            className="px-6 py-2 text-xs font-bold text-slate-500 hover:text-white transition-colors"
-                                        >
-                                            Reset
-                                        </button>
-                                        <button className="px-8 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-xs font-bold transition-all shadow-lg shadow-emerald-500/20">
-                                            Send to Participant
-                                        </button>
-                                    </div>
+                                    ) : (
+                                        <>
+                                            <textarea
+                                                value={extractedText}
+                                                onChange={(e) => setExtractedText(e.target.value)}
+                                                className="flex-1 w-full bg-transparent text-slate-300 text-sm leading-relaxed outline-none border-none resize-none overflow-y-auto mb-4 p-2 bg-white/[0.02] rounded-lg"
+                                            />
+                                            
+                                            {/* Smart Mapping Visualization */}
+                                            <div className="grid grid-cols-2 gap-4 p-4 bg-emerald-500/5 border border-emerald-500/10 rounded-xl mb-6">
+                                                <div className="space-y-3">
+                                                    <div className="flex items-center justify-between">
+                                                        <span className="text-[9px] font-black text-emerald-500 uppercase tracking-widest">Identified Entity</span>
+                                                        <CheckCircle2 className="w-3 h-3 text-emerald-500" />
+                                                    </div>
+                                                    <p className="text-xs font-bold text-white italic">{"{{PARTICIPANT_NAME}}"}</p>
+                                                    <div className="h-1 bg-white/5 rounded-full overflow-hidden">
+                                                        <div className="h-full bg-emerald-500 w-[98%]" />
+                                                    </div>
+                                                </div>
+                                                <div className="space-y-3">
+                                                    <div className="flex items-center justify-between">
+                                                        <span className="text-[9px] font-black text-emerald-500 uppercase tracking-widest">Protocol Reference</span>
+                                                        <CheckCircle2 className="w-3 h-3 text-emerald-500" />
+                                                    </div>
+                                                    <p className="text-xs font-bold text-white italic">{"{{STUDY_ID}}"}</p>
+                                                    <div className="h-1 bg-white/5 rounded-full overflow-hidden">
+                                                        <div className="h-full bg-emerald-500 w-[95%]" />
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div className="flex justify-end gap-3">
+                                                <button 
+                                                    onClick={() => setExtractedText('')}
+                                                    className="px-6 py-2.5 text-xs font-bold text-slate-500 hover:text-white transition-colors"
+                                                >
+                                                    Discard
+                                                </button>
+                                                <button className="px-8 py-2.5 bg-pink-600 hover:bg-pink-500 text-white rounded-xl text-xs font-black uppercase tracking-widest transition-all shadow-lg shadow-pink-900/40 flex items-center gap-2">
+                                                    <Sparkles className="w-4 h-4" /> Finalize e-Consent
+                                                </button>
+                                            </div>
+                                        </>
+                                    )}
                                 </div>
                             )}
                         </div>

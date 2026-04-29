@@ -551,7 +551,7 @@ export default function ConsentModule({ selectedStudyId, preloadedStudies }: { s
                                                 <div key={record.id} className="flex items-center justify-between p-5 bg-white/5 border border-white/10 rounded-2xl hover:bg-white/[0.07] transition-all">
                                                     <div className="flex items-center gap-4">
                                                         <div className="w-10 h-10 rounded-lg bg-emerald-500/20 flex items-center justify-center text-emerald-400 font-bold text-xs">
-                                                            {record.decrypted_name?.split(' ').map(n => n[0]).join('') || 'U'}
+                                                            {record.decrypted_name?.split(' ').map((n: string) => n[0]).join('') || 'U'}
                                                         </div>
                                                         <div>
                                                             <h4 className="text-white font-bold text-sm">{record.decrypted_name}</h4>

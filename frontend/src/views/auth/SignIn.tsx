@@ -261,10 +261,10 @@ export default function SignIn() {
                 return;
             }
 
-            const role = data.user.role;
-            switch (role) {
+            switch (userRole) {
                 case 'ADMIN': navigate('/dashboard/admin'); break;
-                case 'COORDINATOR': navigate('/dashboard/coordinator'); break;
+                case 'COORDINATOR': 
+                case 'TEAM_MEMBER': navigate('/dashboard/coordinator'); break;
                 case 'SPONSOR': navigate('/dashboard/sponsor'); break;
                 case 'PI': navigate('/dashboard/pi'); break;
                 default: navigate('/dashboard/participant');
@@ -404,9 +404,9 @@ export default function SignIn() {
             }
 
             switch (userRole) {
-                case 'SUPER_ADMIN': navigate('/dashboard/super-admin'); break;
                 case 'ADMIN': navigate('/dashboard/admin'); break;
-                case 'COORDINATOR': navigate('/dashboard/coordinator'); break;
+                case 'COORDINATOR': 
+                case 'TEAM_MEMBER': navigate('/dashboard/coordinator'); break;
                 case 'SPONSOR': navigate('/dashboard/sponsor'); break;
                 case 'PI': navigate('/dashboard/pi'); break;
                 default: navigate(redirectTo || '/dashboard/participant');

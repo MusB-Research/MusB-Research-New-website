@@ -385,6 +385,7 @@ class Participant(BaseMongoModel):
 
     # E-Consent Audit Data (Requirement 3)
     consent_details = models.JSONField(default=dict, blank=True, help_text="Store IP, User Agent, Document Version, and Signature Type")
+    randomization_details = models.JSONField(default=dict, blank=True, help_text="Store randomization date, method, and seed if applicable")
     
     # Demographics (PII - only visible to Admin/PI/Coordinator)
     gender = models.CharField(max_length=20, blank=True)

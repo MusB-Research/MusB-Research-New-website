@@ -48,7 +48,7 @@ import {
     HelpCircle, Stethoscope, UsersRound, ArrowUpRight, LogOut,
     Globe, Rocket, Menu, FlaskConical, FileSearch, Layers,
     ListFilter, CheckSquare, ScrollText, Settings2, Database,
-    AlertTriangle, FileCheck, Building2, Truck, UserPlus
+    AlertTriangle, FileCheck, Building2, Truck, UserPlus, User
 } from 'lucide-react';
 
 type PIModule =
@@ -63,7 +63,6 @@ type PIModule =
     | 'VISITS'
     | 'LABS'
     | 'REPORTS'
-    | 'SUBJECT_REVIEW'
     | 'MESSAGES'
     | 'ALERTS'
     | 'LAUNCH_STUDY'
@@ -76,9 +75,6 @@ type PIModule =
     | 'MY_DOCS'
     | 'TEAM_INVENTORY'
     | 'LOGISTICS'
-    | 'INVITATIONS'
-    | 'CONSENT_NEW'
-    | 'ENROLLMENT_WORKFLOW'
     | 'SUPPORT';
 
 interface SidebarItem {
@@ -113,7 +109,7 @@ export default function PIDashboard() {
         if (route === 'studies') return 'STUDIES';
         if (route === 'team') return 'TEAM';
         if (route === 'participants') return 'PARTICIPANTS';
-        if (route === 'subject-review') return 'SUBJECT_REVIEW';
+        if (route === 'subject-review') return 'PARTICIPANTS';
         if (route === 'forms') return 'FORMS';
         if (route === 'consent') return 'CONSENT';
         if (route === 'visits') return 'VISITS';
@@ -131,7 +127,6 @@ export default function PIDashboard() {
         if (route === 'tasks') return 'TASKS';
         if (route === 'logistics') return 'LOGISTICS';
         if (route === 'participant-tasks') return 'PARTICIPANT_TASKS';
-        if (route === 'invitations') return 'INVITATIONS';
         return 'OVERVIEW';
     });
 
@@ -149,7 +144,7 @@ export default function PIDashboard() {
         else if (route === 'forms') setActiveModule('FORMS');
         else if (route === 'consent') setActiveModule('CONSENT');
         else if (route === 'visits') setActiveModule('VISITS');
-        else if (route === 'subject-review' || route === 'review') setActiveModule('SUBJECT_REVIEW');
+        else if (route === 'subject-review' || route === 'review') setActiveModule('PARTICIPANTS');
         else if (route === 'team') setActiveModule('TEAM');
         else if (route === 'messages') setActiveModule('MESSAGES');
         else if (route === 'labs') setActiveModule('LABS');
@@ -166,7 +161,6 @@ export default function PIDashboard() {
         else if (route === 'logistics') setActiveModule('LOGISTICS');
         else if (route === 'sponsors') setActiveModule('SPONSORS');
         else if (route === 'participant-tasks') setActiveModule('PARTICIPANT_TASKS');
-        else if (route === 'invitations') setActiveModule('INVITATIONS');
         else setActiveModule('OVERVIEW');
     }, [location.pathname]);
 
@@ -176,7 +170,7 @@ export default function PIDashboard() {
             'STUDIES': 'studies',
             'TEAM': 'team',
             'PARTICIPANTS': 'participants',
-            'SUBJECT_REVIEW': 'subject-review',
+            'SUBJECT_REVIEW': 'participants',
             'FORMS': 'forms',
             'CONSENT': 'consent',
             'VISITS': 'visits',
@@ -466,11 +460,8 @@ export default function PIDashboard() {
             items: [
                 { id: 'STUDIES', label: 'Studies', icon: Beaker },
                 { id: 'TEAM', label: 'Team', icon: Users },
-                { id: 'INVITATIONS', label: 'Invitations', icon: UserPlus },
                 { id: 'PARTICIPANTS', label: 'Participants', icon: UsersRound },
-                { id: 'SUBJECT_REVIEW', label: 'Review', icon: Activity },
                 { id: 'FORMS', label: 'Forms', icon: ClipboardList },
-                { id: 'CONSENT', label: 'Consent', icon: ShieldCheck },
                 { id: 'VISITS', label: 'Visits', icon: Calendar },
                 { id: 'SPONSORS', label: 'Sponsors', icon: Building2 },
                 { id: 'TASKS', label: 'Staff Tasks', icon: ClipboardList },
@@ -593,6 +584,12 @@ export default function PIDashboard() {
                                         <p className="text-sm font-bold text-white truncate">{userName}</p>
                                         <p className="text-sm text-slate-500 truncate">{getUser()?.email}</p>
                                     </div>
+                                    <button
+                                        onClick={() => { handleModuleChange('MY_DOCS'); setIsProfileOpen(false); }}
+                                        className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all text-sm font-bold uppercase tracking-widest"
+                                    >
+                                        <User className="w-4 h-4 text-teal-400" /> My Profile
+                                    </button>
                                     <button onClick={handleSignOut} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-red-100 hover:text-white hover:bg-red-500/20 transition-all text-sm font-bold uppercase tracking-widest">
                                         <LogOut className="w-4 h-4" /> Sign Out
                                     </button>
@@ -622,12 +619,12 @@ export default function PIDashboard() {
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         onClick={() => setIsSidebarOpen(false)}
-                        className="fixed inset-0 bg-black/90 backdrop-blur-md z-[55] lg:hidden"
+                        className="fixed inset-0 bg-black/90 backdrop-blur-md z-[90] lg:hidden"
                     />
                 )}
             </AnimatePresence>
 
-            <aside className={`fixed left-0 top-0 bottom-0 w-64 bg-[#0B101B] border-r border-white/5 z-[70] transition-transform duration-300 lg:translate-x-0 flex flex-col ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
+            <aside className={`fixed left-0 top-0 bottom-0 w-64 bg-[#0B101B] border-r border-white/5 z-[100] transition-transform duration-300 lg:translate-x-0 flex flex-col ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
                 <div className="h-20 px-6 flex justify-between items-center border-b border-white/[0.05]">
                     <Link to="/" target="_blank" rel="noopener noreferrer" className="group transition-all">
                         <div className="bg-white p-2 rounded-2xl group-hover:scale-110 transition-transform shadow-[0_0_20px_rgba(255,255,255,0.1)]">
@@ -668,7 +665,14 @@ export default function PIDashboard() {
                     ))}
                 </nav>
 
-                <div className="mt-auto p-4 border-t border-white/5 space-y-2">
+                <div className="mt-auto p-4 border-t border-white/5 space-y-1">
+                    <button
+                        onClick={() => { setActiveModule('MY_DOCS'); setIsSidebarOpen(false); }}
+                        className={`w-full flex items-center gap-4 px-4 py-3 rounded-xl transition-all group ${activeModule === 'MY_DOCS' ? 'bg-teal-500/10 text-teal-400 border border-teal-500/20' : 'text-[#8b8fa8] hover:bg-teal-500/10 hover:text-teal-400'}`}
+                    >
+                        <User className="w-5 h-5" />
+                        <span className="text-sm font-bold">My Profile</span>
+                    </button>
                     <button onClick={handleSignOut} className="w-full flex items-center gap-4 px-4 py-3 rounded-xl text-[#8b8fa8] hover:bg-red-500/10 hover:text-red-400 transition-all group">
                         <LogOut className="w-5 h-5" />
                         <span className="text-sm font-bold">Sign Out</span>
@@ -751,13 +755,6 @@ export default function PIDashboard() {
                         />
                     )}
                     {activeModule === 'MESSAGES' && <PIMessagesModule />}
-                    {activeModule === 'SUBJECT_REVIEW' && (
-                        <SubjectReviewModule 
-                            participantId={selectedParticipantId || ''} 
-                            selectedStudyId={globalSelectedStudyId !== 'all' ? globalSelectedStudyId : undefined}
-                            preloadedTracking={summaryData?.participant_tracking}
-                        />
-                    )}
                     {activeModule === 'TEAM' && (
                         <PITeamModule 
                             allUsers={users} 
@@ -766,29 +763,27 @@ export default function PIDashboard() {
                             selectedStudyId={globalSelectedStudyId}
                         />
                     )}
-                    {activeModule === 'INVITATIONS' && (
-                        <InvitationsModule allStudies={studies} />
+
+                    {activeModule === 'PARTICIPANTS' && (
+                        selectedParticipantId ? (
+                            <div className="bg-[#0B101B] rounded-[2.5rem] -mt-6">
+                                <SubjectReviewModule 
+                                    participantId={selectedParticipantId} 
+                                    onClose={() => setSelectedParticipantId(null)} 
+                                />
+                            </div>
+                        ) : (
+                            <ParticipantOversight
+                                selectedStudyId={globalSelectedStudyId}
+                                preloadedData={summaryData}
+                                isLoading={summaryLoading}
+                                onOpenProfile={(id) => setSelectedParticipantId(id)}
+                            />
+                        )
                     )}
-                    {activeModule === 'PARTICIPANTS' && <ParticipantOversight
-                        selectedStudyId={globalSelectedStudyId}
-                        preloadedData={summaryData}
-                        isLoading={summaryLoading}
-                        onOpenProfile={(id) => {
-                            setSelectedParticipantId(id);
-                            setActiveModule('SUBJECT_REVIEW');
-                        }}
-                    />}
                     {activeModule === 'FORMS' && <FormsQuestionnairesModule />}
-                    {activeModule === 'CONSENT' && (
-                        <div className="bg-[#0B101B] rounded-[2.5rem] -mt-6">
-                            <ConsentOversight />
-                        </div>
-                    )}
-                    {activeModule === 'ENROLLMENT_WORKFLOW' && (
-                        <div className="bg-[#0B101B] rounded-[2.5rem] -mt-6">
-                            <ParticipantOversight selectedStudyId={globalSelectedStudyId} />
-                        </div>
-                    )}
+
+
                     {activeModule === 'VISITS' && (
                         <VisitsModule 
                             selectedStudyId={globalSelectedStudyId !== 'all' ? globalSelectedStudyId : undefined} 

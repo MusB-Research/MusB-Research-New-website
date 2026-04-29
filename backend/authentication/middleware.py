@@ -26,6 +26,8 @@ class OnboardingEnforcementMiddleware:
         re.compile(r'^/api/invitations/verify/?$'),
         re.compile(r'^/api/health/?$'),
         re.compile(r'^/api/news/?'),
+        re.compile(r'^/api/events/?'),
+        re.compile(r'^/api/public-studies/?'),
         re.compile(r'^/api/studies/?(\?|$)'),
         re.compile(r'^/api/contact/?'),
         re.compile(r'^/api/careers/?'),

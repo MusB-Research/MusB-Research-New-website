@@ -80,7 +80,7 @@ const LifecycleTracker: React.FC<LifecycleTrackerProps> = ({ status, updatedAt }
                                     <span className="text-xs font-bold text-slate-500">{index + 1}</span>
                                 )}
                             </motion.div>
-                            <span className={`mt-3 text-xs font-medium uppercase tracking-tighter ${
+                            <span className={`mt-3 text-[10px] font-bold uppercase tracking-tight text-center max-w-[80px] leading-tight ${
                                 isActive ? 'text-blue-400' : isCompleted ? 'text-slate-300' : 'text-slate-500'
                             }`}>
                                 {step.label}

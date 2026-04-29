@@ -1,9 +1,9 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { authFetch, API } from '../../../utils/auth';
+import { authFetch, API, getRole } from '../../../utils/auth';
 import { 
     AlertCircle, Info, ShieldAlert, Bookmark, ArrowLeft, Loader2, Target, Activity,
-    ChevronDown
+    ChevronDown, CheckCircle2
 } from 'lucide-react';
 import { COLORS, S } from './SubRevConstants';
 import { SubjectOverview } from './views/SubjectOverview';
@@ -76,7 +76,8 @@ export default function CCC_SubjectReviewModule({
     participantId?: string, 
     selectedStudyId?: string, 
     preloadedTracking?: any,
-    initialTab?: string 
+    initialTab?: string,
+    onClose?: () => void
 }) {
     // State
     const [participant, setParticipant] = useState<any>(null);
@@ -463,30 +464,50 @@ export default function CCC_SubjectReviewModule({
                         </div>
                     </div>
                 </div>
-                <div className="flex items-center gap-2 md:gap-3 flex-wrap">
-                    <button 
-                        onClick={handleToggleFlag}
-                        className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-4 md:px-5 py-2.5 border rounded-lg text-[10px] font-black uppercase tracking-[0.2em] transition-all ${participant.is_flagged ? 'bg-amber-500 text-white border-amber-500' : 'bg-transparent border-[#1F2937] text-slate-400 hover:text-white hover:bg-white/5'}`}
-                    >
-                        <Bookmark size={14} fill={participant.is_flagged ? "currentColor" : "none"} /> 
-                        {participant.is_flagged ? 'FLAGGED' : 'FLAG'}
-                    </button>
-                    <button 
-                        onClick={() => handleReviewDecision('ELIGIBLE')}
-                        className="flex-1 md:flex-none px-4 md:px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-[10px] font-black uppercase tracking-[0.2em] transition-all shadow-lg shadow-emerald-900/10"
-                    >
-                        Approve
-                    </button>
-                    <button 
-                        onClick={() => setConfirmModal({
-                            message: `Terminate participation for ${participant.participant_sid}? This action is irreversible.`,
-                            type: 'danger',
-                            onConfirm: () => handleWithdraw('PI decision during subject review.')
-                        })}
-                        className="flex-1 md:flex-none px-4 md:px-6 py-2.5 bg-rose-600 hover:bg-rose-500 text-white rounded-lg text-[10px] font-black uppercase tracking-[0.2em] transition-all shadow-lg shadow-rose-900/10"
-                    >
-                        Withdraw
-                    </button>
+                <div className="flex items-center gap-2 md:gap-3 flex-wrap w-full md:w-auto justify-end">
+                    {/* ACTION BUTTONS: Only show if status is reviewable and current user hasn't signed yet */}
+                    {['NEW', 'PENDING_REVIEW', 'ELIGIBLE'].includes(processedParticipant.status) && !(
+                        (getRole() === 'COORDINATOR' && processedParticipant.coordinator_approved) ||
+                        (getRole() === 'PI' && processedParticipant.pi_approved)
+                    ) ? (
+                        <>
+                            <button 
+                                onClick={handleToggleFlag}
+                                className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-4 md:px-5 py-2.5 border rounded-lg text-[10px] font-black uppercase tracking-[0.2em] transition-all ${participant.is_flagged ? 'bg-amber-500 text-white border-amber-500' : 'bg-transparent border-[#1F2937] text-slate-400 hover:text-white hover:bg-white/5'}`}
+                            >
+                                <Bookmark size={14} fill={participant.is_flagged ? "currentColor" : "none"} /> 
+                                {participant.is_flagged ? 'FLAGGED' : 'FLAG'}
+                            </button>
+                            
+                            <button 
+                                onClick={() => handleReviewDecision('ELIGIBLE')}
+                                className="flex-1 md:flex-none px-4 md:px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-[10px] font-black uppercase tracking-[0.2em] transition-all shadow-lg shadow-emerald-900/10"
+                            >
+                                Approve
+                            </button>
+                            
+                            <button 
+                                onClick={() => setConfirmModal({
+                                    message: `Terminate participation for ${participant.participant_sid}? This action is irreversible.`,
+                                    type: 'danger',
+                                    onConfirm: () => handleWithdraw('PI decision during subject review.')
+                                })}
+                                className="flex-1 md:flex-none px-4 md:px-6 py-2.5 bg-rose-600 hover:bg-rose-500 text-white rounded-lg text-[10px] font-black uppercase tracking-[0.2em] transition-all shadow-lg shadow-rose-900/10"
+                            >
+                                Withdraw
+                            </button>
+                        </>
+                    ) : (
+                        /* Show Status Indicator if already approved or enrolled */
+                        <div className="flex items-center gap-3 px-4 md:px-6 py-2.5 bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 rounded-lg">
+                            <CheckCircle2 size={14} className="animate-pulse" />
+                            <span className="text-[10px] font-black uppercase tracking-widest italic">
+                                {processedParticipant.status === 'ENROLLED' || processedParticipant.status === 'ACTIVE' 
+                                    ? 'Subject Active in Protocol' 
+                                    : 'Review Completed (Pending Signatures)'}
+                            </span>
+                        </div>
+                    )}
                 </div>
             </header>
 

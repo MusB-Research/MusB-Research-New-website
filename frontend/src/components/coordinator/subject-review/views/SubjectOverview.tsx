@@ -12,6 +12,9 @@ interface SubjectOverviewProps {
     setParticipant?: React.Dispatch<React.SetStateAction<any>>;
     addToast: (msg: string, type?: string) => void;
     logAction: (action: string, detail: string) => void;
+    onApprove: (type: 'coordinator' | 'pi', signature: string) => Promise<void>;
+    onReveal: (field: string, reason: string) => Promise<string>;
+    isApproving: boolean;
 }
 
 export const SubjectOverview: React.FC<SubjectOverviewProps> = ({ 

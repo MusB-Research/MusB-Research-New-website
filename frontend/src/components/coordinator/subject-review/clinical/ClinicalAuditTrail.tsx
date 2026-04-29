@@ -27,7 +27,7 @@ interface ClinicalAuditTrailProps {
 const ClinicalAuditTrail: React.FC<ClinicalAuditTrailProps> = ({ clinicalLogs, piiLogs }) => {
     const combinedLogs = [
         ...clinicalLogs.map(l => ({ ...l, type: 'CLINICAL' })),
-        ...piiLogs.map(l => ({ ...l, type: 'PII', action: 'PII_ACCESS', details: { field: l.field_accessed, reason: l.reason } }))
+        ...piiLogs.map(l => ({ ...l, type: 'PII', action: 'PII_ACCESS', details: { field: l.field_accessed, reason: l.reason }, ip_address: 'Internal' }))
     ].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 
     return (

@@ -354,9 +354,17 @@ export default function Layout({ children }: LayoutProps) {
                                                 <ArrowRight className="w-4 h-4" />
                                             </div>
                                         </Link>
+                                        <Link
+                                            to={dashboardLink}
+                                            onClick={() => setIsMenuOpen(false)}
+                                            className="w-full flex items-center justify-center gap-3 p-4 rounded-2xl border-2 border-slate-200 text-slate-600 font-black text-sm uppercase tracking-widest hover:bg-slate-900 hover:text-white transition-all shadow-sm group"
+                                        >
+                                            <User className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                                            Dashboard
+                                        </Link>
                                         <button
                                             onClick={() => { clearToken(); window.location.href = "/"; }}
-                                            className="w-full flex items-center justify-center gap-3 p-4 rounded-2xl border-2 border-slate-200 text-slate-600 font-black text-sm uppercase tracking-widest hover:bg-slate-900 hover:text-white transition-all shadow-sm group"
+                                            className="w-full flex items-center justify-center gap-3 p-4 rounded-2xl border-2 border-red-100 text-red-600 font-black text-sm uppercase tracking-widest hover:bg-red-600 hover:text-white transition-all shadow-sm group"
                                         >
                                             <LogOut className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                                             Logout

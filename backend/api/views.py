@@ -636,6 +636,7 @@ class StudyViewSet(WorkflowContentMixin, viewsets.ModelViewSet):
 class PublicStudyViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = PublicStudySerializer
     permission_classes = [permissions.AllowAny]
+    authentication_classes = []
     lookup_field = 'protocol_id'
 
 
@@ -2845,6 +2846,7 @@ class InvitationViewSet(viewsets.ModelViewSet):
 class NewsViewSet(viewsets.ModelViewSet):
     queryset = News.objects.all().order_by('-published_at')
     serializer_class = NewsSerializer
+    authentication_classes = []
 
     def get_permissions(self):
         # Public can read; authenticated staff can create/edit/delete
@@ -2905,6 +2907,7 @@ class StaffTaskViewSet(viewsets.ModelViewSet):
 class EventViewSet(viewsets.ModelViewSet):
     queryset = Event.objects.all().order_by('-date')
     serializer_class = EventSerializer
+    authentication_classes = []
 
     def get_permissions(self):
         if self.action in ['list', 'retrieve']:
@@ -2964,6 +2967,7 @@ class FacilityInquiryView(APIView):
 
 class CandidateApplyView(viewsets.ViewSet):
     permission_classes = [permissions.AllowAny]
+    authentication_classes = []
     @action(detail=False, methods=['post'])
     def apply(self, request):
         serializer = CandidateSerializer(data=request.data)
@@ -2974,6 +2978,7 @@ class CandidateApplyView(viewsets.ViewSet):
 
 class SubscribeNewsletterView(APIView):
     permission_classes = [permissions.AllowAny]
+    authentication_classes = []
     def post(self, request):
         email = request.data.get('email')
         user_type = request.data.get('userType', 'BUSINESS')
@@ -2991,6 +2996,7 @@ class SubscribeNewsletterView(APIView):
 
 class BookletDownloadRequestCreateView(APIView):
     permission_classes = [permissions.AllowAny]
+    authentication_classes = []
     def post(self, request):
         serializer = BookletDownloadRequestSerializer(data=request.data)
         if serializer.is_valid():

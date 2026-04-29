@@ -50,7 +50,7 @@ import {
     HelpCircle, Stethoscope, UsersRound, ArrowUpRight, LogOut,
     Globe, Rocket, Menu, FlaskConical, FileSearch, Layers,
     ListFilter, CheckSquare, ScrollText, Settings2, Database,
-    AlertTriangle, FileCheck, Briefcase, DollarSign, Truck, UserPlus
+    AlertTriangle, FileCheck, Briefcase, DollarSign, Truck, UserPlus, User
 } from 'lucide-react';
 
 type CCModule =
@@ -77,8 +77,7 @@ type CCModule =
     | 'COMPENSATION'
     | 'LOGISTICS'
     | 'PARTICIPANT_TASKS'
-    | 'CONSENT_NEW'
-    | 'ENROLLMENT_WORKFLOW';
+    | 'CONSENT_NEW';
 
 export default function CoordinatorDashboard() {
     const navigate = useNavigate();
@@ -129,75 +128,6 @@ export default function CoordinatorDashboard() {
     const mountGuard = useRef({ checkMissed: false, fetchContent: false, notifications: false });
 
     // Sync activeModule when URL changes (for browser back button support)
-    useEffect(() => {
-        const path = location.pathname.toLowerCase().replace(/\/$/, "");
-        const parts = path.split('/');
-        const route = parts[parts.length - 1];
-
-        // Deep Link Detection
-        if (path.includes('/participants/')) {
-            const pIdx = parts.indexOf('participants');
-            const pId = parts[pIdx + 1];
-            const sub = parts[pIdx + 2];
-            
-            if (pId) {
-                if (pId !== selectedParticipantId) setSelectedParticipantId(pId);
-                setActiveModule('PARTICIPANTS');
-                if (sub === 'logs') setInitialTab('Safety');
-                else if (sub === 'assessments') setInitialTab('Outcomes');
-                else setInitialTab('Overview');
-                return;
-            }
-        }
-
-        if (route === 'coordinator' || !route || route === 'oversight') setActiveModule('OVERSIGHT');
-        else if (route === 'studies') setActiveModule('STUDIES');
-        else if (route === 'participants' || route === 'subject-review' || route === 'review') {
-            setActiveModule('PARTICIPANTS');
-            setSelectedParticipantId(null);
-        }
-        else if (route === 'team') setActiveModule('TEAM');
-        else if (route === 'messages') setActiveModule('MESSAGES');
-        else if (route === 'labs') setActiveModule('LABS');
-        else if (route === 'reports') setActiveModule('REPORTS');
-        else if (route === 'study-docs' || route === 'docs') setActiveModule('STUDY_DOCS');
-        else if (route === 'my-docs') setActiveModule('MY_DOCS');
-        else if (route === 'alerts') setActiveModule('ALERTS');
-        else if (route === 'invitations') setActiveModule('INVITATIONS');
-        else if (route === 'launch-study') setActiveModule('LAUNCH_STUDY');
-        else if (route === 'analytics') setActiveModule('ANALYTICS');
-        else if (route === 'tasks') setActiveModule('TASKS');
-        else if (route === 'logistics') setActiveModule('LOGISTICS');
-        else if (route === 'participant-tasks') setActiveModule('PARTICIPANT_TASKS');
-        else if (route === 'sponsors') setActiveModule('SPONSORS');
-
-        else if (route === 'compensation' || route === 'rewards') setActiveModule('COMPENSATION');
-        else if (location.pathname.includes('/dashboard/coordinator')) {
-            // Stay consistent with dashboard root
-            if (location.pathname.endsWith('/coordinator')) setActiveModule('OVERSIGHT');
-        }
-    }, [location.pathname, navigate]);
-
-    // [PERFORMANCE] One-time Dashboard Initialization
-    useEffect(() => {
-        const initializeDashboard = async () => {
-            if (mountGuard.current.checkMissed) return;
-            mountGuard.current.checkMissed = true;
-
-            try {
-                const res = await authFetch(`${API}/api/visits/check_missed/`, { method: 'POST' });
-                if (res.ok) {
-                    const data = await res.json();
-                    if (data.missed_marked > 0) {
-                        addToast(`DEVIATION ALERT: ${data.missed_marked} participants missed scheduled visits. Marking as MISSED.`, 'danger');
-                    }
-                }
-            } catch (e) { /* silent check */ }
-        };
-
-        initializeDashboard();
-    }, []);
-
     const handleModuleChange = (mod: CCModule) => {
         const slugs: Record<string, string> = {
             'OVERSIGHT': '',
@@ -220,7 +150,6 @@ export default function CoordinatorDashboard() {
             'SPONSORS': 'sponsors',
 
             'COMPENSATION': 'compensation',
-            'ENROLLMENT_WORKFLOW': 'enrollment-workflow',
             'LOGISTICS': 'logistics',
             'PARTICIPANT_TASKS': 'participant-tasks'
         };
@@ -255,13 +184,6 @@ export default function CoordinatorDashboard() {
 
     useEffect(() => {
         const timer = setInterval(() => setCurrentTime(new Date()), 1000);
-        
-        // Initial Notification Sync
-        if (!mountGuard.current.notifications) {
-            mountGuard.current.notifications = true;
-            fetchNotifications();
-        }
-        
         return () => {
             clearInterval(timer);
         };
@@ -409,8 +331,6 @@ export default function CoordinatorDashboard() {
         fetchSummary();
     }, [globalSelectedStudyId]);
 
-
-
     const fetchCoordinatorContent = useCallback(async (showLoading = true, skipCache = false) => {
         if (showLoading) setLoading(true);
         try {
@@ -476,11 +396,37 @@ export default function CoordinatorDashboard() {
         }
     }, []);
 
+    // [PERFORMANCE] Consolidated Dashboard Initialization
+    const dashboardInitRef = useRef(false);
     useEffect(() => {
-        if (!mountGuard.current.fetchContent) {
-            mountGuard.current.fetchContent = true;
-            fetchCoordinatorContent(true, false);
-        }
+        if (dashboardInitRef.current) return;
+        dashboardInitRef.current = true;
+
+        const initializeAll = async () => {
+            setLoading(true);
+            try {
+                // 1. Mark missed visits (POST)
+                authFetch(`${API}/api/visits/check_missed/`, { method: 'POST' })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.missed_marked > 0) {
+                            addToast(`DEVIATION ALERT: ${data.missed_marked} participants missed scheduled visits. Marking as MISSED.`, 'danger');
+                        }
+                    }).catch(() => {});
+
+                // 2. Fetch all required content in parallel
+                await Promise.all([
+                    fetchNotifications(),
+                    fetchCoordinatorContent(false, false)
+                ]);
+            } catch (err) {
+                console.error("Dashboard Initialization Error:", err);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        initializeAll();
     }, [fetchCoordinatorContent]);
 
     // Removed background polling per user request to reduce redundant network requests.
@@ -648,6 +594,7 @@ export default function CoordinatorDashboard() {
         payload.remote_participation = payload.study_type !== 'IN_PERSON';
         payload.shipment_mode = formData.requireStudyKit ? 'DTP' : (payload.study_type === 'DECENTRALIZED' ? 'HYBRID' : 'CLINIC');
         payload.has_study_kit = Boolean(formData.requireStudyKit ?? formData.has_study_kit);
+        payload.kit_details = formData.studyKitDetails ?? '';
         payload.overview = overviewItems.join('\n');
         payload.benefit = benefitItems.join('\n');
         payload.timeline = overviewItems;
@@ -702,6 +649,7 @@ export default function CoordinatorDashboard() {
         delete payload.stipendAmount;
         delete payload.currency;
         delete payload.requireStudyKit;
+        delete payload.studyKitDetails;
         delete payload.targetEnrollment;
         delete payload.selectedPIs;
         delete payload.selectedCoordinators;
@@ -872,7 +820,6 @@ export default function CoordinatorDashboard() {
                 { id: 'LABS', label: 'Labs', icon: Beaker },
                 { id: 'COMPENSATION', label: 'Payments', icon: DollarSign },
                 { id: 'TASKS', label: 'Staff Tasks', icon: ClipboardList },
-                { id: 'ENROLLMENT_WORKFLOW', label: 'Enrollment', icon: UserPlus },
                 { id: 'PARTICIPANT_TASKS', label: 'Subject Tasks', icon: CheckSquare },
             ]
         },
@@ -960,7 +907,7 @@ export default function CoordinatorDashboard() {
 
                             <AnimatePresence>
                                 {isNotificationOpen && (
-                                    <motion.div initial={{ opacity: 0, scale: 0.95, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 10 }} className="absolute right-0 mt-6 w-80 md:w-96 bg-[#0F172A]/95 backdrop-blur-3xl border border-white/10 rounded-2xl shadow-2xl z-[100] overflow-hidden">
+                                    <motion.div initial={{ opacity: 0, scale: 0.95, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 10 }} className="absolute right-0 mt-6 w-80 md:w-96 bg-[#0F172A]/95 backdrop-blur-3xl border border-white/10 rounded-2xl shadow-2xl z-[120] overflow-hidden">
                                         <div className="p-5 border-b border-white/5 flex items-center justify-between bg-white/[0.02]">
                                             <h3 className="text-xs font-bold text-white uppercase tracking-wider">Alerts</h3>
                                             <button 
@@ -1056,6 +1003,13 @@ export default function CoordinatorDashboard() {
                                         </p>
                                     </div>
                                     <button
+                                        onClick={() => { setActiveModule('MY_DOCS'); setIsProfileOpen(false); }}
+                                        className="w-full flex items-center gap-4 px-5 py-4 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all text-xs font-bold uppercase tracking-wider"
+                                    >
+                                        <User className="w-4 h-4 text-blue-400" />
+                                        <span>My Profile</span>
+                                    </button>
+                                    <button
                                         onClick={handleSignOut}
                                         className="w-full flex items-center gap-4 px-5 py-4 rounded-xl text-red-400 hover:text-white hover:bg-red-500/20 transition-all text-xs font-bold uppercase tracking-wider"
                                     >
@@ -1088,26 +1042,26 @@ export default function CoordinatorDashboard() {
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         onClick={() => setIsSidebarOpen(false)}
-                        className="fixed inset-0 bg-[#060B16]/80 backdrop-blur-md z-[65] xl:hidden"
+                        className="fixed inset-0 bg-[#060B16]/80 backdrop-blur-md z-[90] xl:hidden"
                     />
                 )}
             </AnimatePresence>
 
-            <aside className={`fixed left-0 top-0 bottom-0 w-[240px] bg-[#0B101B] border-r border-white/5 z-[70] transition-transform duration-300 lg:translate-x-0 flex flex-col ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
-                <div className="h-20 px-8 flex justify-between items-center border-b border-white/[0.05] shrink-0">
+            <aside className={`fixed left-0 top-0 bottom-0 w-[240px] bg-[#0B101B] border-r border-white/5 z-[100] transition-transform duration-300 lg:translate-x-0 flex flex-col ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
+                <div className="h-16 md:h-20 px-6 md:px-8 flex justify-between items-center border-b border-white/[0.05] shrink-0">
                     <Link to="/" target="_blank" rel="noopener noreferrer" className="group transition-all">
-                        <div className="bg-white p-2 rounded-2xl group-hover:scale-110 transition-transform shadow-[0_0_20px_rgba(255,255,255,0.1)]">
-                            <img src="/logo.jpg" alt="Logo" className="h-12 w-auto object-contain rounded-xl" />
+                        <div className="bg-white p-1.5 md:p-2 rounded-xl md:rounded-2xl group-hover:scale-110 transition-transform shadow-[0_0_20px_rgba(255,255,255,0.1)]">
+                            <img src="/logo.jpg" alt="Logo" className="h-8 md:h-12 w-auto object-contain rounded-lg md:rounded-xl" />
                         </div>
                     </Link>
                     <button
                         onClick={() => setIsSidebarOpen(false)}
-                        className="lg:hidden p-2.5 bg-white/5 border border-white/10 rounded-xl text-slate-300 hover:text-white transition-all h-10 w-10 flex items-center justify-center shrink-0"
+                        className="lg:hidden p-2 bg-white/5 border border-white/10 rounded-lg text-slate-300 hover:text-white transition-all h-9 w-9 flex items-center justify-center shrink-0"
                     >
-                        <X className="w-5 h-5" />
+                        <X className="w-4 h-4" />
                     </button>
                 </div>
-                <nav className="flex-1 overflow-y-auto px-4 py-4 space-y-1 custom-scrollbar">
+                <nav className="flex-1 overflow-y-auto px-4 py-6 space-y-1.5 custom-scrollbar">
                      {sidebarGroups.flatMap(g => g.items).map((item, j) => (
                           <button 
                             key={j} 
@@ -1124,7 +1078,14 @@ export default function CoordinatorDashboard() {
                      ))}
                 </nav>
 
-                <div className="p-4 border-t border-white/5 shrink-0 bg-black/20">
+                <div className="p-4 border-t border-white/5 shrink-0 bg-black/20 space-y-1">
+                    <button
+                        onClick={() => { setActiveModule('MY_DOCS'); setIsSidebarOpen(false); }}
+                        className={`w-full flex items-center gap-3 px-5 py-3 rounded-xl transition-all group ${activeModule === 'MY_DOCS' ? 'bg-blue-500/10 border-blue-500/20 text-white' : 'text-slate-400 hover:text-white hover:bg-white/5 border-transparent'}`}
+                    >
+                        <User className={`w-4 h-4 ${activeModule === 'MY_DOCS' ? 'text-blue-400' : 'text-slate-500 group-hover:text-blue-400'}`} />
+                        <span className="text-xs font-bold uppercase tracking-wider">My Profile</span>
+                    </button>
                     <button
                         onClick={handleSignOut}
                         className="w-full flex items-center gap-3 px-5 py-3 rounded-xl text-slate-400 hover:text-white hover:bg-rose-500/10 hover:border-rose-500/20 border border-transparent transition-all group"
@@ -1213,11 +1174,7 @@ export default function CoordinatorDashboard() {
                                 <ConsentOversight />
                             </div>
                         )}
-                        {activeModule === 'ENROLLMENT_WORKFLOW' && (
-                            <div className="bg-[#0B101B] rounded-[2.5rem] -mt-6">
-                                <ParticipantOversight selectedStudyId={globalSelectedStudyId} />
-                            </div>
-                        )}
+
                         {activeModule === 'VISITS' && (
                             <CCC_VisitsAssessmentsModule 
                                 selectedStudyId={globalSelectedStudyId} 

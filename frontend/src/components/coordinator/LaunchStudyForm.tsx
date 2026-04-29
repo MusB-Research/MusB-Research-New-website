@@ -1,14 +1,10 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Upload, X, Search, Building2, Calendar, Sparkles, Terminal, FileText, Database, Shield, Bold, Italic, Underline, Link } from 'lucide-react';
+import { Upload, X, Search, Building2, Calendar, Sparkles, Terminal, FileText, Database, Shield, Bold, Italic, Underline, Link, ChevronDown, DraftingCompass, Edit3 } from 'lucide-react';
 import ScreenerBuilder from './ScreenerBuilder';
 import QuestionnaireBuilder from './QuestionnaireBuilder';
 import { motion, AnimatePresence } from 'framer-motion';
 
-export const CURRENCY_SYMBOLS: Record<string, string> = {
-    USD: '$',
-    EUR: 'EUR ',
-    GBP: 'GBP '
-};
+import { getCurrencySymbol, formatCurrency } from '../../utils/format';
 
 interface LaunchStudyFormProps {
     onClose?: () => void;
@@ -256,19 +252,72 @@ const stripBulletsFromText = (text: string): string => {
     return text.split('\n').map(line => line.replace(/^[•\-\*]\s*/, '').trimStart()).join('\n');
 };
 
-const BulletTextarea = ({ value, onChange, placeholder, rows = 4, name }: {
+const ToolbarButton = ({ icon: Icon, onClick, active = false }: any) => (
+    <button
+        type="button"
+        onClick={onClick}
+        className={`p-1.5 rounded hover:bg-white/10 transition-colors ${active ? 'text-blue-400 bg-white/5' : 'text-slate-400'}`}
+    >
+        <Icon size={14} />
+    </button>
+);
+
+const BulletTextarea = ({ value, onChange, placeholder, rows = 4, name, mode, onModeToggle }: {
     value: string; onChange: (val: string) => void; placeholder?: string; rows?: number; name?: string;
+    mode: 'bullet' | 'plain'; onModeToggle: () => void;
 }) => {
     const ref = useRef<HTMLTextAreaElement>(null);
 
-    // On external value set, ensure bullets are added
-    useEffect(() => {
-        if (value && !value.includes(BULLET)) {
-            onChange(addBulletsToText(value));
+    const insertText = (before: string, after: string = '') => {
+        const el = ref.current;
+        if (!el) return;
+        const start = el.selectionStart;
+        const end = el.selectionEnd;
+        const text = el.value;
+        const selected = text.substring(start, end);
+
+        // Toggle logic: If selection is already wrapped, unwrap it
+        if (selected.startsWith(before) && selected.endsWith(after) && before !== '') {
+            const unwrapped = selected.substring(before.length, selected.length - after.length);
+            const newVal = text.substring(0, start) + unwrapped + text.substring(end);
+            onChange(newVal);
+            setTimeout(() => {
+                el.focus();
+                el.setSelectionRange(start, start + unwrapped.length);
+            }, 0);
+            return;
         }
-    }, []);
+
+        let actualBefore = before;
+        let actualAfter = after;
+
+        // Handle Link specially
+        if (before === 'link') {
+            const url = window.prompt('Enter URL:', 'https://');
+            if (!url) return;
+            actualBefore = '[';
+            actualAfter = `](${url})`;
+        }
+
+        const replacement = actualBefore + selected + actualAfter;
+        const newVal = text.substring(0, start) + replacement + text.substring(end);
+        onChange(newVal);
+
+        setTimeout(() => {
+            el.focus();
+            if (selected) {
+                // Keep the newly formatted text selected
+                el.setSelectionRange(start, start + replacement.length);
+            } else {
+                // Move cursor between the tags
+                const newPos = start + actualBefore.length;
+                el.setSelectionRange(newPos, newPos);
+            }
+        }, 0);
+    };
 
     const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+        if (mode !== 'bullet') return;
         const el = ref.current;
         if (!el) return;
 
@@ -281,7 +330,6 @@ const BulletTextarea = ({ value, onChange, placeholder, rows = 4, name }: {
             const after = current.substring(end);
             const newVal = before + '\n' + BULLET + after;
             onChange(newVal);
-            // Restore cursor after bullet
             requestAnimationFrame(() => {
                 el.selectionStart = el.selectionEnd = start + 1 + BULLET.length;
             });
@@ -292,12 +340,10 @@ const BulletTextarea = ({ value, onChange, placeholder, rows = 4, name }: {
             const start = el.selectionStart;
             const end = el.selectionEnd;
             if (start === end) {
-                // Check if cursor is right after the bullet on a line
                 const before = el.value.substring(0, start);
                 const lineStart = before.lastIndexOf('\n') + 1;
                 const linePrefix = before.substring(lineStart);
                 if (linePrefix === BULLET) {
-                    // Delete the bullet and the newline before it
                     e.preventDefault();
                     const newVal = el.value.substring(0, lineStart > 0 ? lineStart - 1 : 0) + el.value.substring(start);
                     onChange(newVal);
@@ -310,16 +356,18 @@ const BulletTextarea = ({ value, onChange, placeholder, rows = 4, name }: {
     };
 
     const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-        const el = ref.current;
         const val = e.target.value;
+        if (mode !== 'bullet') {
+            onChange(val);
+            return;
+        }
+        
+        const el = ref.current;
         const cursor = el?.selectionStart ?? 0;
-
-        // Ensure each line that has content starts with a bullet
         const lines = val.split('\n');
-        const fixed = lines.map((line, i) => {
+        const fixed = lines.map((line) => {
             if (line === '') return '';
             if (line.startsWith(BULLET)) return line;
-            // If a line doesn't have bullet, add it (happens on paste or direct edit)
             return BULLET + line.replace(/^[•\-\*]\s*/, '');
         });
         const newVal = fixed.join('\n');
@@ -335,6 +383,7 @@ const BulletTextarea = ({ value, onChange, placeholder, rows = 4, name }: {
     };
 
     const handleFocus = () => {
+        if (mode !== 'bullet') return;
         const el = ref.current;
         if (!el) return;
         if (!el.value) {
@@ -344,26 +393,46 @@ const BulletTextarea = ({ value, onChange, placeholder, rows = 4, name }: {
     };
 
     const handleBlur = () => {
-        // If only bullet remains with no text, clear
+        if (mode !== 'bullet') return;
         if (value.trim() === BULLET.trim()) onChange('');
     };
 
     return (
-        <textarea
-            ref={ref}
-            name={name}
-            value={value}
-            onKeyDown={handleKeyDown}
-            onChange={handleChange}
-            onFocus={handleFocus}
-            onBlur={handleBlur}
-            placeholder={placeholder}
-            rows={rows}
-            className="w-full bg-[#0B101B] border border-white/10 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors resize-y leading-relaxed font-medium"
-            style={{ lineHeight: '1.8' }}
-        />
+        <div className="space-y-2">
+            <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1">
+                    {/* Formatting buttons removed to prevent confusing raw markdown tags in textarea */}
+                </div>
+                <button
+                    type="button"
+                    onClick={onModeToggle}
+                    className={`text-[10px] px-3 py-1 rounded-full font-bold tracking-wider border transition-all ${
+                        mode === 'bullet' 
+                        ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' 
+                        : 'bg-white/5 text-slate-400 border-white/10'
+                    }`}
+                >
+                    {mode === 'bullet' ? 'AUTO-BULLET' : 'PLAIN TEXT'}
+                </button>
+            </div>
+            <textarea
+                ref={ref}
+                name={name}
+                value={value}
+                onKeyDown={handleKeyDown}
+                onChange={handleChange}
+                onFocus={handleFocus}
+                onBlur={handleBlur}
+                placeholder={placeholder}
+                rows={rows}
+                className="w-full bg-[#0B101B] border border-white/10 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors resize-y leading-relaxed font-medium"
+                style={{ lineHeight: '1.8' }}
+            />
+        </div>
     );
 };
+
+// Manual currency Signs removed in favor of Intl.NumberFormat utility
 
 const LaunchStudyForm: React.FC<LaunchStudyFormProps> = ({
     onClose,
@@ -374,11 +443,12 @@ const LaunchStudyForm: React.FC<LaunchStudyFormProps> = ({
     availableSponsors,
     availableSponsorUsers
 }) => {
-    const [currentStep, setCurrentStep] = useState(1);
+    const [currentStep, setCurrentStep] = useState(initialData ? 8 : 1);
     const [isSponsorModalOpen, setIsSponsorModalOpen] = useState(false);
     const [isAddOrgModalOpen, setIsAddOrgModalOpen] = useState(false);
     const [isInviteDelegateModalOpen, setIsInviteDelegateModalOpen] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isEditMode, setIsEditMode] = useState(!initialData || initialData.status === 'DRAFT');
     const [teamLoading, setTeamLoading] = useState(false);
     const [fetchedPIs, setFetchedPIs] = useState<any[]>([]);
     const [fetchedCoordinators, setFetchedCoordinators] = useState<any[]>([]);
@@ -492,6 +562,12 @@ const LaunchStudyForm: React.FC<LaunchStudyFormProps> = ({
         stipendAmount: '',
         currency: 'USD',
         requireStudyKit: false,
+        studyKitDetails: '',
+        textModes: {
+            studyOverview: 'bullet',
+            benefits: 'bullet',
+            participationMessage: 'bullet'
+        },
         targetEnrollment: '',
         consentMethods: {
             eConsent: false,
@@ -761,6 +837,7 @@ END OF DOCUMENT
                 stipendAmount: (initialData.reward_config?.amount || '').toString(),
                 currency: initialData.compensation_currency || 'USD',
                 requireStudyKit: Boolean(initialData.has_study_kit),
+                studyKitDetails: initialData.kit_details || '',
                 targetEnrollment: String(initialData.target_subjects || ''),
                 selectedPIs: initialData.pi_ids || [],
                 selectedCoordinators: initialData.coordinator_ids || [],
@@ -773,9 +850,16 @@ END OF DOCUMENT
     }, [initialData]);
 
     // Fetch team members from API on mount (fallback when props are empty)
+    const fetchRef = useRef(false);
     useEffect(() => {
-        const needsFetch = !availablePIs?.length || !availableCoordinators?.length || !availableSponsorUsers?.length;
-        if (!needsFetch) return;
+        // If parent is already providing users (even empty arrays), don't fetch
+        if (availablePIs !== undefined || availableCoordinators !== undefined || availableSponsorUsers !== undefined) {
+            return;
+        }
+        
+        if (fetchRef.current) return;
+        fetchRef.current = true;
+
         setTeamLoading(true);
         const token = localStorage.getItem('access_token') || localStorage.getItem('token') || '';
         const headers: any = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
@@ -789,7 +873,7 @@ END OF DOCUMENT
             })
             .catch(() => {})
             .finally(() => setTeamLoading(false));
-    }, []);
+    }, [availablePIs, availableCoordinators, availableSponsorUsers]);
 
     return (
         <div className="flex flex-col min-h-full w-full px-4 lg:px-8 2xl:px-12 max-w-[2800px] mx-auto text-white py-8 relative">
@@ -815,8 +899,62 @@ END OF DOCUMENT
                 {/* Main Form Content */}
                 <div className="flex-1 w-full order-2 lg:order-1">
                     {/* Header Menu (Stepper) */}
-                    <div className="w-full max-w-6xl mx-auto mb-12">
-                        <div className="flex items-stretch bg-white/5 rounded-xl overflow-hidden border border-white/10 shadow-lg text-sm md:text-base font-medium">
+                    {/* Header Menu (Stepper) - Responsive Dropdown on Mobile, Tabs on Desktop */}
+                    <div className="w-full max-w-6xl mx-auto mb-10">
+                        {initialData && initialData.status !== 'DRAFT' && (
+                            <div className="flex items-center justify-between mb-6">
+                                <motion.div 
+                                    initial={{ opacity: 0, x: -20 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    className="flex items-center gap-3 bg-amber-500/10 border border-amber-500/20 px-4 py-2 rounded-xl w-fit"
+                                >
+                                    <DraftingCompass className="w-4 h-4 text-amber-400" />
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-amber-400 italic">
+                                        {isEditMode ? 'Edit Mode Active' : 'Audit Mode Active'}
+                                    </span>
+                                    <div className={`w-1.5 h-1.5 rounded-full ${isEditMode ? 'bg-amber-400 animate-pulse' : 'bg-slate-500'}`} />
+                                </motion.div>
+
+                                <button
+                                    onClick={() => setIsEditMode(!isEditMode)}
+                                    className={`
+                                        flex items-center gap-2 px-5 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all
+                                        ${isEditMode 
+                                            ? 'bg-amber-500 text-slate-900 shadow-xl shadow-amber-900/20' 
+                                            : 'bg-white/5 text-slate-300 border border-white/10 hover:bg-white/10'}
+                                    `}
+                                >
+                                    {isEditMode ? (
+                                        <><Shield size={14} /> Lock & Audit</>
+                                    ) : (
+                                        <><Edit3 size={14} /> Modify Protocol</>
+                                    )}
+                                </button>
+                            </div>
+                        )}
+                        {/* Mobile Dropdown */}
+                        <div className="md:hidden flex flex-col gap-2">
+                            <label className="text-[10px] font-black text-blue-500 uppercase tracking-[0.2em] ml-2">Current Step</label>
+                            <div className="relative group">
+                                <select
+                                    value={currentStep}
+                                    onChange={(e) => setCurrentStep(Number(e.target.value))}
+                                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white font-bold appearance-none outline-none focus:border-blue-500 transition-all cursor-pointer"
+                                >
+                                    {STEPS.map((step) => (
+                                        <option key={step.id} value={step.id} className="bg-[#0B101B]">
+                                            Step {step.id}: {step.label}
+                                        </option>
+                                    ))}
+                                </select>
+                                <div className="absolute right-6 top-1/2 -translate-y-1/2 pointer-events-none">
+                                    <ChevronDown className="w-4 h-4 text-slate-500 group-hover:text-blue-500 transition-colors" />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Desktop Tabs */}
+                        <div className="hidden md:flex items-stretch bg-white/5 rounded-2xl overflow-hidden border border-white/10 shadow-2xl">
                             {STEPS.map((step, index) => {
                                 const isActive = currentStep === step.id;
                                 const isLast = index === STEPS.length - 1;
@@ -826,14 +964,15 @@ END OF DOCUMENT
                                         key={step.id}
                                         onClick={() => setCurrentStep(step.id)}
                                         className={`
-                                            flex-1 py-3 px-2 md:px-4 text-center transition-colors duration-200 flex items-center justify-center
+                                            flex-1 py-5 px-4 text-center transition-all duration-300 flex flex-col items-center justify-center gap-1
                                             ${isActive
-                                                ? 'bg-blue-600 text-white font-semibold shadow-inner'
-                                                : 'text-slate-300 hover:bg-white/10 hover:text-white'}
-                                            ${!isLast ? 'border-r border-white/10' : ''}
+                                                ? 'bg-blue-600/20 text-blue-400 font-black relative after:absolute after:bottom-0 after:left-0 after:right-0 after:h-1 after:bg-blue-500'
+                                                : 'text-slate-500 hover:bg-white/5 hover:text-slate-200'}
+                                            ${!isLast ? 'border-r border-white/5' : ''}
                                         `}
                                     >
-                                        <span className={step.label.includes('Questionnaires') ? 'leading-tight text-[13px] md:text-base' : ''}>
+                                        <span className="text-[10px] font-black uppercase tracking-widest opacity-40">Step {step.id}</span>
+                                        <span className={`text-[13px] font-bold tracking-tight ${step.label.includes('Questionnaires') ? 'leading-tight' : ''}`}>
                                             {step.label}
                                         </span>
                                     </button>
@@ -842,7 +981,8 @@ END OF DOCUMENT
                         </div>
                     </div>
 
-                    <div className="w-full max-w-6xl mx-auto bg-[#0F172A] rounded-2xl p-6 md:p-8 border border-white/10 shadow-2xl min-h-[600px]">
+                    <div className={`w-full max-w-6xl mx-auto bg-[#0F172A] rounded-2xl p-6 md:p-8 border border-white/10 shadow-2xl min-h-[600px] transition-all ${!isEditMode ? 'opacity-80 grayscale-[0.3]' : ''}`}>
+                        <fieldset disabled={!isEditMode} className="contents">
                 {currentStep === 1 ? (
                     <div className="space-y-6">
                         <div className="mb-6">
@@ -990,43 +1130,70 @@ END OF DOCUMENT
                                 </div>
 
                                 <div className="space-y-2">
-                                    <label className="text-sm font-medium text-[#e0e0e0] flex items-center gap-2">
+                                    <label className="text-sm font-medium text-[#e0e0e0]">
                                         Study overview
-                                        <span className="text-[10px] bg-blue-500/10 text-blue-400 border border-blue-500/20 px-2 py-0.5 rounded-full font-bold tracking-wider">AUTO-BULLET</span>
                                     </label>
                                     <BulletTextarea
                                         name="studyOverview"
                                         value={formData.studyOverview}
+                                        mode={formData.textModes.studyOverview as 'bullet' | 'plain'}
+                                        onModeToggle={() => setFormData(prev => {
+                                            const newMode = prev.textModes.studyOverview === 'bullet' ? 'plain' : 'bullet';
+                                            const newValue = newMode === 'plain' ? stripBulletsFromText(prev.studyOverview) : addBulletsToText(prev.studyOverview);
+                                            return { 
+                                                ...prev, 
+                                                studyOverview: newValue,
+                                                textModes: { ...prev.textModes, studyOverview: newMode }
+                                            };
+                                        })}
                                         onChange={(val) => setFormData(prev => ({ ...prev, studyOverview: val }))}
-                                        placeholder={`Type a point and press Enter for next bullet...`}
+                                        placeholder={`Describe the study...`}
                                         rows={4}
                                     />
                                 </div>
 
                                 <div className="space-y-2">
-                                    <label className="text-sm font-medium text-[#e0e0e0] flex items-center gap-2">
+                                    <label className="text-sm font-medium text-[#e0e0e0]">
                                         Benefits for participants
-                                        <span className="text-[10px] bg-blue-500/10 text-blue-400 border border-blue-500/20 px-2 py-0.5 rounded-full font-bold tracking-wider">AUTO-BULLET</span>
                                     </label>
                                     <BulletTextarea
                                         name="benefits"
                                         value={formData.benefits}
+                                        mode={formData.textModes.benefits as 'bullet' | 'plain'}
+                                        onModeToggle={() => setFormData(prev => {
+                                            const newMode = prev.textModes.benefits === 'bullet' ? 'plain' : 'bullet';
+                                            const newValue = newMode === 'plain' ? stripBulletsFromText(prev.benefits) : addBulletsToText(prev.benefits);
+                                            return { 
+                                                ...prev, 
+                                                benefits: newValue,
+                                                textModes: { ...prev.textModes, benefits: newMode }
+                                            };
+                                        })}
                                         onChange={(val) => setFormData(prev => ({ ...prev, benefits: val }))}
-                                        placeholder={`Type a benefit and press Enter for next bullet...`}
+                                        placeholder={`List participant benefits...`}
                                         rows={4}
                                     />
                                 </div>
 
                                 <div className="space-y-2">
-                                    <label className="text-sm font-medium text-[#e0e0e0] flex items-center gap-2">
+                                    <label className="text-sm font-medium text-[#e0e0e0]">
                                         Community participation message
-                                        <span className="text-[10px] bg-blue-500/10 text-blue-400 border border-blue-500/20 px-2 py-0.5 rounded-full font-bold tracking-wider">AUTO-BULLET</span>
                                     </label>
                                     <BulletTextarea
                                         name="participationMessage"
                                         value={formData.participationMessage}
+                                        mode={formData.textModes.participationMessage as 'bullet' | 'plain'}
+                                        onModeToggle={() => setFormData(prev => {
+                                            const newMode = prev.textModes.participationMessage === 'bullet' ? 'plain' : 'bullet';
+                                            const newValue = newMode === 'plain' ? stripBulletsFromText(prev.participationMessage) : addBulletsToText(prev.participationMessage);
+                                            return { 
+                                                ...prev, 
+                                                participationMessage: newValue,
+                                                textModes: { ...prev.textModes, participationMessage: newMode }
+                                            };
+                                        })}
                                         onChange={(val) => setFormData(prev => ({ ...prev, participationMessage: val }))}
-                                        placeholder="Type why people should participate and press Enter..."
+                                        placeholder="Why should people participate?"
                                         rows={3}
                                     />
                                 </div>
@@ -1161,14 +1328,19 @@ END OF DOCUMENT
                                 </div>
                                 <div className="space-y-2">
                                     <label className="text-sm font-medium text-[#e0e0e0]">Stipend amount</label>
-                                    <input
-                                        type="number"
-                                        name="stipendAmount"
-                                        value={formData.stipendAmount}
-                                        onChange={handleChange}
-                                        placeholder="e.g. 150"
-                                        className="w-full bg-[#0B101B] border border-white/10 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
-                                    />
+                                    <div className="relative">
+                                        <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 font-bold pointer-events-none">
+                                            {getCurrencySymbol(formData.currency)}
+                                        </div>
+                                        <input
+                                            type="number"
+                                            name="stipendAmount"
+                                            value={formData.stipendAmount}
+                                            onChange={handleChange}
+                                            placeholder="e.g. 150"
+                                            className="w-full bg-[#0B101B] border border-white/10 rounded-lg pl-10 pr-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
+                                        />
+                                    </div>
                                 </div>
                                 <div className="space-y-2">
                                     <label className="text-sm font-medium text-[#e0e0e0]">Currency</label>
@@ -1178,9 +1350,16 @@ END OF DOCUMENT
                                         onChange={handleChange}
                                         className="w-full bg-[#0B101B] border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors appearance-none"
                                     >
-                                        <option value="USD">USD</option>
-                                        <option value="EUR">EUR</option>
-                                        <option value="GBP">GBP</option>
+                                        <option value="USD">USD ($)</option>
+                                        <option value="EUR">EUR (€)</option>
+                                        <option value="GBP">GBP (£)</option>
+                                        <option value="AUD">AUD ($)</option>
+                                        <option value="CAD">CAD ($)</option>
+                                        <option value="JPY">JPY (¥)</option>
+                                        <option value="CNY">CNY (¥)</option>
+                                        <option value="INR">INR (₹)</option>
+                                        <option value="CHF">CHF (Fr)</option>
+                                        <option value="NZD">NZD ($)</option>
                                     </select>
                                 </div>
                             </div>
@@ -1191,16 +1370,32 @@ END OF DOCUMENT
                             <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-6">STUDY KIT & ENROLLMENT</h3>
 
                             <div className="space-y-6">
-                                <label className="inline-flex items-center gap-3 p-3 rounded-lg border border-white/10 bg-[#0B101B] cursor-pointer hover:border-blue-500 transition-colors w-max pr-6">
-                                    <input
-                                        type="checkbox"
-                                        name="requireStudyKit"
-                                        checked={formData.requireStudyKit}
-                                        onChange={handleCheckboxChange}
-                                        className="w-4 h-4 rounded text-blue-400 bg-transparent border-gray-500 focus:ring-blue-500 focus:ring-1"
-                                    />
-                                    <span className="text-sm font-medium text-white">Require study kit</span>
-                                </label>
+                                <div className="space-y-4">
+                                    <label className="inline-flex items-center gap-3 p-3 rounded-lg border border-white/10 bg-[#0B101B] cursor-pointer hover:border-blue-500 transition-colors w-max pr-6">
+                                        <input
+                                            type="checkbox"
+                                            name="requireStudyKit"
+                                            checked={formData.requireStudyKit}
+                                            onChange={handleCheckboxChange}
+                                            className="w-4 h-4 rounded text-blue-400 bg-transparent border-gray-500 focus:ring-blue-500 focus:ring-1"
+                                        />
+                                        <span className="text-sm font-medium text-white">Require study kit</span>
+                                    </label>
+
+                                    {formData.requireStudyKit && (
+                                        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="space-y-2">
+                                            <label className="text-sm font-medium text-[#e0e0e0]">Study kit details</label>
+                                            <textarea
+                                                name="studyKitDetails"
+                                                value={formData.studyKitDetails}
+                                                onChange={handleChange}
+                                                placeholder="Enter components and instructions for the study kit..."
+                                                rows={3}
+                                                className="w-full bg-[#0B101B] border border-white/10 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors resize-y"
+                                            />
+                                        </motion.div>
+                                    )}
+                                </div>
 
                                 <div className="space-y-2">
                                     <label className="text-sm font-medium text-[#e0e0e0]">Target enrollment (number of participants)</label>
@@ -1318,30 +1513,30 @@ END OF DOCUMENT
                         </div>
 
                         {/* CLINICAL COORDINATORS CARD */}
-                        <div className="bg-white/5 border border-white/10 rounded-xl p-6">
+                        <div className="bg-white/5 border border-white/10 rounded-xl p-4 md:p-6">
                             <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-6">CLINICAL COORDINATORS ({resolvedCoordinators.length})</h3>
 
                             <div className="space-y-4 mb-6">
                                 {teamLoading && <p className="text-sm text-slate-400 italic">Loading...</p>}
                                 {!teamLoading && resolvedCoordinators.length > 0 ? resolvedCoordinators.map((coord: any) => (
-                                    <div key={coord.id} className="flex items-center justify-between pb-4 border-b border-white/10 last:border-0 last:pb-0">
+                                    <div key={coord.id} className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-white/10 last:border-0 last:pb-0 gap-4">
                                         <div className="flex items-center gap-4">
-                                            <div className="w-10 h-10 rounded-full bg-[#1e4a2a] flex items-center justify-center text-[#5de97a] font-bold text-sm">
+                                            <div className="w-10 h-10 rounded-full bg-[#1e4a2a] flex items-center justify-center text-[#5de97a] font-bold text-sm shrink-0">
                                                 {coord.first_name?.[0] || ''}{coord.last_name?.[0] || ''}
                                             </div>
-                                            <div>
-                                                <div className="flex items-center gap-2">
-                                                    <span className="font-bold text-white">{coord.first_name} {coord.last_name}</span>
-                                                    <span className="text-[10px] bg-[#1e4a2a] text-[#5de97a] px-2 py-0.5 rounded font-bold uppercase">Coordinator</span>
+                                            <div className="min-w-0">
+                                                <div className="flex flex-wrap items-center gap-2">
+                                                    <span className="font-bold text-white truncate">{coord.first_name} {coord.last_name}</span>
+                                                    <span className="text-[10px] bg-[#1e4a2a] text-[#5de97a] px-2 py-0.5 rounded font-bold uppercase whitespace-nowrap">Coordinator</span>
                                                 </div>
-                                                <div className="text-sm text-gray-400">{coord.organization || 'MusB Research Institute'}</div>
+                                                <div className="text-sm text-gray-400 truncate">{coord.organization || 'MusB Research Institute'}</div>
                                             </div>
                                         </div>
                                         <input
                                             type="checkbox"
                                             checked={(formData.selectedCoordinators as string[]).includes(coord.id)}
                                             onChange={() => handleArrayToggle('selectedCoordinators', coord.id)}
-                                            className="w-5 h-5 rounded text-blue-400 bg-transparent border-gray-500 focus:ring-blue-500 focus:ring-1 cursor-pointer"
+                                            className="w-5 h-5 rounded text-blue-400 bg-transparent border-gray-500 focus:ring-blue-500 focus:ring-1 cursor-pointer sm:ml-auto"
                                         />
                                     </div>
                                 )) : (
@@ -1349,7 +1544,7 @@ END OF DOCUMENT
                                 )}
                             </div>
 
-                            <div className="flex items-center gap-4">
+                            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
                                 <input
                                     type="email"
                                     name="inviteCoordinatorEmail"
@@ -1365,30 +1560,30 @@ END OF DOCUMENT
                         </div>
 
                         {/* SPONSOR PERSONNEL CARD */}
-                        <div className="bg-white/5 border border-white/10 rounded-xl p-6">
+                        <div className="bg-white/5 border border-white/10 rounded-xl p-4 md:p-6">
                             <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-6">SPONSOR PERSONNEL ({resolvedSponsorUsers.length})</h3>
 
                             <div className="space-y-4 mb-6">
                                 {teamLoading && <p className="text-sm text-slate-400 italic">Loading...</p>}
                                 {!teamLoading && resolvedSponsorUsers.length > 0 ? resolvedSponsorUsers.map((sponsor: any) => (
-                                    <div key={sponsor.id} className="flex items-center justify-between pb-4 border-b border-white/10 last:border-0 last:pb-0">
+                                    <div key={sponsor.id} className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-white/10 last:border-0 last:pb-0 gap-4">
                                         <div className="flex items-center gap-4">
-                                            <div className="w-10 h-10 rounded-full bg-[#52411e] flex items-center justify-center text-[#e9b85d] font-bold text-sm">
+                                            <div className="w-10 h-10 rounded-full bg-[#52411e] flex items-center justify-center text-[#e9b85d] font-bold text-sm shrink-0">
                                                 {sponsor.first_name?.[0] || ''}{sponsor.last_name?.[0] || ''}
                                             </div>
-                                            <div>
-                                                <div className="flex items-center gap-2">
-                                                    <span className="font-bold text-white">{sponsor.first_name} {sponsor.last_name}</span>
-                                                    <span className="text-[10px] bg-[#52411e] text-[#e9b85d] px-2 py-0.5 rounded font-bold uppercase">Sponsor</span>
+                                            <div className="min-w-0">
+                                                <div className="flex flex-wrap items-center gap-2">
+                                                    <span className="font-bold text-white truncate">{sponsor.first_name} {sponsor.last_name}</span>
+                                                    <span className="text-[10px] bg-[#52411e] text-[#e9b85d] px-2 py-0.5 rounded font-bold uppercase whitespace-nowrap">Sponsor</span>
                                                 </div>
-                                                <div className="text-sm text-gray-400">{sponsor.organization || 'External Sponsor Org'}</div>
+                                                <div className="text-sm text-gray-400 truncate">{sponsor.organization || 'External Sponsor Org'}</div>
                                             </div>
                                         </div>
                                         <input
                                             type="checkbox"
                                             checked={(formData.selectedSponsorUsers as string[]).includes(sponsor.id)}
                                             onChange={() => handleArrayToggle('selectedSponsorUsers', sponsor.id)}
-                                            className="w-5 h-5 rounded text-blue-400 bg-transparent border-gray-500 focus:ring-blue-500 focus:ring-1 cursor-pointer"
+                                            className="w-5 h-5 rounded text-blue-400 bg-transparent border-gray-500 focus:ring-blue-500 focus:ring-1 cursor-pointer sm:ml-auto"
                                         />
                                     </div>
                                 )) : (
@@ -1396,7 +1591,7 @@ END OF DOCUMENT
                                 )}
                             </div>
 
-                            <div className="flex items-center gap-4">
+                            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
                                 <input
                                     type="email"
                                     name="inviteSponsorEmail"
@@ -1572,12 +1767,8 @@ END OF DOCUMENT
                                             <div className="w-2 h-2 rounded-full bg-pink-500 animate-ping" />
                                             <span className="text-[10px] font-black text-white uppercase tracking-widest">AI Extracted Content Review</span>
                                         </div>
-                                        <div className="flex items-center gap-1 bg-white/5 border border-white/10 rounded-lg p-1">
-                                            <button className="p-1.5 hover:bg-white/10 rounded text-slate-400 hover:text-white transition-colors"><Bold className="w-3 h-3" /></button>
-                                            <button className="p-1.5 hover:bg-white/10 rounded text-slate-400 hover:text-white transition-colors"><Italic className="w-3 h-3" /></button>
-                                            <button className="p-1.5 hover:bg-white/10 rounded text-slate-400 hover:text-white transition-colors"><Underline className="w-3 h-3" /></button>
-                                            <div className="w-[1px] h-3 bg-white/10 mx-1" />
-                                            <button className="p-1.5 hover:bg-white/10 rounded text-slate-400 hover:text-white transition-colors"><Link className="w-3 h-3" /></button>
+                                        <div className="flex items-center gap-1">
+                                            {/* Formatting buttons removed to prevent confusing raw tags in textarea */}
                                         </div>
                                     </div>
                                     <div className="relative group">
@@ -1742,121 +1933,198 @@ END OF DOCUMENT
                         </div>
 
                         {/* PROTOCOL */}
-                        <div className="bg-white/5 border border-white/10 rounded-xl p-6">
-                            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-6">Protocol</h3>
-                            <div className="space-y-4">
-                                <div className="flex justify-between items-center border-b border-white/10 pb-4">
-                                    <span className="text-sm text-gray-300 font-medium">Internal ID</span>
-                                    {formData.internalId ? (
-                                        <span className="text-sm text-emerald-400">{formData.internalId}</span>
-                                    ) : (
-                                        <span className="text-sm text-red-400">Not entered</span>
-                                    )}
+                        <div className="bg-white/5 border border-white/10 rounded-xl p-6 group">
+                            <div className="flex justify-between items-center mb-6">
+                                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">01. Protocol Identification</h3>
+                                <button onClick={() => setCurrentStep(1)} className="text-[10px] font-black text-blue-400 uppercase tracking-widest hover:text-white transition-colors opacity-0 group-hover:opacity-100 flex items-center gap-2">
+                                    <DraftingCompass className="w-3 h-3" /> Edit Section
+                                </button>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="space-y-4">
+                                    <div className="flex flex-col gap-1">
+                                        <span className="text-[10px] text-slate-500 font-black uppercase tracking-widest">Internal ID</span>
+                                        <p className="text-sm text-white font-bold italic">{formData.internalId || 'Not set'}</p>
+                                    </div>
+                                    <div className="flex flex-col gap-1">
+                                        <span className="text-[10px] text-slate-500 font-black uppercase tracking-widest">Timeline</span>
+                                        <p className="text-sm text-white font-bold italic">{formData.startDate || 'TBD'} — {formData.endDate || 'TBD'}</p>
+                                    </div>
                                 </div>
-                                <div className="flex justify-between items-center border-b border-white/10 pb-4">
-                                    <span className="text-sm text-gray-300 font-medium">Sponsor</span>
-                                    {formData.sponsor ? (
-                                        <span className="text-sm text-emerald-400">{getSponsorDisplayName(formData.sponsor)}</span>
-                                    ) : (
-                                        <span className="text-sm text-red-400">Not entered</span>
-                                    )}
-                                </div>
-                                <div className="flex justify-between items-center pb-2">
-                                    <span className="text-sm text-gray-300 font-medium">Start / end date</span>
-                                    {formData.startDate && formData.endDate ? (
-                                        <span className="text-sm text-emerald-400">{formData.startDate} - {formData.endDate}</span>
-                                    ) : (
-                                        <span className="text-sm text-red-400">Not entered</span>
-                                    )}
+                                <div className="space-y-4">
+                                    <div className="flex flex-col gap-1">
+                                        <span className="text-[10px] text-slate-500 font-black uppercase tracking-widest">Sponsor Organization</span>
+                                        <p className="text-sm text-blue-400 font-black uppercase italic">{getSponsorDisplayName(formData.sponsor) || 'Internal'}</p>
+                                    </div>
                                 </div>
                             </div>
                         </div>
 
-                        {/* STUDY INFORMATION */}
-                        <div className="bg-white/5 border border-white/10 rounded-xl p-6">
-                            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-6">Study Information</h3>
-                            <div className="space-y-4">
-                                <div className="flex justify-between items-center border-b border-white/10 pb-4">
-                                    <span className="text-sm text-gray-300 font-medium">Full title</span>
-                                    {formData.fullTitle ? (
-                                        <span className="text-sm text-emerald-400">{formData.fullTitle}</span>
-                                    ) : (
-                                        <span className="text-sm text-red-400">Not entered</span>
-                                    )}
+                        {/* STUDY CONTENT */}
+                        <div className="bg-white/5 border border-white/10 rounded-xl p-6 group">
+                            <div className="flex justify-between items-center mb-6">
+                                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">02. Descriptive Content</h3>
+                                <button onClick={() => setCurrentStep(2)} className="text-[10px] font-black text-blue-400 uppercase tracking-widest hover:text-white transition-colors opacity-0 group-hover:opacity-100 flex items-center gap-2">
+                                    <DraftingCompass className="w-3 h-3" /> Edit Section
+                                </button>
+                            </div>
+                            <div className="space-y-6">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-6 border-b border-white/5">
+                                    <div className="flex flex-col gap-1">
+                                        <span className="text-[10px] text-slate-500 font-black uppercase tracking-widest">Official Title</span>
+                                        <p className="text-sm text-white font-bold italic">{formData.fullTitle || 'Untitled'}</p>
+                                    </div>
+                                    <div className="flex flex-col gap-1">
+                                        <span className="text-[10px] text-slate-500 font-black uppercase tracking-widest">Public Name</span>
+                                        <p className="text-sm text-white font-bold italic">{formData.shortTitle || 'Untitled'}</p>
+                                    </div>
                                 </div>
-                                <div className="flex justify-between items-center border-b border-white/10 pb-4">
-                                    <span className="text-sm text-gray-300 font-medium">Public short title</span>
-                                    {formData.shortTitle ? (
-                                        <span className="text-sm text-emerald-400">{formData.shortTitle}</span>
-                                    ) : (
-                                        <span className="text-sm text-red-400">Not entered</span>
-                                    )}
+                                <div className="space-y-4">
+                                    <div className="flex flex-col gap-2">
+                                        <span className="text-[10px] text-slate-500 font-black uppercase tracking-widest">Brief Summary</span>
+                                        <p className="text-xs text-slate-400 leading-relaxed italic line-clamp-2">{formData.briefSummary || 'No summary provided'}</p>
+                                    </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                        <div className="flex flex-col gap-1">
+                                            <span className="text-[10px] text-slate-500 font-black uppercase tracking-widest">Overview</span>
+                                            <p className="text-[11px] text-emerald-400 font-bold uppercase tracking-tighter italic">{formData.studyOverview ? 'Configured' : 'Missing'}</p>
+                                        </div>
+                                        <div className="flex flex-col gap-1">
+                                            <span className="text-[10px] text-slate-500 font-black uppercase tracking-widest">Benefits</span>
+                                            <p className="text-[11px] text-emerald-400 font-bold uppercase tracking-tighter italic">{formData.benefits ? 'Configured' : 'Missing'}</p>
+                                        </div>
+                                        <div className="flex flex-col gap-1">
+                                            <span className="text-[10px] text-slate-500 font-black uppercase tracking-widest">Message</span>
+                                            <p className="text-[11px] text-emerald-400 font-bold uppercase tracking-tighter italic">{formData.participationMessage ? 'Configured' : 'Missing'}</p>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div className="flex justify-between items-center pb-2">
-                                    <span className="text-sm text-gray-300 font-medium">Category</span>
-                                    {formData.category ? (
-                                        <span className="text-sm text-emerald-400">{formData.category}</span>
-                                    ) : (
-                                        <span className="text-sm text-red-400">Not entered</span>
-                                    )}
+                            </div>
+                        </div>
+
+                        {/* CLINICAL DESIGN & COMPENSATION */}
+                        <div className="bg-white/5 border border-white/10 rounded-xl p-6 group">
+                            <div className="flex justify-between items-center mb-6">
+                                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">03. Design, Compensation & Logistics</h3>
+                                <button onClick={() => setCurrentStep(3)} className="text-[10px] font-black text-blue-400 uppercase tracking-widest hover:text-white transition-colors opacity-0 group-hover:opacity-100 flex items-center gap-2">
+                                    <DraftingCompass className="w-3 h-3" /> Edit Section
+                                </button>
+                            </div>
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                                <div className="flex flex-col gap-1">
+                                    <span className="text-[10px] text-slate-500 font-black uppercase tracking-widest">Model</span>
+                                    <p className="text-xs text-white font-bold uppercase italic">{formData.primaryModel || 'RCT'}</p>
                                 </div>
+                                <div className="flex flex-col gap-1">
+                                    <span className="text-[10px] text-slate-500 font-black uppercase tracking-widest">Phase</span>
+                                    <p className="text-xs text-white font-bold uppercase italic">{formData.clinicalPhase || 'N/A'}</p>
+                                </div>
+                                <div className="flex flex-col gap-1">
+                                    <span className="text-[10px] text-slate-500 font-black uppercase tracking-widest">Enrollment</span>
+                                    <p className="text-xs text-white font-bold uppercase italic">{formData.targetEnrollment || '0'} Subjects</p>
+                                </div>
+                                <div className="flex flex-col gap-1">
+                                    <span className="text-[10px] text-slate-500 font-black uppercase tracking-widest">Stipend</span>
+                                    <p className="text-xs text-emerald-400 font-black uppercase italic">
+                                        {getCurrencySymbol(formData.currency)}
+                                        {formData.stipendAmount || '0'} ({formData.rewardType})
+                                    </p>
+                                </div>
+                                <div className="flex flex-col gap-1">
+                                    <span className="text-[10px] text-slate-500 font-black uppercase tracking-widest">Study Kit</span>
+                                    <p className="text-xs text-white font-bold uppercase italic">{formData.requireStudyKit ? 'Required' : 'None'}</p>
+                                </div>
+                                {formData.requireStudyKit && formData.studyKitDetails && (
+                                    <div className="col-span-2 md:col-span-4 mt-2 p-3 bg-[#0B101B] border border-white/5 rounded-lg">
+                                        <span className="text-[9px] text-slate-500 font-black uppercase tracking-widest block mb-1">Kit Logistics</span>
+                                        <p className="text-[11px] text-slate-400 italic line-clamp-2">{formData.studyKitDetails}</p>
+                                    </div>
+                                )}
                             </div>
                         </div>
 
                         {/* TEAM & DESIGN */}
-                        <div className="bg-white/5 border border-white/10 rounded-xl p-6">
-                            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-6">Team & Design</h3>
+                        <div className="bg-white/5 border border-white/10 rounded-xl p-6 group">
+                            <div className="flex justify-between items-center mb-6">
+                                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">04. Operational Team</h3>
+                                <button onClick={() => setCurrentStep(4)} className="text-[10px] font-black text-blue-400 uppercase tracking-widest hover:text-white transition-colors opacity-0 group-hover:opacity-100 flex items-center gap-2">
+                                    <DraftingCompass className="w-3 h-3" /> Edit Section
+                                </button>
+                            </div>
                             <div className="space-y-4">
                                 <div className="flex justify-between items-center border-b border-white/10 pb-4">
-                                    <span className="text-sm text-gray-300 font-medium">PI assigned</span>
+                                    <span className="text-sm text-slate-300 font-medium italic">Principal Investigator(s)</span>
                                     {formData.selectedPIs.length > 0 ? (
-                                        <span className="text-sm text-emerald-400">
+                                        <span className="text-sm text-emerald-400 font-bold uppercase tracking-tight italic">
                                             {formData.selectedPIs.map(id => {
-                                                const person = availablePIs?.find(p => String(p.id) === String(id));
+                                                const person = resolvedPIs?.find(p => String(p.id) === String(id));
                                                 return person ? `${person.first_name || ''} ${person.last_name || ''}`.trim() || id : id;
                                             }).join(', ')}
                                         </span>
                                     ) : (
-                                        <span className="text-sm text-red-400">Not entered</span>
+                                        <span className="text-sm text-red-400 italic">Not assigned</span>
                                     )}
                                 </div>
                                 <div className="flex justify-between items-center border-b border-white/10 pb-4">
-                                    <span className="text-sm text-gray-300 font-medium">Coordinator assigned</span>
+                                    <span className="text-sm text-slate-300 font-medium italic">Coordinators</span>
                                     {formData.selectedCoordinators.length > 0 ? (
-                                        <span className="text-sm text-emerald-400">
+                                        <span className="text-sm text-emerald-400 font-bold uppercase tracking-tight italic">
                                             {formData.selectedCoordinators.map(id => {
-                                                const person = availableCoordinators?.find(c => String(c.id) === String(id));
+                                                const person = resolvedCoordinators?.find(c => String(c.id) === String(id));
                                                 return person ? `${person.first_name || ''} ${person.last_name || ''}`.trim() || id : id;
                                             }).join(', ')}
                                         </span>
                                     ) : (
-                                        <span className="text-sm text-red-400">Not entered</span>
+                                        <span className="text-sm text-red-400 italic">Not assigned</span>
                                     )}
                                 </div>
-                                <div className="flex justify-between items-center border-b border-white/10 pb-4">
-                                    <span className="text-sm text-gray-300 font-medium">Screening form</span>
-                                    {formData.screenerQuestions.length > 0 ? (
-                                        <span className="text-sm text-emerald-400">Screener configured ({formData.screenerQuestions.length} questions)</span>
-                                    ) : (
-                                        <span className="text-sm text-red-400">Not entered</span>
-                                    )}
+                            </div>
+                        </div>
+
+                        {/* WORKFLOWS */}
+                        <div className="bg-white/5 border border-white/10 rounded-xl p-6 group">
+                            <div className="flex justify-between items-center mb-6">
+                                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">05. Digital Workflows</h3>
+                                <div className="flex gap-4">
+                                    <button onClick={() => setCurrentStep(5)} className="text-[10px] font-black text-blue-400 uppercase tracking-widest hover:text-white transition-colors opacity-0 group-hover:opacity-100 flex items-center gap-2">
+                                        <DraftingCompass className="w-3 h-3" /> Screener
+                                    </button>
+                                    <button onClick={() => setCurrentStep(6)} className="text-[10px] font-black text-blue-400 uppercase tracking-widest hover:text-white transition-colors opacity-0 group-hover:opacity-100 flex items-center gap-2">
+                                        <DraftingCompass className="w-3 h-3" /> Questionnaires
+                                    </button>
                                 </div>
-                                <div className="flex justify-between items-center border-b border-white/10 pb-4">
-                                    <span className="text-sm text-gray-300 font-medium">Questionnaires</span>
-                                    {formData.selectedQuestionnaires.length > 0 ? (
-                                        <span className="text-sm text-emerald-400">{formData.selectedQuestionnaires.length} assigned</span>
-                                    ) : (
-                                        <span className="text-sm text-red-400">Not entered</span>
-                                    )}
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="flex flex-col gap-1">
+                                    <span className="text-[10px] text-slate-500 font-black uppercase tracking-widest">Screener Form</span>
+                                    <p className={`text-xs font-bold uppercase italic ${formData.screenerQuestions.length > 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                                        {formData.screenerQuestions.length > 0 ? `${formData.screenerQuestions.length} Questions Configured` : 'Not Configured'}
+                                    </p>
                                 </div>
-                                <div className="flex justify-between items-center pb-2">
-                                    <span className="text-sm text-gray-300 font-medium">Consent form</span>
-                                    {formData.consentFormFile ? (
-                                        <span className="text-sm text-emerald-400">{formData.consentFormFile.name}</span>
-                                    ) : (
-                                        <span className="text-sm text-yellow-500">Pending upload</span>
-                                    )}
+                                <div className="flex flex-col gap-1">
+                                    <span className="text-[10px] text-slate-500 font-black uppercase tracking-widest">Active Instruments</span>
+                                    <p className={`text-xs font-bold uppercase italic ${formData.selectedQuestionnaires.length > 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                                        {formData.selectedQuestionnaires.length > 0 ? `${formData.selectedQuestionnaires.length} Questionnaires Assigned` : 'None Assigned'}
+                                    </p>
                                 </div>
+                            </div>
+                        </div>
+
+                        {/* DOCUMENTS */}
+                        <div className="bg-white/5 border border-white/10 rounded-xl p-6 group">
+                            <div className="flex justify-between items-center mb-6">
+                                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">06. Regulatory Documents</h3>
+                                <button onClick={() => setCurrentStep(7)} className="text-[10px] font-black text-blue-400 uppercase tracking-widest hover:text-white transition-colors opacity-0 group-hover:opacity-100 flex items-center gap-2">
+                                    <DraftingCompass className="w-3 h-3" /> Edit Section
+                                </button>
+                            </div>
+                            <div className="flex justify-between items-center">
+                                <span className="text-sm text-slate-300 font-medium italic">Master Consent Template</span>
+                                {formData.consentFormFile ? (
+                                    <span className="text-sm text-emerald-400 font-bold uppercase tracking-tight italic">{formData.consentFormFile.name}</span>
+                                ) : (
+                                    <span className="text-sm text-yellow-500 italic">No File Uploaded</span>
+                                )}
                             </div>
                         </div>
 
@@ -1870,13 +2138,15 @@ END OF DOCUMENT
                             </button>
                             <button
                                 onClick={handleSaveDraft}
-                                className="w-1/4 py-4 rounded-xl font-semibold bg-white/5 text-white hover:bg-white/10 border border-white/10 transition-colors flex items-center justify-center"
+                                disabled={!isEditMode}
+                                className="w-1/4 py-4 rounded-xl font-semibold bg-white/5 text-white hover:bg-white/10 border border-white/10 transition-colors flex items-center justify-center disabled:opacity-40"
                             >
                                 Save as draft
                             </button>
                             <button
                                 onClick={handleResetForm}
-                                className="w-1/4 py-4 rounded-xl font-semibold bg-white/5 text-white hover:bg-white/10 border border-white/10 transition-colors flex items-center justify-center"
+                                disabled={!isEditMode}
+                                className="w-1/4 py-4 rounded-xl font-semibold bg-white/5 text-white hover:bg-white/10 border border-white/10 transition-colors flex items-center justify-center disabled:opacity-40"
                             >
                                 Reset form
                             </button>
@@ -1890,14 +2160,17 @@ END OF DOCUMENT
                                         setIsSubmitting(false);
                                     }
                                 }}
-                                disabled={isSubmitting}
+                                disabled={isSubmitting || !isEditMode}
                                 className="w-1/4 py-4 rounded-xl font-semibold bg-white/5 text-white hover:bg-white/10 border border-white/10 transition-colors flex items-center justify-center disabled:opacity-60 disabled:cursor-not-allowed"
                             >
-                                {isSubmitting ? 'Launching study...' : 'Preview & launch study'}
+                                {isSubmitting 
+                                    ? (initialData ? 'Saving...' : 'Launching...') 
+                                    : (initialData ? (isEditMode ? 'Save Protocol Changes' : 'Locked') : 'Preview & launch study')}
                             </button>
                         </div>
                     </div>
                 ) : null}
+                </fieldset>
                 </div>
                 </div>
 

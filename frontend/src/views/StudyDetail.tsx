@@ -201,14 +201,27 @@ export default function StudyDetail() {
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ delay: 0.1 }}
-                                className="space-y-4"
+                                className="space-y-6"
                             >
-                                <h1 className="text-5xl md:text-6xl lg:text-7xl font-black text-white uppercase tracking-tight leading-none mb-3">
-                                    {customContent ? customContent.title : study.title}
-                                </h1>
-                                <p className="text-xl md:text-2xl text-slate-400 font-bold leading-snug max-w-2xl">
-                                    {customContent ? customContent.description : study.description}
-                                </p>
+                                <div className="space-y-4">
+                                    {study.full_title && (
+                                        <div className="flex flex-col gap-1 mb-6">
+                                            <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">Official Full Title</span>
+                                            <p className="text-sm font-bold text-slate-400 leading-relaxed border-l border-white/10 pl-4">
+                                                {study.full_title}
+                                            </p>
+                                        </div>
+                                    )}
+                                    <h1 className="text-5xl md:text-6xl lg:text-7xl font-black text-white uppercase tracking-tight leading-none">
+                                        {customContent ? customContent.title : study.title}
+                                    </h1>
+                                </div>
+                                <div className="p-6 bg-white/5 rounded-3xl border border-white/5 backdrop-blur-md">
+                                    <span className="text-[10px] font-black text-[#00ADEF] uppercase tracking-[0.3em] mb-2 block">Brief Summary</span>
+                                    <p className="text-xl md:text-2xl text-slate-300 font-bold leading-snug">
+                                        {customContent ? customContent.description : study.description}
+                                    </p>
+                                </div>
                             </motion.div>
                         </div>
 
@@ -227,7 +240,7 @@ export default function StudyDetail() {
                                         <div className="w-10 h-10 rounded-full bg-[#00ADEF]/10 flex items-center justify-center border border-[#00ADEF]/20">
                                             <Info className="w-5 h-5 text-[#00ADEF]" />
                                         </div>
-                                        Overview
+                                        Study Overview
                                     </h2>
                                     {customContent ? (
                                         <div className="space-y-4">
@@ -309,7 +322,7 @@ export default function StudyDetail() {
                                         <div className="w-10 h-10 rounded-full bg-[#00ADEF]/10 flex items-center justify-center border border-[#00ADEF]/20">
                                             <Microscope className="w-5 h-5 text-[#00ADEF]" />
                                         </div>
-                                        {customContent ? "Join a MusB Research Study Today" : "Community Impact"}
+                                        Community Participation Message
                                     </h2>
                                     <p className="text-slate-300 text-xl leading-relaxed font-medium">
                                         {customContent ? customContent.ctaText : study.participation_message}

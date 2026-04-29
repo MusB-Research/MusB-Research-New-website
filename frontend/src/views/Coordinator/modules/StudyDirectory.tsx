@@ -188,8 +188,9 @@ export const StudyDirectory: React.FC<StudyDirectoryProps> = ({
                                                     <Trash2 className="w-4 h-4" />
                                                 </button>
                                             )}
-                                            <button className="p-3 bg-blue-600 text-white rounded-xl shadow-lg shadow-blue-600/20">
-                                                <ChevronRight className="w-4 h-4" />
+                                            <button className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-xl shadow-lg shadow-blue-600/20 font-black text-[10px] uppercase tracking-widest italic">
+                                                {s.status === 'DRAFT' ? 'Edit' : 'Audit'}
+                                                <ChevronRight className="w-3 h-3" />
                                             </button>
                                         </div>
                                     </div>
@@ -256,8 +257,9 @@ export const StudyDirectory: React.FC<StudyDirectoryProps> = ({
                                                                 <Trash2 className="w-4 h-4" />
                                                             </button>
                                                         )}
-                                                        <button className="p-4 bg-white/5 border border-white/10 rounded-2xl text-slate-500 group-hover:text-white group-hover:bg-blue-600 group-hover:border-blue-500 transition-all shadow-xl">
-                                                            <ChevronRight className="w-5 h-5" />
+                                                        <button className="flex items-center gap-2 px-6 py-4 bg-white/5 border border-white/10 rounded-2xl text-slate-500 group-hover:text-white group-hover:bg-blue-600 group-hover:border-blue-500 transition-all shadow-xl font-black text-[11px] uppercase tracking-widest italic">
+                                                            {s.status === 'DRAFT' ? 'Edit Plan' : 'Audit & Edit'}
+                                                            <ChevronRight className="w-4 h-4" />
                                                         </button>
                                                     </div>
                                                 </td>

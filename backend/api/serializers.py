@@ -468,7 +468,7 @@ class PublicStudySerializer(SanitizedModelSerializer):
     class Meta:
         model = Study
         fields = [
-            'id', 'title', 'protocol_id', 'description', 'condition', 
+            'id', 'title', 'full_title', 'protocol_id', 'description', 'condition', 
             'duration', 'location', 'compensation', 'status', 'stage', 
             'tags', 'created_at', 'screener_config',
             'overview', 'benefit', 'participation_message',
@@ -1179,7 +1179,7 @@ class ParticipantBriefSerializer(SanitizedModelSerializer):
         fields = [
             'id', 'study', 'study_name', 'protocol_id', 'user', 'user_details',
             'participant_sid', 'status', 'created_at', 'reviewed_at',
-            'display_name', 'display_email', 'display_phone', 'display_address'
+            'display_name', 'display_email', 'display_phone', 'display_address', 'coordinator_approved', 'pi_approved', 'approval_status'
         ]
 
 class DeIdentifiedParticipantSerializer(SanitizedModelSerializer):

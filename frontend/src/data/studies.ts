@@ -19,6 +19,7 @@ export interface Study {
     safetyInfo: string;
     privacyStandards: ('HIPAA' | 'GDPR' | 'SOC2')[];
     remoteParticipation: boolean;
+    full_title?: string;
     participation_message?: string;
     compensation_range?: string;
     is_paid?: boolean;
@@ -57,6 +58,7 @@ export const fetchStudies = async (): Promise<Study[]> => {
             location: d.location || (d.study_type === 'VIRTUAL' ? 'Remote' : 'Clinical Site'),
             timeCommitment: d.time_commitment || 'To be determined',
             overview: d.overview || "",
+            full_title: d.full_title || "",
             participation_message: d.participation_message || "",
             timeline: d.timeline || [],
 

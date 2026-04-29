@@ -99,6 +99,8 @@ export interface ConsentRecord {
     locked: boolean;
     auditLog: AuditEntry[];
     signed_pdf_url?: string;
+    decrypted_name?: string;
+    signing_status?: string;
 }
 
 
