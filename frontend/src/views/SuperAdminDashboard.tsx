@@ -1793,7 +1793,7 @@ export default function SuperAdminDashboard() {
   const TeamPage = ({ users, viewDetails, staffRecords, API }: any) => {
     const internalUsers = (users || []).filter((u: any) => ['SUPER_ADMIN', 'ADMIN', 'PI', 'COORDINATOR'].includes(u.role));
 
-    const renderCard = (displayData: any, index: number, category: 'leadership' | 'advisors' | 'staff', systemUser: any = null) => {
+    const renderCard = (displayData: any, index: number, category: 'leadership' | 'advisors' | 'staff' | 'collaborators', systemUser: any = null) => {
       const isUser = !!systemUser;
       const member = displayData;
       const imageUrl = member.image 
