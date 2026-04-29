@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { authFetch, clearToken, getRole, performLogout, getDisplayName, revealValue, API } from '../utils/auth';
+import { getMediaUrl } from '../utils/media';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Users, Briefcase, Activity, Crown, Shield, Bell, Settings, LogOut, Search,
@@ -783,17 +784,7 @@ export default function SuperAdminDashboard() {
   // UTILS: MEDIA & EXTENSION MITIGATION
   // ═══════════════════════════════════════════
 
-  const resolveImageUrl = (path: string | null) => {
-    if (!path) return null;
-    if (path.startsWith('http')) return path;
-    const baseUrl = (API || 'http://localhost:8000').replace(/\/$/, '');
-    // Ensure we don't double up /media/
-    const cleanPath = path.startsWith('/') ? path.substring(1) : path;
-    if (cleanPath.startsWith('media/')) {
-       return `${baseUrl}/${cleanPath}`;
-    }
-    return `${baseUrl}/media/${cleanPath}`;
-  };
+  // Removed local resolveImageUrl in favor of getMediaUrl utility
 
   const extensionProps = {
     spellCheck: false,
@@ -1796,7 +1787,7 @@ export default function SuperAdminDashboard() {
     const renderCard = (displayData: any, index: number, category: 'leadership' | 'advisors' | 'staff' | 'collaborators', systemUser: any = null) => {
       const isUser = !!systemUser;
       const member = displayData;
-      const imageUrl = resolveImageUrl(member.image);
+      const imageUrl = getMediaUrl(member.image);
       
       return (
         <motion.div 

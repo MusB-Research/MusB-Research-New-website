@@ -3,6 +3,7 @@ import NotificationBell from '../components/NotificationBell';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { authFetch, clearToken, getRole, performLogout, getUser, getDisplayName, API } from '../utils/auth';
+import { getMediaUrl } from '../utils/media';
 import { apiFetch } from '../api';
 import SEO from '../components/SEO';
 import LogoutConfirmationModal from '../components/LogoutConfirmationModal';
@@ -1323,7 +1324,7 @@ function ComplianceModule() {
                             <div className="mt-4 pt-6 border-t border-white/5">
                                 {doc.path ? (
                                     <a
-                                        href={`${API}/media/${doc.path}`}
+                                        href={getMediaUrl(doc.path)}
                                         target="_blank"
                                         rel="noreferrer"
                                         className="w-full py-4 bg-white/5 hover:bg-white text-white hover:text-slate-950 border border-white/10 rounded-2xl text-sm font-bold uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-3 group/link"

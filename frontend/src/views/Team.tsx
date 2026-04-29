@@ -1,23 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { Linkedin, ChevronDown, ChevronUp, Building2, Users, Stethoscope, Briefcase, Activity, FileText, ShieldCheck } from 'lucide-react';
 import { authFetch, API } from '../utils/auth';
+import { getMediaUrl } from '../utils/media';
 
 
 
-const getImageUrl = (path: string | null) => {
-    if (!path) return null;
-    if (path.startsWith('http')) return path;
-    const baseUrl = API || 'http://localhost:8000';
-    const cleanPath = path.startsWith('/') ? path.substring(1) : path;
-    if (cleanPath.startsWith('media/')) {
-       return `${baseUrl}/${cleanPath}`;
-    }
-    return `${baseUrl}/media/${cleanPath}`;
-};
+// Removed local getImageUrl
 
 const TeamMemberCard = ({ member }: { member: any }) => {
     const [isOpen, setIsOpen] = useState(false);
-    const imageUrl = getImageUrl(member.image);
+    const imageUrl = getMediaUrl(member.image);
 
     return (
         <div className="group bg-white/5 backdrop-blur-xl rounded-[2.5rem] border-2 border-white/10 overflow-hidden hover:border-cyan-400/50 transition-all duration-500 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)] flex flex-col">

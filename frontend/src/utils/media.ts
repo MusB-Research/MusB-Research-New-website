@@ -9,23 +9,31 @@ export const FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1576091160550-2
 export function getMediaUrl(url: string | null | undefined): string {
     if (!url) return FALLBACK_IMAGE;
 
-    // If it's already an absolute URL (starts with http or https), return it
+    let cleanPath = url;
+
+    // Handle absolute URLs that might be pointing to localhost or old domains
     if (url.startsWith('http://') || url.startsWith('https://')) {
-        return url;
+        // If it's a media URL from any source (even localhost), try to extract the relative path
+        // to re-resolve it against the current API base.
+        const mediaIndex = url.indexOf('/media/');
+        if (mediaIndex !== -1) {
+            cleanPath = url.substring(mediaIndex + 7); // extract path after "/media/"
+        } else {
+            return url; // It's a real external absolute URL, keep it
+        }
     }
 
-    // If it starts with /media/, prepend the API base
-    if (url.startsWith('/media/')) {
-        return `${API}${url}`;
-    }
-
-    // If it's just a path like "news_images/something.webp", prepend /media/ and API base
-    if (!url.startsWith('/')) {
-        return `${API}/media/${url}`;
-    }
-
-    // Default: prepend API base to any other relative path
-    return `${API}${url}`;
+    const baseUrl = (API || 'http://localhost:8000').replace(/\/$/, '');
+    
+    // Remove leading slash if present
+    const pathWithoutLeadingSlash = cleanPath.startsWith('/') ? cleanPath.substring(1) : cleanPath;
+    
+    // Ensure we don't have double /media/ if the path already starts with it
+    const finalPath = pathWithoutLeadingSlash.startsWith('media/') 
+        ? pathWithoutLeadingSlash.substring(6) 
+        : pathWithoutLeadingSlash;
+    
+    return `${baseUrl}/media/${finalPath}`;
 }
 
 /**

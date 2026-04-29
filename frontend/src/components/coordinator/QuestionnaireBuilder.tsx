@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { apiFetch } from '../../api';
 import { authFetch, API } from '../../utils/auth';
+import { getMediaUrl } from '../../utils/media';
 
 interface Question {
     id: string;
@@ -35,21 +36,8 @@ interface QuestionnaireBuilderProps {
     selectedTemplates?: string[];
 }
 
-const getFullUrl = (path: string | null) => {
-    if (!path) return '';
-    if (path.startsWith('http')) return path;
+// Removed local getMediaUrl in favor of centralized getMediaUrl
 
-    // In Django, media files are usually /media/...
-    // If the path doesn't start with /media/ but it's a relative path, we might need to prepend it
-    let cleanPath = path.startsWith('/') ? path : `/${path}`;
-
-    // If it doesn't already have /media/ and doesn't look like an absolute API path
-    if (!cleanPath.startsWith('/media/')) {
-        cleanPath = `/media${cleanPath}`;
-    }
-
-    return `${API}${cleanPath}`;
-};
 
 export default function QuestionnaireBuilder({ initialTemplate, initialTab, onSelectTemplate, selectedTemplates }: QuestionnaireBuilderProps) {
     console.log("QuestionnaireBuilder mounting with initialTab:", initialTab);
@@ -105,7 +93,7 @@ export default function QuestionnaireBuilder({ initialTemplate, initialTab, onSe
     useEffect(() => {
         if (initialTemplate) {
             setEditingId(initialTemplate.id || null);
-            setEditingPdfUrl(getFullUrl(initialTemplate.pdf_file));
+            setEditingPdfUrl(getMediaUrl(initialTemplate.pdf_file));
             setName(initialTemplate.title || initialTemplate.name || '');
             setInstructions(initialTemplate.json_structure?.instructions || '');
             setQuestions(initialTemplate.json_structure?.questions || []);
@@ -513,7 +501,7 @@ export default function QuestionnaireBuilder({ initialTemplate, initialTab, onSe
                                 <button
                                     onClick={() => {
                                         if (t.pdf_file) {
-                                            setPreviewPdf(getFullUrl(t.pdf_file));
+                                            setPreviewPdf(getMediaUrl(t.pdf_file));
                                         } else {
                                             setPreviewData(t);
                                         }
@@ -525,7 +513,7 @@ export default function QuestionnaireBuilder({ initialTemplate, initialTab, onSe
                                 <button
                                     onClick={() => {
                                         setEditingId(t.id);
-                                        setEditingPdfUrl(getFullUrl(t.pdf_file));
+                                        setEditingPdfUrl(getMediaUrl(t.pdf_file));
                                         setEditingPdfName(t.pdf_file ? (t.pdf_file.split('/').pop() || 'Protocol.pdf') : 'Protocol.pdf');
                                         setName(t.name);
                                         const js = t.json_structure || {};
