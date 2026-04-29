@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Upload, CheckCircle, FileText, Download, Terminal, Shield, Database, X, AlertTriangle, CheckCircle2, Bold, Italic, Underline, Link } from 'lucide-react';
+import { Upload, CheckCircle, FileText, Download, Terminal, Shield, Database, X, AlertTriangle, CheckCircle2, Bold, Italic, Underline, Link, Sparkles } from 'lucide-react';
 
 interface InformedConsentWorkflowProps {
     participant: any;
