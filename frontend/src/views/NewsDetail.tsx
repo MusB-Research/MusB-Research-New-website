@@ -4,7 +4,7 @@ import { ArrowLeft, Calendar, Tag, ExternalLink } from 'lucide-react';
 import { fetchNewsDetail, fetchEventDetail } from '../api';
 import { motion } from 'framer-motion';
 import SEO from '@/components/SEO';
-import { getMediaUrl, handleImageError } from '../utils/media';
+import { getMediaUrl, handleImageError, getYoutubeId } from '../utils/media';
 
 /** Decode HTML entities that may have been stored by older sanitizer */
 function decodeEntities(str: string): string {
@@ -12,13 +12,6 @@ function decodeEntities(str: string): string {
     txt.innerHTML = str;
     return txt.value;
 }
-
-const getYoutubeId = (url: string) => {
-    if (!url) return null;
-    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
-    const match = url.match(regExp);
-    return (match && match[2].length === 11) ? match[2] : null;
-};
 
 /**
  * Render rich content:
@@ -41,18 +34,37 @@ function ContentRenderer({ html }: { html: string }) {
         );
     }
 
-    // Plain text — split on newlines and render paragraphs
+    // Plain text — detect URLs and linkify them
     return (
         <div className="space-y-4">
-            {decoded.split('\n').map((line, i) =>
-                line.trim() ? (
+            {decoded.split('\n').map((line, i) => {
+                if (!line.trim()) return <div key={i} className="h-2" />;
+                
+                // Regex to find URLs
+                const urlRegex = /(https?:\/\/[^\s]+)/g;
+                const parts = line.split(urlRegex);
+                
+                return (
                     <p key={i} className="text-slate-300 leading-relaxed text-base">
-                        {line}
+                        {parts.map((part, j) => {
+                            if (part.match(urlRegex)) {
+                                return (
+                                    <a 
+                                        key={j} 
+                                        href={part} 
+                                        target="_blank" 
+                                        rel="noopener noreferrer"
+                                        className="text-cyan-400 underline hover:text-cyan-300 transition-colors break-all"
+                                    >
+                                        {part}
+                                    </a>
+                                );
+                            }
+                            return part;
+                        })}
                     </p>
-                ) : (
-                    <div key={i} className="h-2" />
-                )
-            )}
+                );
+            })}
         </div>
     );
 }
@@ -158,7 +170,7 @@ export default function NewsDetail() {
                         )}
                         <span className="inline-flex items-center gap-1.5 text-slate-500 text-xs font-medium">
                             <Calendar className="w-3.5 h-3.5" />
-                            {item.date}
+                            {item.date || (item.created_at ? new Date(item.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '')}
                         </span>
                     </div>
 
@@ -179,14 +191,35 @@ export default function NewsDetail() {
                                 allowFullScreen
                             ></iframe>
                         </div>
-                    ) : item.image_url && (
-                        <div className="rounded-2xl overflow-hidden border border-white/10">
-                            <img
-                                src={getMediaUrl(item.image_url || item.image)}
-                                onError={handleImageError}
-                                alt={title}
-                                className="w-full h-64 md:h-96 object-cover"
-                            />
+                    ) : (item.image_url || item.image) && (
+                        <div className="rounded-2xl overflow-hidden border border-white/10 group/img-link relative">
+                            {item.link ? (
+                                <a 
+                                    href={item.link} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    className="block relative cursor-pointer"
+                                >
+                                    <img
+                                        src={getMediaUrl(item.image_url || item.image)}
+                                        onError={handleImageError}
+                                        alt={title}
+                                        className="w-full h-64 md:h-96 object-cover group-hover/img-link:scale-105 transition-transform duration-700"
+                                    />
+                                    <div className="absolute inset-0 bg-black/0 group-hover/img-link:bg-black/20 transition-colors flex items-center justify-center">
+                                        <div className="bg-cyan-500 text-white p-3 rounded-full opacity-0 group-hover/img-link:opacity-100 scale-50 group-hover/img-link:scale-100 transition-all duration-300 shadow-xl">
+                                            <ExternalLink className="w-6 h-6" />
+                                        </div>
+                                    </div>
+                                </a>
+                            ) : (
+                                <img
+                                    src={getMediaUrl(item.image_url || item.image)}
+                                    onError={handleImageError}
+                                    alt={title}
+                                    className="w-full h-64 md:h-96 object-cover"
+                                />
+                            )}
                         </div>
                     )}
 
@@ -200,14 +233,14 @@ export default function NewsDetail() {
 
                     {/* Link button if present */}
                     {item.link && (
-                        <div className="pt-4">
+                        <div className="pt-8 border-t border-white/5">
                             <a
                                 href={item.link}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="inline-flex items-center gap-2 px-6 py-3 bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-sm rounded-xl transition-all shadow-lg shadow-cyan-900/30"
+                                className="inline-flex items-center gap-3 px-8 py-4 bg-cyan-600 hover:bg-cyan-500 text-white font-black text-xs uppercase tracking-[0.2em] rounded-2xl transition-all shadow-xl shadow-cyan-900/20 group/btn"
                             >
-                                <ExternalLink className="w-4 h-4" />
+                                <ExternalLink className="w-4 h-4 group-hover/btn:rotate-12 transition-transform" />
                                 Read Full Article
                             </a>
                         </div>

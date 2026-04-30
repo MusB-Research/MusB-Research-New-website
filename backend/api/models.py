@@ -273,6 +273,8 @@ class News(models.Model):
     published_at = models.DateTimeField(auto_now_add=True)
     created_at = models.DateTimeField(auto_now_add=True)
     image = models.ImageField(upload_to='news_images/', null=True, blank=True)
+    link = models.URLField(max_length=500, null=True, blank=True)
+    is_success_story = models.BooleanField(default=False)
 
 class Event(models.Model):
     title = models.CharField(max_length=255)
@@ -280,6 +282,7 @@ class Event(models.Model):
     date = models.DateTimeField()
     sequence = models.IntegerField(default=0)
     image = models.ImageField(upload_to='event_images/', null=True, blank=True)
+    link = models.URLField(max_length=500, null=True, blank=True)
 
 class FacilityInquiry(models.Model):
     name = models.CharField(max_length=255)

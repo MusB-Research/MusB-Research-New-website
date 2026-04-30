@@ -2850,7 +2850,6 @@ class InvitationViewSet(viewsets.ModelViewSet):
 class NewsViewSet(viewsets.ModelViewSet):
     queryset = News.objects.all().order_by('-sequence', '-published_at')
     serializer_class = NewsSerializer
-    authentication_classes = []
 
     def get_permissions(self):
         # Public can read; authenticated staff can create/edit/delete
@@ -2911,7 +2910,6 @@ class StaffTaskViewSet(viewsets.ModelViewSet):
 class EventViewSet(viewsets.ModelViewSet):
     queryset = Event.objects.all().order_by('-sequence', '-date')
     serializer_class = EventSerializer
-    authentication_classes = []
 
     def get_permissions(self):
         if self.action in ['list', 'retrieve']:

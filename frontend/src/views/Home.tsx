@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, ChevronLeft, ChevronRight, ChevronDown, Brain, FlaskConical, Activity, TestTube, Microscope, Leaf, Flower, Flower2, ShieldCheck, Zap, Beaker, BarChart, FileText, Stethoscope, Database, Smartphone, Box, CheckCircle2, Building2, Globe, HeartPulse, X, Calendar, Newspaper, Clock } from 'lucide-react';
+import { ArrowRight, ChevronLeft, ChevronRight, ChevronDown, Brain, FlaskConical, Activity, TestTube, Microscope, Leaf, Flower, Flower2, ShieldCheck, Zap, Beaker, BarChart, FileText, Stethoscope, Database, Smartphone, Box, CheckCircle2, Building2, Globe, HeartPulse, X, Calendar, Newspaper, Clock, GraduationCap } from 'lucide-react';
 import StudyFilterSection from '@/components/StudyFilterSection';
 import { authFetch, API } from '../utils/auth';
-import { getMediaUrl, handleImageError } from '../utils/media';
+import { getMediaUrl, handleImageError, getYoutubeId } from '../utils/media';
 import SEO from '@/components/SEO';
 
 const decodeHTML = (html: string) => {
@@ -1387,13 +1387,15 @@ export default function Home() {
     const [selectedExpertise, setSelectedExpertise] = useState<any>(null);
     const [activeAccordionIndex, setActiveAccordionIndex] = useState<number | null>(0);
     const [latestUpdates, setLatestUpdates] = useState<any[]>([]);
+    const [playingVideoId, setPlayingVideoId] = useState<string | null>(null);
 
     useEffect(() => {
         const fetchUpdates = async () => {
             try {
-                const [newsRes, eventsRes] = await Promise.all([
+                const [newsRes, eventsRes, eduRes] = await Promise.all([
                     authFetch('/api/news/'),
-                    authFetch('/api/events/')
+                    authFetch('/api/events/'),
+                    authFetch('/api/education/')
                 ]);
                 
                 let combined: any[] = [];
@@ -1422,6 +1424,23 @@ export default function Home() {
                         displayDate: new Date(e.date || e.event_date || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
                         imageUrl: getMediaUrl(e.image_url || e.image)
                     }))];
+                }
+                if (eduRes.ok) {
+                    const data = await eduRes.json();
+                    const eduArray = Array.isArray(data) ? data : (data.results || []);
+                    combined = [...combined, ...eduArray.map((e: any) => {
+                        const ytId = getYoutubeId(e.youtube_url);
+                        return {
+                            ...e,
+                            uiType: 'Education',
+                            title: decodeHTML(e.title),
+                            excerpt: decodeHTML(e.content || 'Educational video content available.'),
+                            date: e.created_at,
+                            displayDate: new Date(e.created_at || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+                            imageUrl: ytId ? `https://img.youtube.com/vi/${ytId}/maxresdefault.jpg` : getMediaUrl(e.file_url || e.file),
+                            youtubeId: ytId
+                        };
+                    })];
                 }
                 
                 combined.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -1592,23 +1611,62 @@ export default function Home() {
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                             {latestUpdates.map((item, idx) => (
                                 <Link 
-                                    to="/news" 
+                                    to={`/news/${item.id}`} 
                                     key={idx}
                                     className="group relative flex flex-col h-full bg-slate-950/40 border border-white/5 rounded-[2.5rem] overflow-hidden hover:bg-white/5 hover:border-cyan-500/30 transition-all duration-700 animate-fade-in-up"
                                     style={{ animationDelay: `${idx * 150}ms` }}
                                 >
                                     {/* Image Container */}
-                                    <div className="relative aspect-[16/10] overflow-hidden bg-slate-900">
-                                        <img 
-                                            src={getMediaUrl(item.imageUrl)} 
-                                            onError={handleImageError}
-                                            alt={item.title}
-                                            className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
-                                        />
-                                        <div className="absolute inset-0 bg-slate-950/20 group-hover:bg-transparent transition-colors"></div>
-                                        <div className="absolute top-6 left-6 flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-950/80 backdrop-blur-md border border-white/10">
-                                            {item.uiType === 'News' ? <Newspaper className="w-3.5 h-3.5 text-cyan-400" /> : <Calendar className="w-3.5 h-3.5 text-cyan-400" />}
-                                            <span className="text-[10px] font-black uppercase tracking-widest text-white">{item.uiType}</span>
+                                    <div className="relative aspect-[16/10] overflow-hidden bg-slate-900 group/video">
+                                        {item.youtubeId ? (
+                                            playingVideoId === item.id ? (
+                                                <iframe
+                                                    className="w-full h-full relative z-10"
+                                                    src={`https://www.youtube.com/embed/${item.youtubeId}?autoplay=1&rel=0&modestbranding=1`}
+                                                    title={item.title}
+                                                    frameBorder="0"
+                                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                                    allowFullScreen
+                                                ></iframe>
+                                            ) : (
+                                                <div className="w-full h-full cursor-pointer relative"
+                                                     onClick={(e) => {
+                                                         e.preventDefault();
+                                                         e.stopPropagation();
+                                                         setPlayingVideoId(item.id);
+                                                     }}>
+                                                    <img 
+                                                        src={item.imageUrl} 
+                                                        onError={handleImageError}
+                                                        alt={item.title}
+                                                        className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105 opacity-80"
+                                                    />
+                                                    <div className="absolute inset-0 flex items-center justify-center z-20">
+                                                        <div className="w-16 h-16 rounded-full bg-cyan-500/80 flex items-center justify-center backdrop-blur-md shadow-2xl shadow-cyan-500/40 group-hover/video:scale-110 transition-transform">
+                                                            <div className="w-0 h-0 border-t-[10px] border-t-transparent border-l-[18px] border-l-white border-b-[10px] border-b-transparent ml-1"></div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )
+                                        ) : (
+                                            <img 
+                                                src={item.imageUrl} 
+                                                onError={handleImageError}
+                                                alt={item.title}
+                                                className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
+                                            />
+                                        )}
+                                        <div className="absolute top-4 left-4 z-30">
+                                            <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-950/80 backdrop-blur-md border border-white/10">
+                                                {item.uiType === 'News' ? (
+                                                    <Newspaper className="w-3.5 h-3.5 text-cyan-400" />
+                                                ) : item.uiType === 'Event' ? (
+                                                    <Calendar className="w-3.5 h-3.5 text-cyan-400" />
+                                                ) : (
+                                                    <GraduationCap className="w-3.5 h-3.5 text-cyan-400" />
+                                                )}
+                                                <span className="text-[10px] font-black text-white uppercase tracking-widest">{item.uiType}</span>
+                                            </div>
                                         </div>
                                     </div>
 
