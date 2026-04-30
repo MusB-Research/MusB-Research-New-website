@@ -81,10 +81,16 @@ export default function CareerManagement() {
       });
 
       if (res.ok) {
+        const savedJob = await res.json();
         alert(`Sequence Synchronization Success: Content is now live in the global cluster.`);
         setShowForm(false);
         setEditingJob(null);
-        fetchJobs();
+        
+        if (editingJob) {
+          setJobs(prev => prev.map(j => j.id === savedJob.id ? savedJob : j));
+        } else {
+          setJobs(prev => [savedJob, ...prev]);
+        }
       } else {
         const err = await res.json().catch(() => ({ error: 'Unknown protocol failure' }));
         alert(`Critical Protocol Error [${res.status}]: ${JSON.stringify(err)}`);
@@ -97,26 +103,50 @@ export default function CareerManagement() {
 
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this posting?')) return;
+    
+    // Optimistic Update: Remove from UI immediately
+    const previousJobs = [...jobs];
+    setJobs(prev => prev.filter(job => job.id !== id));
+
     try {
       const res = await authFetch(`${API_ROOT}/api/careers/admin/job-postings/${id}/`, {
         method: 'DELETE',
       });
-      if (res.ok) fetchJobs();
+      if (!res.ok) {
+        // Rollback on failure
+        setJobs(previousJobs);
+        const err = await res.json().catch(() => ({ error: 'Delete failed' }));
+        alert(`Failed to delete: ${JSON.stringify(err)}`);
+      }
     } catch (error) {
       console.error('Delete error:', error);
+      setJobs(previousJobs);
+      alert('Network error: Failed to communicate with server.');
     }
   };
 
   const toggleStatus = async (job: JobPosting) => {
     const newStatus = job.status === 'Active' ? 'Archived' : 'Active';
+    
+    // Optimistic Update: Change status in UI immediately
+    const previousJobs = [...jobs];
+    setJobs(prev => prev.map(j => j.id === job.id ? { ...j, status: newStatus as any } : j));
+
     try {
       const res = await authFetch(`${API_ROOT}/api/careers/admin/job-postings/${job.id}/`, {
         method: 'PATCH',
         body: JSON.stringify({ status: newStatus }),
       });
-      if (res.ok) fetchJobs();
+      if (!res.ok) {
+        // Rollback on failure
+        setJobs(previousJobs);
+        const err = await res.json().catch(() => ({ error: 'Update failed' }));
+        alert(`Failed to update status: ${JSON.stringify(err)}`);
+      }
     } catch (error) {
       console.error('Status update error:', error);
+      setJobs(previousJobs);
+      alert('Network error: Failed to communicate with server.');
     }
   };
 
