@@ -184,9 +184,9 @@ export default function Careers() {
                         <div className="absolute inset-0 bg-gradient-to-tr from-cyan-500/30 to-indigo-500/30 rounded-[4rem] blur-[120px] opacity-20 group-hover:opacity-40 transition-opacity"></div>
                         <div className="relative rounded-[4rem] overflow-hidden border border-white/10 aspect-[4/3] shadow-2xl bg-slate-900">
                             <img 
-                                src="/graduation.webp" 
-                                alt="Careers and Graduation" 
-                                className="w-full h-full object-cover object-bottom group-hover:scale-110 transition-transform duration-1000 opacity-80 group-hover:opacity-100"
+                                src="/carrer_image.webp" 
+                                alt="Careers at MusB Research" 
+                                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000 opacity-80 group-hover:opacity-100"
                             />
                             <div className="absolute inset-0 bg-gradient-to-t from-slate-950/60 to-transparent"></div>
                             <div className="absolute bottom-0 left-0 right-0 bg-slate-950/90 backdrop-blur-xl p-4 md:p-5 border-t border-white/10 flex items-center justify-between">
