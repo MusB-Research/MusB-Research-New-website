@@ -94,6 +94,8 @@ export interface NewsItem {
     imageUrl?: string;
     image?: string;
     date: string;
+    displayDate?: string;
+    link?: string;
     // Event specific
     startTime?: string;
     endTime?: string;

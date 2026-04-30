@@ -344,6 +344,7 @@ export default function SubmitContentForms({ userRole, editData }: { userRole: s
                 body.append('category', formData.category);
                 if (formData.image) body.append('file', formData.image);
                 if (formData.youtube_url) body.append('youtube_url', formData.youtube_url);
+                body.append('sequence', String(formData.sequence));
             }
 
             const endpointMap: Record<string, string> = {
@@ -356,7 +357,7 @@ export default function SubmitContentForms({ userRole, editData }: { userRole: s
                 setFormData({
                     title: '', description: '', image: null, is_success_story: false, event_date: '',
                     name: '', link: '', authors: '', journal: '', publication_date: '', abstract: '',
-                    category: '', file: null, youtube_url: '',
+                    category: '', file: null, youtube_url: '', sequence: 0,
                 });
             } else {
                 const errJson = await res.json().catch(() => null);
