@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 
 interface ConsortiumNavBarProps {
     activeTab: string;
-    setActiveTab: (tab: string) => void;
+    setActiveTab?: (tab: string) => void;
 }
 
 export default function ConsortiumNavBar({ activeTab, setActiveTab }: ConsortiumNavBarProps) {
@@ -16,8 +16,26 @@ export default function ConsortiumNavBar({ activeTab, setActiveTab }: Consortium
         { id: 'contacts', label: 'Contacts' }
     ];
 
+    const scrollToSection = (id: string) => {
+        const element = document.getElementById(id);
+        if (element) {
+            const offset = 100; // Adjust based on header height
+            const bodyRect = document.body.getBoundingClientRect().top;
+            const elementRect = element.getBoundingClientRect().top;
+            const elementPosition = elementRect - bodyRect;
+            const offsetPosition = elementPosition - offset;
+
+            window.scrollTo({
+                top: offsetPosition,
+                behavior: 'smooth'
+            });
+            
+            if (setActiveTab) setActiveTab(id);
+        }
+    };
+
     return (
-        <nav className="sticky top-0 z-40 w-full bg-[#020617] border-b border-white/5 py-4">
+        <nav className="sticky top-0 z-40 w-full bg-[#020617]/80 backdrop-blur-md border-b border-white/5 py-4">
             <div className="max-w-[1700px] mx-auto px-6 flex items-center justify-between">
                 {/* Brand Logo */}
                 <Link to="/" className="flex items-center gap-3 group">
@@ -35,7 +53,7 @@ export default function ConsortiumNavBar({ activeTab, setActiveTab }: Consortium
                     {tabs.map((tab) => (
                         <button
                             key={tab.id}
-                            onClick={() => setActiveTab(tab.id)}
+                            onClick={() => scrollToSection(tab.id)}
                             className={`px-4 py-2 rounded-full text-xs font-black uppercase tracking-widest transition-all ${activeTab === tab.id
                                     ? 'bg-cyan-500 text-slate-900 shadow-lg shadow-cyan-500/20'
                                     : 'text-slate-400 hover:text-white hover:bg-white/5'

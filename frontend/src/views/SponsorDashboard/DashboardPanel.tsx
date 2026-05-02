@@ -1305,7 +1305,7 @@ export default function DashboardPanel({ protocols, team, inquiries, setProtocol
 
             {studyDetailTab === 'Overview' && (
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '36px 56px' }}>
-                <div><div style={{ fontSize: 13, color: '#64748b', textTransform: 'uppercase', fontWeight: 800, marginBottom: 12, letterSpacing: '0.08em' }}>Principal Investigator</div><div style={{ fontSize: 26, color: '#f1f5f9', fontWeight: 700 }}>{selectedStudyDetail.pi}</div></div>
+                <div><div style={{ fontSize: 13, color: '#64748b', textTransform: 'uppercase', fontWeight: 800, marginBottom: 12, letterSpacing: '0.08em' }}>Investigator</div><div style={{ fontSize: 26, color: '#f1f5f9', fontWeight: 700 }}>{selectedStudyDetail.pi}</div></div>
                 <div><div style={{ fontSize: 13, color: '#64748b', textTransform: 'uppercase', fontWeight: 800, marginBottom: 12, letterSpacing: '0.08em' }}>Assigned Site(s)</div><div style={{ fontSize: 26, color: '#f1f5f9', fontWeight: 700 }}>{selectedStudyDetail.site}</div></div>
                 <div><div style={{ fontSize: 13, color: '#64748b', textTransform: 'uppercase', fontWeight: 800, marginBottom: 12, letterSpacing: '0.08em' }}>Study Type & Area</div><div style={{ fontSize: 26, color: '#f1f5f9', fontWeight: 700 }}>{selectedStudyDetail.studyType} • {selectedStudyDetail.researchArea}</div></div>
                 <div><div style={{ fontSize: 13, color: '#64748b', textTransform: 'uppercase', fontWeight: 800, marginBottom: 12, letterSpacing: '0.08em' }}>IRB Status</div><div style={{ marginTop: 4 }}><StatusBadge status={selectedStudyDetail.irbStatus} /></div></div>

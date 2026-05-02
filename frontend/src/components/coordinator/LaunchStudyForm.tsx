@@ -602,7 +602,7 @@ const LaunchStudyForm: React.FC<LaunchStudyFormProps> = ({
 
 STUDY IDENTIFIER: ${formData.internalId || 'MUSB-2025-001'}
 PROTOCOL TITLE: ${formData.fullTitle || 'Comprehensive Clinical Biomarker and Longitudinal Health Assessment Study'}
-PRINCIPAL INVESTIGATOR: Dr. Sarah MusB, PhD
+INVESTIGATOR: Dr. Sarah MusB, PhD
 SPONSOR: ${formData.sponsor || 'MusB Research Institute'}
 
 --------------------------------------------------
@@ -665,7 +665,7 @@ The data collected will contribute to the global understanding of preventative m
 --------------------------------------------------
 We will protect your information as required by law. Your identity will be replaced with a unique Research ID. All data is stored on MusB's Tier-4 encrypted clinical servers.
 Your protected health information (PHI) will only be shared with:
-- The Principal Investigator and authorized research staff
+- The Investigator and authorized research staff
 - The Institutional Review Board (IRB) for safety monitoring
 - Regulatory agencies (e.g., FDA) if required by law
 
@@ -694,7 +694,7 @@ Your participation is 100% voluntary. You can say 'no' now, or change your mind 
 10. CONTACT INFORMATION
 --------------------------------------------------
 STUDY TEAM:
-Principal Investigator: Dr. Sarah MusB
+Investigator: Dr. Sarah MusB
 Email: research@musb.ai | Phone: (555) 012-3456
 
 IRB OVERSIGHT:
@@ -712,7 +712,7 @@ By signing this document, I acknowledge that:
 
 [SIGNATURE LINE: PARTICIPANT]
 [SIGNATURE LINE: PERSON OBTAINING CONSENT]
-[SIGNATURE LINE: PRINCIPAL INVESTIGATOR]
+[SIGNATURE LINE: INVESTIGATOR]
 
 --------------------------------------------------
 END OF DOCUMENT
@@ -1467,7 +1467,7 @@ END OF DOCUMENT
 
                         {/* PIs CARD */}
                         <div className="bg-white/5 border border-white/10 rounded-xl p-6">
-                            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-6">PRINCIPAL INVESTIGATOR(S) ({resolvedPIs.length})</h3>
+                            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-6">INVESTIGATOR(S) ({resolvedPIs.length})</h3>
 
                             <div className="space-y-4 mb-6">
                                 {teamLoading && <p className="text-sm text-slate-400 italic">Loading team members...</p>}
@@ -2053,7 +2053,7 @@ END OF DOCUMENT
                             </div>
                             <div className="space-y-4">
                                 <div className="flex justify-between items-center border-b border-white/10 pb-4">
-                                    <span className="text-sm text-slate-300 font-medium italic">Principal Investigator(s)</span>
+                                    <span className="text-sm text-slate-300 font-medium italic">Investigator(s)</span>
                                     {formData.selectedPIs.length > 0 ? (
                                         <span className="text-sm text-emerald-400 font-bold uppercase tracking-tight italic">
                                             {formData.selectedPIs.map(id => {

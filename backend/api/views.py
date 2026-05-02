@@ -2681,6 +2681,26 @@ class UserViewSet(viewsets.ModelViewSet):
             return [IsAdminOrCoordinator()]
         return super().get_permissions()
 
+    def destroy(self, request, *args, **kwargs):
+        from django.http import Http404
+        from .utils.cache_utils import invalidate_cache
+        try:
+            response = super().destroy(request, *args, **kwargs)
+        except Http404:
+            # If already deleted, heal frontend state by returning 204 and invalidating cache
+            invalidate_cache("users_list")
+            from rest_framework.response import Response
+            from rest_framework import status
+            return Response({'status': 'Already deleted'}, status=status.HTTP_204_NO_CONTENT)
+            
+        invalidate_cache("users_list")
+        return response
+
+    def perform_update(self, serializer):
+        super().perform_update(serializer)
+        from .utils.cache_utils import invalidate_cache
+        invalidate_cache("users_list")
+
     def create(self, request, *args, **kwargs):
         # 1. Validation check for duplicate email before processing
         email = request.data.get('email', '').strip().lower()
@@ -3990,10 +4010,52 @@ class SponsorInquiryView(APIView):
     permission_classes = [permissions.AllowAny]
     authentication_classes = []
     def post(self, request):
+        # 1. Deduplication Guard: Prevent duplicate submissions within 10 seconds
+        email = request.data.get('email')
+        if email:
+            from django.utils import timezone
+            from datetime import timedelta
+            recent_inquiry = SponsorInquiry.objects.filter(
+                email=email, 
+                created_at__gte=timezone.now() - timedelta(seconds=10)
+            ).exists()
+            
+            if recent_inquiry:
+                return Response({
+                    "status": "success", 
+                    "message": "We have already received your inquiry. A team member will reach out soon."
+                }, status=status.HTTP_201_CREATED)
+
         serializer = SponsorInquirySerializer(data=request.data)
         if serializer.is_valid():
-            serializer.save()
-            return Response({"status": "success", "message": "Inquiry submitted successfully. A confirmation email has been sent."}, status=status.HTTP_201_CREATED)
+            # 2. Race Condition Lock: Ensure only one thread/worker processes this specific email right now
+            from django.core.cache import cache
+            lock_key = f"inquiry_processing:{email}"
+            if cache.get(lock_key):
+                return Response({
+                    "status": "success", 
+                    "message": "Processing inquiry..."
+                }, status=status.HTTP_201_CREATED)
+            
+            # Set a short lock for 10 seconds
+            cache.set(lock_key, True, timeout=10)
+            
+            try:
+                # Save to database
+                instance = serializer.save()
+                
+                # Manually trigger email notification
+                from .utils.resend_utils import send_sponsor_inquiry_email
+                send_sponsor_inquiry_email(instance)
+                
+                return Response({
+                    "status": "success", 
+                    "message": "Inquiry submitted successfully. A confirmation email has been sent."
+                }, status=status.HTTP_201_CREATED)
+            finally:
+                # We keep the lock for 10s to be safe, don't delete it immediately
+                pass
+                
         import logging
         logging.getLogger(__name__).error(f"Sponsor Inquiry Validation Failed: {serializer.errors}")
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

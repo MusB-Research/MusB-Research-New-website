@@ -13,10 +13,15 @@ interface JobPosting {
   category: string;
   is_featured: boolean;
   location: string;
-  job_type: 'Full-time' | 'Part-time' | 'Contract';
+  duration: string;
+  job_type: 'Full-time' | 'Part-time' | 'Contract' | 'Full-time Internship';
   experience_level: string;
   role_summary: string;
+  responsibilities: (string | { text: string; subItems?: string[] })[];
   requirements: string[];
+  benefits: string[];
+  apply_instructions: string[];
+  about_hiring: string;
   status: 'Active' | 'Archived';
   publish_date: string;
   expiry_date: string;
@@ -36,10 +41,15 @@ export default function CareerManagement() {
     category: 'Clinical Research',
     is_featured: false,
     location: '',
+    duration: '',
     job_type: 'Full-time',
     experience_level: '',
     role_summary: '',
+    responsibilities: [''],
     requirements: [''],
+    benefits: [''],
+    apply_instructions: [''],
+    about_hiring: '',
     status: 'Active',
     publish_date: new Date().toISOString().split('T')[0],
     expiry_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // Default 30 days
@@ -150,6 +160,58 @@ export default function CareerManagement() {
     }
   };
 
+  const addResponsibility = () => {
+    setFormData(prev => ({ ...prev, responsibilities: [...(prev.responsibilities || []), ''] }));
+  };
+
+  const updateResponsibility = (index: number, val: string) => {
+    const newResps = [...(formData.responsibilities || [])];
+    const current = newResps[index];
+    if (typeof current === 'string') {
+      newResps[index] = val;
+    } else {
+      newResps[index] = { ...current, text: val };
+    }
+    setFormData(prev => ({ ...prev, responsibilities: newResps }));
+  };
+
+  const removeResponsibility = (index: number) => {
+    const newResps = formData.responsibilities?.filter((_, i) => i !== index);
+    setFormData(prev => ({ ...prev, responsibilities: newResps }));
+  };
+
+  const addSubResponsibility = (respIndex: number) => {
+    const newResps = [...(formData.responsibilities || [])];
+    const current = newResps[respIndex];
+    if (typeof current === 'string') {
+      newResps[respIndex] = { text: current, subItems: [''] };
+    } else {
+      newResps[respIndex] = { ...current, subItems: [...(current.subItems || []), ''] };
+    }
+    setFormData(prev => ({ ...prev, responsibilities: newResps }));
+  };
+
+  const updateSubResponsibility = (respIndex: number, subIndex: number, val: string) => {
+    const newResps = [...(formData.responsibilities || [])];
+    const current = newResps[respIndex];
+    if (typeof current !== 'string') {
+      const newSubItems = [...(current.subItems || [])];
+      newSubItems[subIndex] = val;
+      newResps[respIndex] = { ...current, subItems: newSubItems };
+      setFormData(prev => ({ ...prev, responsibilities: newResps }));
+    }
+  };
+
+  const removeSubResponsibility = (respIndex: number, subIndex: number) => {
+    const newResps = [...(formData.responsibilities || [])];
+    const current = newResps[respIndex];
+    if (typeof current !== 'string') {
+      const newSubItems = current.subItems?.filter((_, i) => i !== subIndex);
+      newResps[respIndex] = { ...current, subItems: newSubItems };
+      setFormData(prev => ({ ...prev, responsibilities: newResps }));
+    }
+  };
+
   const addRequirement = () => {
     setFormData(prev => ({ ...prev, requirements: [...(prev.requirements || []), ''] }));
   };
@@ -163,6 +225,36 @@ export default function CareerManagement() {
   const removeRequirement = (index: number) => {
     const newReqs = formData.requirements?.filter((_, i) => i !== index);
     setFormData(prev => ({ ...prev, requirements: newReqs }));
+  };
+
+  const addBenefit = () => {
+    setFormData(prev => ({ ...prev, benefits: [...(prev.benefits || []), ''] }));
+  };
+
+  const updateBenefit = (index: number, val: string) => {
+    const newBenefits = [...(formData.benefits || [])];
+    newBenefits[index] = val;
+    setFormData(prev => ({ ...prev, benefits: newBenefits }));
+  };
+
+  const removeBenefit = (index: number) => {
+    const newBenefits = formData.benefits?.filter((_, i) => i !== index);
+    setFormData(prev => ({ ...prev, benefits: newBenefits }));
+  };
+
+  const addApplyInstruction = () => {
+    setFormData(prev => ({ ...prev, apply_instructions: [...(prev.apply_instructions || []), ''] }));
+  };
+
+  const updateApplyInstruction = (index: number, val: string) => {
+    const newInstructions = [...(formData.apply_instructions || [])];
+    newInstructions[index] = val;
+    setFormData(prev => ({ ...prev, apply_instructions: newInstructions }));
+  };
+
+  const removeApplyInstruction = (index: number) => {
+    const newInstructions = formData.apply_instructions?.filter((_, i) => i !== index);
+    setFormData(prev => ({ ...prev, apply_instructions: newInstructions }));
   };
 
   return (
@@ -180,10 +272,15 @@ export default function CareerManagement() {
               category: 'Clinical Research',
               is_featured: false,
               location: '',
+              duration: '',
               job_type: 'Full-time',
               experience_level: '',
               role_summary: '',
+              responsibilities: [''],
               requirements: [''],
+              benefits: [''],
+              apply_instructions: [''],
+              about_hiring: '',
               status: 'Active',
               publish_date: new Date().toISOString().split('T')[0],
               expiry_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
@@ -328,6 +425,16 @@ export default function CareerManagement() {
                     />
                   </div>
                   <div className="space-y-2">
+                    <label className="text-[12px] font-black text-slate-500 uppercase tracking-widest ml-1">Duration</label>
+                    <input 
+                      type="text" 
+                      value={formData.duration}
+                      onChange={e => setFormData({...formData, duration: e.target.value})}
+                      placeholder="e.g. 6 Months / Permanent"
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-cyan-500/50 transition-all outline-none"
+                    />
+                  </div>
+                  <div className="space-y-2">
                     <label className="text-[12px] font-black text-slate-500 uppercase tracking-widest ml-1">Job Type</label>
                     <select 
                       value={formData.job_type}
@@ -337,6 +444,7 @@ export default function CareerManagement() {
                       <option value="Full-time" className="bg-[#1e293b] text-white">Full-time</option>
                       <option value="Part-time" className="bg-[#1e293b] text-white">Part-time</option>
                       <option value="Contract" className="bg-[#1e293b] text-white">Contract</option>
+                      <option value="Full-time Internship" className="bg-[#1e293b] text-white">Full-time Internship</option>
                     </select>
                   </div>
                   <div className="space-y-2">
@@ -385,6 +493,16 @@ export default function CareerManagement() {
                   </div>
                 </div>
 
+                <div className="space-y-4">
+                  <label className="text-[12px] font-black text-slate-500 uppercase tracking-widest ml-1">About Hiring (Paragraph)</label>
+                  <textarea 
+                    value={formData.about_hiring}
+                    onChange={e => setFormData({...formData, about_hiring: e.target.value})}
+                    placeholder="Provide details about the hiring process, timeline, etc."
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-4 text-sm text-white focus:border-cyan-500/50 transition-all outline-none min-h-[120px]"
+                  />
+                </div>
+
                 <div className="space-y-2">
                   <label className="text-[12px] font-black text-slate-500 uppercase tracking-widest ml-1">Role Summary</label>
                   <textarea 
@@ -394,6 +512,75 @@ export default function CareerManagement() {
                     className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-4 text-sm text-white focus:border-cyan-500/50 transition-all outline-none min-h-[150px]"
                     required
                   />
+                </div>
+
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <label className="text-[12px] font-black text-slate-500 uppercase tracking-widest ml-1">Responsibilities (Bullet Points)</label>
+                    <button 
+                      type="button" 
+                      onClick={addResponsibility}
+                      className="text-[12px] font-black text-cyan-400 uppercase tracking-widest hover:text-cyan-300 flex items-center gap-1"
+                    >
+                      <Plus className="w-3 h-3" /> Add Responsibility
+                    </button>
+                  </div>
+                  <div className="space-y-3">
+                    {formData.responsibilities?.map((resp, idx) => (
+                      <div key={idx} className="space-y-3 p-4 rounded-2xl bg-white/5 border border-white/5">
+                        <div className="flex gap-3">
+                          <input 
+                            type="text" 
+                            value={typeof resp === 'string' ? resp : resp.text}
+                            onChange={e => updateResponsibility(idx, e.target.value)}
+                            placeholder={`Main Responsibility ${idx + 1}`}
+                            className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-cyan-500/50 transition-all outline-none"
+                            required
+                          />
+                          <button 
+                            type="button" 
+                            onClick={() => addSubResponsibility(idx)}
+                            className="p-2 text-cyan-400 hover:text-cyan-300 transition-colors"
+                            title="Add sub-item"
+                          >
+                            <Plus className="w-4 h-4" />
+                          </button>
+                          <button 
+                            type="button" 
+                            onClick={() => removeResponsibility(idx)}
+                            className="p-2 text-slate-600 hover:text-red-400 transition-colors"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+
+                        {/* Sub-items */}
+                        {typeof resp !== 'string' && resp.subItems && resp.subItems.length > 0 && (
+                          <div className="pl-6 space-y-2 border-l border-white/10 ml-2">
+                            {resp.subItems.map((sub, sIdx) => (
+                              <div key={sIdx} className="flex gap-2">
+                                <div className="mt-4 w-2 h-px bg-white/20" />
+                                <input 
+                                  type="text" 
+                                  value={sub}
+                                  onChange={e => updateSubResponsibility(idx, sIdx, e.target.value)}
+                                  placeholder={`Sub-item ${sIdx + 1}`}
+                                  className="flex-1 bg-white/5 border border-white/5 rounded-lg px-3 py-2 text-xs text-slate-300 focus:border-cyan-500/50 transition-all outline-none"
+                                />
+                                <button 
+                                  type="button" 
+                                  onClick={() => removeSubResponsibility(idx, sIdx)}
+                                  className="p-2 text-slate-600 hover:text-red-400 transition-colors"
+                                >
+                                  <X className="w-3 h-3" />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
                 </div>
 
                 <div className="space-y-4">
@@ -421,6 +608,74 @@ export default function CareerManagement() {
                         <button 
                           type="button" 
                           onClick={() => removeRequirement(idx)}
+                          className="p-3 text-slate-600 hover:text-red-400 transition-colors"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <label className="text-[12px] font-black text-slate-500 uppercase tracking-widest ml-1">What will you get (Benefits)</label>
+                    <button 
+                      type="button" 
+                      onClick={addBenefit}
+                      className="text-[12px] font-black text-cyan-400 uppercase tracking-widest hover:text-cyan-300 flex items-center gap-1"
+                    >
+                      <Plus className="w-3 h-3" /> Add Benefit
+                    </button>
+                  </div>
+                  <div className="space-y-3">
+                    {formData.benefits?.map((benefit, idx) => (
+                      <div key={idx} className="flex gap-3">
+                        <input 
+                          type="text" 
+                          value={benefit}
+                          onChange={e => updateBenefit(idx, e.target.value)}
+                          placeholder={`Benefit ${idx + 1}`}
+                          className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-cyan-500/50 transition-all outline-none"
+                          required
+                        />
+                        <button 
+                          type="button" 
+                          onClick={() => removeBenefit(idx)}
+                          className="p-3 text-slate-600 hover:text-red-400 transition-colors"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <label className="text-[12px] font-black text-slate-500 uppercase tracking-widest ml-1">Apply now (Instructions)</label>
+                    <button 
+                      type="button" 
+                      onClick={addApplyInstruction}
+                      className="text-[12px] font-black text-cyan-400 uppercase tracking-widest hover:text-cyan-300 flex items-center gap-1"
+                    >
+                      <Plus className="w-3 h-3" /> Add Step
+                    </button>
+                  </div>
+                  <div className="space-y-3">
+                    {formData.apply_instructions?.map((instruction, idx) => (
+                      <div key={idx} className="flex gap-3">
+                        <input 
+                          type="text" 
+                          value={instruction}
+                          onChange={e => updateApplyInstruction(idx, e.target.value)}
+                          placeholder={`Step ${idx + 1}`}
+                          className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-cyan-500/50 transition-all outline-none"
+                          required
+                        />
+                        <button 
+                          type="button" 
+                          onClick={() => removeApplyInstruction(idx)}
                           className="p-3 text-slate-600 hover:text-red-400 transition-colors"
                         >
                           <Trash2 className="w-4 h-4" />

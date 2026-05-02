@@ -180,7 +180,8 @@ class UserSerializer(SanitizedModelSerializer):
             'npi', 'qualifications',
             'must_change_password', 'profile_completed', 'is_screener_completed', 'is_active', 'timezone',
             'status', 'affiliation', 'assigned_studies', 'created_by',
-            'first_name', 'last_name', 'google_auth'
+            'first_name', 'last_name', 'google_auth',
+            'is_mellow_member', 'lat', 'lng', 'organization'
         ]
 
     def validate_status(self, value):
@@ -543,7 +544,7 @@ class VisitSerializer(SanitizedModelSerializer):
                 'name': pi.full_name,
                 'email': pi.email,
                 'phone': pi.decrypted_phone or pi.phone_number or 'N/A',
-                'role': 'Principal Investigator'
+                'role': 'Investigator'
             }
         return None
 

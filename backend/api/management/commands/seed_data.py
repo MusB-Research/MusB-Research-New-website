@@ -26,7 +26,7 @@ class Command(BaseCommand):
         # ---- Team Members ----
         if TeamMember.objects.count() == 0:
             members = [
-                dict(name='Dr. Sarah Mitchell', role='Chief Scientific Officer & Principal Investigator',
+                dict(name='Dr. Sarah Mitchell', role='Chief Scientific Officer & Investigator',
                      bio='Leading translational research in microbiome and metabolic health.',
                      expanded_bio='Dr. Sarah Mitchell brings over 20 years of experience in translational research, with a focus on microbiome-based interventions for metabolic disorders.',
                      expertise_tags=['Microbiome', 'Clinical Trials', 'Metabolic Health'],
@@ -119,8 +119,6 @@ class Command(BaseCommand):
                 dict(name='Jason Chandler', role='IT Professional', dept='Technology', display_order=6),
                 dict(name='Shray Paliwal', role='Research Intern', dept='Scientific Support', display_order=7),
                 dict(name='Osula Ebiuwa', role='Research Intern', dept='Scientific Support', display_order=8),
-                dict(name='Barenya Prasad Mishra', role='Digital Health Platform Developer', dept='Product Engineering', display_order=9),
-                dict(name='Brijesh Kumar', role='Junior Software Engineer', dept='Software Development', display_order=10),
             ]
             for s in staff:
                 StaffMember.objects.create(**s)

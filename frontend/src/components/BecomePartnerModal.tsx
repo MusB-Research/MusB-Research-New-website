@@ -24,13 +24,15 @@ export default function BecomePartnerModal({ isOpen, onClose }: Props) {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (isSubmitting) return; // Prevent double submission
+        
         setIsSubmitting(true);
         try {
             await submitSponsorInquiry({
                 name: `${formData.firstName} ${formData.lastName}`,
                 email: formData.email,
                 company: formData.company,
-                message: `Organization Type: ${formData.orgType}\nInterest: ${formData.interest}\n\nMessage: ${formData.message}`
+                message: `Organization Type: ${formData.orgType}\nInterest: ${formData.interest}\n\n${formData.message}`
             });
             setSubmitted(true);
         } catch (error) {

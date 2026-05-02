@@ -1935,11 +1935,16 @@ export default function Home() {
 
                             <div className="relative group h-full">
                                 <div className="absolute -inset-4 bg-gradient-to-tr from-cyan-500/20 to-cyan-500/20 blur-3xl opacity-50 group-hover:opacity-75 transition-opacity"></div>
-                                <div className="relative aspect-square rounded-[4rem] bg-cyan-500/5 border border-white/10 overflow-hidden flex items-center justify-center bg-gradient-to-br from-cyan-500/10 to-transparent">
-                                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(6,182,212,0.1)_0%,transparent_70%)] animate-pulse"></div>
-                                    <div className="absolute bottom-12 left-12 right-12 p-8 glass-dark rounded-3xl border border-white/10 backdrop-blur-md transform group-hover:-translate-y-2 transition-transform duration-700 z-10">
-                                        <p className="text-slate-300 italic text-sm">"Our facility is more than just a lab; it's a hub of clinical innovation designed with participant care at its core."</p>
-                                    </div>
+                                <div className="relative aspect-square rounded-[4rem] bg-cyan-500/5 border border-white/10 overflow-hidden flex items-center justify-center bg-gradient-to-br from-cyan-500/10 to-transparent shadow-2xl shadow-cyan-500/10">
+                                    <img 
+                                        src="/facility_image.webp" 
+                                        alt="MusB Research Facility" 
+                                        className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-100 group-hover:scale-110 transition-all duration-1000"
+                                    />
+                                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-transparent opacity-80"></div>
+                                </div>
+                                <div className="mt-8 p-8 glass-dark rounded-3xl border border-white/10 backdrop-blur-md transform group-hover:-translate-y-2 transition-transform duration-700 relative z-10">
+                                    <p className="text-slate-200 italic text-sm font-medium leading-relaxed">"Our facility is more than just a lab; it's a hub of clinical innovation designed with participant care at its core."</p>
                                 </div>
                             </div>
                         </div>

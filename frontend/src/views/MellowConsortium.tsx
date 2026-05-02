@@ -10,22 +10,31 @@ import InvestigatorsMap from '../components/mellow/InvestigatorsMap';
 export default function MellowConsortium() {
     const [activeTab, setActiveTab] = useState('about');
 
-    const renderContent = () => {
-        switch (activeTab) {
-            case 'about':
-                return <AboutMellow />;
-            case 'trial':
-                return <TrialSection />;
-            case 'investigators':
-                return <InvestigatorsMap />;
-            case 'events':
-                return <EventsSection />;
-            case 'contacts':
-                return <ContactsSection />;
-            default:
-                return <AboutMellow />;
-        }
-    };
+    useEffect(() => {
+        const observerOptions = {
+            root: null,
+            rootMargin: '-20% 0px -70% 0px',
+            threshold: 0
+        };
+
+        const observerCallback = (entries: IntersectionObserverEntry[]) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    setActiveTab(entry.target.id);
+                }
+            });
+        };
+
+        const observer = new IntersectionObserver(observerCallback, observerOptions);
+        const sections = ['about', 'trial', 'investigators', 'events', 'contacts'];
+        
+        sections.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) observer.observe(el);
+        });
+
+        return () => observer.disconnect();
+    }, []);
 
     return (
         <div className="min-h-screen font-sans text-slate-100 relative bg-[#020617]">
@@ -38,20 +47,28 @@ export default function MellowConsortium() {
 
             <main className="relative z-10 pb-24">
                 {/* Secondary Navigation */}
-                <ConsortiumNavBar activeTab={activeTab} setActiveTab={setActiveTab} />
+                <ConsortiumNavBar activeTab={activeTab} />
 
-                <div className="max-w-[1700px] mx-auto px-6 mt-20">
-                    <AnimatePresence mode="wait">
-                        <motion.div
-                            key={activeTab}
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -20 }}
-                            transition={{ duration: 0.3 }}
-                        >
-                            {renderContent()}
-                        </motion.div>
-                    </AnimatePresence>
+                <div className="max-w-[1700px] mx-auto px-6 mt-20 space-y-32">
+                    <section id="about" className="scroll-mt-32">
+                        <AboutMellow />
+                    </section>
+
+                    <section id="trial" className="scroll-mt-32">
+                        <TrialSection />
+                    </section>
+
+                    <section id="investigators" className="scroll-mt-32">
+                        <InvestigatorsMap />
+                    </section>
+
+                    <section id="events" className="scroll-mt-32">
+                        <EventsSection />
+                    </section>
+
+                    <section id="contacts" className="scroll-mt-32">
+                        <ContactsSection />
+                    </section>
                 </div>
             </main>
         </div>

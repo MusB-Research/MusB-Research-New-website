@@ -658,14 +658,14 @@ export default function News() {
                 </main>
             ) : (
                 <main className="max-w-[1700px] mx-auto px-4 md:px-12 py-32 min-h-[40vh] flex flex-col items-center justify-center text-center">
-                    <div className="w-24 h-24 rounded-full bg-cyan-500/10 flex items-center justify-center text-cyan-400 mb-8">
-                        <Clock className="w-12 h-12" />
+                    <div className="w-20 h-20 rounded-full bg-white/5 flex items-center justify-center text-slate-600 mb-8">
+                        <Newspaper className="w-10 h-10" />
                     </div>
-                    <h2 className="text-5xl md:text-7xl font-black text-white tracking-widest uppercase italic">
-                        COMING SOON
+                    <h2 className="text-3xl md:text-5xl font-black text-white tracking-tight uppercase">
+                        No Updates <span className="text-cyan-400">Available</span>
                     </h2>
                     <p className="text-xl text-slate-400 font-medium mt-6">
-                        We are preparing exciting news and events. Stay tuned!
+                        We are preparing exciting news and events. Please check back later.
                     </p>
                 </main>
             )}

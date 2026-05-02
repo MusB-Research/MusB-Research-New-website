@@ -3,6 +3,7 @@ import * as d3 from 'd3';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronRight, Building2, User, ExternalLink, Linkedin, X } from 'lucide-react';
 import ConsortiumForm from './ConsortiumForm';
+import { API } from '../../utils/auth';
 
 interface Site {
     id: string;
@@ -27,51 +28,7 @@ interface Investigator {
     website?: string;
 }
 
-const MOCK_SITES: Site[] = [
-    {
-        id: '1',
-        name: 'Florida Research Hub',
-        country: 'USA',
-        lat: 27.6648,
-        lng: -81.5158,
-        institutions: [
-            {
-                id: 'inst-1',
-                name: 'University of South Florida',
-                investigators: [
-                    {
-                        id: 'inv-1',
-                        name: 'Dr. Hariom Yadav',
-                        bio: 'Dr. Hariom Yadav is an Associate Professor of Neurosurgery and Brain Repair at the University of South Florida. He is an expert in microbiome and aging research.',
-                        linkedin: 'https://linkedin.com',
-                        website: 'https://musbresearch.com'
-                    }
-                ]
-            }
-        ]
-    },
-    {
-        id: '2',
-        name: 'London Longevity Centre',
-        country: 'United Kingdom',
-        lat: 51.5074,
-        lng: -0.1278,
-        institutions: [
-            {
-                id: 'inst-2',
-                name: 'King\'s College London',
-                investigators: [
-                    {
-                        id: 'inv-2',
-                        name: 'Dr. Jane Smith',
-                        bio: 'Professor of Geriatrics with a focus on cellular senescence and longevity pathways.',
-                        linkedin: 'https://linkedin.com'
-                    }
-                ]
-            }
-        ]
-    }
-];
+const MOCK_SITES: Site[] = [];
 
 export default function InvestigatorsMap() {
     const svgRef = useRef<SVGSVGElement>(null);
@@ -80,27 +37,57 @@ export default function InvestigatorsMap() {
     const [selectedInvestigator, setSelectedInvestigator] = useState<Investigator | null>(null);
     const [isGatedFormOpen, setIsGatedFormOpen] = useState(false);
     const [isUnlocked, setIsUnlocked] = useState(false);
+    const [sites, setSites] = useState<Site[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
 
+    // Shared projection — defined once, used by both map and pins
+    const width = 1000;
+    const height = 500;
+    const projectionRef = useRef(
+        d3.geoMercator().scale(150).translate([width / 2, height / 1.5])
+    );
+
+    // MOUNT: Set up the fixed SVG layer structure and load data
     useEffect(() => {
         if (!svgRef.current) return;
 
-        const width = 1000;
-        const height = 500;
         const svg = d3.select<SVGSVGElement, unknown>(svgRef.current);
         svg.selectAll('*').remove();
 
-        const projection = d3.geoMercator()
-            .scale(150)
-            .translate([width / 2, height / 1.5]);
-
+        const projection = projectionRef.current;
         const path = d3.geoPath().projection(projection);
 
-        // Load world data
+        // ── LAYER 1: SVG Defs (filters, gradients) ──
+        const defs = svg.append('defs');
+        const glowFilter = defs.append('filter')
+            .attr('id', 'pin-glow')
+            .attr('x', '-50%').attr('y', '-50%')
+            .attr('width', '200%').attr('height', '200%');
+        glowFilter.append('feGaussianBlur')
+            .attr('stdDeviation', '3')
+            .attr('result', 'blur');
+        glowFilter.append('feMerge')
+            .selectAll('feMergeNode')
+            .data(['blur', 'SourceGraphic'])
+            .enter()
+            .append('feMergeNode')
+            .attr('in', (d: string) => d);
+
+        const pulseGrad = defs.append('radialGradient')
+            .attr('id', 'pin-pulse-gradient');
+        pulseGrad.append('stop').attr('offset', '0%').attr('stop-color', '#22d3ee').attr('stop-opacity', '0.6');
+        pulseGrad.append('stop').attr('offset', '100%').attr('stop-color', '#22d3ee').attr('stop-opacity', '0');
+
+        // ── LAYER 2: Map countries (drawn FIRST = bottom layer) ──
+        const mapLayer = svg.append('g').attr('class', 'map-layer');
+
+        // ── LAYER 3: Pins (appended LAST = always on top) ──
+        svg.append('g').attr('class', 'pins-layer');
+
+        // Load world GeoJSON into the map layer
         d3.json<any>('https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson').then((data) => {
             if (!data || !data.features) return;
-
-            svg.append('g')
-                .selectAll('path')
+            mapLayer.selectAll('path')
                 .data(data.features)
                 .enter()
                 .append('path')
@@ -108,34 +95,73 @@ export default function InvestigatorsMap() {
                 .attr('fill', '#1e293b')
                 .attr('stroke', '#334155')
                 .attr('stroke-width', 0.5);
-
-            // Add pins
-            svg.append('g')
-                .selectAll('circle')
-                .data(MOCK_SITES)
-                .enter()
-                .append('circle')
-                .attr('cx', (d: Site) => {
-                    const coords = projection([d.lng, d.lat]);
-                    return coords ? coords[0] : 0;
-                })
-                .attr('cy', (d: Site) => {
-                    const coords = projection([d.lng, d.lat]);
-                    return coords ? coords[1] : 0;
-                })
-                .attr('r', 6)
-                .attr('fill', '#22d3ee')
-                .attr('class', 'cursor-pointer transition-all hover:opacity-80')
-                .style('filter', 'drop-shadow(0 0 8px #22d3ee)')
-                .on('click', (_event: any, d: Site) => {
-                    setSelectedSite(d);
-                    setSelectedInstitution(null);
-                    setSelectedInvestigator(null);
-                });
         }).catch(err => {
             console.error("Error loading map data:", err);
         });
+
+        // Fetch investigator data
+        const fetchSites = async () => {
+            try {
+                const res = await fetch(`${API}/api/auth/mellow/investigators/?t=${Date.now()}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    setSites(data);
+                }
+            } catch (err) {
+                console.error("Error fetching consortium investigators:", err);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        fetchSites();
     }, []);
+
+    // PINS: Render into the pre-existing pins-layer (always on top of map)
+    useEffect(() => {
+        if (!svgRef.current || sites.length === 0) return;
+
+        const svg = d3.select<SVGSVGElement, unknown>(svgRef.current);
+        const projection = projectionRef.current;
+
+        // Get the pre-created pins layer (always the last child = on top)
+        const pinsLayer = svg.select<SVGGElement>('.pins-layer');
+        if (pinsLayer.empty()) return;
+
+        // Clear old pins
+        pinsLayer.selectAll('*').remove();
+
+        // Draw one pin group per site
+        const pins = pinsLayer.selectAll('.pin-container')
+            .data(sites)
+            .enter()
+            .append('g')
+            .attr('class', 'pin-container')
+            .style('cursor', 'pointer')
+            .on('click', (_event: any, d: Site) => {
+                setSelectedSite(d);
+                setSelectedInstitution(null);
+                setSelectedInvestigator(null);
+            });
+
+        // Outer pulse halo
+        pins.append('circle')
+            .attr('cx', (d: Site) => projection([d.lng, d.lat])?.[0] || 0)
+            .attr('cy', (d: Site) => projection([d.lng, d.lat])?.[1] || 0)
+            .attr('r', 12)
+            .attr('fill', 'url(#pin-pulse-gradient)')
+            .attr('pointer-events', 'none');
+
+        // Main solid pin
+        pins.append('circle')
+            .attr('cx', (d: Site) => projection([d.lng, d.lat])?.[0] || 0)
+            .attr('cy', (d: Site) => projection([d.lng, d.lat])?.[1] || 0)
+            .attr('r', 4)
+            .attr('fill', '#22d3ee')
+            .attr('filter', 'url(#pin-glow)')
+            .attr('stroke', 'white')
+            .attr('stroke-width', 1);
+            
+    }, [sites]);
 
     const handleInvestigatorClick = (inv: Investigator) => {
         if (!isUnlocked) {

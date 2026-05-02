@@ -606,7 +606,7 @@ export default function PIDashboard() {
     return (
         <div className="min-h-screen relative overflow-hidden">
             <SEO 
-                title="Principal Investigator Dashboard | Clinical Trial System"
+                title="Investigator Dashboard | Clinical Trial System"
                 description="Manage studies, participants, and clinical data efficiently."
                 canonical="https://www.musbhealth.com/pi-dashboard"
             />

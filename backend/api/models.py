@@ -306,7 +306,7 @@ class StudyAssignment(models.Model):
     study = models.ForeignKey(Study, on_delete=models.CASCADE, related_name='assignments', db_index=True)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='study_assignments', db_index=True)
     role = models.CharField(max_length=30, choices=[
-        ('PI', 'Principal Investigator'),
+        ('PI', 'Investigator'),
         ('COORDINATOR', 'Clinical Coordinator'),
         ('SPONSOR_ADMIN', 'Sponsor Admin'),
         ('SPONSOR_MANAGER', 'Study Manager'),
@@ -1077,7 +1077,7 @@ class Consent(BaseMongoModel):
             self.audit_trail.append({
                 "action": "PI_VERIFIED",
                 "time": self.pi_verified_at.isoformat(),
-                "actor": self.pi_name or "Principal Investigator",
+                "actor": self.pi_name or "Investigator",
                 "role": "PI"
             })
 
@@ -2081,14 +2081,6 @@ class SponsorInquiry(BaseMongoModel):
     def __str__(self):
         return f"Sponsor Inquiry: {self.name} ({self.company})"
 
-@receiver(post_save, sender=SponsorInquiry)
-def notify_team_on_sponsor_inquiry(sender, instance, created, **kwargs):
-    if created:
-        from .utils.resend_utils import send_sponsor_inquiry_email
-        try:
-            send_sponsor_inquiry_email(instance)
-        except Exception as e:
-            print(f"Error triggering sponsor inquiry email: {e}")
 
 @receiver(post_save, sender=QuestionnaireScheduleInstance)
 def notify_on_questionnaire_completion(sender, instance, created, **kwargs):

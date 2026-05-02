@@ -606,13 +606,23 @@ Inquiry Message:
 Submitted on {inquiry.created_at.strftime('%Y-%m-%d %H:%M:%S')} UTC
 """
     try:
-        # Send Admin ONLY Notification (Strict Plain Text)
-        return safe_resend_send({
+        # 1. Send Admin Notification (Plain Text for reliability)
+        safe_resend_send({
             "from": "MusB Partnership <onboarding@resend.dev>",
             "to": [admin_recipient],
             "subject": subject,
             "text": text_content
         })
+
+        # 2. Send Inquirer Confirmation (Branded HTML)
+        safe_resend_send({
+            "from": "MusB Research <onboarding@resend.dev>",
+            "to": [inquiry.email],
+            "subject": confirmation_subject,
+            "html": confirmation_html
+        })
+        
+        return True
     except Exception as e:
         print(f"Error sending sponsor inquiry emails: {e}")
         return False
