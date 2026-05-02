@@ -18,6 +18,7 @@ interface PIsManagementProps {
   allStudies: any[];
   onRefresh: () => void;
   onViewUser: (user: any) => void;
+  onRegister?: () => void;
 }
 
 export default function PIsManagement({ allUsers = [], allStudies = [], onRefresh, onViewUser }: PIsManagementProps) {

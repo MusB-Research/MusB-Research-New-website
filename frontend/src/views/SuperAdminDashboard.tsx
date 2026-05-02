@@ -58,6 +58,7 @@ interface User {
   city?: string;
   state?: string;
   zip_code?: string;
+  is_mellow_member?: boolean;
   country?: string;
   mobile_number?: string;
   place_of_origin?: string;
