@@ -54,7 +54,7 @@ export default function AlertsModule({ initialNotifications }: AlertsModuleProps
                     title: n.title,
                     description: n.message,
                     severity: mapTypeToSeverity(n.type),
-                    category: 'System',
+                    category: 'System' as AlertItem['category'],
                     timestamp: new Date(n.created_at).toLocaleString('en-US', { 
                         month: 'short', day: 'numeric', year: 'numeric',
                         hour: '2-digit', minute: '2-digit'
@@ -94,7 +94,7 @@ export default function AlertsModule({ initialNotifications }: AlertsModuleProps
             title: n.title,
             description: n.message,
             severity: mapTypeToSeverity(n.type),
-            category: 'System',
+            category: 'System' as AlertItem['category'],
             timestamp: new Date(n.created_at).toLocaleString('en-US', { 
                 month: 'short', day: 'numeric', year: 'numeric',
                 hour: '2-digit', minute: '2-digit'

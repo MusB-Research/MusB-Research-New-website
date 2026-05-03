@@ -87,7 +87,7 @@ export default function AlertsModule({ selectedStudyId, initialNotifications }: 
         setIsLoading(true);
         try {
             const rawData = await fetchNotifications();
-            const data = Array.isArray(rawData) ? rawData : (rawData.results || []);
+            const data = Array.isArray(rawData) ? rawData : ((rawData as any).results || []);
             setAlerts(mapNotificationsToAlerts(data));
         } catch (err) {
             console.error("Failed to sync alert intelligence:", err);

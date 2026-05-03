@@ -79,6 +79,8 @@ type PIModule =
     | 'LOGISTICS'
     | 'SUPPORT'
     | 'DAILY_LOGS'
+    | 'REPORTS'
+    | 'SUBJECT_REVIEW'
     | 'PAYMENTS';
 
 interface SidebarItem {

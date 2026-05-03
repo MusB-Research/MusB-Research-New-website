@@ -78,6 +78,7 @@ type CCModule =
     | 'COMPENSATION'
     | 'LOGISTICS'
     | 'PARTICIPANT_TASKS'
+    | 'PAYMENTS'
     | 'CONSENT_NEW';
 
 export default function CoordinatorDashboard() {
