@@ -22,7 +22,7 @@ import ParticipantOversight from '../components/pi/panels/ParticipantOversight';
 import FormsQuestionnairesModule from '../components/pi/panels/FormsQuestionnairesModule';
 import ConsentModule from '../components/coordinator/consent/ConsentModule';
 import LabsResultsModule from '../components/pi/panels/LabsResultsModule';
-import ReportsSignOffModule from '../components/pi/panels/ReportsSignOffModule';
+// import ReportsSignOffModule from '../components/pi/panels/ReportsSignOffModule';
 import StudyDocumentsModule from '../components/pi/panels/StudyDocumentsModule';
 import MyDocumentsModule from '../components/pi/panels/MyDocumentsModule';
 import AlertsModule from '../components/pi/panels/AlertsModule';
@@ -34,8 +34,10 @@ import StaffTasksModule from '../components/shared/StaffTasksModule';
 import ParticipantTaskManagement from '../components/shared/ParticipantTaskManagement';
 import TeamInventoryModule from '../components/pi/panels/TeamInventoryModule';
 import StudyKitsModule from '../components/shared/StudyKitsModule';
+import ParticipantLogsPanel from '../components/shared/ParticipantLogsPanel';
 import { usePolling } from '@/hooks/usePolling';
 import ConsentOversight from '../components/coordinator/panels/ConsentOversight';
+import CompensationManagement from '../components/coordinator/panels/CompensationManagement';
 
 
 import {
@@ -48,7 +50,7 @@ import {
     HelpCircle, Stethoscope, UsersRound, ArrowUpRight, LogOut,
     Globe, Rocket, Menu, FlaskConical, FileSearch, Layers,
     ListFilter, CheckSquare, ScrollText, Settings2, Database,
-    AlertTriangle, FileCheck, Building2, Truck, UserPlus, User
+    AlertTriangle, FileCheck, Building2, Truck, UserPlus, User, DollarSign
 } from 'lucide-react';
 
 type PIModule =
@@ -62,7 +64,6 @@ type PIModule =
     | 'CONSENT'
     | 'VISITS'
     | 'LABS'
-    | 'REPORTS'
     | 'MESSAGES'
     | 'ALERTS'
     | 'LAUNCH_STUDY'
@@ -75,7 +76,9 @@ type PIModule =
     | 'MY_DOCS'
     | 'TEAM_INVENTORY'
     | 'LOGISTICS'
-    | 'SUPPORT';
+    | 'SUPPORT'
+    | 'DAILY_LOGS'
+    | 'PAYMENTS';
 
 interface SidebarItem {
     id: PIModule | 'WEBSITE';
@@ -138,11 +141,11 @@ export default function PIDashboard() {
 
         console.log("[PIDashboard] Route sync:", { path, route });
 
-        if (route === 'pi' || !route || route === 'oversight' || route === 'overview') setActiveModule('OVERVIEW');
+        if (route === 'pi' || !route || route === 'overview') setActiveModule('OVERVIEW');
         else if (route === 'studies') setActiveModule('STUDIES');
-        else if (route === 'participants') setActiveModule('PARTICIPANTS');
+        else if (route === 'participants' || route === 'oversight') setActiveModule('PARTICIPANTS');
         else if (route === 'forms') setActiveModule('FORMS');
-        else if (route === 'consent') setActiveModule('CONSENT');
+        else if (route === 'consent' || route === 'consent-new') setActiveModule('CONSENT');
         else if (route === 'visits') setActiveModule('VISITS');
         else if (route === 'subject-review' || route === 'review') setActiveModule('PARTICIPANTS');
         else if (route === 'team') setActiveModule('TEAM');
@@ -159,12 +162,17 @@ export default function PIDashboard() {
         else if (route === 'analytics') setActiveModule('ANALYTICS');
         else if (route === 'tasks') setActiveModule('TASKS');
         else if (route === 'logistics') setActiveModule('LOGISTICS');
+        else if (route === 'daily-logs') setActiveModule('DAILY_LOGS');
+        else if (route === 'payments') setActiveModule('PAYMENTS');
+        else if (route === 'participant-tasks') setActiveModule('PARTICIPANT_TASKS');
         else if (route === 'sponsors') setActiveModule('SPONSORS');
         else if (route === 'participant-tasks') setActiveModule('PARTICIPANT_TASKS');
         else setActiveModule('OVERVIEW');
     }, [location.pathname]);
 
-    const handleModuleChange = (mod: PIModule) => {
+    const handleModuleChange = (mod: PIModule, tab?: string) => {
+        if (tab) setSelectedReviewTab(tab);
+        else setSelectedReviewTab('Overview');
         const slugs: Record<string, string> = {
             'OVERVIEW': '',
             'STUDIES': 'studies',
@@ -190,7 +198,9 @@ export default function PIDashboard() {
             'SPONSORS': 'sponsors',
             'INVITATIONS': 'invitations',
             'CONSENT_NEW': 'consent-new',
-            'PARTICIPANT_TASKS': 'participant-tasks'
+            'PARTICIPANT_TASKS': 'participant-tasks',
+            'DAILY_LOGS': 'daily-logs',
+            'PAYMENTS': 'payments'
         };
         const slug = slugs[mod];
         setActiveModule(mod);
@@ -267,6 +277,7 @@ export default function PIDashboard() {
     const [viewDate, setViewDate] = useState(new Date());
     const [selectedStudy, setSelectedStudy] = useState<any>(null);
     const [selectedParticipantId, setSelectedParticipantId] = useState<string | null>(null);
+    const [selectedReviewTab, setSelectedReviewTab] = useState<string>('Overview');
     const [oversightStats, setOversightStats] = useState({
         upcomingVisits: 0,
         overdueFollowUps: 0,
@@ -349,11 +360,12 @@ export default function PIDashboard() {
             const overdue = visitsData.filter((v: any) => v.status === 'SCHEDULED' && new Date(v.scheduled_date) < now).length;
             const pendingForms = staffTasksData.filter((t: any) => !t.is_completed).length;
             const unreadAlerts = notificationsData.filter((n: any) => !n.is_read).length;
+            const awaitingCallback = participantsData.filter((p: any) => p.status === 'PENDING_REVIEW').length;
 
             setOversightStats({
                 upcomingVisits: upcoming,
                 overdueFollowUps: overdue,
-                awaitingCallback: 0,
+                awaitingCallback: awaitingCallback,
                 pendingForms: pendingForms,
                 unreadAlerts: unreadAlerts,
                 hasCriticalAlert: overdue > 0 || notificationsData.some((n: any) => n.priority === 'CRITICAL' && !n.is_read)
@@ -449,33 +461,37 @@ export default function PIDashboard() {
 
     const sidebarGroups: SidebarGroup[] = [
         {
-            group: 'Overview',
+            group: 'Core',
             items: [
                 { id: 'WEBSITE', label: 'Website', icon: Globe },
                 { id: 'OVERVIEW', label: 'Dashboard', icon: LayoutDashboard },
             ]
         },
         {
-            group: 'Work',
+            group: 'Clinical Ops',
             items: [
-                { id: 'STUDIES', label: 'Studies', icon: Beaker },
-                { id: 'TEAM', label: 'Team', icon: Users },
-                { id: 'PARTICIPANTS', label: 'Participants', icon: UsersRound },
-                { id: 'FORMS', label: 'Forms', icon: ClipboardList },
+                { id: 'STUDIES', label: 'Studies', icon: FlaskConical },
+                { id: 'TEAM', label: 'Team', icon: UsersRound },
+                { id: 'PARTICIPANTS', label: 'Oversight', icon: Microscope },
                 { id: 'VISITS', label: 'Visits', icon: Calendar },
-                { id: 'SPONSORS', label: 'Sponsors', icon: Building2 },
-                { id: 'TASKS', label: 'Staff Tasks', icon: ClipboardList },
-                { id: 'LABS', label: 'Labs', icon: Beaker },
-                { id: 'PARTICIPANT_TASKS', label: 'Subject Tasks', icon: ListFilter },
-                { id: 'LOGISTICS', label: 'Logistics', icon: Truck },
-                { id: 'LAUNCH_STUDY', label: 'New Study', icon: Rocket },
+                { id: 'DAILY_LOGS', label: 'Patient Logs', icon: ScrollText },
             ]
         },
         {
-            group: 'Comms',
+            group: 'Finance & Data',
+            items: [
+                { id: 'PAYMENTS', label: 'Payments', icon: DollarSign },
+                { id: 'LABS', label: 'Lab Results', icon: Beaker },
+                { id: 'ANALYTICS', label: 'Analytics', icon: TrendingUp },
+            ]
+        },
+        {
+            group: 'Support',
             items: [
                 { id: 'MESSAGES', label: 'Messages', icon: MessageSquare },
-                { id: 'ALERTS', label: 'Alerts', icon: Bell, hasNotify: true },
+                { id: 'ALERTS', label: 'Alerts', icon: Bell, hasNotify: notifications.some(n => !n.is_read) },
+                { id: 'TASKS', label: 'Tasks', icon: CheckSquare },
+                { id: 'SUPPORT', label: 'Help', icon: HelpCircle },
             ]
         }
     ];
@@ -564,7 +580,7 @@ export default function PIDashboard() {
                                 {userPicture ? (
                                     <img src={userPicture} alt={userName} className="w-full h-full object-cover rounded-[0.9rem]" />
                                 ) : (
-                                    <span className="text-sm font-bold text-white uppercase ">
+                                    <span className="text-sm font-black text-white uppercase ">
                                         {userName.split(' ').map((n: string) => n?.[0]).join('').toUpperCase().slice(0, 2) || 'PI'}
                                     </span>
                                 )}
@@ -754,6 +770,12 @@ export default function PIDashboard() {
                             preloadedParticipants={participants}
                         />
                     )}
+                    {activeModule === 'DAILY_LOGS' && (
+                        <ParticipantLogsPanel 
+                            selectedStudyId={globalSelectedStudyId}
+                            preloadedParticipants={participants}
+                        />
+                    )}
                     {activeModule === 'MESSAGES' && <PIMessagesModule />}
                     {activeModule === 'TEAM' && (
                         <PITeamModule 
@@ -769,6 +791,8 @@ export default function PIDashboard() {
                             <div className="bg-[#0B101B] rounded-[2.5rem] -mt-6">
                                 <SubjectReviewModule 
                                     participantId={selectedParticipantId} 
+                                    selectedStudyId={globalSelectedStudyId !== 'all' ? globalSelectedStudyId : undefined}
+                                    initialTab={selectedReviewTab}
                                     onClose={() => setSelectedParticipantId(null)} 
                                 />
                             </div>
@@ -777,11 +801,19 @@ export default function PIDashboard() {
                                 selectedStudyId={globalSelectedStudyId}
                                 preloadedData={summaryData}
                                 isLoading={summaryLoading}
-                                onOpenProfile={(id) => setSelectedParticipantId(id)}
+                                onOpenProfile={(id, tab) => {
+                                    setSelectedReviewTab(tab || 'Overview');
+                                    setSelectedParticipantId(id);
+                                }}
                             />
                         )
                     )}
                     {activeModule === 'FORMS' && <FormsQuestionnairesModule />}
+                    {activeModule === 'CONSENT' && (
+                        <div className="bg-[#0B101B] rounded-[2.5rem] -mt-6">
+                            <ConsentModule selectedStudyId={globalSelectedStudyId} />
+                        </div>
+                    )}
 
 
                     {activeModule === 'VISITS' && (
@@ -802,7 +834,8 @@ export default function PIDashboard() {
                         />
                     )}
 
-                    {activeModule === 'ALERTS' && <AlertsModule />}
+                    {activeModule === 'ALERTS' && <AlertsModule initialNotifications={notifications} />}
+                    {activeModule === 'MY_DOCS' && <MyDocumentsModule />}
                     {activeModule === 'SUPPORT' && <PIHelpSupportModule />}
                     {activeModule === 'AUDIT_LOG' && <AuditLogModule />}
                     {activeModule === 'TASKS' && (
@@ -810,15 +843,37 @@ export default function PIDashboard() {
                             primaryColor="teal" 
                             onRefresh={fetchAllData} 
                             preloadedTasks={tasks}
+                            onViewParticipant={(id, tab) => {
+                                handleModuleChange('PARTICIPANTS');
+                                setSelectedReviewTab(tab || 'Overview');
+                                setSelectedParticipantId(id);
+                            }}
                         />
                     )}
-                    {activeModule === 'PARTICIPANT_TASKS' && <ParticipantTaskManagement primaryColor="teal" />}
+                    {activeModule === 'PARTICIPANT_TASKS' && (
+                        <ParticipantTaskManagement 
+                            primaryColor="teal" 
+                            selectedStudyId={globalSelectedStudyId}
+                        />
+                    )}
+                    {activeModule === 'DAILY_LOGS' && (
+                        <ParticipantLogsPanel 
+                            selectedStudyId={globalSelectedStudyId !== 'all' ? globalSelectedStudyId : undefined}
+                            preloadedStudies={studies}
+                            preloadedParticipants={participants}
+                        />
+                    )}
                     {activeModule === 'STUDY_DOCS' && <StudyDocumentsModule selectedStudyId={globalSelectedStudyId} />}
                     {activeModule === 'ANALYTICS' && (
                         <AnalyticsModule 
                             selectedStudyId={globalSelectedStudyId}
                             preloadedData={summaryData}
                             isLoading={summaryLoading}
+                            onOpenProfile={(id, tab) => {
+                                handleModuleChange('PARTICIPANTS');
+                                setSelectedReviewTab(tab || 'Overview');
+                                setSelectedParticipantId(id);
+                            }}
                         />
                     )}
                     {activeModule === 'SPONSORS' && (
@@ -826,6 +881,11 @@ export default function PIDashboard() {
                             onRefresh={fetchAllData}
                             selectedStudyId={globalSelectedStudyId !== 'all' ? globalSelectedStudyId : undefined}
                             preloadedStudies={studies}
+                        />
+                    )}
+                    {activeModule === 'PAYMENTS' && (
+                        <CompensationManagement 
+                            selectedStudyId={globalSelectedStudyId !== 'all' ? globalSelectedStudyId : undefined}
                         />
                     )}
                 </AnimatePresence>
@@ -873,7 +933,7 @@ function OverviewModule({ loading, studyCount, participantCount, stats, visits, 
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <h2 className="text-lg md:text-xl font-bold text-white uppercase tracking-tight leading-none">
-                    Research <span className="text-teal-400">Overview</span>
+                    Study <span className="text-teal-400">Dashboard</span>
                 </h2>
                 <button
                     onClick={onLaunch}
@@ -1276,8 +1336,8 @@ function StudyOverviewModule({ studies, onAdd, onEdit, onStatusUpdate }: { studi
     );
 }
 
-function ComplianceModule() {
-    const user: any = getUser() || {};
+function ComplianceModule({ globalSelectedStudyId }: { globalSelectedStudyId?: string }) {
+    const user: any = getUser() || { name: 'User', email: 'user@example.com' };
 
     return (
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-12">

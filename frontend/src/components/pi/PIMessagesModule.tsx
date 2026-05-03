@@ -129,6 +129,8 @@ export default function PIMessagesModule() {
     const [loading, setLoading] = useState(true);
     const [fetchedStudies, setFetchedStudies] = useState<any[]>([]);
     const [fetchedParticipants, setFetchedParticipants] = useState<any[]>([]);
+    const [composeForm, setComposeForm] = useState({ participantId: '', studyId: '', text: '' });
+    const [isSending, setIsSending] = useState(false);
     const [windowWidth, setWindowWidth] = useState(window.innerWidth);
     const isMobile = windowWidth < 768;
     const isTablet = windowWidth >= 768 && windowWidth < 1024;
@@ -287,25 +289,109 @@ export default function PIMessagesModule() {
             return;
         }
 
+        const textToSend = messageInput;
+        const tagToSend = selectedTag;
+
+        // Optimistic update: add message to UI immediately
+        const currentUser = getUser();
+        const optimisticMsg: Message = {
+            id: 'optimistic-' + Date.now(),
+            sender: currentUser?.first_name || 'You',
+            role: 'PI',
+            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            text: textToSend,
+            tag: tagToSend,
+            attachment: null,
+            fromPI: true,
+            is_from_me: true
+        };
+        setConversations(prev => prev.map(c => c.id === activeConvId ? {
+            ...c,
+            messages: [...c.messages, optimisticMsg],
+            preview: textToSend,
+            timestamp: optimisticMsg.time,
+            rawLastUpdated: Date.now()
+        } : c));
+        setMessageInput('');
+        setAttachedFile(null);
+        setSelectedTag('General');
+
         try {
             const res = await authFetch(`${API}/api/clinical-conversations/${activeConvId}/add_message/`, {
                 method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    text: messageInput,
-                    tag: selectedTag.toUpperCase()
+                    text: textToSend,
+                    tag: tagToSend.toUpperCase()
                 })
             });
 
             if (res.ok) {
-                fetchConversations();
-                if (activeConvId) loadThread(activeConvId);
-                setMessageInput('');
-                setAttachedFile(null);
-                setSelectedTag('General');
+                // Confirm with real data from server
+                loadThread(activeConvId);
                 addToast('Message sent');
+            } else {
+                // Roll back optimistic update on failure
+                setConversations(prev => prev.map(c => c.id === activeConvId ? {
+                    ...c,
+                    messages: c.messages.filter(m => m.id !== optimisticMsg.id)
+                } : c));
+                setMessageInput(textToSend);
+                addToast('Send failed — try again', 'error');
             }
         } catch (e) {
+            setConversations(prev => prev.map(c => c.id === activeConvId ? {
+                ...c,
+                messages: c.messages.filter(m => m.id !== optimisticMsg.id)
+            } : c));
+            setMessageInput(textToSend);
             addToast('Send error', 'error');
+        }
+    };
+
+    // --- LOGIC: COMPOSE NEW THREAD ---
+    const handleComposeSubmit = async () => {
+        if (!composeForm.participantId || !composeForm.studyId || !composeForm.text.trim()) {
+            addToast('Please fill in all fields', 'warning');
+            return;
+        }
+        setIsSending(true);
+        try {
+            // Step 1: Create the conversation thread
+            const convRes = await authFetch(`${API}/api/clinical-conversations/`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    participant: composeForm.participantId,
+                    study: composeForm.studyId,
+                    status: 'OPEN',
+                    last_message_preview: composeForm.text
+                })
+            });
+
+            if (!convRes.ok) {
+                addToast('Failed to create thread', 'error');
+                return;
+            }
+
+            const newConv = await convRes.json();
+
+            // Step 2: Post the initial message
+            await authFetch(`${API}/api/clinical-conversations/${newConv.id}/add_message/`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text: composeForm.text, tag: 'GENERAL' })
+            });
+
+            addToast('Message sent', 'success');
+            setComposeOpen(false);
+            setComposeForm({ participantId: '', studyId: '', text: '' });
+            fetchConversations();
+            setActiveConvId(newConv.id);
+        } catch (e) {
+            addToast('Transmission failure', 'error');
+        } finally {
+            setIsSending(false);
         }
     };
 
@@ -696,36 +782,57 @@ export default function PIMessagesModule() {
             {/* COMPOSE MODAL */}
             {composeOpen && (
                 <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: isMobile ? '1rem' : 0 }}>
-                    <div style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(10px)' }} onClick={() => setComposeOpen(false)} />
+                    <div style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(10px)' }} onClick={() => !isSending && setComposeOpen(false)} />
                     <div style={{ ...G.glass, width: isMobile ? '100%' : '720px', maxWidth: '100%', padding: isMobile ? '1.5rem' : '3rem', position: 'relative', borderRadius: '12px', maxHeight: '90vh', overflowY: 'auto' }}>
                         <h2 style={{ ...G.title, fontSize: isMobile ? '1rem' : '1.25rem' }}>Compose New Message</h2>
                         <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: isMobile ? '1rem' : '2rem', marginTop: isMobile ? '1.5rem' : '2.5rem' }}>
                             <div>
-                                <label style={G.label}>Participant ID / To</label>
-                                <select style={{ ...G.btnGhost, width: '100%', padding: '1rem', marginTop: '0.5rem', backgroundColor: '#0B101B', textTransform: 'uppercase' }}>
-                                    <option value="" disabled selected>SELECT RECIPIENT...</option>
+                                <label style={G.label}>Participant / To</label>
+                                <select
+                                    style={{ ...G.btnGhost, width: '100%', padding: '1rem', marginTop: '0.5rem', backgroundColor: '#0B101B', textTransform: 'uppercase' }}
+                                    value={composeForm.participantId}
+                                    onChange={e => setComposeForm(prev => ({ ...prev, participantId: e.target.value }))}
+                                >
+                                    <option value="">SELECT RECIPIENT...</option>
                                     {fetchedParticipants.map(p => (
-                                        <option key={p.id} value={p.participant_sid || p.id}>{p.participant_sid || 'ID PENDING'} {p.user?.full_name ? `(${p.user.full_name})` : ''}</option>
+                                        <option key={p.id} value={p.id}>
+                                            {p.participant_sid || 'ID PENDING'}{p.user_details?.decrypted_name ? ` — ${p.user_details.decrypted_name}` : ''}
+                                        </option>
                                     ))}
                                 </select>
                             </div>
                             <div>
                                 <label style={G.label}>Select Study</label>
-                                <select style={{ ...G.btnGhost, width: '100%', padding: '1rem', marginTop: '0.5rem', backgroundColor: '#0B101B', textTransform: 'uppercase' }}>
-                                    <option value="" disabled selected>SELECT STUDY...</option>
+                                <select
+                                    style={{ ...G.btnGhost, width: '100%', padding: '1rem', marginTop: '0.5rem', backgroundColor: '#0B101B', textTransform: 'uppercase' }}
+                                    value={composeForm.studyId}
+                                    onChange={e => setComposeForm(prev => ({ ...prev, studyId: e.target.value }))}
+                                >
+                                    <option value="">SELECT STUDY...</option>
                                     {fetchedStudies.map(s => (
-                                        <option key={s.id} value={s.title}>{s.title}</option>
+                                        <option key={s.id} value={s.id}>{s.protocol_id || s.id} — {s.title}</option>
                                     ))}
                                 </select>
                             </div>
                         </div>
                         <div style={{ marginTop: isMobile ? '1.5rem' : '2rem' }}>
                             <label style={G.label}>Clinical Assessment / Message</label>
-                            <textarea style={{ ...G.glass, width: '100%', padding: isMobile ? '1rem' : '1.5rem', marginTop: '0.5rem', minHeight: isMobile ? '120px' : '200px', fontSize: isMobile ? '14px' : '16px', color: 'white', outline: 'none' }} placeholder="Detail assessment..." />
+                            <textarea
+                                style={{ ...G.glass, width: '100%', padding: isMobile ? '1rem' : '1.5rem', marginTop: '0.5rem', minHeight: isMobile ? '120px' : '200px', fontSize: isMobile ? '14px' : '16px', color: 'white', outline: 'none', resize: 'vertical' }}
+                                placeholder="Detail clinical assessment or message..."
+                                value={composeForm.text}
+                                onChange={e => setComposeForm(prev => ({ ...prev, text: e.target.value }))}
+                            />
                         </div>
                         <div style={{ display: 'flex', gap: '1rem', marginTop: isMobile ? '2rem' : '3rem', justifyContent: 'flex-end' }}>
-                            <button style={G.btnGhost} onClick={() => setComposeOpen(false)}>CANCEL</button>
-                            <button style={G.btnPrimary} onClick={() => { setComposeOpen(false); addToast('Message started'); }}>SEND MESSAGE</button>
+                            <button style={G.btnGhost} onClick={() => setComposeOpen(false)} disabled={isSending}>CANCEL</button>
+                            <button
+                                style={{ ...G.btnPrimary, opacity: isSending ? 0.6 : 1, cursor: isSending ? 'not-allowed' : 'pointer' }}
+                                onClick={handleComposeSubmit}
+                                disabled={isSending}
+                            >
+                                {isSending ? 'SENDING...' : 'SEND MESSAGE'}
+                            </button>
                         </div>
                     </div>
                 </div>

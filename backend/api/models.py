@@ -171,9 +171,11 @@ class Study(BaseMongoModel):
     end_date = models.DateField(null=True, blank=True)
     launch_date = models.DateField(null=True, blank=True)
     irb_status = models.CharField(max_length=100, blank=True)
+    countries = models.JSONField(default=list, blank=True)
     
     # Dynamic Screener Configuration
     screener_config = models.JSONField(default=dict, blank=True, help_text="Config for screener steps: {'steps': [{'id': 'STEP1', 'type': 'auto', 'editable': true}, ...]}")
+    screener_pdf_template = models.FileField(upload_to='study_screeners/', null=True, blank=True, help_text="Original PDF template for the screening form")
 
 
     # Reward & Compensation Configuration
@@ -241,6 +243,21 @@ class Study(BaseMongoModel):
 
     class Meta(BaseMongoModel.Meta):
         ordering = ['created_at']  # Oldest first — first study created appears at the top everywhere
+
+    def get_all_staff_users(self):
+        """Returns a consolidated list of all users assigned to this study (PIs, Coordinators, Sponsors)"""
+        staff_users = set()
+        if self.pi: staff_users.add(self.pi)
+        if self.coordinator: staff_users.add(self.coordinator)
+        if self.sponsor: staff_users.add(self.sponsor)
+        
+        # Include all users from StudyAssignment relation
+        try:
+            for assignment in self.assignments.all():
+                staff_users.add(assignment.user)
+        except: pass
+            
+        return list(filter(None, staff_users))
 
     def __hash__(self) -> int:
         # Patch for Django 6.x + MongoDB crash during migration construction
@@ -420,7 +437,7 @@ class Participant(BaseMongoModel):
             from .utils.cache_utils import invalidate_cache
             invalidate_cache("participant_dashboard", user_id=self.user_id)
             invalidate_cache("participant_me", user_id=self.user_id)
-            invalidate_cache("participants_list", user_id=self.user_id)
+            invalidate_cache("participant_records_list", user_id=self.user_id)
 
 class ClinicalAuditLog(BaseMongoModel):
     """Protocol Requirement 11: Track all status changes, approvals, and system actions"""
@@ -560,6 +577,7 @@ class QuestionnaireTemplate(BaseMongoModel):
     name = models.CharField(max_length=255)
     pdf_file = models.FileField(upload_to='questionnaire_pdfs/', null=True, blank=True)
     json_structure = models.JSONField(default=dict, blank=True)
+    placed_fields = models.JSONField(default=list, blank=True, help_text="Coordinates for signatures and data overlay")
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -795,18 +813,20 @@ class ParticipantTask(BaseMongoModel):
         if self.is_overdue and not self.is_locked:
             self.is_locked = True
             self.save(update_fields=['is_locked'])
-            # Create a StaffTask for PI/Coordinator to alert them
-            from .models import StaffTask
-            StaffTask.objects.create(
-                user=self.participant.study.coordinator or self.participant.study.pi,
-                study=self.participant.study,
-                title=f"ALERT: Task Overdue for {self.participant.participant_sid}",
-                description=f"Task '{self.task.title}' reached its deadline and has been locked for security.",
-                task_type='OVERDUE_ALERT',
-                reference_id=str(self.id),
-                due_date=timezone.now() + timezone.timedelta(hours=48),
-                status='NEW'
-            )
+            # Create a StaffTask for PI and Coordinator to alert them
+            # Create a StaffTask for the entire team to alert them
+            staff_team = self.participant.study.get_all_staff_users()
+            for staff_user in staff_team:
+                StaffTask.objects.create(
+                    user=staff_user,
+                    study=self.participant.study,
+                    title=f"ALERT: Task Overdue for {self.participant.participant_sid}",
+                    description=f"Task '{self.task.title}' reached its deadline and has been locked for security.",
+                    task_type='OVERDUE_ALERT',
+                    reference_id=str(self.id),
+                    due_date=timezone.now() + timezone.timedelta(hours=48),
+                    status='NEW'
+                )
             return True
         return False
 
@@ -939,6 +959,12 @@ class Consent(BaseMongoModel):
         ('EXPIRED', 'Expired / Superseded')
     ]
     signing_status = models.CharField(max_length=30, choices=IS_VALID_CHOICES, default='PENDING')
+    
+    @property
+    def template(self):
+        """Dynamic lookup of the active consent template for this study."""
+        from .models import ConsentTemplate
+        return ConsentTemplate.objects.filter(study=self.study, status='ACTIVE').first()
 
     def __str__(self):
         status_label = dict(self.IS_VALID_CHOICES).get(self.signing_status, 'Unknown')
@@ -996,20 +1022,42 @@ class Consent(BaseMongoModel):
                 pt.completed_at = _now()
                 pt.save()
 
-            # StaffTask notification for Coordinator
+            # Mark participant as CONSENTED
+            if (self.participant and self.participant.status != 'CONSENTED'):
+                self.participant.status = 'CONSENTED'
+                self.participant.save(update_fields=['status'])
+
+            # StaffTask and Notification for Coordinator
             try:
-                from .models import StaffTask
-                if self.study and self.study.coordinator:
-                    StaffTask.objects.create(
-                        user=self.study.coordinator,
-                        study=self.study,
-                        title="Review Required: Consent Signed by Participant",
-                        description=f"Participant {self.participant.participant_sid} has signed the consent form. Coordinator signature required.",
-                        task_type='CONSENT_COORDINATOR_SIGN',
-                        reference_id=str(self.id)
-                    )
+                from .models import StaffTask, Notification
+                template = self.template
+                requires_cc = template.require_cc_verification if template else True
+
+                # Notify all assigned staff
+                if self.study:
+                    staff_team = self.study.get_all_staff_users()
+                    for staff in staff_team:
+                        role = (getattr(staff, 'role', '') or '').upper()
+                        
+                        # Only create signature tasks for roles that actually sign
+                        if role == 'COORDINATOR' and requires_cc:
+                             StaffTask.objects.get_or_create(
+                                user=staff,
+                                study=self.study,
+                                title="Review Required: Consent Signed by Participant",
+                                task_type='CONSENT_COORDINATOR_SIGN',
+                                reference_id=str(self.id),
+                                defaults={'description': f"Participant {self.participant.participant_sid} has signed the consent form. Coordinator signature required."}
+                            )
+                        
+                        Notification.objects.create(
+                            user=staff,
+                            title="Consent Signed",
+                            message=f"Participant {self.participant.participant_sid} has signed the consent form for {self.study.protocol_id}.",
+                            type="ACTION" if role == 'COORDINATOR' else "INFO"
+                        )
             except Exception as e:
-                print(f"StaffTask creation error: {e}")
+                print(f"Notification creation error: {e}")
 
         # ── POST-SAVE side effects for CC sign transition ──
         if not is_new and self.cc_verified and not old_cc_verified:
@@ -1024,9 +1072,9 @@ class Consent(BaseMongoModel):
             
             if requires_pi and not self.pi_verified:
                 self.signing_status = 'AWAITING_PI'
-                # StaffTask notification for PI
+                # StaffTask and Notification for PI
                 try:
-                    from .models import StaffTask
+                    from .models import StaffTask, Notification
                     if self.study and self.study.pi:
                         StaffTask.objects.get_or_create(
                             user=self.study.pi,
@@ -1038,8 +1086,14 @@ class Consent(BaseMongoModel):
                                 'description': f"Consent co-signed by coordinator for participant {self.participant.participant_sid}. Your final verification is required."
                             }
                         )
+                        Notification.objects.create(
+                            user=self.study.pi,
+                            title="Consent Co-signed",
+                            message=f"Coordinator has co-signed consent for {self.participant.participant_sid}. PI verification needed.",
+                            type="ACTION"
+                        )
                 except Exception as e:
-                    print(f"PI StaffTask error: {e}")
+                    print(f"PI Notification error: {e}")
             elif not requires_pi or self.pi_verified:
                 self.signing_status = 'FULLY_SIGNED'
 
@@ -1059,6 +1113,16 @@ class Consent(BaseMongoModel):
                 generate_signed_consent_pdf(self)
             except Exception as e:
                 print(f"PDF Regeneration Error (CC): {e}")
+
+            # Mark CC task as completed
+            try:
+                from .models import StaffTask
+                StaffTask.objects.filter(
+                    reference_id=str(self.id),
+                    task_type='CONSENT_COORDINATOR_SIGN'
+                ).update(is_completed=True, status='ADDRESSED', completed_at=_now)
+            except Exception as e:
+                print(f"CC Task completion error: {e}")
 
             super().save(update_fields=['signing_status', 'cc_verified_at', 'audit_trail', 'signed_pdf'])
 
@@ -1082,6 +1146,16 @@ class Consent(BaseMongoModel):
                 generate_signed_consent_pdf(self)
             except Exception as e:
                 print(f"PDF Regeneration Error (PI): {e}")
+
+            # Mark PI task as completed
+            try:
+                from .models import StaffTask
+                StaffTask.objects.filter(
+                    reference_id=str(self.id),
+                    task_type='CONSENT_SIGNATURE'
+                ).update(is_completed=True, status='ADDRESSED', completed_at=_now)
+            except Exception as e:
+                print(f"PI Task completion error: {e}")
 
             super().save(update_fields=['signing_status', 'pi_verified_at', 'audit_trail', 'signed_pdf'])
 
@@ -1163,6 +1237,7 @@ class Compensation(BaseMongoModel):
     PAY_METHODS = [
         ('BANK_TRANSFER', 'Bank Transfer'),
         ('STIPEND_CARD', 'Stipend Card'), 
+        ('GIFT_CARD', 'Gift Card'), 
         ('CASH', 'Cash'), 
         ('CHECK', 'Check'),
         ('COUPON', 'Coupon / Voucher')
@@ -1171,6 +1246,8 @@ class Compensation(BaseMongoModel):
         ('TASK_COMPLETION', 'Task Completion'),
         ('VISIT_COMPLETION', 'Visit Completion'),
         ('STUDY_COMPLETION', 'Study Completion'),
+        ('TRAVEL_REIMBURSEMENT', 'Travel Reimbursement'),
+        ('ADVERSE_EVENT', 'Adverse Event'),
         ('BONUS', 'Milestone Bonus'),
         ('OTHER', 'Other Incentive')
     ]
@@ -1191,6 +1268,9 @@ class Compensation(BaseMongoModel):
     ])
     payment_method = models.CharField(max_length=30, choices=PAY_METHODS, default='CASH')
     paid_at = models.DateTimeField(null=True, blank=True)
+    card_number = models.CharField(max_length=100, blank=True, null=True)
+    payment_reference = models.CharField(max_length=100, blank=True, null=True)
+    currency = models.CharField(max_length=10, default='USD', blank=True)
     notes = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -1276,11 +1356,11 @@ def notify_on_questionnaire_completion(sender, instance, created, **kwargs):
         study = instance.participant.study
         if not study: return
         
-        staff_team = [study.pi, study.coordinator]
+        staff_team = study.get_all_staff_users()
         sid = instance.participant.participant_sid
         instrument_name = instance.study_questionnaire.template.name
         
-        for staff in filter(None, staff_team):
+        for staff in staff_team:
             Notification.objects.create(
                 user=staff,
                 title="Questionnaire Submitted",
@@ -1699,6 +1779,33 @@ class AEReport(BaseMongoModel):
     class Meta(BaseMongoModel.Meta):
         ordering = ['-created_at']
 
+@receiver(post_save, sender=AEReport)
+def notify_on_ae_report(sender, instance, created, **kwargs):
+    """Notify all staff immediately when an Adverse Event is reported"""
+    if created:
+        study = instance.participant.study
+        staff_team = study.get_all_staff_users()
+        sid = instance.participant.participant_sid
+        
+        for staff in staff_team:
+            Notification.objects.create(
+                user=staff,
+                title="URGENT: Adverse Event Reported",
+                message=f"Participant {sid} has reported an Adverse Event: {instance.description[:100]}...",
+                type="ALERT",
+                link=f"/dashboard/coordinator/participants/{instance.participant.id}/ae-reports"
+            )
+            # Create a high-priority task
+            StaffTask.objects.create(
+                user=staff,
+                study=study,
+                title="Review Adverse Event",
+                description=f"Participant {sid} reported an Adverse Event. Please review immediately.",
+                task_type='AE_REVIEW',
+                reference_id=str(instance.id),
+                status='NEW'
+            )
+
 @receiver(post_save, sender=FacilityInquiry)
 def notify_team_on_facility_inquiry(sender, instance, created, **kwargs):
     if created:
@@ -2058,7 +2165,7 @@ def notify_on_questionnaire_completion(sender, instance, created, **kwargs):
         study = instance.participant.study
         if not study: return
         
-        staff_team = [study.pi, study.coordinator]
+        staff_team = study.get_all_staff_users()
         sid = instance.participant.participant_sid
         instrument_name = instance.study_questionnaire.template.name
         

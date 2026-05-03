@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     Calendar,
@@ -21,7 +22,9 @@ import {
     ArrowRight,
     User,
     Mail,
-    Phone
+    Phone,
+    FileText,
+    Play
 } from 'lucide-react';
 import { Card, Badge, Skeleton } from './SharedComponents';
 
@@ -58,9 +61,10 @@ interface Visit {
     };
 }
 
-const VisitsView = ({ visits = [], study, tasks = [], isLoading = false }: { visits: Visit[]; study: any; tasks: any[]; isLoading?: boolean }) => {
+const VisitsView = ({ visits = [], study, tasks = [], isLoading = false, onAction }: { visits: Visit[]; study: any; tasks: any[]; isLoading?: boolean; onAction?: (type: string, task?: any) => void }) => {
     const [viewMode, setViewMode] = useState<'timeline' | 'calendar'>('timeline');
     const [viewDate, setViewDate] = useState(new Date());
+    const [selectedDay, setSelectedDay] = useState<string | null>(null);
 
     const sortedVisits = useMemo(() => 
         [...visits].sort((a, b) => new Date(a.scheduled_date).getTime() - new Date(b.scheduled_date).getTime()),
@@ -103,14 +107,26 @@ const VisitsView = ({ visits = [], study, tasks = [], isLoading = false }: { vis
         visits.forEach(v => {
             const dateStr = new Date(v.scheduled_date).toISOString().split('T')[0];
             if (!sessionsByDate[dateStr]) sessionsByDate[dateStr] = [];
-            sessionsByDate[dateStr].push({ type: 'VISIT', label: v.visit_type, status: v.status });
+            sessionsByDate[dateStr].push({ 
+                type: 'VISIT', 
+                label: v.visit_type, 
+                status: v.status, 
+                time: formatTime(v.scheduled_date),
+                raw: v 
+            });
         });
 
         tasks.forEach(t => {
             if (t.due_date) {
                 const dateStr = new Date(t.due_date).toISOString().split('T')[0];
                 if (!sessionsByDate[dateStr]) sessionsByDate[dateStr] = [];
-                sessionsByDate[dateStr].push({ type: 'TASK', label: t.title, status: t.status });
+                sessionsByDate[dateStr].push({ 
+                    type: 'TASK', 
+                    label: t.title, 
+                    status: t.status, 
+                    time: formatTime(t.due_date),
+                    raw: t 
+                });
             }
         });
 
@@ -157,7 +173,7 @@ const VisitsView = ({ visits = [], study, tasks = [], isLoading = false }: { vis
 
                 <div className="grid grid-cols-7 gap-px bg-[#E3ECF5] border border-[#E3ECF5] rounded-[32px] overflow-hidden shadow-xl bg-white">
                     {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
-                        <div key={d} className="bg-[#F8FBFF] p-5 text-[11px] font-bold text-[#5F6F89] uppercase tracking-[0.2em] text-center border-b border-[#E3ECF5]">
+                        <div key={d} className="bg-[#F8FBFF] p-4 sm:p-5 text-[10px] sm:text-[11px] font-bold text-[#5F6F89] uppercase tracking-[0.2em] text-center border-b border-[#E3ECF5]">
                             {d}
                         </div>
                     ))}
@@ -168,30 +184,113 @@ const VisitsView = ({ visits = [], study, tasks = [], isLoading = false }: { vis
                         
                         const dateStr = isCurrentMonth ? new Date(viewDate.getFullYear(), viewDate.getMonth(), dayNum).toISOString().split('T')[0] : '';
                         const daySessions = sessionsByDate[dateStr] || [];
+                        const displaySessions = daySessions.slice(0, 3);
+                        const remainingCount = daySessions.length - 3;
 
                         return (
-                            <div key={i} className={`min-h-[140px] bg-white p-4 transition-all hover:bg-[#F8FBFF] relative ${!isCurrentMonth ? 'bg-[#FDFDFD]/50' : ''}`}>
+                            <div 
+                                key={i} 
+                                onClick={() => isCurrentMonth && daySessions.length > 0 && setSelectedDay(dateStr)}
+                                className={`min-h-[140px] sm:min-h-[160px] bg-white p-2 sm:p-4 transition-all hover:bg-[#F8FBFF] relative flex flex-col cursor-pointer group ${!isCurrentMonth ? 'bg-[#FDFDFD]/30' : ''}`}
+                            >
                                 {isCurrentMonth && (
-                                    <div className="flex justify-between items-start mb-3">
-                                        <span className={`text-sm font-bold ${isToday ? 'bg-[#1E88E5] text-white w-7 h-7 flex items-center justify-center rounded-full' : 'text-[#5F6F89]'}`}>
+                                    <div className="flex justify-between items-start mb-2 sm:mb-3">
+                                        <span className={`text-[12px] sm:text-sm font-bold ${isToday ? 'bg-[#1E88E5] text-white w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center rounded-full' : 'text-[#5F6F89]'}`}>
                                             {dayNum}
                                         </span>
                                     </div>
                                 )}
-                                <div className="space-y-1.5">
-                                    {isCurrentMonth && daySessions.map((s, idx) => (
-                                        <div key={idx} className={`px-2.5 py-1.5 rounded-lg border text-[9px] font-bold uppercase tracking-tight truncate flex items-center gap-1.5 shadow-sm ${
+                                <div className="space-y-1 sm:space-y-1.5 flex-1">
+                                    {isCurrentMonth && displaySessions.map((s, idx) => (
+                                        <div key={idx} className={`px-2 py-1 rounded-md border text-[8px] sm:text-[9px] font-bold uppercase tracking-tight flex items-center gap-1.5 truncate shadow-sm ${
                                             s.type === 'VISIT' ? 'bg-[#E3F2FD] border-[#1E88E5]/20 text-[#1E88E5]' : 'bg-[#E8F5E9] border-[#4CAF50]/20 text-[#2E7D32]'
                                         }`}>
-                                            <div className={`w-1.5 h-1.5 rounded-full ${s.type === 'VISIT' ? 'bg-[#1E88E5]' : 'bg-[#4CAF50]'}`} />
-                                            {s.label}
+                                            <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${s.type === 'VISIT' ? 'bg-[#1E88E5]' : 'bg-[#4CAF50]'}`} />
+                                            <span className="truncate">{s.label}</span>
                                         </div>
                                     ))}
+                                    {isCurrentMonth && remainingCount > 0 && (
+                                        <div className="text-[9px] font-bold text-[#1E88E5] px-2 py-1 uppercase tracking-widest bg-[#E3F2FD]/50 rounded-md">
+                                            + {remainingCount} more events
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         );
                     })}
                 </div>
+
+                {/* Day Detail Modal via Portal */}
+                {selectedDay && createPortal(
+                    <AnimatePresence>
+                        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-6">
+                            <motion.div 
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                className="absolute inset-0 bg-[#1A2B49]/40 backdrop-blur-sm"
+                                onClick={() => setSelectedDay(null)}
+                            />
+                            <motion.div 
+                                initial={{ scale: 0.95, opacity: 0, y: 20 }}
+                                animate={{ scale: 1, opacity: 1, y: 0 }}
+                                exit={{ scale: 0.95, opacity: 0, y: 20 }}
+                                className="relative w-full max-w-[500px] bg-white rounded-[32px] shadow-2xl overflow-hidden border border-[#E3ECF5]"
+                            >
+                                <div className="p-8 border-b border-[#E3ECF5] bg-[#F8FBFF] flex items-center justify-between">
+                                    <div>
+                                        <p className="text-[11px] font-bold text-[#1E88E5] uppercase tracking-[0.2em] mb-1">Schedule Details</p>
+                                        <h3 className="text-xl font-bold text-[#1A2B49] uppercase tracking-tight">{new Date(selectedDay).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</h3>
+                                    </div>
+                                    <button 
+                                        onClick={() => setSelectedDay(null)}
+                                        className="p-3 bg-white border border-[#E3ECF5] text-[#5F6F89] rounded-2xl hover:text-[#D32F2F] hover:bg-[#FDECEA] transition-all shadow-sm"
+                                    >
+                                        <X className="w-5 h-5" />
+                                    </button>
+                                </div>
+                                <div className="p-8 max-h-[60vh] overflow-y-auto no-scrollbar space-y-4">
+                                    {sessionsByDate[selectedDay]?.map((s, idx) => (
+                                        <div key={idx} className={`p-5 rounded-2xl border transition-all hover:shadow-md ${s.type === 'VISIT' ? 'bg-[#F8FBFF] border-[#E3F2FD]' : 'bg-[#FAFAFA] border-[#E3ECF5]'}`}>
+                                            <div className="flex items-start justify-between mb-3">
+                                                <div className="flex items-center gap-3">
+                                                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-white ${s.type === 'VISIT' ? 'bg-[#1E88E5]' : 'bg-[#4CAF50]'}`}>
+                                                        {s.type === 'VISIT' ? <Calendar className="w-5 h-5" /> : <ClipboardList className="w-5 h-5" />}
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-[10px] font-bold text-[#5F6F89] uppercase tracking-widest">{s.type}</p>
+                                                        <h5 className="text-[15px] font-bold text-[#1A2B49] uppercase tracking-tight leading-tight">{s.label}</h5>
+                                                    </div>
+                                                </div>
+                                                <Badge color={s.status === 'COMPLETED' ? 'green' : (s.status === 'MISSED' ? 'red' : 'blue')}>
+                                                    {s.status}
+                                                </Badge>
+                                            </div>
+                                            <div className="flex items-center justify-between mt-4 pt-4 border-t border-[#E3ECF5]/50">
+                                                <div className="flex items-center gap-2 text-[11px] font-bold text-[#5F6F89] uppercase">
+                                                    <Clock className="w-3.5 h-3.5" />
+                                                    {s.time}
+                                                </div>
+                                                {s.type === 'TASK' && (
+                                                    <button 
+                                                        onClick={() => { setSelectedDay(null); onAction?.('START_TASK', s.raw); }}
+                                                        className="flex items-center gap-1.5 text-[11px] font-bold text-[#1E88E5] uppercase hover:underline"
+                                                    >
+                                                        <Play className="w-3 h-3 fill-current" /> Go to Task
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                                <div className="p-6 bg-[#F8FBFF] border-t border-[#E3ECF5] text-center">
+                                    <p className="text-[10px] font-bold text-[#5F6F89] uppercase tracking-widest">Protocol Version 4.2 • Clinical Integrity Log</p>
+                                </div>
+                            </motion.div>
+                        </div>
+                    </AnimatePresence>,
+                    document.body
+                )}
             </div>
         );
     };

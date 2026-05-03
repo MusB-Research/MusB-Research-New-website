@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, ChevronRight, CheckCircle2, Clock, PlayCircle, Activity, Building, Layout, ExternalLink, Trash2, AlertTriangle } from 'lucide-react';
+import { Plus, ChevronRight, CheckCircle2, Clock, PlayCircle, Activity, Building, Layout, ExternalLink, Trash2, AlertTriangle, Globe } from 'lucide-react';
 import { SkeletonLoader } from '../../../components/shared/SkeletonLoader';
 
 interface Study {
@@ -10,6 +10,7 @@ interface Study {
     study_type: string;
     sponsor_name?: string;
     status: string;
+    countries?: string[];
 }
 
 interface StudyDirectoryProps {
@@ -129,57 +130,64 @@ export const StudyDirectory: React.FC<StudyDirectoryProps> = ({
                         </button>
                     </div>
                 ) : (
-                    <div className={isMobile ? "space-y-4" : ""}>
-                        {isMobile ? (
+                    <div className={(isMobile || isTablet) ? "space-y-4" : ""}>
+                        {(isMobile || isTablet) ? (
                             studies.map((s) => (
                                 <motion.div 
                                     key={s.id}
                                     initial={{ opacity: 0, y: 10 }}
                                     animate={{ opacity: 1, y: 0 }}
-                                    className="bg-[#0B101B]/60 backdrop-blur-xl border border-white/5 p-8 rounded-[2.5rem] space-y-6 relative overflow-hidden group active:scale-[0.98] transition-all"
+                                    className="bg-[#0B101B]/60 backdrop-blur-xl border border-white/5 p-5 md:p-8 rounded-[2rem] md:rounded-[2.5rem] space-y-6 relative overflow-hidden group active:scale-[0.98] transition-all"
                                     onClick={() => onEdit(s)}
                                 >
-                                    <div className="flex justify-between items-start">
-                                        <div className="space-y-2">
+                                    <div className="flex justify-between items-start gap-4">
+                                        <div className="space-y-2 min-w-0">
                                             <span className="text-[10px] font-black text-blue-500/60 font-mono tracking-widest uppercase italic">{s.protocol_id}</span>
-                                            <h4 className="text-lg font-black text-white italic uppercase tracking-tighter leading-tight group-hover:text-blue-400 transition-colors">{s.title}</h4>
+                                            <h4 className="text-base md:text-lg font-black text-white italic uppercase tracking-tighter leading-tight group-hover:text-blue-400 transition-colors truncate">{s.title}</h4>
                                         </div>
-                                        <div className={`px-4 py-1.5 rounded-full border text-[9px] font-black uppercase tracking-widest whitespace-nowrap ${getStatusStyle(s.status)}`}>
+                                        <div className={`px-3 md:px-4 py-1.5 rounded-full border text-[9px] font-black uppercase tracking-widest whitespace-nowrap flex-shrink-0 ${getStatusStyle(s.status)}`}>
                                             {STATUS_MAPPING[s.status] || s.status}
                                         </div>
                                     </div>
 
-                                    <div className="grid grid-cols-2 gap-6 py-6 border-y border-white/5">
-                                        <div className="space-y-2">
+                                    <div className="grid grid-cols-2 gap-4 md:gap-6 py-6 border-y border-white/5">
+                                        <div className="space-y-2 min-w-0">
                                             <div className="flex items-center gap-2">
                                                 <Building className="w-3 h-3 text-slate-500" />
                                                 <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest italic">Sponsor</p>
                                             </div>
-                                            <p className="text-[11px] font-bold text-slate-300 uppercase truncate">{s.sponsor_name || 'Internal Research'}</p>
+                                            <p className="text-[10px] md:text-[11px] font-bold text-slate-300 uppercase truncate">{s.sponsor_name || 'Internal Research'}</p>
                                         </div>
-                                        <div className="space-y-2">
+                                        <div className="space-y-2 min-w-0">
                                             <div className="flex items-center gap-2">
-                                                <Layout className="w-3 h-3 text-slate-500" />
-                                                <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest italic">Type</p>
+                                                <Globe className="w-3 h-3 text-slate-500" />
+                                                <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest italic">Type & Region</p>
                                             </div>
-                                            <p className="text-[11px] font-bold text-slate-300 uppercase">{s.study_type.replace('_', ' ')}</p>
+                                            <div className="flex flex-wrap gap-2 mt-1">
+                                                <p className="text-[10px] md:text-[11px] font-bold text-slate-300 uppercase truncate">{s.study_type.replace('_', ' ')}</p>
+                                                {s.countries && s.countries.length > 0 && (
+                                                    <span className="text-[9px] px-2 py-0.5 bg-blue-500/10 border border-blue-500/20 rounded text-blue-400 font-black uppercase tracking-tighter">
+                                                        {s.countries.length === 1 ? s.countries[0] : `${s.countries.length} COUNTRIES`}
+                                                    </span>
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
 
-                                    <div className="flex items-center justify-between pt-2">
-                                        <div className="flex items-center gap-2">
+                                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 pt-2">
+                                        <div className="flex-1">
                                             <select
                                                 value={s.status}
                                                 onClick={(e) => e.stopPropagation()}
                                                 onChange={(e) => onUpdateStatus?.(s.id, e.target.value)}
-                                                className="bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-[10px] font-black text-slate-400 uppercase tracking-widest outline-none focus:border-blue-500/50"
+                                                className="w-full sm:w-auto bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-[10px] font-black text-slate-400 uppercase tracking-widest outline-none focus:border-blue-500/50"
                                             >
                                                 {Object.entries(STATUS_MAPPING).map(([value, label]) => (
                                                     <option key={value} value={value} className="bg-[#0B101B] text-slate-300">{label}</option>
                                                 ))}
                                             </select>
                                         </div>
-                                        <div className="flex items-center gap-2">
+                                        <div className="flex items-center gap-2 justify-end">
                                             {onDelete && (
                                                 <button
                                                     onClick={(e) => { e.stopPropagation(); setConfirmDelete(s); }}
@@ -188,7 +196,7 @@ export const StudyDirectory: React.FC<StudyDirectoryProps> = ({
                                                     <Trash2 className="w-4 h-4" />
                                                 </button>
                                             )}
-                                            <button className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-xl shadow-lg shadow-blue-600/20 font-black text-[10px] uppercase tracking-widest italic">
+                                            <button className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-xl shadow-lg shadow-blue-600/20 font-black text-[10px] uppercase tracking-widest italic">
                                                 {s.status === 'DRAFT' ? 'Edit' : 'Audit'}
                                                 <ChevronRight className="w-3 h-3" />
                                             </button>
@@ -218,6 +226,12 @@ export const StudyDirectory: React.FC<StudyDirectoryProps> = ({
                                                     <p className="text-base font-black text-white group-hover:text-blue-400 transition-colors uppercase italic tracking-tighter leading-none">{s.title}</p>
                                                     <div className="flex items-center gap-3 mt-4">
                                                         <span className="text-[10px] px-2 py-0.5 bg-white/5 border border-white/10 rounded text-slate-500 font-black uppercase tracking-widest italic">{s.study_type.replace('_', ' ')}</span>
+                                                        {s.countries && s.countries.length > 0 && (
+                                                            <span className="text-[10px] px-2 py-0.5 bg-blue-500/10 border border-blue-500/20 rounded text-blue-400 font-black uppercase tracking-widest italic">
+                                                                <Globe className="w-2.5 h-2.5 inline-block mr-1 -mt-0.5" />
+                                                                {s.countries.length === 1 ? s.countries[0] : `${s.countries.length} Countries`}
+                                                            </span>
+                                                        )}
                                                     </div>
                                                 </td>
                                                 <td className="px-8 py-10 border-r border-white/5">

@@ -303,6 +303,7 @@ export default function CCMessagesModule({ selectedStudyId }: { selectedStudyId?
         try {
             const res = await authFetch(`${API}/api/clinical-conversations/${activeConvId}/add_message/`, {
                 method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     text: messageInput,
                     tag: selectedTag.toUpperCase()
@@ -393,6 +394,7 @@ export default function CCMessagesModule({ selectedStudyId }: { selectedStudyId?
         try {
             const res = await authFetch(`${API}/api/clinical-conversations/`, {
                 method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     participant: composeForm.participantId,
                     study: composeForm.studyId,
@@ -407,6 +409,7 @@ export default function CCMessagesModule({ selectedStudyId }: { selectedStudyId?
                 // Add the initial message
                 await authFetch(`${API}/api/clinical-conversations/${newConv.id}/add_message/`, {
                     method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         text: composeForm.text,
                         tag: selectedTag.toUpperCase()

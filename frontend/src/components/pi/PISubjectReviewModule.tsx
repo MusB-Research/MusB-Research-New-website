@@ -9,6 +9,8 @@ import {
 } from 'lucide-react';
 import { authFetch, API } from '../../utils/auth';
 import ParticipantOversight from './panels/ParticipantOversight';
+import ClinicalEnrollmentWorkflow from '../coordinator/subject-review/clinical/ClinicalEnrollmentWorkflow';
+import InformedConsentWorkflow from '../coordinator/subject-review/clinical/InformedConsentWorkflow';
 
 // --- TYPES ---
 interface AE {
@@ -670,41 +672,10 @@ export default function PISubjectReviewModule({ participantId = '' }: { particip
     );
 
     const renderConsent = () => (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '2.5rem' }}>
-            <h3 style={S.title}>Informed Consent Documents</h3>
-            {participant.documents.filter((d: any) => d.type === 'Consent').map((c: any, i: number) => (
-                <div key={i} style={S.card}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2.5rem' }}>
-                        <div>
-                            <div style={{ fontSize: '18px', fontWeight: 900 }}>Main Study Informed Consent Agreement</div>
-                            <div style={{ fontSize: '13px', color: COLORS.label, marginTop: '0.5rem' }}>Version 2.1 • Study ID: MusB-2025-01</div>
-                        </div>
-                        <span style={S.badge(COLORS.success)}>Executed & Valid</span>
-                    </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '3rem' }}>
-                        <div>
-                            <label style={S.label}>Participant Signature</label>
-                            <div style={{ height: '60px', borderBottom: `1px solid ${COLORS.border}`, display: 'flex', alignItems: 'flex-end', paddingBottom: '0.5rem', fontStyle: 'italic', fontSize: '20px', fontFamily: '"Dancing Script", cursive' }}>
-                                {participant.id}
-                            </div>
-                            <div style={{ fontSize: '13px', color: COLORS.label, marginTop: '0.75rem' }}>Digitally Authenticated: {c.date}</div>
-                        </div>
-                        <div>
-                            <label style={S.label}>Investigator Attestation</label>
-                            <div style={{ height: '60px', borderBottom: `1px solid ${COLORS.border}`, display: 'flex', alignItems: 'flex-end', paddingBottom: '0.5rem', fontStyle: 'italic', fontSize: '20px', fontFamily: '"Dancing Script", cursive', color: COLORS.accent }}>
-                                Dr. Michael Antigravity
-                            </div>
-                            <div style={{ fontSize: '13px', color: COLORS.label, marginTop: '0.75rem' }}>Verification Multi-Factor: ACTIVE</div>
-                        </div>
-                        <div>
-                            <button style={{ ...S.btnPrimary, width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem' }} onClick={() => addToast('PDF Secure Stream Started', 'success')}>
-                                <Shield size={18} /> VIEW CERTIFICATE
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            ))}
-        </div>
+        <InformedConsentWorkflow 
+            participant={participant} 
+            initialRole="PI"
+        />
     );
 
     const renderSafety = () => (
@@ -858,7 +829,7 @@ export default function PISubjectReviewModule({ participantId = '' }: { particip
 
             {/* TAB BAR */}
             <div style={S.tabBar}>
-                {['Overview', 'Eligibility', 'Medical History', 'Consent', 'Visits', 'Outcomes', 'Safety', 'Labs', 'Documents', 'Notes', 'Audit Trail'].map(tab => {
+                {['Overview', 'Enrollment', 'Eligibility', 'Medical History', 'Consent', 'Visits', 'Outcomes', 'Safety', 'Labs', 'Documents', 'Notes', 'Audit Trail'].map(tab => {
                     const hasAlert = (tab === 'Safety' && participant.adverseEvents.length > 0) || (tab === 'Labs' && alerts.length > 0);
                     return (
                         <div key={tab} style={{ position: 'relative' }}>
@@ -873,6 +844,38 @@ export default function PISubjectReviewModule({ participantId = '' }: { particip
             <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
                 <main style={{ flex: 1, overflowY: 'auto', padding: '1.5rem', paddingBottom: '6rem' }}>
                     {activeTab === 'Overview' && renderOverview()}
+                    {activeTab === 'Enrollment' && (
+                        <ClinicalEnrollmentWorkflow 
+                            participant={participant} 
+                            initialRole="pi"
+                            addToast={addToast}
+                            onApprove={async (type, sig) => {
+                                // Re-use PI approve logic
+                                if (!participant.pk) return;
+                                try {
+                                    const res = await authFetch(`${API}/api/participants/${participant.pk}/review_eligibility/`, {
+                                        method: 'POST',
+                                        body: JSON.stringify({ decision: 'ACCEPT', notes: screeningNotes, signature: sig })
+                                    });
+                                    if (res.ok) {
+                                        setParticipant((p: any) => ({ ...p, eligibility: 'Approved', status: 'ENROLLED' }));
+                                        addToast('Subject Status Validated');
+                                        logAction('Subject Validated', 'PI finalized clinical review via Workflow.');
+                                    }
+                                } catch (e) { addToast('Approval failed', 'error'); }
+                            }}
+                            onRandomize={async () => {
+                                if (!participant.pk) return;
+                                try {
+                                    const res = await authFetch(`${API}/api/participants/${participant.pk}/randomize/`, { method: 'POST' });
+                                    if (res.ok) {
+                                        setParticipant((p: any) => ({ ...p, status: 'RANDOMIZED' }));
+                                        addToast('Subject Randomized Successfully');
+                                    }
+                                } catch (e) { addToast('Randomization failed', 'error'); }
+                            }}
+                        />
+                    )}
                     {activeTab === 'Eligibility' && renderEligibility()}
                     {activeTab === 'Outcomes' && renderOutcomes()}
                     {activeTab === 'Audit Trail' && renderAuditTrail()}
@@ -980,7 +983,7 @@ export default function PISubjectReviewModule({ participantId = '' }: { particip
                         </div>
                     )}
                     
-                    {!['Overview', 'Eligibility', 'Outcomes', 'Audit Trail', 'Safety', 'Labs', 'Documents', 'Visits', 'Medical History', 'Consent', 'Notes'].includes(activeTab) && (
+                    {!['Overview', 'Enrollment', 'Eligibility', 'Outcomes', 'Audit Trail', 'Safety', 'Labs', 'Documents', 'Visits', 'Medical History', 'Consent', 'Notes'].includes(activeTab) && (
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '60vh', color: COLORS.label }}>
                             <ClipboardList size={64} style={{ opacity: 0.1, marginBottom: '2rem' }} />
                             <div style={{ fontSize: '20px', fontWeight: 900, fontStyle: 'italic', textTransform: 'uppercase' }}>{activeTab} Feed Active</div>

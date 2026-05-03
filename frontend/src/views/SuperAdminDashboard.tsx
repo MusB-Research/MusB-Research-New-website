@@ -1025,15 +1025,17 @@ export default function SuperAdminDashboard() {
         ...formData,
         start_date: formData.startDate,
         end_date: formData.endDate,
-        description: formData.brief_description,
-        primary_indication: formData.indication,
-        condition: formData.indication || formData.condition,
-        study_type: formData.execution_type,
-        target_screened: formData.target_subjects,
-        pi_ids: formData.assigned_pis,
-        coordinator_ids: formData.assigned_coordinators,
-        sponsor_org_id: formData.sponsor_org_id,
-        stage: formData.stage
+        description: formData.briefSummary || formData.brief_description,
+        primary_indication: formData.category || formData.indication,
+        condition: formData.category || formData.indication || formData.condition,
+        study_type: formData.executionMode || formData.execution_type,
+        target_screened: formData.targetEnrollment || formData.target_subjects,
+        pi_ids: formData.selectedPIs || formData.assigned_pis || [],
+        coordinator_ids: formData.selectedCoordinators || formData.assigned_coordinators || [],
+        sponsor_ids: formData.selectedSponsorUsers?.length ? formData.selectedSponsorUsers : (formData.sponsor ? [formData.sponsor] : []),
+        sponsor_name: formData.sponsor,
+        stage: formData.stage || 'PREPARING_TO_LAUNCH',
+        status: formData.status || 'PREPARING_TO_LAUNCH'
       };
       const url = selectedStudy
         ? `${apiUrl}/api/studies/${studyId}/`

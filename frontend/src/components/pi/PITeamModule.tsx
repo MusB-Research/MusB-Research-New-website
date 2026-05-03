@@ -121,7 +121,8 @@ export default function PITeamModule({
             );
 
             setOfficeTeam(staffOnly.filter(m => m.type === 'Office'));
-            setMusbTeam(staffOnly.filter(m => m.type === 'MusB'));
+            // Filter MusB Team to only show those with @musbresearch.com domain
+            setMusbTeam(staffOnly.filter(m => m.type === 'MusB' && m.email.toLowerCase().endsWith('@musbresearch.com')));
         }
     }, [allUsers, selectedStudyId]);
 

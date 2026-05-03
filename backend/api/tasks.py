@@ -52,8 +52,8 @@ def refresh_participants_list_cache():
     Invalidates all participant list caches when any participant data changes.
     """
     if hasattr(cache, 'delete_pattern'):
-        cache.delete_pattern("participants_list:*")
-        logger.info("Invalidated all participants list caches")
+        cache.delete_pattern("participant_records_list:*")
+        logger.info("Invalidated all participant_records_list caches")
         
 @shared_task
 def check_missed_visits():

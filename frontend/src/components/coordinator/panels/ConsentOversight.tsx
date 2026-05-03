@@ -15,8 +15,10 @@ import {
     ChevronRight,
     MessageSquare,
     ScrollText,
-    ChevronDown
+    ChevronDown,
+    RotateCw
 } from 'lucide-react';
+import { fetchConsents } from '../../../api';
 
 interface ConsentRecord {
     id: string;
@@ -30,6 +32,8 @@ interface ConsentRecord {
 }
 
 export default function ConsentOversight() {
+    const [records, setRecords] = useState<ConsentRecord[]>([]);
+    const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
     const [activeFilter, setActiveFilter] = useState<'All' | 'Pending' | 'Expired' | 'Action Required'>('All');
     const [windowWidth, setWindowWidth] = useState(window.innerWidth);
@@ -44,12 +48,42 @@ export default function ConsentOversight() {
         return () => window.removeEventListener('resize', handleResize);
     }, []);
 
-    const records: ConsentRecord[] = [
-        { id: 'C-001', subjectId: 'SUB-001', subjectName: 'Alice Johnson', version: 'v2.4 (2026)', status: 'Verified', signedDate: '2026-03-01', type: 'Main ICF', method: 'eConsent' },
-        { id: 'C-002', subjectId: 'SUB-002', subjectName: 'Bob Smith', version: 'v2.4 (2026)', status: 'Pending', signedDate: '--', type: 'Main ICF', method: 'eConsent' },
-        { id: 'C-003', subjectId: 'SUB-003', subjectName: 'Charlie Davis', version: 'v2.3 (2025)', status: 'Expired', signedDate: '2025-06-12', type: 'Main ICF', method: 'Paper' },
-        { id: 'C-004', subjectId: 'SUB-005', subjectName: 'Edward Norton', version: 'v2.4 (2026)', status: 'Signed', signedDate: '2026-03-18', type: 'Genetic', method: 'eConsent' },
-    ];
+    useEffect(() => {
+        const loadConsents = async () => {
+            try {
+                const response = await fetchConsents();
+                const data = Array.isArray(response) ? response : ((response as any)?.results || []);
+                const mappedData: ConsentRecord[] = data.map((item: any) => ({
+                    id: item.id,
+                    subjectId: item.participant_sid || `SUB-${item.id.toString().slice(0, 4)}`,
+                    subjectName: item.full_name || 'Anonymous',
+                    version: `v. ${item.protocol_id || '2.4'}`,
+                    status: mapStatus(item.signing_status),
+                    signedDate: item.participant_signed_at ? new Date(item.participant_signed_at).toISOString().split('T')[0] : '--',
+                    type: 'Main ICF',
+                    method: 'eConsent'
+                }));
+                setRecords(mappedData);
+            } catch (error) {
+                console.error("Error fetching consents:", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+        loadConsents();
+    }, []);
+
+    const mapStatus = (backendStatus: string): ConsentRecord['status'] => {
+        switch (backendStatus) {
+            case 'FULLY_SIGNED': return 'Verified';
+            case 'AWAITING_PI':
+            case 'PARTIALLY_SIGNED': return 'Signed';
+            case 'PENDING': return 'Pending';
+            case 'REJECTED':
+            case 'EXPIRED': return 'Expired';
+            default: return 'Pending';
+        }
+    };
 
     const filteredRecords = records.filter(r => {
         const matchesSearch = r.subjectName.toLowerCase().includes(searchQuery.toLowerCase()) || 
@@ -58,6 +92,11 @@ export default function ConsentOversight() {
                              (activeFilter === 'Action Required' ? r.status === 'Expired' || r.status === 'Pending' : r.status === activeFilter);
         return matchesSearch && matchesFilter;
     });
+
+    const stats = {
+        compliance: records.length > 0 ? ((records.filter(r => r.status === 'Verified').length / records.length) * 100).toFixed(1) : '0.0',
+        pending: records.filter(r => r.status === 'Pending' || r.status === 'Signed').length
+    };
 
     const getStatusStyle = (status: string) => {
         switch (status) {
@@ -72,24 +111,33 @@ export default function ConsentOversight() {
     return (
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-10 pt-4">
             {/* Header / KPI Row */}
-            <div className={`flex ${isMobile ? 'flex-col items-start gap-10' : 'flex-row items-center justify-between gap-8'}`}>
+            <div className={`flex ${isMobile ? 'flex-col items-start gap-8' : 'flex-row items-center justify-between gap-8'}`}>
                 <div className="space-y-2">
-                    <h2 className={`${isMobile ? 'text-2xl' : 'text-3xl'} font-black text-white italic uppercase tracking-tighter`}>Consent <span className="text-indigo-400">Oversight</span></h2>
-                    <p className="text-[11px] text-slate-500 font-bold uppercase tracking-[0.3em] italic">Legal Compliance & ICF Tracking</p>
+                    <h2 className={`${isMobile ? 'text-2xl' : 'text-3xl'} font-black text-white italic uppercase tracking-tighter leading-none`}>Consent <span className="text-indigo-400">Oversight</span></h2>
+                    <div className="flex items-center gap-3">
+                        <p className="text-[11px] text-slate-500 font-bold uppercase tracking-[0.3em] italic leading-none">Legal Compliance & ICF Tracking</p>
+                        <button 
+                            onClick={() => { setLoading(true); window.location.reload(); }}
+                            className="p-1 hover:bg-white/5 rounded-md text-slate-700 hover:text-indigo-400 transition-all active:rotate-180"
+                            title="Sync Ledger"
+                        >
+                            <RotateCw size={12} />
+                        </button>
+                    </div>
                 </div>
-                <div className={`flex items-center ${isMobile ? 'w-full gap-4' : 'gap-6'}`}>
-                    <div className={`flex items-center gap-3 px-6 py-4 bg-emerald-500/5 border border-emerald-500/10 rounded-[1.5rem] ${isMobile ? 'flex-1' : ''}`}>
-                        <ShieldCheck className="w-5 h-5 text-emerald-400" />
-                        <div>
-                            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Compliance</p>
-                            <p className="text-sm font-black text-white italic">94.2%</p>
+                <div className={`flex items-center ${isMobile ? 'w-full gap-3' : 'gap-6'}`}>
+                    <div className={`flex items-center gap-3 px-4 sm:px-6 py-4 bg-emerald-500/5 border border-emerald-500/10 rounded-[1.5rem] ${isMobile ? 'flex-1 min-w-0' : ''}`}>
+                        <ShieldCheck className="w-5 h-5 text-emerald-400 shrink-0" />
+                        <div className="min-w-0 flex-1">
+                            <p className="text-[9px] sm:text-[10px] text-slate-500 font-bold uppercase tracking-widest truncate">Compliance</p>
+                            <p className="text-xs sm:text-sm font-black text-white italic truncate">{stats.compliance}%</p>
                         </div>
                     </div>
-                    <div className={`flex items-center gap-3 px-6 py-4 bg-red-500/5 border border-red-500/10 rounded-[1.5rem] ${isMobile ? 'flex-1' : ''}`}>
-                        <AlertTriangle className="w-5 h-5 text-red-400" />
-                        <div>
-                            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Pending</p>
-                            <p className="text-sm font-black text-white italic">03 Action</p>
+                    <div className={`flex items-center gap-3 px-4 sm:px-6 py-4 bg-red-500/5 border border-red-500/10 rounded-[1.5rem] ${isMobile ? 'flex-1 min-w-0' : ''}`}>
+                        <AlertTriangle className="w-5 h-5 text-red-400 shrink-0" />
+                        <div className="min-w-0 flex-1">
+                            <p className="text-[9px] sm:text-[10px] text-slate-500 font-bold uppercase tracking-widest truncate">Pending</p>
+                            <p className="text-xs sm:text-sm font-black text-white italic truncate">{stats.pending.toString().padStart(2, '0')} Action</p>
                         </div>
                     </div>
                 </div>
@@ -160,52 +208,60 @@ export default function ConsentOversight() {
             </div>
 
             {/* Grid */}
-            <div className={`grid grid-cols-1 ${isTablet ? 'grid-cols-2' : isMobile ? 'grid-cols-1' : 'md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'} gap-6`}>
-                <AnimatePresence mode="popLayout">
-                    {filteredRecords.map((r) => (
-                        <motion.div 
-                            key={r.id}
-                            layout
-                            initial={{ opacity: 0, scale: 0.95 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0, scale: 0.95 }}
-                            className="bg-[#0B101B]/40 backdrop-blur-sm border border-white/5 rounded-[2.5rem] p-8 space-y-6 hover:border-indigo-500/30 transition-all group relative overflow-hidden"
-                        >
-                            <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:rotate-12 group-hover:opacity-20 transition-all pointer-events-none">
-                                <ScrollText className="w-16 h-16 text-indigo-400" />
-                            </div>
+            {loading ? (
+                <div className="py-24 flex flex-col items-center justify-center border border-white/5 rounded-[3rem] bg-white/[0.01]">
+                    <div className="w-12 h-12 border-2 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin mb-4" />
+                    <p className="text-slate-500 text-[10px] font-black uppercase tracking-[0.4em] italic">Synchronizing Ledger...</p>
+                </div>
+            ) : (
+                <div className={`grid grid-cols-1 ${isTablet ? 'grid-cols-2' : isMobile ? 'grid-cols-1' : 'md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'} gap-6`}>
+                    <AnimatePresence mode="popLayout">
+                        {filteredRecords.map((r) => (
+                            <motion.div 
+                                key={r.id}
+                                layout
+                                initial={{ opacity: 0, scale: 0.95 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                exit={{ opacity: 0, scale: 0.95 }}
+                                className={`bg-[#0B101B]/40 backdrop-blur-sm border border-white/5 rounded-[2rem] sm:rounded-[2.5rem] ${isMobile ? 'p-6' : 'p-8'} space-y-6 hover:border-indigo-500/30 transition-all group relative overflow-hidden`}
+                            >
+                                <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:rotate-12 group-hover:opacity-20 transition-all pointer-events-none">
+                                    <ScrollText className="w-16 h-16 text-indigo-400" />
+                                </div>
 
-                            <div className="flex items-center justify-between relative z-10">
-                                <div className={`px-4 py-1.5 rounded-full border text-[10px] font-black uppercase tracking-widest ${getStatusStyle(r.status)} shadow-[0_0_15px_rgba(var(--status-rgb),0.1)]`}>
-                                    {r.status}
+                                <div className="flex items-center justify-between relative z-10">
+                                    <div className={`px-4 py-1.5 rounded-full border text-[10px] font-black uppercase tracking-widest ${getStatusStyle(r.status)} shadow-[0_0_15px_rgba(var(--status-rgb),0.1)]`}>
+                                        {r.status}
+                                    </div>
+                                    <p className="text-[10px] text-slate-700 font-mono font-black tracking-widest uppercase italic">{r.signedDate}</p>
                                 </div>
-                                <p className="text-[10px] text-slate-700 font-mono font-black tracking-widest uppercase italic">{r.signedDate}</p>
-                            </div>
 
-                            <div className="space-y-2">
-                                <div className="flex items-center gap-2">
-                                    <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
-                                    <p className="text-[11px] text-indigo-400 font-black uppercase tracking-[0.2em] italic">{r.type}</p>
+                                <div className="space-y-2 min-w-0">
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse shrink-0" />
+                                        <p className="text-[11px] text-indigo-400 font-black uppercase tracking-[0.2em] italic truncate">{r.type}</p>
+                                    </div>
+                                    <h4 className="text-xl font-black text-white italic uppercase tracking-tighter truncate leading-tight group-hover:text-indigo-400 transition-colors">{r.subjectName}</h4>
+                                    <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.2em] italic truncate">{r.subjectId} • {r.method}</p>
                                 </div>
-                                <h4 className="text-xl font-black text-white italic uppercase tracking-tighter truncate leading-tight group-hover:text-indigo-400 transition-colors">{r.subjectName}</h4>
-                                <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.2em] italic">{r.subjectId} • {r.method}</p>
-                            </div>
 
-                            <div className="pt-8 border-t border-white/5 flex items-center justify-between">
-                                <div className="space-y-1">
-                                    <p className="text-[9px] text-slate-600 font-black uppercase tracking-widest">Protocol Version</p>
-                                    <p className="text-[11px] text-white/80 font-black uppercase italic tracking-widest leading-none">{r.version}</p>
+                                <div className="pt-8 border-t border-white/5 flex items-center justify-between">
+                                    <div className="space-y-1">
+                                        <p className="text-[9px] text-slate-600 font-black uppercase tracking-widest">Protocol Version</p>
+                                        <p className="text-[11px] text-white/80 font-black uppercase italic tracking-widest leading-none">{r.version}</p>
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <button className="p-3.5 bg-white/5 border border-white/10 rounded-2xl text-slate-500 hover:text-white hover:bg-white/10 transition-all active:scale-95"><Download className="w-4 h-4" /></button>
+                                        <button className="p-3.5 bg-indigo-600 text-white rounded-2xl hover:scale-110 active:scale-95 transition-all shadow-xl shadow-indigo-600/30"><ChevronRight className="w-4 h-4" /></button>
+                                    </div>
                                 </div>
-                                <div className="flex gap-2">
-                                    <button className="p-3.5 bg-white/5 border border-white/10 rounded-2xl text-slate-500 hover:text-white hover:bg-white/10 transition-all active:scale-95"><Download className="w-4 h-4" /></button>
-                                    <button className="p-3.5 bg-indigo-600 text-white rounded-2xl hover:scale-110 active:scale-95 transition-all shadow-xl shadow-indigo-600/30"><ChevronRight className="w-4 h-4" /></button>
-                                </div>
-                            </div>
-                        </motion.div>
-                    ))}
-                </AnimatePresence>
-            </div>
-            {filteredRecords.length === 0 && (
+                            </motion.div>
+                        ))}
+                    </AnimatePresence>
+                </div>
+            )}
+
+            {!loading && filteredRecords.length === 0 && (
                 <div className="py-24 flex flex-col items-center justify-center border border-dashed border-white/10 rounded-[3rem] bg-white/[0.01]">
                     <div className="w-20 h-20 bg-indigo-500/5 rounded-full flex items-center justify-center mb-6">
                         <FileSignature className="w-8 h-8 text-indigo-400 opacity-20" />

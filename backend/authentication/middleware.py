@@ -31,6 +31,7 @@ class OnboardingEnforcementMiddleware:
         re.compile(r'^/api/studies/?(\?|$)'),
         re.compile(r'^/api/contact/?'),
         re.compile(r'^/api/careers/?'),
+        re.compile(r'^/api/kits/?'),
         re.compile(r'^/admin/'),
     ]
 
@@ -63,6 +64,7 @@ class OnboardingEnforcementMiddleware:
         re.compile(r'^/api/participant-tasks/?'),
         re.compile(r'^/api/ae-reports/?'),
         re.compile(r'^/api/daily-medication-logs/?'),
+        re.compile(r'^/api/kits/?'),
     ]
 
     def __init__(self, get_response):

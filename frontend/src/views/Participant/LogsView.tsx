@@ -633,28 +633,41 @@ const LogsView = ({ study, onAction, preselectedDate, preselectedLog, defaultVie
     ]);
 
     React.useEffect(() => {
-        const today = getLocalISODate(new Date());
-
-        // 🚀 PERFORMANT ORCHESTRATION: Use preloaded logs instead of re-fetching
         if (initialLogs && initialLogs.length > 0) {
             setHistory(initialLogs);
             setIsLoadingHistory(false);
-
-            const existing = initialLogs.find((l: any) => l.date === today);
-            if (existing) {
-                setTodayLog(existing);
-                populateFormFromLog(existing);
-                // CRITICAL: If a finalized log exists for today, clear any stale draft from storage
-                if (!existing.is_draft) {
-                    localStorage.removeItem('musb_daily_log_draft');
-                }
-            }
         } else {
-            // Fallback for direct deep-links or manual refresh
             fetchHistory();
-            fetchTodayLog();
         }
     }, [initialLogs]);
+
+    // Update form when logDate or history changes
+    React.useEffect(() => {
+        if (!logDate || history.length === 0) return;
+        
+        const existing = history.find((l: any) => l.date === logDate);
+        if (existing) {
+            setTodayLog(existing);
+            populateFormFromLog(existing);
+            if (!existing.is_draft && logDate === getLocalISODate(new Date())) {
+                localStorage.removeItem('musb_daily_log_draft');
+            }
+        } else if (logDate === getLocalISODate(new Date())) {
+            // Re-check for today's draft if no finalized entry exists
+            const savedData = localStorage.getItem('musb_daily_log_draft');
+            if (savedData) {
+                try {
+                    populateFormFromLog(JSON.parse(savedData));
+                } catch(e) {}
+            }
+        } else {
+            // New entry for a different date, start fresh
+            resetForm();
+            setTodayLog(null);
+            // Ensure the date is still set correctly after resetForm
+            setLogDate(logDate);
+        }
+    }, [logDate, history]);
 
     const isFetchingRef = React.useRef(false);
 
@@ -803,13 +816,13 @@ const LogsView = ({ study, onAction, preselectedDate, preselectedLog, defaultVie
                 </div>
             </div>
 
-            {/* Today's log banner */}
+            {/* Entry banner */}
             {todayLog && viewMode === 'FORM' && (
                 <div className="flex items-start gap-3 px-4 py-3 bg-emerald-50 border border-emerald-200 rounded-2xl">
                     <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
                     <div>
                         <p className="text-[11px] font-bold text-emerald-700 uppercase tracking-widest leading-none">
-                            Today's log already submitted{todayLog.is_draft ? ' (Draft)' : ''}
+                            Entry for {logDate} already submitted{todayLog.is_draft ? ' (Draft)' : ''}
                         </p>
                         <p className="text-[10px] font-bold text-emerald-600 mt-0.5">
                             Medicine: {todayLog.took_medicine ? 'Taken' : 'Missed'} · Wellness: {todayLog.overall_feeling?.replace('_', ' ') || 'N/A'} · {todayLog.noticed_side_effects ? '⚠️ AE reported' : 'No AE'}
@@ -841,13 +854,13 @@ const LogsView = ({ study, onAction, preselectedDate, preselectedLog, defaultVie
                             <div className="absolute top-0 right-0 p-6 opacity-5">
                                 <ClipboardList className="w-40 h-40 text-[#1E88E5]" />
                             </div>
-                            <h2 className="text-xl sm:text-2xl font-bold text-[#1A2B49] uppercase tracking-tight">Daily Protocol Log</h2>
+                            <h2 className="text-xl sm:text-2xl font-bold text-[#1A2B49] uppercase tracking-tight">Daily Medication Log: {logDate}</h2>
                             <p className="text-[12px] font-bold text-[#1E88E5] uppercase tracking-widest mt-2 flex items-center gap-3">
                                 <span className="w-10 h-0.5 bg-[#1E88E5]/20" />
                                 Patient Status Entry
                             </p>
                             <p className="mt-4 text-[13px] font-bold text-[#5F6F89] leading-none whitespace-nowrap overflow-hidden text-ellipsis">
-                                Please document your medication intake and health status for today. Secure reporting ensures clinical accuracy and participant safety.
+                                Please document your medication intake and health status for {logDate === getLocalISODate(new Date()) ? 'today' : logDate}. Secure reporting ensures clinical accuracy.
                             </p>
                         </div>
                     </Card>
@@ -858,7 +871,7 @@ const LogsView = ({ study, onAction, preselectedDate, preselectedLog, defaultVie
                             <SectionHeader icon={Thermometer} title="Medication Adherence" subtitle="Documenting daily study medicine use" />
 
                             <div className="space-y-6">
-                                <BooleanChoice label="Did you take your medicine today?" value={tookMedicine} onChange={setTookMedicine} />
+                                <BooleanChoice label={`Did you take your medicine on ${logDate}?`} value={tookMedicine} onChange={setTookMedicine} />
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8 border-t border-[#F8FBFF] pt-6 items-end">
                                     <ScrollableDatePicker 

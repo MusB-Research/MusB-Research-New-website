@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
     CheckCircle2, Clock, Activity, ChevronRight, Check, X,
     FileText, Eye, ShieldCheck, AlertCircle, ExternalLink,
-    Download, Pen, ZoomIn, ZoomOut
+    Download, Pen, ZoomIn, ZoomOut, ClipboardList, AlertTriangle, FileCheck
 } from 'lucide-react';
 import { authFetch, API } from '../../utils/auth';
 import { Skeleton } from '../../views/Participant/SharedComponents';
@@ -37,6 +37,16 @@ interface GenericRecordDetail {
     cc_verified?: boolean;
     pi_signed_at?: string;
     coordinator_signed_at?: string;
+    medication_name?: string;
+    dosage?: string;
+    date?: string;
+    time_taken?: string;
+    noticed_side_effects?: boolean;
+    severity?: string;
+    side_effect_description?: string;
+    template_details?: any;
+    version?: string;
+    agreed_at?: string;
 }
 
 // ─── PDF / Consent Viewer Modal ───────────────────────────────────────────────
@@ -45,11 +55,13 @@ function ConsentReviewModal({
     primaryColor,
     onClose,
     onCoSigned,
+    onMarkComplete,
 }: {
     task: StaffTask;
     primaryColor: string;
     onClose: () => void;
     onCoSigned: (taskId: string) => void;
+    onMarkComplete?: (taskId: string) => void;
 }) {
     const [record, setRecord] = useState<GenericRecordDetail | null>(null);
     const [loading, setLoading] = useState(true);
@@ -76,6 +88,8 @@ function ConsentReviewModal({
             let endpoint = `/api/consent/${task.reference_id}/`;
             if (task.task_type === 'FORM_SIGNATURE') {
                 endpoint = `/api/assigned-forms/${task.reference_id}/`;
+            } else if (task.task_type === 'LOG_REVIEW') {
+                endpoint = `/api/daily-medication-logs/${task.reference_id}/`;
             }
 
             const res = await authFetch(`${API}${endpoint}`);
@@ -161,6 +175,8 @@ function ConsentReviewModal({
             let verifyEndpoint = `/api/consent/${record.id}/verify/`;
             if (task.task_type === 'CONSENT_COORDINATOR_SIGN') {
                 verifyEndpoint = `/api/consent/${record.id}/coordinator_sign/`;
+            } else if (task.task_type === 'CONSENT_SIGNATURE') {
+                verifyEndpoint = `/api/consent/${record.id}/pi_sign/`;
             } else if (task.task_type === 'FORM_SIGNATURE') {
                 // Determine roles for Form signing
                 const isPI = (localStorage.getItem('userRole') || '').toUpperCase() === 'PI';
@@ -211,10 +227,10 @@ function ConsentReviewModal({
                         </div>
                         <div>
                             <h3 className="text-base font-bold text-white uppercase tracking-tight">
-                                Co-Sign Consent
+                                {record?.template_details?.require_cc_verification === false ? 'Acknowledge Consent' : 'Co-Sign Consent'}
                             </h3>
                             <p className="text-[11px] text-slate-500 font-bold uppercase tracking-widest mt-0.5">
-                                {task.description}
+                                {record?.template_details?.require_cc_verification === false ? 'Plain-text disclosure acknowledgement' : task.description}
                             </p>
                         </div>
                     </div>
@@ -258,7 +274,7 @@ function ConsentReviewModal({
                         {/* PDF Viewer */}
                         {/* PDF Viewer / Signature Pad */}
                         <div className="flex-1 overflow-hidden flex flex-col">
-                            {signatureStep ? (
+                             {signatureStep ? (
                                 <div className="flex-1 overflow-y-auto p-8 space-y-6">
                                     <div className="max-w-xl mx-auto space-y-8">
                                         <div>
@@ -307,7 +323,61 @@ function ConsentReviewModal({
                                         </div>
                                     </div>
                                 </div>
-                            ) : pdfUrl ? (
+                            ) : task.task_type === 'LOG_REVIEW' ? (
+                                 <div className="flex-1 overflow-auto p-8 space-y-8 bg-[#060A14]/30">
+                                     <div className="max-w-2xl mx-auto space-y-6">
+                                         <div className="flex items-center gap-4 mb-8">
+                                             <div className="w-12 h-12 rounded-2xl bg-teal-500/10 border border-teal-500/20 flex items-center justify-center">
+                                                 <ClipboardList className="w-6 h-6 text-teal-400" />
+                                             </div>
+                                             <div>
+                                                 <h4 className="text-xl font-bold text-white uppercase tracking-tight">Daily Medication Log</h4>
+                                                 <p className="text-[11px] text-slate-500 font-bold uppercase tracking-wider">Submitted by {record?.participant_name || 'Participant'}</p>
+                                             </div>
+                                         </div>
+
+                                         <div className="grid grid-cols-2 gap-6">
+                                             <div className="bg-white/5 border border-white/10 rounded-2xl p-5">
+                                                 <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Medication</p>
+                                                 <p className="text-base font-bold text-white uppercase">{record?.medication_name || '—'}</p>
+                                             </div>
+                                             <div className="bg-white/5 border border-white/10 rounded-2xl p-5">
+                                                 <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Dosage</p>
+                                                 <p className="text-base font-bold text-white uppercase">{record?.dosage || '—'}</p>
+                                             </div>
+                                             <div className="bg-white/5 border border-white/10 rounded-2xl p-5">
+                                                 <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Date</p>
+                                                 <p className="text-base font-bold text-white uppercase">{record?.date || '—'}</p>
+                                             </div>
+                                             <div className="bg-white/5 border border-white/10 rounded-2xl p-5">
+                                                 <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Time Taken</p>
+                                                 <p className="text-base font-bold text-white uppercase">{record?.time_taken || '—'}</p>
+                                             </div>
+                                         </div>
+
+                                         <div className={`rounded-2xl p-6 border ${record?.noticed_side_effects ? 'bg-red-500/10 border-red-500/20' : 'bg-emerald-500/10 border-emerald-500/20'}`}>
+                                             <div className="flex items-center gap-3 mb-4">
+                                                 {record?.noticed_side_effects ? <AlertTriangle className="w-5 h-5 text-red-400" /> : <CheckCircle2 className="w-5 h-5 text-emerald-400" />}
+                                                 <h5 className={`text-sm font-black uppercase tracking-widest ${record?.noticed_side_effects ? 'text-red-400' : 'text-emerald-400'}`}>
+                                                     {record?.noticed_side_effects ? 'Adverse Effects Reported' : 'No Side Effects Reported'}
+                                                 </h5>
+                                             </div>
+                                             {record?.noticed_side_effects && (
+                                                 <div className="space-y-4">
+                                                     <div>
+                                                         <p className="text-[10px] font-black text-red-500/50 uppercase tracking-widest mb-1">Severity</p>
+                                                         <p className="text-sm font-bold text-white uppercase">{record?.severity || '—'}</p>
+                                                     </div>
+                                                     <div>
+                                                         <p className="text-[10px] font-black text-red-500/50 uppercase tracking-widest mb-1">Description</p>
+                                                         <p className="text-sm text-slate-300 leading-relaxed italic">"{record?.side_effect_description || 'No additional details provided.'}"</p>
+                                                     </div>
+                                                 </div>
+                                             )}
+                                         </div>
+                                     </div>
+                                 </div>
+                             ) : pdfUrl ? (
                                 <>
                                     {/* PDF Toolbar */}
                                     <div className="flex items-center justify-between px-7 py-2.5 border-b border-white/5 bg-white/[0.02] shrink-0">
@@ -369,10 +439,47 @@ function ConsentReviewModal({
                                         </div>
                                     </div>
                                 </div>
+                             ) : record?.template_details?.terms_content ? (
+                                // Plain Text Consent View
+                                <div className="flex-1 overflow-auto bg-[#060A14] p-8">
+                                    <div className="max-w-3xl mx-auto bg-white/[0.02] border border-white/5 rounded-3xl p-10 shadow-2xl">
+                                        <div className="flex items-center gap-3 mb-8 pb-6 border-b border-white/5">
+                                            <div className="w-10 h-10 rounded-2xl bg-indigo-500/10 flex items-center justify-center">
+                                                <FileText className="w-5 h-5 text-indigo-400" />
+                                            </div>
+                                            <div>
+                                                <h4 className="text-lg font-bold text-white uppercase">Disclosure Terms</h4>
+                                                <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.2em]">Plain-Text eConsent Version {record.version || '1.0'}</p>
+                                            </div>
+                                        </div>
+                                        <div className="prose prose-invert max-w-none">
+                                            <div className="text-slate-300 leading-relaxed space-y-4 whitespace-pre-wrap font-serif text-lg italic opacity-90">
+                                                {record.template_details.terms_content}
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="mt-12 pt-8 border-t border-white/5 flex items-center justify-between">
+                                            <div className="flex items-center gap-4">
+                                                <div className="w-12 h-12 rounded-full border-2 border-emerald-500/20 bg-emerald-500/5 flex items-center justify-center">
+                                                    <CheckCircle2 className="w-6 h-6 text-emerald-400" />
+                                                </div>
+                                                <div>
+                                                    <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Participant Acknowledged</p>
+                                                    <p className="text-sm font-bold text-white uppercase">{record.full_name}</p>
+                                                </div>
+                                            </div>
+                                            <div className="text-right">
+                                                <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Time of Agreement</p>
+                                                <p className="text-sm font-bold text-slate-400">{(record.agreed_at || record.participant_signed_at) ? new Date((record.agreed_at || record.participant_signed_at) as any).toLocaleString() : ''}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             ) : (
                                 <div className="flex-1 flex flex-col items-center justify-center gap-4 py-16">
                                     <FileText className="w-10 h-10 text-slate-700 opacity-50" />
                                     <p className="text-[12px] text-slate-500 font-black uppercase tracking-widest">No PDF or signature data available yet</p>
+                                    <p className="text-[10px] text-slate-600 uppercase tracking-widest max-w-xs text-center">The system may still be generating the signed document. Please try again in a moment.</p>
                                 </div>
                             )}
                         </div>
@@ -396,7 +503,7 @@ function ConsentReviewModal({
                                     className="px-6 py-3 bg-white/5 hover:bg-white/10 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all">
                                     {signed ? 'Close' : signatureStep ? 'Back' : 'Cancel'}
                                 </button>
-                                {!signed && (
+                                 {!signed && (
                                     signatureStep ? (
                                         <button
                                             onClick={handleCoSign}
@@ -406,13 +513,22 @@ function ConsentReviewModal({
                                             <ShieldCheck className="w-3.5 h-3.5" />
                                             {signing ? 'Finalizing...' : 'Sign & Verify Record'}
                                         </button>
-                                    ) : (
+                                    ) : task.task_type === 'LOG_REVIEW' ? (
                                         <button
-                                            onClick={() => setSignatureStep(true)}
-                                            className={`px-7 py-3 bg-${accent}-600 hover:bg-${accent}-500 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all shadow-lg flex items-center gap-2 active:scale-95`}
+                                            onClick={() => onMarkComplete?.(task.id)}
+                                            className="px-7 py-3 bg-teal-600 hover:bg-teal-500 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all shadow-lg flex items-center gap-2 active:scale-95"
                                         >
-                                            <Pen className="w-3.5 h-3.5" />
-                                            Proceed to Sign
+                                            <CheckCircle2 className="w-3.5 h-3.5" />
+                                            Mark as Reviewed
+                                        </button>
+                                    ) : (
+                                        <button onClick={record?.template_details?.require_cc_verification === false ? handleCoSign : () => setSignatureStep(true)}
+                                            className={`px-7 py-3 bg-${accent}-600 hover:bg-${accent}-500 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all shadow-lg flex items-center gap-2 active:scale-95`}>
+                                            {record?.template_details?.require_cc_verification === false ? (
+                                                <><CheckCircle2 className="w-3.5 h-3.5" /> Acknowledge Receipt</>
+                                            ) : (
+                                                <><FileCheck className="w-3.5 h-3.5" /> Co-Sign Record</>
+                                            )}
                                         </button>
                                     )
                                 )}
@@ -436,9 +552,10 @@ interface StaffTasksModuleProps {
     onRefresh?: () => void;
     preloadedTasks?: StaffTask[];
     isLoading?: boolean;
+    onViewParticipant?: (participantId: string, tab?: string) => void;
 }
 
-export default function StaffTasksModule({ primaryColor = 'indigo', onRefresh, preloadedTasks, isLoading }: StaffTasksModuleProps) {
+export default function StaffTasksModule({ primaryColor = 'indigo', onRefresh, preloadedTasks, isLoading, onViewParticipant }: StaffTasksModuleProps) {
     const [tasks, setTasks] = useState<StaffTask[]>(preloadedTasks || []);
     const [loading, setLoading] = useState(!preloadedTasks || preloadedTasks.length === 0);
     const [reviewTask, setReviewTask] = useState<StaffTask | null>(null);
@@ -446,7 +563,12 @@ export default function StaffTasksModule({ primaryColor = 'indigo', onRefresh, p
     const isConsentTask = (t: StaffTask) =>
         t.task_type === 'CONSENT_SIGNATURE' ||
         t.task_type === 'CONSENT_COORDINATOR_SIGN' ||
-        t.task_type === 'FORM_SIGNATURE';
+        t.task_type === 'FORM_SIGNATURE' ||
+        t.task_type === 'LOG_REVIEW';
+    
+    const isScreenerReview = (t: StaffTask) => t.task_type === 'SCREENER_REVIEW' || t.task_type === 'SCREENING_REVIEW';
+
+    const isOverdueAlert = (t: StaffTask) => t.task_type === 'OVERDUE_ALERT';
 
     const [windowWidth, setWindowWidth] = useState(window.innerWidth);
     const isMobile = windowWidth < 768;
@@ -501,6 +623,22 @@ export default function StaffTasksModule({ primaryColor = 'indigo', onRefresh, p
         if (onRefresh) onRefresh();
     };
 
+    const handleSendReminder = async (task: StaffTask) => {
+        if (!task.reference_id) return;
+        try {
+            const res = await authFetch(`${API}/api/participant-tasks/${task.reference_id}/send_reminder/`, {
+                method: 'POST'
+            });
+            if (res.ok) {
+                alert('Reminder sent to participant successfully.');
+                // Optionally mark the alert as addressed
+                markComplete(task.id);
+            }
+        } catch (err) {
+            console.error('Failed to send reminder:', err);
+        }
+    };
+
     const pendingTasks = tasks.filter(t => !t.is_completed);
     const completedTasks = tasks.filter(t => t.is_completed);
 
@@ -517,6 +655,7 @@ export default function StaffTasksModule({ primaryColor = 'indigo', onRefresh, p
                         primaryColor={primaryColor}
                         onClose={() => setReviewTask(null)}
                         onCoSigned={handleCoSigned}
+                        onMarkComplete={markComplete}
                     />
                 )}
             </AnimatePresence>
@@ -617,7 +756,6 @@ export default function StaffTasksModule({ primaryColor = 'indigo', onRefresh, p
                                                     </div>
                                                 </div>
                                             </div>
-                                            {/* Actions */}
                                             <div className={`flex ${(isMobile || isTablet) ? 'flex-col mt-2' : 'items-center'} gap-2 shrink-0`}>
                                                 {isConsent ? (
                                                     <button
@@ -625,8 +763,38 @@ export default function StaffTasksModule({ primaryColor = 'indigo', onRefresh, p
                                                         className={`px-6 py-4 bg-${accent}-600 hover:bg-${accent}-500 text-white rounded-[1.25rem] text-[11px] font-bold flex items-center justify-center gap-2 transition-all active:scale-95 shadow-xl shadow-${accent}-900/20 uppercase tracking-widest ${(isMobile || isTablet) ? 'w-full' : ''}`}
                                                     >
                                                         <Eye className="w-3.5 h-3.5" />
-                                                        Review Record
+                                                        {task.task_type === 'LOG_REVIEW' ? 'Review Log' : 'Review Record'}
                                                     </button>
+                                                ) : isScreenerReview(task) ? (
+                                                    <button
+                                                        onClick={() => {
+                                                            if (onViewParticipant && task.reference_id) {
+                                                                onViewParticipant(task.reference_id, 'Eligibility');
+                                                            } else {
+                                                                alert('Viewing screening details...');
+                                                                markComplete(task.id);
+                                                            }
+                                                        }}
+                                                        className={`px-6 py-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-[1.25rem] text-[11px] font-bold flex items-center justify-center gap-2 transition-all active:scale-95 shadow-xl shadow-emerald-900/20 uppercase tracking-widest ${(isMobile || isTablet) ? 'w-full' : ''}`}
+                                                    >
+                                                        <FileText className="w-3.5 h-3.5" />
+                                                        Review Submission
+                                                    </button>
+                                                ) : isOverdueAlert(task) ? (
+                                                    <div className="flex gap-2">
+                                                        <button
+                                                            onClick={() => handleSendReminder(task)}
+                                                            className="px-5 py-3.5 bg-orange-600 hover:bg-orange-500 text-white rounded-[1.25rem] text-[11px] font-bold flex items-center justify-center gap-2 transition-all active:scale-95 shadow-xl shadow-orange-900/20 uppercase tracking-widest"
+                                                        >
+                                                            Send Reminder
+                                                        </button>
+                                                        <button
+                                                            onClick={() => markComplete(task.id)}
+                                                            className="px-5 py-3.5 bg-white/5 hover:bg-white/10 text-white border border-white/10 rounded-[1.25rem] text-[11px] font-bold flex items-center justify-center gap-2 transition-all active:scale-95 uppercase tracking-widest"
+                                                        >
+                                                            Dismiss
+                                                        </button>
+                                                    </div>
                                                 ) : (
                                                     <button
                                                         onClick={() => {

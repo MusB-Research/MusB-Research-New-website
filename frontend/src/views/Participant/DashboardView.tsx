@@ -5,7 +5,7 @@ import {
     FileText, CheckCircle2, AlertCircle,
     MessageSquare, History, ClipboardList,
     Search, MapPin, DollarSign, Globe, ShieldCheck,
-    Package, Truck, Zap
+    Package, Truck, Zap, Layers3
 } from 'lucide-react';
 import { Card, Badge, ProgressBar, CircularProgress, Skeleton } from './SharedComponents';
 
@@ -177,6 +177,34 @@ const DashboardView = ({
                 </h2>
             </div>
 
+            {/* CLINICAL PROFILE STRIP — Study Arm */}
+            {(() => {
+                const arm = participant?.assigned_arm_name || participant?.assigned_arm?.name;
+                if (!arm) return null;
+                const chips = [
+                    { icon: Layers3, label: 'Study Arm', value: arm || null, color: '#00796B', bg: '#E0F2F1' },
+                ];
+                return (
+                    <div className="flex flex-wrap gap-2 sm:gap-3">
+                        {chips.map((chip) => {
+                            if (!chip.value) return null;
+                            const Icon = chip.icon;
+                            return (
+                                <div
+                                    key={chip.label}
+                                    className="flex items-center gap-2 px-3 py-1.5 rounded-full border text-[11px] font-bold tracking-wide transition-all"
+                                    style={{ backgroundColor: chip.bg, borderColor: chip.color + '30', color: chip.color }}
+                                >
+                                    <Icon size={12} />
+                                    <span className="text-[#8A99B3] uppercase mr-0.5" style={{ fontSize: '9px', letterSpacing: '0.12em' }}>{chip.label}:</span>
+                                    <span>{chip.value}</span>
+                                </div>
+                            );
+                        })}
+                    </div>
+                );
+            })()}
+
             {/* TOP SECTION: ENROLLMENT & TIMELINE */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
 
@@ -339,7 +367,7 @@ const DashboardView = ({
             )}
 
             {/* SHIPPING TRACKER BAR (3-Step Simplified Flow) */}
-            {activeKit && (
+            {activeKit && study?.has_study_kit && (
                 <Card 
                     className="p-4 hover:border-[#1E88E5]/30 transition-all flex flex-col bg-white border-l-4 border-l-[#1E88E5] cursor-pointer group"
                     onClick={() => onAction('Study Kit')}

@@ -24,6 +24,7 @@ export interface Study {
     compensation_range?: string;
     is_paid?: boolean;
     is_free_testing?: boolean;
+    countries?: string[];
 }
 
 export const fetchStudies = async (): Promise<Study[]> => {
@@ -67,7 +68,8 @@ export const fetchStudies = async (): Promise<Study[]> => {
             remoteParticipation: d.remote_participation || (d.study_type === 'VIRTUAL'),
             compensation_range: d.compensation || 'Varies by study',
             is_paid: true,
-            is_free_testing: false
+            is_free_testing: false,
+            countries: d.countries || []
         }));
 
         // Sort Chronologically: Oldest First based on Database ID (MongoDB ObjectIds are naturally chronological)

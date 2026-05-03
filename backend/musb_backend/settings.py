@@ -250,7 +250,9 @@ BASE_ORIGINS = [
     "http://localhost:5174",
     "http://127.0.0.1:5174",
     "http://localhost:3000",
-    "http://127.0.0.1:3000"
+    "http://127.0.0.1:3000",
+    "http://0.0.0.0:5173",
+    "http://0.0.0.0:3000"
 ]
 
 # ── Production origins that are ALWAYS allowed (hardcoded guarantee) ──────────
@@ -264,9 +266,10 @@ GUARANTEED_PROD_ORIGINS = [
 ]
 
 if DEBUG:
-    CORS_ALLOW_ALL_ORIGINS = True
+    # When CORS_ALLOW_CREDENTIALS is True, CORS_ALLOW_ALL_ORIGINS must be False
+    CORS_ALLOW_ALL_ORIGINS = False
     CORS_ALLOWED_ORIGINS = BASE_ORIGINS
-    CSRF_TRUSTED_ORIGINS = ["http://localhost:5173", "http://127.0.0.1:5173", "http://0.0.0.0:5173"] + BASE_ORIGINS
+    CSRF_TRUSTED_ORIGINS = BASE_ORIGINS
     # Ensure local development uses the correct Vite port
     FRONTEND_URL = os.getenv('FRONTEND_URL', "http://localhost:5173")
 else:

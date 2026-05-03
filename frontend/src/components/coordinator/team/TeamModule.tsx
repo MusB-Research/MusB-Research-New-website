@@ -442,18 +442,18 @@ export default function TeamModule({
 
                         <div className="xl:hidden grid grid-cols-1 md:grid-cols-2 gap-4">
                             {getVisibleTeam.map(m => (
-                                <div key={m.id} className="p-5 bg-[#0B101B]/40 backdrop-blur-xl border border-white/5 rounded-2xl space-y-5 shadow-2xl">
-                                    <div className="flex justify-between items-start">
-                                        <div className="flex items-center gap-4">
+                                <div key={m.id} className="p-5 bg-[#0B101B]/40 backdrop-blur-xl border border-white/5 rounded-2xl space-y-5 shadow-2xl overflow-hidden">
+                                    <div className="flex flex-col xs:flex-row justify-between items-start gap-4 w-full min-w-0">
+                                        <div className="flex items-center gap-4 min-w-0 flex-1 w-full">
                                             <div className="w-12 h-12 rounded-xl bg-white/5 border border-white/5 flex items-center justify-center shrink-0">
                                                 <User size={24} className="text-slate-500" />
                                             </div>
-                                            <div className="min-w-0">
+                                            <div className="min-w-0 flex-1">
                                                 <div className="text-sm font-black text-white uppercase italic tracking-tight truncate">{m.name}</div>
                                                 <div className="text-[10px] text-slate-500 font-bold mt-1 uppercase tracking-widest truncate">{m.email}</div>
                                             </div>
                                         </div>
-                                        <div className="flex flex-col items-end gap-2">
+                                        <div className="flex flex-row xs:flex-col items-center xs:items-end gap-2 w-full xs:w-auto">
                                             <span className={`px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border ${
                                                 m.status === 'Active' 
                                                 ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' 
@@ -471,7 +471,7 @@ export default function TeamModule({
                                         </div>
                                     </div>
 
-                                    <div className="grid grid-cols-2 gap-4 pt-4 border-t border-white/5">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t border-white/5">
                                         <div>
                                             <p className="text-[9px] font-black text-slate-600 uppercase tracking-widest mb-1">Functional Role</p>
                                             <p className="text-[11px] font-black text-slate-300 uppercase tracking-widest italic">{m.role}</p>

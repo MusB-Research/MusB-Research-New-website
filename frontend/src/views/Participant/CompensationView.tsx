@@ -27,6 +27,15 @@ const CompensationView = ({ study, compensations = [], tasks = [], visits = [], 
         URL.revokeObjectURL(url);
     };
 
+    const activeCurrencySymbol = React.useMemo(() => {
+        if (activeData && activeData.length > 0) {
+            const descStr = activeData[0].description || '';
+            const match = descStr.match(/^\[([A-Z$€£₹¥]+)\]/);
+            if (match) return getCurrencySymbol(match[1]);
+        }
+        return getCurrencySymbol(study?.compensation_currency || 'USD');
+    }, [activeData, study?.compensation_currency]);
+
     const studyTitle = study?.title || study?.protocol_id || study?.id || 'Enrolled Study';
     const studyProtocol = study?.protocol_id || '';
     const studyStatus = (study?.status || 'ACTIVE').toUpperCase();
@@ -43,16 +52,27 @@ const CompensationView = ({ study, compensations = [], tasks = [], visits = [], 
     [activeData]);
 
     const history = React.useMemo(() =>
-        Array.isArray(activeData) ? activeData.map((c: any) => ({
-            id: c.id,
-            study: c.study_name || studyTitle,
-            desc: c.description || 'Participation Reward',
-            method: c.reward_method || 'Gift Card',
-            amount: parseFloat(c.amount || 0),
-            date: c.paid_at ? new Date(c.paid_at).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }) : 'Processing',
-            status: (c.status || 'PENDING').toUpperCase()
-        })) : [],
-    [activeData, studyTitle]);
+        Array.isArray(activeData) ? activeData.map((c: any) => {
+            const descStr = c.description || '';
+            const match = descStr.match(/^\[([A-Z$€£₹¥]+)\]\s*(.*)$/);
+            const currency = match ? match[1] : (study?.compensation_currency || 'USD');
+            const desc = match ? match[2] : descStr;
+            const symbol = getCurrencySymbol(currency);
+            return {
+                id: c.id,
+                study: c.study_name || studyTitle,
+                desc,
+                currency,
+                symbol,
+                method: c.payment_method || c.reward_method || 'Gift Card',
+                cardNumber: c.card_number,
+                paymentReference: c.payment_reference,
+                amount: parseFloat(c.amount || 0),
+                date: c.paid_at ? new Date(c.paid_at).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }) : 'Processing',
+                status: (c.status || 'PENDING').toUpperCase()
+            };
+        }) : [],
+    [activeData, studyTitle, study?.compensation_currency]);
 
     if (isLoading) {
         return (
@@ -96,7 +116,7 @@ const CompensationView = ({ study, compensations = [], tasks = [], visits = [], 
                     </div>
                     <div className="flex flex-col items-end">
                         <span className="text-[10px] font-bold text-[#1E88E5] uppercase tracking-[0.2em] mb-0.5">Lifetime Disbursement</span>
-                        <span className="text-4xl font-bold tracking-tighter text-[#1A2B49]">{getCurrencySymbol(study?.compensation_currency)}{totalEarned.toFixed(2)}</span>
+                        <span className="text-4xl font-bold tracking-tighter text-[#1A2B49]">{activeCurrencySymbol}{totalEarned.toFixed(2)}</span>
                     </div>
                 </div>
 
@@ -106,7 +126,7 @@ const CompensationView = ({ study, compensations = [], tasks = [], visits = [], 
                             <CheckCircle className="w-3.5 h-3.5 text-[#4CAF50]" /> Verified Earnings
                         </h4>
                         <div className="flex items-center justify-between">
-                            <span className="text-2xl font-bold text-[#1A2B49] tracking-tight">{getCurrencySymbol(study?.compensation_currency)}{totalEarned.toFixed(2)}</span>
+                            <span className="text-2xl font-bold text-[#1A2B49] tracking-tight">{activeCurrencySymbol}{totalEarned.toFixed(2)}</span>
                             <Badge color={totalEarned > 0 ? 'green' : 'slate'}>{totalEarned > 0 ? 'Paid' : 'Idle'}</Badge>
                         </div>
                     </div>
@@ -115,7 +135,7 @@ const CompensationView = ({ study, compensations = [], tasks = [], visits = [], 
                             <Clock className="w-3.5 h-3.5 text-[#1E88E5]" /> Pending Approval
                         </h4>
                         <div className="flex items-center justify-between">
-                            <span className="text-2xl font-bold text-[#1A2B49] tracking-tight">{getCurrencySymbol(study?.compensation_currency)}{pendingPayment.toFixed(2)}</span>
+                            <span className="text-2xl font-bold text-[#1A2B49] tracking-tight">{activeCurrencySymbol}{pendingPayment.toFixed(2)}</span>
                             <Badge color="blue">{pendingPayment > 0 ? 'Processing' : 'No Queue'}</Badge>
                         </div>
                     </div>
@@ -164,7 +184,7 @@ const CompensationView = ({ study, compensations = [], tasks = [], visits = [], 
                     <table className="w-full text-left border-collapse">
                         <thead>
                             <tr className="bg-[#F8FBFF]">
-                                {['Target Study', 'Classification', 'Asset Protocol', 'Processing Date', 'Value', 'Status'].map(h => (
+                                {['Target Study', 'Classification', 'Asset Protocol', 'Card Number', 'Reference #', 'Processing Date', 'Value', 'Status'].map(h => (
                                     <th key={h} className="px-5 py-3.5 text-[10px] font-bold text-[#8A99B3] uppercase tracking-[0.15em] border-b border-[#E3ECF5]">{h}</th>
                                 ))}
                             </tr>
@@ -180,13 +200,15 @@ const CompensationView = ({ study, compensations = [], tasks = [], visits = [], 
                                     </td>
                                     <td className="px-5 py-4 text-[11px] font-bold text-[#5F6F89] uppercase tracking-widest">{row.desc}</td>
                                     <td className="px-5 py-4 text-[11px] font-bold text-[#8A99B3] uppercase tracking-tight">{row.method}</td>
+                                    <td className="px-5 py-4 text-[11px] font-bold text-[#1A2B49]">{row.cardNumber || '-'}</td>
+                                    <td className="px-5 py-4 text-[11px] font-bold text-[#1A2B49]">{row.paymentReference || '-'}</td>
                                     <td className="px-5 py-4 text-[11px] font-bold text-[#1A2B49] uppercase">{row.date}</td>
-                                    <td className="px-5 py-4 text-[13px] font-bold text-[#1E88E5] tracking-tight">{getCurrencySymbol(study?.compensation_currency)}{row.amount.toFixed(2)}</td>
+                                    <td className="px-5 py-4 text-[13px] font-bold text-[#1E88E5] tracking-tight">{row.symbol}{row.amount.toFixed(2)}</td>
                                     <td className="px-5 py-4"><Badge color={row.status === 'PAID' ? 'green' : 'blue'}>{row.status}</Badge></td>
                                 </tr>
                             )) : (
                                 <tr>
-                                    <td colSpan={6} className="py-16 text-center">
+                                    <td colSpan={8} className="py-16 text-center">
                                         <div className="flex flex-col items-center gap-3 opacity-40">
                                             <History className="w-10 h-10 text-[#B0BCCF]" />
                                             <p className="text-[12px] font-bold text-[#1A2B49] uppercase tracking-[0.2em]">No transactions yet</p>

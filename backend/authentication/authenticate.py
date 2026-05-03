@@ -46,7 +46,9 @@ class CookieJWTAuthentication(authentication.BaseAuthentication):
 
         except jwt.ExpiredSignatureError:
             logger.debug("Token expired for request to %s", request.path)
-            raise exceptions.AuthenticationFailed("Your session has expired. Please login again.")
+            # Returning None allows AllowAny views (like login) to still work 
+            # even if an old expired token exists in cookies.
+            return None
         except Exception as e:
             logger.error(f"Auth error decoding token: {str(e)}")
             import traceback

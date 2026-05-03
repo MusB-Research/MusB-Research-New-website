@@ -421,41 +421,25 @@ const ConsentModal = ({ isOpen, onClose, onComplete, study, template, userProfil
                                 </div>
 
                                 {/* Terms summary */}
-                                <div
-                                    ref={contentRef}
-                                    onScroll={handleScroll}
-                                    className="flex-1 overflow-y-auto bg-[#F8FBFF] rounded-2xl border border-[#E3ECF5] p-5 text-sm text-[#1A2B49] leading-relaxed whitespace-pre-wrap font-medium no-scrollbar"
-                                >
-                                    {termsContent || (
-                                        <span className="text-[#8A99B3] italic">
-                                            Standard clinical study participation terms apply. Please use the "View Full Document" button below to read the complete consent form before proceeding.
-                                        </span>
-                                    )}
+                                <div className="flex-1 bg-[#F8FBFF] rounded-2xl border border-[#E3ECF5] p-6 flex flex-col items-center justify-center text-center">
+                                    <ShieldCheck className="w-12 h-12 text-[#1E88E5] mb-4 opacity-50" />
+                                    <h4 className="text-base font-bold text-[#1A2B49] mb-2 uppercase tracking-wide">Ready to Review</h4>
+                                    <p className="text-sm text-[#5F6F89] leading-relaxed max-w-lg font-medium">
+                                        You are about to review the Informed Consent document for <strong className="text-[#1A2B49]">{study?.title || 'this study'}</strong>. 
+                                        Please proceed to the next step to read the full terms and conditions of your participation. 
+                                        A complete review and acknowledgement of the document is required before you can digitally sign and submit your consent.
+                                    </p>
                                 </div>
 
                                 {/* View Document CTA */}
-                                <div className="mt-4 flex items-center justify-between gap-3">
+                                <div className="mt-4 flex items-center justify-end gap-3">
+                                    <button onClick={onClose} className="text-[11px] font-bold text-[#8A99B3] hover:text-[#1A2B49] uppercase tracking-widest transition-colors mr-2">Cancel</button>
                                     <button
-                                        onClick={() => { setDocFullscreen(true); }}
-                                        className="flex items-center gap-2 px-5 py-3 bg-[#1A2B49] hover:bg-[#0f1e38] text-white text-[11px] font-bold uppercase tracking-widest rounded-xl transition-all shadow-sm"
+                                        onClick={() => setStep(2)}
+                                        className="px-6 py-3 rounded-xl font-bold text-[12px] uppercase tracking-widest transition-all bg-[#1E88E5] text-white hover:bg-[#1565C0] shadow-md"
                                     >
-                                        <Eye className="w-4 h-4" />
-                                        View Full Document
+                                        Continue to Document →
                                     </button>
-
-                                    <div className="flex items-center gap-3">
-                                        <button onClick={onClose} className="text-[11px] font-bold text-[#8A99B3] hover:text-[#1A2B49] uppercase tracking-widest transition-colors">Cancel</button>
-                                        <button
-                                            onClick={() => setStep(2)}
-                                            disabled={!!(termsContent && !scrolledToBottom) && !docViewed}
-                                            className={`px-6 py-3 rounded-xl font-bold text-[12px] uppercase tracking-widest transition-all
-                                                ${(scrolledToBottom || docViewed || !termsContent)
-                                                    ? 'bg-[#1E88E5] text-white hover:bg-[#1565C0] shadow-md'
-                                                    : 'bg-[#F0F4FA] text-[#B0BCCF] cursor-not-allowed'}`}
-                                        >
-                                            {scrolledToBottom || docViewed || !termsContent ? 'Continue →' : 'Scroll to Continue'}
-                                        </button>
-                                    </div>
                                 </div>
                             </motion.div>
                         )}

@@ -505,7 +505,7 @@ export default function SignIn() {
                                     )}
                                 </motion.h1>
                             </AnimatePresence>
-                            <p className="text-[12px] font-black uppercase tracking-[0.3em] text-slate-500 flex items-center justify-center gap-3">
+                            <p className="text-sm font-black uppercase tracking-[0.3em] text-slate-500 flex items-center justify-center gap-3">
                                 <span className="w-1.5 h-[1px] bg-blue-500/30"></span>
                                 {mode === 'LOGIN' ? 'Enter credentials to access MusB' : 'Participant Enrollment'}
                                 <span className="w-1.5 h-[1px] bg-blue-500/30"></span>
@@ -534,17 +534,17 @@ export default function SignIn() {
 
                                     return (
                                         <div key={s.id} className="flex items-center gap-3 relative">
-                                            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[12px] font-black transition-all duration-500 z-20 ${isActive ? 'bg-amber-500 text-slate-900 shadow-[0_0_20px_rgba(6,182,212,0.4)]' :
+                                            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-black transition-all duration-500 z-20 ${isActive ? 'bg-amber-500 text-slate-900 shadow-[0_0_20px_rgba(6,182,212,0.4)]' :
                                                 isCompleted ? 'bg-amber-500/20 text-amber-400 border border-amber-500/40' :
                                                     'bg-slate-900/50 border border-white/5 text-slate-600'
                                                 }`}>
                                                 {idx + 1}
                                             </div>
                                             <div className="flex flex-col">
-                                                <span className={`text-[12px] font-black uppercase tracking-widest ${isActive ? 'text-amber-400' : 'text-slate-600'}`}>
+                                                <span className={`text-xs font-black uppercase tracking-widest ${isActive ? 'text-amber-400' : 'text-slate-600'}`}>
                                                     {s.label.split(' ')[0]}
                                                 </span>
-                                                <span className={`text-[12px] font-black uppercase tracking-widest ${isActive ? 'text-white' : 'text-slate-700'}`}>
+                                                <span className={`text-xs font-black uppercase tracking-widest ${isActive ? 'text-white' : 'text-slate-700'}`}>
                                                     {s.label.split(' ')[1]}
                                                 </span>
                                             </div>
@@ -697,7 +697,7 @@ export default function SignIn() {
                                 >
                                     <div className="space-y-4">
                                         <div className="space-y-2">
-                                            <label className="text-[12px] font-black uppercase tracking-widest text-slate-500 ml-4">Email or User ID</label>
+                                            <label className="text-xs font-black uppercase tracking-widest text-slate-500 ml-4">Email or User ID</label>
                                             <div className="relative group">
                                                 <Mail className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-600 group-focus-within:text-blue-400 transition-colors" />
                                                 <input
@@ -712,7 +712,7 @@ export default function SignIn() {
                                         </div>
 
                                         <div className="space-y-2">
-                                            <label className="text-[12px] font-black uppercase tracking-widest text-slate-500 ml-4">Password</label>
+                                            <label className="text-xs font-black uppercase tracking-widest text-slate-500 ml-4">Password</label>
                                             <div className="relative group">
                                                 <Lock className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-600 group-focus-within:text-blue-400 transition-colors" />
                                                 <input

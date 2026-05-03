@@ -86,7 +86,8 @@ export default function AlertsModule({ selectedStudyId, initialNotifications }: 
     const fetchAlertData = async () => {
         setIsLoading(true);
         try {
-            const data = await fetchNotifications();
+            const rawData = await fetchNotifications();
+            const data = Array.isArray(rawData) ? rawData : (rawData.results || []);
             setAlerts(mapNotificationsToAlerts(data));
         } catch (err) {
             console.error("Failed to sync alert intelligence:", err);
@@ -97,7 +98,8 @@ export default function AlertsModule({ selectedStudyId, initialNotifications }: 
 
     useEffect(() => {
         if (initialNotifications && initialNotifications.length > 0) {
-            setAlerts(mapNotificationsToAlerts(initialNotifications));
+            const data = Array.isArray(initialNotifications) ? initialNotifications : ((initialNotifications as any).results || []);
+            setAlerts(mapNotificationsToAlerts(data));
             setIsLoading(false);
         } else {
             fetchAlertData();
@@ -160,8 +162,8 @@ export default function AlertsModule({ selectedStudyId, initialNotifications }: 
             {/* Header */}
             <div className={`flex ${isMobile ? 'flex-col' : 'items-center justify-between'} gap-8`}>
                 <div>
-                    <h2 className={`${isMobile ? 'text-3xl' : 'text-xl md:text-3xl'} font-black text-white italic uppercase tracking-tighter`}>Tactical <span className="text-blue-400">Alerts</span></h2>
-                    <p className="text-[11px] text-white/40 font-bold uppercase tracking-[0.3em] mt-2 italic">Real-time Clinical Event Intelligence</p>
+                    <h2 className={`${isMobile ? 'text-3xl' : 'text-xl md:text-3xl'} font-black text-white italic uppercase tracking-tighter`}>Active <span className="text-blue-400">Alerts</span></h2>
+                    <p className="text-[11px] text-white/40 font-bold uppercase tracking-[0.3em] mt-2 italic">Real-time Clinical Oversight & Notifications</p>
                 </div>
                 <div className={`flex ${isMobile ? 'flex-col' : 'items-center'} gap-4`}>
                     <button 
@@ -219,7 +221,7 @@ export default function AlertsModule({ selectedStudyId, initialNotifications }: 
                         {isLoading ? (
                             <div className="py-24 text-center">
                                 <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-                                <p className="text-[12px] font-black uppercase tracking-[0.3em] text-blue-500 animate-pulse italic">Syncing Intel...</p>
+                                <p className="text-[12px] font-black uppercase tracking-[0.3em] text-blue-500 animate-pulse italic">Scanning Alerts...</p>
                             </div>
                         ) : filteredAlerts.length > 0 ? filteredAlerts.map((alert) => (
                             <motion.div 

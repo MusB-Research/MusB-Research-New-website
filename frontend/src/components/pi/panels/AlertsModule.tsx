@@ -32,7 +32,11 @@ interface AlertItem {
     link?: string;
 }
 
-export default function AlertsModule() {
+interface AlertsModuleProps {
+    initialNotifications?: any[];
+}
+
+export default function AlertsModule({ initialNotifications }: AlertsModuleProps) {
     const [activeSeverity, setActiveSeverity] = useState<'All' | 'Critical' | 'Warning' | 'Info'>('All');
     const [searchQuery, setSearchQuery] = useState('');
     const [alerts, setAlerts] = useState<AlertItem[]>([]);
@@ -42,7 +46,8 @@ export default function AlertsModule() {
         try {
             const res = await authFetch(`${API}/api/notifications/`);
             if (res.ok) {
-                const data = await res.json();
+                const rawData = await res.json();
+                const data = Array.isArray(rawData) ? rawData : (rawData.results || []);
                 // Map backend Notification to AlertItem interface
                 const mapped: AlertItem[] = data.map((n: any) => ({
                     id: n.id,
@@ -74,8 +79,30 @@ export default function AlertsModule() {
     };
 
     React.useEffect(() => {
-        fetchAlerts();
-    }, []);
+        if (initialNotifications && initialNotifications.length > 0) {
+            const data = Array.isArray(initialNotifications) ? initialNotifications : ((initialNotifications as any).results || []);
+            setAlerts(mappedData(data));
+            setLoading(false);
+        } else {
+            fetchAlerts();
+        }
+    }, [initialNotifications]);
+
+    const mappedData = (data: any[]) => {
+        return data.map((n: any) => ({
+            id: n.id,
+            title: n.title,
+            description: n.message,
+            severity: mapTypeToSeverity(n.type),
+            category: 'System',
+            timestamp: new Date(n.created_at).toLocaleString('en-US', { 
+                month: 'short', day: 'numeric', year: 'numeric',
+                hour: '2-digit', minute: '2-digit'
+            }),
+            read: n.is_read,
+            link: n.link || undefined
+        }));
+    };
 
     const handleMarkRead = async (id: string) => {
         try {
@@ -111,8 +138,10 @@ export default function AlertsModule() {
 
     const filteredAlerts = alerts.filter(a => {
         const matchesSeverity = activeSeverity === 'All' || a.severity === activeSeverity;
-        const matchesSearch = a.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                             a.description.toLowerCase().includes(searchQuery.toLowerCase());
+        const title = (a.title || '').toLowerCase();
+        const desc = (a.description || '').toLowerCase();
+        const search = (searchQuery || '').toLowerCase();
+        const matchesSearch = title.includes(search) || desc.includes(search);
         return matchesSeverity && matchesSearch;
     });
 
@@ -127,28 +156,6 @@ export default function AlertsModule() {
 
     return (
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-10">
-            {/* Header */}
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
-                <div>
-                    <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter">Alert <span className="text-teal-400">Intelligence</span></h2>
-                    <p className="text-sm text-slate-500 font-bold uppercase tracking-[0.3em] mt-2 italic">Priority Notifications & Clinical Triggers</p>
-                </div>
-                <div className="flex items-center gap-4">
-                    <button 
-                        onClick={handleMarkAllRead}
-                        className="px-8 py-3.5 bg-white/5 border border-white/10 text-slate-400 rounded-2xl text-sm font-black uppercase tracking-widest hover:text-white hover:bg-white/10 transition-all active:scale-95 shadow-xl"
-                    >
-                        Mark All as Read
-                    </button>
-                    <button 
-                        onClick={handleArchive}
-                        className="px-8 py-3.5 bg-red-500/10 border border-red-500/20 text-red-500 rounded-2xl text-sm font-black uppercase tracking-widest hover:bg-red-500 hover:text-white transition-all active:scale-95 shadow-xl"
-                    >
-                        Archive Historical
-                    </button>
-                </div>
-            </div>
-
             {/* Tactical Grid Overlay */}
             <div className="bg-[#0B101B]/40 border border-white/5 rounded-[3rem] p-4 lg:p-10 space-y-10 relative overflow-hidden">
                 {/* Background Decor */}
@@ -157,30 +164,44 @@ export default function AlertsModule() {
                 </div>
 
                 {/* Filter Controls */}
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
-                    <div className="flex gap-2">
-                        {['All', 'Critical', 'Warning', 'Info'].map((s: any) => (
-                            <button
-                                key={s}
-                                onClick={() => setActiveSeverity(s)}
-                                className={`px-6 py-2.5 rounded-xl text-sm font-black uppercase tracking-widest transition-all ${
-                                    activeSeverity === s ? 'bg-teal-600 text-white shadow-lg shadow-teal-600/20' : 'text-slate-500 hover:text-white'
-                                }`}
-                            >
-                                {s}
-                            </button>
-                        ))}
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+                    <div>
+                        <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter">Active <span className="text-teal-400">Alerts</span></h2>
+                        <p className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.3em] mt-1 italic">Real-time Clinical Oversight & Notifications</p>
                     </div>
-                    <div className="relative">
-                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                        <input 
-                            type="text" 
-                            placeholder="Search Alerts..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            className="bg-white/5 border border-white/10 rounded-2xl pl-12 pr-6 py-3 text-sm text-white font-bold outline-none focus:border-teal-500/50 transition-all w-64 uppercase tracking-widest font-mono"
-                        />
+                    
+                    <div className="flex flex-wrap items-center gap-3">
+                        <button 
+                            onClick={() => { setLoading(true); fetchAlerts(); }}
+                            className="px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-teal-400 hover:text-white hover:bg-teal-600/20 transition-all text-[10px] font-black uppercase tracking-widest flex items-center gap-2"
+                        >
+                            <Activity className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} /> Refresh
+                        </button>
+                        <div className="flex bg-white/5 border border-white/10 rounded-2xl p-1 gap-1">
+                            {(['All', 'Critical', 'Warning', 'Info'] as const).map(s => (
+                                <button
+                                    key={s}
+                                    onClick={() => setActiveSeverity(s)}
+                                    className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                                        activeSeverity === s ? 'bg-teal-600 text-white shadow-lg shadow-teal-500/20' : 'text-slate-500 hover:text-white hover:bg-white/5'
+                                    }`}
+                                >
+                                    {s}
+                                </button>
+                            ))}
+                        </div>
                     </div>
+                </div>
+
+                <div className="relative max-w-md">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                    <input 
+                        type="text" 
+                        placeholder="Search Active Alerts..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="bg-white/5 border border-white/10 rounded-2xl pl-12 pr-6 py-3 text-sm text-white font-bold outline-none focus:border-teal-500/50 transition-all w-full uppercase tracking-widest font-mono"
+                    />
                 </div>
 
                 {/* Alerts List */}

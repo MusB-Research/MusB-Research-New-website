@@ -37,6 +37,7 @@ import ConsentOversight from '../../components/coordinator/panels/ConsentOversig
 import { OperationsOversight } from './modules/OperationsOversight';
 import { StudyDirectory } from './modules/StudyDirectory';
 import InvitationsModule from '../../components/shared/InvitationsModule';
+import ParticipantLogsPanel from '../../components/shared/ParticipantLogsPanel';
 import { usePolling } from '@/hooks/usePolling';
 
 
@@ -73,7 +74,7 @@ type CCModule =
     | 'SPONSORS'
     | 'TASKS'
     | 'ANALYTICS'
-
+    | 'DAILY_LOGS'
     | 'COMPENSATION'
     | 'LOGISTICS'
     | 'PARTICIPANT_TASKS'
@@ -125,6 +126,56 @@ export default function CoordinatorDashboard() {
         return 'OVERSIGHT';
     });
 
+    // Senior Dev: Route Synchronization Effect
+    // Ensures the UI module state matches the URL path for browser navigation support
+    useEffect(() => {
+        const path = location.pathname.toLowerCase().replace(/\/$/, "");
+        const parts = path.split("/");
+        let mod: CCModule = 'OVERSIGHT';
+
+        // Direct matching for nested paths
+        if (path.includes('/participants/')) {
+            mod = 'PARTICIPANTS';
+        } else {
+            const route = parts[parts.length - 1];
+            const routeMap: Record<string, CCModule> = {
+                'studies': 'STUDIES',
+                'team': 'TEAM',
+                'participants': 'PARTICIPANTS',
+                'forms': 'FORMS',
+                'consent': 'CONSENT',
+                'visits': 'VISITS',
+                'labs': 'LABS',
+                'reports': 'REPORTS',
+                'study-docs': 'STUDY_DOCS',
+                'my-docs': 'MY_DOCS',
+                'messages': 'MESSAGES',
+                'alerts': 'ALERTS',
+                'invitations': 'INVITATIONS',
+                'launch-study': 'LAUNCH_STUDY',
+                'analytics': 'ANALYTICS',
+                'sponsors': 'SPONSORS',
+                'tasks': 'TASKS',
+                'logistics': 'LOGISTICS',
+                'participant-tasks': 'PARTICIPANT_TASKS',
+                'daily-logs': 'DAILY_LOGS',
+                'compensation': 'COMPENSATION',
+                'payments': 'PAYMENTS',
+                'consent-new': 'CONSENT_NEW'
+            };
+            
+            if (routeMap[route]) {
+                mod = routeMap[route];
+            } else if (parts.includes('coordinator') && parts[parts.length-1] === 'coordinator') {
+                mod = 'OVERSIGHT';
+            }
+        }
+
+        if (mod !== activeModule) {
+            setActiveModule(mod);
+        }
+    }, [location.pathname, activeModule]);
+
     const mountGuard = useRef({ checkMissed: false, fetchContent: false, notifications: false });
 
     // Sync activeModule when URL changes (for browser back button support)
@@ -151,7 +202,10 @@ export default function CoordinatorDashboard() {
 
             'COMPENSATION': 'compensation',
             'LOGISTICS': 'logistics',
-            'PARTICIPANT_TASKS': 'participant-tasks'
+            'PARTICIPANT_TASKS': 'participant-tasks',
+            'DAILY_LOGS': 'daily-logs',
+            'CONSENT_NEW': 'consent-new',
+            'PAYMENTS': 'payments'
         };
         const slug = slugs[mod];
         setActiveModule(mod);
@@ -614,16 +668,22 @@ export default function CoordinatorDashboard() {
         payload.consent_collection = buildConsentCollection(formData.consentMethods);
         payload.consent_mode = buildConsentMode(formData.consentMethods);
         payload.screener_config = buildScreenerConfig(formData.screenerQuestions ?? []);
-        payload.study_questionnaires = questionnaireIds.map((templateId: string) => ({
-            template: templateId,
-            mode: 'STRUCTURED',
-            frequency_interval: 1,
-            frequency_unit: 'WEEKS',
-            repetitions: 1,
-            frequency: 'ONCE'
-        }));
+        payload.study_questionnaires = questionnaireIds.map((templateId: string) => {
+            const freqStr = formData.questionnaireFrequencies?.[templateId] || 'One time only';
+            return {
+                template: templateId,
+                mode: 'STRUCTURED',
+                frequency_interval: 1,
+                frequency_unit: 'WEEKS',
+                repetitions: 1,
+                frequency: freqStr
+            };
+        });
+        payload.countries = formData.countries || [];
         payload.status = formData.status ?? selectedStudy?.status ?? 'RECRUITING';
         payload.stage = formData.stage ?? selectedStudy?.stage ?? 'RECRUITING';
+        // Map extracted consent text → Study.consent_content so the participant portal can read it
+        payload.consent_content = formData.extractedConsentText || formData.consent_content || '';
 
         delete payload.pi_id;
         delete payload.coordinator_id;
@@ -662,6 +722,7 @@ export default function CoordinatorDashboard() {
         delete payload.screenerQuestions;
         delete payload.consentFormFile;
         delete payload.additionalDocuments;
+        delete payload.extractedConsentText; // mapped to consent_content above
         delete payload.brief_description;
         delete payload.indication;
         delete payload.execution_type;
@@ -689,6 +750,10 @@ export default function CoordinatorDashboard() {
             consentData.append('version', '1.0');
             consentData.append('status', 'ACTIVE');
             consentData.append('file', formData.consentFormFile);
+            // Persist the extracted text so participants can read it in the modal
+            if (formData.extractedConsentText) {
+                consentData.append('terms_content', formData.extractedConsentText);
+            }
             consentData.append('require_participant_sig', 'true');
             consentData.append('require_cc_verification', 'true');
             consentData.append('require_pi_signoff', formData.selectedPIs?.length ? 'true' : 'false');
@@ -698,6 +763,25 @@ export default function CoordinatorDashboard() {
                 method: 'POST',
                 body: consentData
             });
+
+            // Also save to global documents for transparency
+            const docData = new FormData();
+            docData.append('study', studyId);
+            docData.append('title', 'Informed Consent Form');
+            docData.append('version', '1.0');
+            docData.append('visibility', JSON.stringify(['PI', 'COORDINATOR', 'SPONSOR', 'PARTICIPANT']));
+            docData.append('file', formData.consentFormFile);
+            await authFetch(`${apiUrl}/api/documents/`, { method: 'POST', body: docData });
+        }
+
+        if (formData.screenerFile) {
+            const screenerDoc = new FormData();
+            screenerDoc.append('study', studyId);
+            screenerDoc.append('title', 'Eligibility Screener Protocol');
+            screenerDoc.append('version', '1.0');
+            screenerDoc.append('visibility', JSON.stringify(['PI', 'COORDINATOR', 'SPONSOR', 'PARTICIPANT']));
+            screenerDoc.append('file', formData.screenerFile);
+            await authFetch(`${apiUrl}/api/documents/`, { method: 'POST', body: screenerDoc });
         }
 
         for (const file of formData.additionalDocuments || []) {
@@ -724,7 +808,7 @@ export default function CoordinatorDashboard() {
                 ? `${apiUrl}/api/studies/${selectedStudy.protocol_id || selectedStudy.id}/`
                 : `${apiUrl}/api/studies/`;
 
-            const hasPdf = Boolean(formData.consent_pdf_file);
+            const hasPdf = Boolean(formData.consentFormFile);
 
             let res: Response;
 
@@ -733,13 +817,20 @@ export default function CoordinatorDashboard() {
                 const body = new FormData();
                 Object.keys(payload).forEach(key => {
                     const val = payload[key];
-                    if (Array.isArray(val)) {
+                    if (val === null || val === undefined) return;
+                    
+                    if (val instanceof File || val instanceof Blob) {
+                        body.append(key, val);
+                    } else if (typeof val === 'object') {
                         body.append(key, JSON.stringify(val));   // send as JSON string, backend must parse
-                    } else if (val !== null && val !== undefined) {
+                    } else {
                         body.append(key, String(val));
                     }
                 });
-                body.append('consent_pdf_template', formData.consent_pdf_file);
+                body.append('consent_pdf_template', formData.consentFormFile);
+                if (formData.screenerFile) {
+                    body.append('screener_pdf_template', formData.screenerFile);
+                }
                 res = await authFetch(url, { method, body });
             } else {
                 // No file — send clean JSON; DRF handles arrays natively
@@ -802,39 +893,42 @@ export default function CoordinatorDashboard() {
 
     const sidebarGroups = [
         {
-            group: 'Overview',
+            group: 'Core',
             items: [
                 { id: 'WEBSITE', label: 'Website', icon: Globe },
                 { id: 'OVERSIGHT', label: 'Dashboard', icon: LayoutDashboard },
             ]
         },
         {
-            group: 'Work',
+            group: 'Clinical Ops',
             items: [
                 { id: 'STUDIES', label: 'Studies', icon: Beaker },
                 { id: 'TEAM', label: 'Team', icon: Users },
-                { id: 'PARTICIPANTS', label: 'Participants', icon: UsersRound },
-                { id: 'FORMS', label: 'Forms', icon: ClipboardList },
-                { id: 'CONSENT', label: 'Consent', icon: ShieldCheck },
+                { id: 'PARTICIPANTS', label: 'Oversight', icon: UsersRound },
                 { id: 'VISITS', label: 'Visits', icon: Calendar },
-                { id: 'LABS', label: 'Labs', icon: Beaker },
+                { id: 'DAILY_LOGS', label: 'Patient Logs', icon: FileText },
+            ]
+        },
+        {
+            group: 'Finance & Tools',
+            items: [
                 { id: 'COMPENSATION', label: 'Payments', icon: DollarSign },
-                { id: 'TASKS', label: 'Staff Tasks', icon: ClipboardList },
-                { id: 'PARTICIPANT_TASKS', label: 'Subject Tasks', icon: CheckSquare },
+                { id: 'LABS', label: 'Labs', icon: Beaker },
+                { id: 'LOGISTICS', label: 'Supply Kit', icon: Truck },
+                { id: 'FORMS', label: 'Questionnaires', icon: ClipboardList },
+                { id: 'CONSENT', label: 'Consent', icon: ShieldCheck },
             ]
         },
         {
             group: 'Communication',
             items: [
-                { id: 'STUDY_DOCS', label: 'Documents', icon: FileText },
-                { id: 'MY_DOCS', label: 'Credentials', icon: Briefcase },
                 { id: 'MESSAGES', label: 'Messages', icon: MessageSquare },
-                { id: 'INVITATIONS', label: 'Invitations', icon: UserPlus },
-                { id: 'ALERTS', label: 'Alerts', icon: Bell, hasNotify: true },
+                { id: 'ALERTS', label: 'Alerts', icon: Bell, hasNotify: unreadCount > 0 },
+                { id: 'TASKS', label: 'Staff Tasks', icon: ClipboardList },
             ]
         },
         ...(isAdmin ? [{
-            group: 'Admin',
+            group: 'Administration',
             items: [
                 { id: 'LAUNCH_STUDY', label: 'Setup', icon: Rocket },
                 { id: 'SPONSORS', label: 'Sponsors', icon: Database },
@@ -1097,7 +1191,7 @@ export default function CoordinatorDashboard() {
             </aside>
 
             <main className="flex-1 lg:pl-[240px] pt-24 md:pt-32 pb-20 bg-[#0F172A] min-h-screen">
-                <div className="px-3 md:px-6 flex-1">
+                <div className="px-4 md:px-8 flex-1">
                     <AnimatePresence mode="wait">
                         {activeModule === 'OVERSIGHT' && (
                             <OperationsOversight
@@ -1161,7 +1255,10 @@ export default function CoordinatorDashboard() {
                             ) : (
                                 <ParticipantOversight 
                                     selectedStudyId={globalSelectedStudyId} 
-                                    onOpenProfile={(id) => setSelectedParticipantId(id)} 
+                                    onOpenProfile={(id: string, tab?: string) => {
+                                        if (tab) setInitialTab(tab);
+                                        setSelectedParticipantId(id);
+                                    }} 
                                     onMessage={() => setActiveModule('MESSAGES')}
                                     initialParticipants={participants}
                                     onRefresh={fetchCoordinatorContent}
@@ -1171,7 +1268,7 @@ export default function CoordinatorDashboard() {
                         {activeModule === 'FORMS' && <FormsQuestionnairesModule selectedStudyId={globalSelectedStudyId} />}
                         {activeModule === 'CONSENT' && (
                             <div className="bg-[#0B101B] rounded-[2.5rem] -mt-6">
-                                <ConsentOversight />
+                                <CCConsentModule selectedStudyId={globalSelectedStudyId} />
                             </div>
                         )}
 
@@ -1213,6 +1310,11 @@ export default function CoordinatorDashboard() {
                                 primaryColor="blue" 
                                 preloadedTasks={globalTasks}
                                 isLoading={loading}
+                                onViewParticipant={(id, tab) => {
+                                    setSelectedParticipantId(id);
+                                    if (tab) setInitialTab(tab);
+                                    setActiveModule('PARTICIPANTS');
+                                }}
                             />
                         )}
                         {activeModule === 'PARTICIPANT_TASKS' && (
@@ -1221,10 +1323,16 @@ export default function CoordinatorDashboard() {
                                 selectedStudyId={globalSelectedStudyId} 
                             />
                         )}
-                        {activeModule === 'COMPENSATION' && <CompensationManagement selectedStudyId={globalSelectedStudyId} />}
                         {activeModule === 'LOGISTICS' && (
                             <StudyKitsModule 
                                 selectedStudyId={globalSelectedStudyId}
+                                preloadedStudies={studies}
+                                preloadedParticipants={participants}
+                            />
+                        )}
+                        {activeModule === 'DAILY_LOGS' && (
+                            <ParticipantLogsPanel 
+                                selectedStudyId={globalSelectedStudyId !== 'all' ? globalSelectedStudyId : undefined}
                                 preloadedStudies={studies}
                                 preloadedParticipants={participants}
                             />
@@ -1247,6 +1355,11 @@ export default function CoordinatorDashboard() {
                                 preloadedStudies={studies} 
                                 onRefresh={fetchCoordinatorContent}
                                 isLoading={loading}
+                            />
+                        )}
+                        {activeModule === 'COMPENSATION' && (
+                            <CompensationManagement 
+                                selectedStudyId={globalSelectedStudyId} 
                             />
                         )}
                     </AnimatePresence>

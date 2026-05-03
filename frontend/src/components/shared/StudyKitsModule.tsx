@@ -16,7 +16,8 @@ import {
     Calendar,
     Plus,
     ExternalLink,
-    AlertCircle
+    AlertCircle,
+    Trash2
 } from 'lucide-react';
 
 interface StudyKit {
@@ -26,6 +27,7 @@ interface StudyKit {
     participant_id: string;
     protocol_id: string;
     address: string;
+    participant_phone?: string;
     status: 'ASSIGNED' | 'PENDING' | 'PREPARING' | 'SHIPPED' | 'DELIVERED' | 'RETURN_SHIPPED' | 'RECEIVED' | 'DAMAGED';
     carrier: 'FedEx' | 'UPS' | 'DHL' | 'USPS' | 'Other';
     last_updated: string;
@@ -74,6 +76,22 @@ export default function StudyKitsModule({ selectedStudyId, preloadedStudies, pre
         link.click();
     };
 
+    const handleDeleteKit = async (kitId: string) => {
+        if (!window.confirm("Are you sure you want to delete this kit?")) return;
+        try {
+            const res = await authFetch(`${API}/api/kits/${kitId}/`, {
+                method: 'DELETE'
+            });
+            if (res.ok) {
+                setKits(prev => prev.filter(k => k.id !== kitId));
+            } else {
+                alert("Failed to delete kit.");
+            }
+        } catch (err) {
+            console.error("Error deleting kit:", err);
+        }
+    };
+
     const [windowWidth, setWindowWidth] = useState(window.innerWidth);
     const isMobile = windowWidth < 768;
     const isTablet = windowWidth >= 768 && windowWidth < 1024;
@@ -85,7 +103,7 @@ export default function StudyKitsModule({ selectedStudyId, preloadedStudies, pre
     }, []);
 
     const fetchKits = async () => {
-        setInternalLoading(true);
+        if (kits.length === 0) setInternalLoading(true);
         try {
             let url = `${API}/api/kits/`;
             if (selectedStudyId && selectedStudyId !== 'all') {
@@ -102,7 +120,8 @@ export default function StudyKitsModule({ selectedStudyId, preloadedStudies, pre
                         participant_name: k.participant_name || 'Anonymous',
                         participant_id: k.participant_sid || 'N/A',
                         protocol_id: k.protocol_id || 'N/A',
-                        address: k.address_override || 'Primary Subject Address',
+                        address: k.participant_address || k.address || 'Primary Subject Address',
+                        participant_phone: k.participant_phone || 'N/A',
                         status: k.status,
                         carrier: k.carrier as any,
                         last_updated: k.assignment_date?.split('T')[0] || 'Pending',
@@ -263,7 +282,7 @@ export default function StudyKitsModule({ selectedStudyId, preloadedStudies, pre
                     </div>
                     <div>
                         <h2 className={`${isMobile ? 'text-lg' : 'text-xl'} font-black text-white italic uppercase tracking-tighter`}>Dispatch <span className="text-blue-400">Management</span></h2>
-                        <p className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.3em] mt-1 italic">Global Study Kit Logistics Hub</p>
+                        <p className="text-[12px] text-slate-500 font-bold uppercase tracking-[0.3em] mt-1 italic">Global Study Kit Logistics Hub</p>
                     </div>
                 </div>
                 <div className={`flex ${isMobile ? 'flex-col' : 'items-center'} gap-4`}>
@@ -274,12 +293,12 @@ export default function StudyKitsModule({ selectedStudyId, preloadedStudies, pre
                             placeholder="Find Kit, Subject, or SID..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="bg-white/5 border border-white/10 rounded-2xl pl-12 pr-6 py-4 text-[12px] text-white font-black outline-none focus:border-blue-500/50 transition-all w-full uppercase tracking-widest placeholder:text-slate-800 font-mono shadow-2xl"
+                            className="bg-white/5 border border-white/10 rounded-2xl pl-12 pr-6 py-4 text-sm text-white font-black outline-none focus:border-blue-500/50 transition-all w-full uppercase tracking-widest placeholder:text-slate-800 font-mono shadow-2xl"
                         />
                     </div>
                     <button
                         onClick={() => setIsAssignModalOpen(true)}
-                        className={`flex items-center justify-center gap-3 px-8 py-4 bg-blue-600 text-white rounded-2xl text-[12px] font-black uppercase tracking-widest hover:scale-[1.03] active:scale-95 transition-all shadow-2xl shadow-blue-600/30 ${isMobile ? 'w-full' : ''}`}
+                        className={`flex items-center justify-center gap-3 px-8 py-4 bg-blue-600 text-white rounded-2xl text-sm font-black uppercase tracking-widest hover:scale-[1.03] active:scale-95 transition-all shadow-2xl shadow-blue-600/30 ${isMobile ? 'w-full' : ''}`}
                     >
                         Assign New Kit <Plus className="w-4 h-4" />
                     </button>
@@ -348,6 +367,7 @@ export default function StudyKitsModule({ selectedStudyId, preloadedStudies, pre
                                         <div className="flex flex-col gap-1">
                                             <p className="text-base font-black text-white italic leading-none">{kit.participant_name}</p>
                                             <p className="text-[10px] md:text-[11px] font-bold text-blue-500/60 uppercase tracking-widest font-mono italic">{kit.participant_id}</p>
+                                            <p className="text-[10px] md:text-[11px] font-bold text-slate-400 uppercase tracking-widest font-mono italic">TEL: {kit.participant_phone || 'N/A'}</p>
                                         </div>
                                     </div>
                                     <div className="space-y-2 p-4 bg-white/5 rounded-2xl border border-white/5">
@@ -440,8 +460,8 @@ export default function StudyKitsModule({ selectedStudyId, preloadedStudies, pre
                                         <button onClick={() => downloadLabel(kit, 'RETURN')} className="flex-1 py-4 bg-white/5 border border-white/10 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-400 hover:bg-white/10 hover:text-white transition-all flex items-center justify-center gap-2">
                                             <Package className="w-4 h-4" /> Return
                                         </button>
-                                        <button onClick={() => alert(`Operational Audit Flagged`)} className="p-4 bg-white/5 border border-white/10 rounded-2xl text-slate-400 hover:text-red-400 hover:bg-red-600/10 transition-all shadow-xl" title="Audit Flag">
-                                            <AlertCircle className="w-4 h-4" />
+                                        <button onClick={() => handleDeleteKit(kit.id)} className="p-4 bg-white/5 border border-white/10 rounded-2xl text-slate-400 hover:text-red-400 hover:bg-red-600/10 transition-all shadow-xl" title="Delete Kit">
+                                            <Trash2 className="w-4 h-4 text-red-400" />
                                         </button>
                                     </div>
                                 </div>
@@ -492,9 +512,10 @@ export default function StudyKitsModule({ selectedStudyId, preloadedStudies, pre
                                             </div>
                                         </td>
                                         <td className="px-8 py-8 border-r border-white/5">
-                                            <p className="text-lg font-black text-white italic truncate leading-none mb-2">{kit.participant_name}</p>
-                                            <p className="text-[12px] font-black text-blue-500/60 uppercase tracking-widest font-mono italic">{kit.participant_id}</p>
-                                            <div className="flex items-start gap-3 mt-5 p-4 bg-white/5 rounded-[1.5rem] border border-white/5 group/addr relative transition-all hover:bg-white/10">
+                                            <p className="text-[13px] font-bold text-white uppercase tracking-wider mb-1">{kit.participant_name}</p>
+                                            <p className="text-[13px] font-semibold text-blue-400 font-mono tracking-wider mb-1">SID: {kit.participant_id}</p>
+                                            <p className="text-[13px] font-semibold text-slate-400 mb-4">TEL: {kit.participant_phone || 'N/A'}</p>
+                                            <div className="flex items-start gap-3 p-4 bg-white/5 rounded-[1.5rem] border border-white/5 group/addr relative transition-all hover:bg-white/10">
                                                 <MapPin className="w-4 h-4 text-slate-600 mt-1 shrink-0" />
                                                 <textarea
                                                     value={kit.address}
@@ -503,7 +524,7 @@ export default function StudyKitsModule({ selectedStudyId, preloadedStudies, pre
                                                         setKits(prev => prev.map(k => k.id === kit.id ? { ...k, address: val } : k));
                                                     }}
                                                     onBlur={(e) => handleUpdateKit(kit.id, { address: e.target.value })}
-                                                    className="bg-transparent text-[12px] text-slate-400 font-medium leading-relaxed outline-none border-none resize-none h-14 w-full focus:text-white transition-colors custom-scrollbar-vertical"
+                                                    className="bg-transparent text-[13px] text-slate-400 font-medium leading-relaxed outline-none border-none resize-none h-14 w-full focus:text-white transition-colors custom-scrollbar-vertical"
                                                 />
                                             </div>
                                         </td>
@@ -605,8 +626,8 @@ export default function StudyKitsModule({ selectedStudyId, preloadedStudies, pre
                                                     <button onClick={() => { downloadLabel(kit, 'RETURN'); alert('LABEL GENERATION:\n\nFetching return shipment manifesto PDF...'); }} className="p-3.5 bg-white/5 border border-white/10 rounded-xl text-slate-400 hover:text-white hover:bg-indigo-600/20 transition-all shadow-lg" title="Return Label">
                                                         <Package className="w-4 h-4" />
                                                     </button>
-                                                    <button onClick={() => alert(`Operational Audit Flagged`)} className="p-3.5 bg-white/5 border border-white/10 rounded-xl text-slate-400 hover:text-red-400 hover:bg-red-600/10 transition-all shadow-lg" title="Audit Flag">
-                                                        <AlertCircle className="w-4 h-4" />
+                                                    <button onClick={() => handleDeleteKit(kit.id)} className="p-3.5 bg-white/5 border border-white/10 rounded-xl text-slate-400 hover:text-red-400 hover:bg-red-600/10 transition-all shadow-lg" title="Delete Kit">
+                                                        <Trash2 className="w-4 h-4 text-red-400" />
                                                     </button>
                                                 </div>
                                             </div>

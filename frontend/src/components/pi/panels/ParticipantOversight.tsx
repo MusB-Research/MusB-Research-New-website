@@ -62,8 +62,16 @@ function CompensationModal({
     const [description, setDescription] = useState('Participation Reward');
     const [method, setMethod] = useState('GIFT_CARD');
     const [txType, setTxType] = useState('VISIT_COMPLETION');
+    const [cardNumber, setCardNumber] = useState('');
+    const [paymentReference, setPaymentReference] = useState('');
+    const [currency, setCurrency] = useState('USD');
     const [isSaving, setIsSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
+
+    const currencySigns: Record<string, string> = {
+        USD: '$', EUR: '€', GBP: '£', INR: '₹', JPY: '¥', CAD: 'CA$', AUD: 'A$',
+        CNY: '¥', CHF: 'CHF', SEK: 'kr', SGD: 'S$', AED: 'AED'
+    };
 
     const handleSubmit = async () => {
         if (!amount || parseFloat(amount) <= 0) { setError('Enter a valid amount.'); return; }
@@ -75,9 +83,11 @@ function CompensationModal({
                     participant: participant.id,
                     study: participant.study_id,
                     transaction_type: txType,
-                    description,
+                    description: `[${currency}] ${description}`,
                     amount: parseFloat(amount),
                     payment_method: method,
+                    card_number: cardNumber,
+                    payment_reference: paymentReference,
                     status: 'PENDING',
                 }),
             });
@@ -102,112 +112,152 @@ function CompensationModal({
         >
             <motion.div
                 initial={{ scale: 0.92, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.92, opacity: 0 }}
-                className="bg-[#0B101B] border border-white/10 rounded-[2rem] p-8 w-full max-w-md shadow-2xl space-y-5"
+                className="bg-[#0B101B] border border-white/10 rounded-[2rem] p-6 w-full max-w-md shadow-2xl space-y-4"
             >
                 <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
-                            <DollarSign className="w-5 h-5 text-emerald-400" />
+                    <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
+                            <DollarSign className="w-4 h-4 text-emerald-400" />
                         </div>
                         <div>
-                            <h3 className="text-base font-black text-white uppercase italic tracking-tight">Send Compensation</h3>
-                            <p className="text-[13px] text-slate-500 font-bold uppercase tracking-widest mt-0.5">{participant.name}</p>
+                            <h3 className="text-sm font-black text-white uppercase italic tracking-tight">Record Compensation</h3>
+                            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-0.5">{participant.name}</p>
                         </div>
                     </div>
-                    <button onClick={onClose} className="p-2 bg-white/5 rounded-xl text-slate-400 hover:text-white hover:bg-white/10 transition-all">
-                        <X className="w-4 h-4" />
+                    <button onClick={onClose} className="p-1.5 bg-white/5 rounded-xl text-slate-400 hover:text-white hover:bg-white/10 transition-all">
+                        <X className="w-3.5 h-3.5" />
                     </button>
                 </div>
 
                 {/* Study Badge */}
-                <div className="px-4 py-2 bg-white/5 border border-white/10 rounded-xl">
-                    <span className="text-xs font-black text-slate-500 uppercase tracking-widest">Study: </span>
-                    <span className="text-[13px] font-black text-teal-400 uppercase">{participant.study}</span>
+                <div className="px-3 py-1.5 bg-white/5 border border-white/10 rounded-xl">
+                    <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Study: </span>
+                    <span className="text-[10px] font-black text-teal-400 uppercase">{participant.study}</span>
                 </div>
 
-                {/* Contact Information */}
-                <div className="px-4 py-3 bg-teal-500/5 border border-teal-500/10 rounded-2xl space-y-2">
+                {/* Contact Info (Compact) */}
+                <div className="px-3 py-2 bg-teal-500/5 border border-teal-500/10 rounded-xl space-y-1">
                     <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Email:</span>
-                        <span className="text-[11px] font-bold text-white lowercase">{(participant as any).email}</span>
+                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Email:</span>
+                        <span className="text-[10px] font-bold text-white lowercase">{(participant as any).email}</span>
                     </div>
                     <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Phone:</span>
-                        <span className="text-[11px] font-bold text-white">{(participant as any).phone}</span>
-                    </div>
-                    <div className="flex flex-col gap-1">
-                        <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Address:</span>
-                        <span className="text-[11px] font-bold text-white/70">{(participant as any).address || 'N/A'}</span>
+                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Phone:</span>
+                        <span className="text-[10px] font-bold text-white">{(participant as any).phone}</span>
                     </div>
                 </div>
 
-                {/* Amount */}
-                <div className="space-y-1.5">
-                    <label className="text-[13px] font-black text-slate-500 uppercase tracking-widest">Amount (USD)</label>
-                    <div className="relative">
-                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-emerald-400 font-black text-lg">$</span>
+                {/* Currency & Amount on the Same Row */}
+                <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Currency</label>
+                        <select
+                            value={currency} onChange={e => setCurrency(e.target.value)}
+                            className="w-full bg-[#0F1929] border border-white/10 rounded-2xl px-3 py-2 text-[11px] text-white font-black uppercase tracking-widest outline-none focus:border-blue-500/50 transition-all"
+                        >
+                            <option value="USD">USD ($)</option>
+                            <option value="EUR">EUR (€)</option>
+                            <option value="GBP">GBP (£)</option>
+                            <option value="INR">INR (₹)</option>
+                            <option value="JPY">JPY (¥)</option>
+                            <option value="CAD">CAD (CA$)</option>
+                            <option value="AUD">AUD (A$)</option>
+                            <option value="CNY">CNY (¥)</option>
+                            <option value="CHF">CHF</option>
+                            <option value="SEK">SEK (kr)</option>
+                            <option value="SGD">SGD (S$)</option>
+                            <option value="AED">AED</option>
+                        </select>
+                    </div>
+                    <div className="space-y-1">
+                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Amount ({currency})</label>
+                        <div className="relative">
+                            <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-emerald-400 font-black text-sm">
+                                {currencySigns[currency] || '$'}
+                            </span>
+                            <input
+                                type="number" min="0" step="0.01"
+                                value={amount} onChange={e => setAmount(e.target.value)}
+                                placeholder="0.00"
+                                className="w-full bg-white/5 border border-white/10 rounded-2xl pl-8 pr-3 py-2 text-[11px] text-white font-black outline-none focus:border-emerald-500/50 transition-all"
+                            />
+                        </div>
+                    </div>
+                </div>
+
+                {/* Transaction Type & Payment Method */}
+                <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Transaction Type</label>
+                        <select
+                            value={txType} onChange={e => setTxType(e.target.value)}
+                            className="w-full bg-[#0F1929] border border-white/10 rounded-2xl px-3 py-2 text-[11px] text-white font-black uppercase tracking-widest outline-none focus:border-teal-500/50 transition-all"
+                        >
+                            <option value="VISIT_COMPLETION">Visit Completion</option>
+                            <option value="STUDY_COMPLETION">Study Completion</option>
+                            <option value="TASK_COMPLETION">Task Completion</option>
+                            <option value="TRAVEL_REIMBURSEMENT">Travel Reimbursement</option>
+                            <option value="ADVERSE_EVENT">Adverse Event</option>
+                            <option value="OTHER">Other</option>
+                        </select>
+                    </div>
+                    <div className="space-y-1">
+                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Payment Method</label>
+                        <select
+                            value={method} onChange={e => setMethod(e.target.value)}
+                            className="w-full bg-[#0F1929] border border-white/10 rounded-2xl px-3 py-2 text-[11px] text-white font-black uppercase tracking-widest outline-none focus:border-teal-500/50 transition-all"
+                        >
+                            <option value="GIFT_CARD">Gift Card</option>
+                            <option value="CHECK">Check</option>
+                            <option value="BANK_TRANSFER">Bank Transfer</option>
+                            <option value="CASH">Cash</option>
+                        </select>
+                    </div>
+                </div>
+
+                {/* Card Number & Payment Reference */}
+                <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Card Number</label>
                         <input
-                            type="number" min="0" step="0.01"
-                            value={amount} onChange={e => setAmount(e.target.value)}
-                            placeholder="0.00"
-                            className="w-full bg-white/5 border border-white/10 rounded-2xl pl-9 pr-4 py-3 text-[15px] text-white font-black outline-none focus:border-emerald-500/50 transition-all"
+                            type="text" value={cardNumber} onChange={e => setCardNumber(e.target.value)}
+                            placeholder="Optional card #"
+                            className="w-full bg-white/5 border border-white/10 rounded-2xl px-3 py-2 text-[11px] text-white font-bold outline-none focus:border-blue-500/50 transition-all"
+                        />
+                    </div>
+                    <div className="space-y-1">
+                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Reference #</label>
+                        <input
+                            type="text" value={paymentReference} onChange={e => setPaymentReference(e.target.value)}
+                            placeholder="Payment reference #"
+                            className="w-full bg-white/5 border border-white/10 rounded-2xl px-3 py-2 text-[11px] text-white font-bold outline-none focus:border-blue-500/50 transition-all"
                         />
                     </div>
                 </div>
 
-                {/* Transaction Type */}
-                <div className="space-y-1.5">
-                    <label className="text-[13px] font-black text-slate-500 uppercase tracking-widest">Transaction Type</label>
-                    <select
-                        value={txType} onChange={e => setTxType(e.target.value)}
-                        className="w-full bg-[#0F1929] border border-white/10 rounded-2xl px-4 py-3 text-sm text-white font-black uppercase tracking-widest outline-none focus:border-teal-500/50 transition-all"
-                    >
-                        <option value="VISIT_COMPLETION">Visit Completion</option>
-                        <option value="STUDY_COMPLETION">Study Completion</option>
-                        <option value="TASK_COMPLETION">Task Completion</option>
-                        <option value="TRAVEL_REIMBURSEMENT">Travel Reimbursement</option>
-                        <option value="ADVERSE_EVENT">Adverse Event</option>
-                        <option value="OTHER">Other</option>
-                    </select>
-                </div>
-
                 {/* Description */}
-                <div className="space-y-1.5">
-                    <label className="text-[13px] font-black text-slate-500 uppercase tracking-widest">Description</label>
+                <div className="space-y-1">
+                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Description</label>
                     <input
                         type="text" value={description} onChange={e => setDescription(e.target.value)}
-                        className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-sm text-white font-bold outline-none focus:border-teal-500/50 transition-all"
+                        className="w-full bg-white/5 border border-white/10 rounded-2xl px-3 py-2 text-[11px] text-white font-bold outline-none focus:border-blue-500/50 transition-all"
                     />
                 </div>
 
-                {/* Payment Method */}
-                <div className="space-y-1.5">
-                    <label className="text-[13px] font-black text-slate-500 uppercase tracking-widest">Payment Method</label>
-                    <select
-                        value={method} onChange={e => setMethod(e.target.value)}
-                        className="w-full bg-[#0F1929] border border-white/10 rounded-2xl px-4 py-3 text-sm text-white font-black uppercase tracking-widest outline-none focus:border-teal-500/50 transition-all"
-                    >
-                        <option value="GIFT_CARD">Gift Card</option>
-                        <option value="CHECK">Check</option>
-                        <option value="BANK_TRANSFER">Bank Transfer</option>
-                        <option value="CASH">Cash</option>
-                    </select>
-                </div>
-
                 {error && (
-                    <p className="text-[13px] text-red-400 font-bold uppercase tracking-widest px-2">{error}</p>
+                    <p className="text-[10px] text-red-400 font-bold uppercase tracking-widest px-1">{error}</p>
                 )}
 
-                <div className="flex gap-3 pt-1">
-                    <button onClick={onClose} className="flex-1 px-5 py-3 bg-white/5 hover:bg-white/10 text-white rounded-2xl text-[13px] font-black uppercase tracking-widest transition-all">
+                <div className="flex gap-3 pt-2">
+                    <button onClick={onClose} className="flex-1 px-4 py-2.5 bg-white/5 hover:bg-white/10 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all">
                         Cancel
                     </button>
                     <button
                         onClick={handleSubmit} disabled={isSaving}
-                        className="flex-1 px-5 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl text-[13px] font-black uppercase tracking-widest transition-all shadow-lg shadow-emerald-600/20 disabled:opacity-50 flex items-center justify-center gap-2"
+                        className="flex-1 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-lg shadow-emerald-600/20 disabled:opacity-50 flex items-center justify-center gap-1"
                     >
-                        <DollarSign className="w-3.5 h-3.5" />
-                        {isSaving ? 'Sending...' : 'Send Compensation'}
+                        <DollarSign className="w-3 h-3" />
+                        {isSaving ? 'Recording...' : 'Record'}
                     </button>
                 </div>
             </motion.div>
@@ -219,7 +269,7 @@ function CompensationModal({
 export default function ParticipantOversight({
     onOpenProfile, onMessage, selectedStudyId, preloadedData, onRefresh, isLoading: propLoading
 }: {
-    onOpenProfile?: (id: string) => void;
+    onOpenProfile?: (id: string, tab?: string) => void;
     onMessage?: (id: string) => void;
     selectedStudyId?: string | 'all';
     preloadedData?: any;
@@ -266,9 +316,9 @@ export default function ParticipantOversight({
             const mapped: ParticipantRow[] = results.map((p: any) => ({
                 id: p.id,
                 name: p.display_name || p.sid || p.name || 'Unknown Subject',
-                email: p.display_email || 'N/A',
-                phone: p.display_phone || 'N/A',
-                address: p.display_address || 'N/A',
+                email: p.display_email || p.user_details?.email || p.email || 'N/A',
+                phone: p.display_phone || p.user_details?.phone || p.user_details?.phone_number || p.phone_number || p.phone || 'N/A',
+                address: p.display_address || p.user_details?.address || p.address || 'N/A',
                 study: preloadedData.study?.protocol_id || 'Assigned Study',
                 study_id: preloadedData.study?.id || '',
                 rawStatus: p.status,
@@ -313,9 +363,9 @@ export default function ParticipantOversight({
             const mapped: ParticipantRow[] = results.map((p: any) => ({
                 id: p.id,
                 name: p.display_name || p.user_details?.full_name || p.user_details?.decrypted_name || p.participant_sid || 'Unknown Subject',
-                email: p.display_email || p.user_details?.email || 'N/A',
-                phone: p.display_phone || 'N/A',
-                address: p.display_address || 'N/A',
+                email: p.display_email || p.user_details?.email || p.email || 'N/A',
+                phone: p.display_phone || p.user_details?.phone || p.user_details?.phone_number || p.phone_number || p.phone || 'N/A',
+                address: p.display_address || p.user_details?.address || p.address || 'N/A',
                 study: p.protocol_id || p.study_name || 'Assigned Study',
                 study_id: String(p.study?.id || p.study || ''),
                 rawStatus: p.status,
@@ -414,18 +464,27 @@ export default function ParticipantOversight({
         return 0;
     };
 
-    const handleDownload = () => {
+    const handleDownload = (type: 'CSV' | 'CLC') => {
         const headers = 'ID,Name,Study,Status,Progress,Tasks,Submitted\n';
         const rows = filteredParticipants
             .map(p => {
                 const tc = taskCounts[p.id];
-                return `${p.id},${p.name},${p.study},${p.displayStatus},${p.progress}%,${tc ? `${tc.completed}/${tc.total}` : 'N/A'},${p.submittedAt || 'N/A'}`;
+                const separator = type === 'CSV' ? ',' : '\t';
+                return [
+                    p.id,
+                    p.name,
+                    p.study,
+                    p.displayStatus,
+                    `${p.progress}%`,
+                    tc ? `${tc.completed}/${tc.total}` : 'N/A',
+                    p.submittedAt || 'N/A'
+                ].join(separator);
             }).join('\n');
-        const blob = new Blob([headers + rows], { type: 'text/csv' });
+        const blob = new Blob([headers.replace(/,/g, type === 'CSV' ? ',' : '\t') + rows], { type: type === 'CSV' ? 'text/csv' : 'text/plain' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `PARTICIPANTS_${new Date().toISOString().split('T')[0]}.csv`;
+        a.download = `PARTICIPANTS_${new Date().toISOString().split('T')[0]}.${type.toLowerCase()}`;
         a.click();
     };
 
@@ -560,8 +619,13 @@ export default function ParticipantOversight({
                             )}
                         </AnimatePresence>
                     </div>
-                    <button onClick={handleDownload} className="p-2.5 bg-white/5 border border-white/10 rounded-2xl text-slate-400 hover:text-white hover:bg-teal-600 transition-all">
-                        <Download className="w-4 h-4" />
+                    <button onClick={() => handleDownload('CSV')} className="flex items-center gap-1.5 px-3 py-2.5 bg-white/5 border border-white/10 rounded-2xl text-slate-400 hover:text-white hover:bg-teal-600 transition-all text-[11px] font-black uppercase tracking-widest active:scale-95 shadow-xl select-none" title="Download CSV Report">
+                        <Download className="w-3.5 h-3.5" />
+                        <span>CSV</span>
+                    </button>
+                    <button onClick={() => handleDownload('CLC')} className="flex items-center gap-1.5 px-3 py-2.5 bg-white/5 border border-white/10 rounded-2xl text-slate-400 hover:text-white hover:bg-teal-600 transition-all text-[11px] font-black uppercase tracking-widest active:scale-95 shadow-xl select-none" title="Download CLC Report">
+                        <Download className="w-3.5 h-3.5" />
+                        <span>CLC</span>
                     </button>
                 </div>
             </div>
@@ -763,7 +827,7 @@ export default function ParticipantOversight({
                                                          </>
                                                     ) : (
                                                         <button 
-                                                            onClick={() => onOpenProfile?.(p.id)}
+                                                            onClick={() => onOpenProfile?.(p.id, 'Overview')}
                                                             className="flex items-center gap-2 px-4 py-2 bg-teal-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest italic shadow-lg shadow-teal-600/20 active:scale-[0.95] transition-all"
                                                         >
                                                             Profile
@@ -908,7 +972,7 @@ export default function ParticipantOversight({
                                                         className="p-2.5 bg-white/5 border border-white/10 rounded-xl text-slate-400 hover:text-white hover:bg-white/10 transition-all active:scale-95">
                                                         <MessageSquare className="w-3.5 h-3.5" />
                                                     </button>
-                                                    <button onClick={() => onOpenProfile?.(p.id)}
+                                                    <button onClick={() => onOpenProfile?.(p.id, 'Overview')}
                                                         className="px-5 py-2.5 bg-teal-600 text-white rounded-xl text-xs font-black uppercase tracking-widest flex items-center gap-2 hover:bg-white hover:text-slate-950 shadow-lg active:scale-95 transition-all">
                                                         Profile <ChevronRight className="w-3.5 h-3.5" />
                                                     </button>

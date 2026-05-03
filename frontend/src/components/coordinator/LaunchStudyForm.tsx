@@ -1,14 +1,16 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Upload, X, Search, Building2, Calendar, Sparkles, Terminal, FileText, Database, Shield, Bold, Italic, Underline, Link, ChevronDown, DraftingCompass, Edit3 } from 'lucide-react';
+import { Upload, X, Search, Building2, Calendar, Sparkles, Terminal, FileText, Database, Shield, Bold, Italic, Underline, Link, ChevronDown, DraftingCompass, Edit3, Users, Info, Layout, AlertTriangle, Download, ClipboardList, CheckCircle2, ShieldCheck, Globe, Plus } from 'lucide-react';
 import ScreenerBuilder from './ScreenerBuilder';
 import QuestionnaireBuilder from './QuestionnaireBuilder';
 import { motion, AnimatePresence } from 'framer-motion';
 
 import { getCurrencySymbol, formatCurrency } from '../../utils/format';
+import { authFetch } from '../../utils/auth';
+import { MarkdownText } from '../shared/MarkdownText';
 
 interface LaunchStudyFormProps {
     onClose?: () => void;
-    onSave?: (data: any) => void | boolean | Promise<void | boolean>;
+    onSave?: (data: any, documentsToUpload?: any[]) => void | boolean | Promise<void | boolean>;
     initialData?: any;
     availablePIs?: any[];
     availableCoordinators?: any[];
@@ -16,12 +18,7 @@ interface LaunchStudyFormProps {
     availableSponsorUsers?: any[];
 }
 
-const getSponsorDisplayName = (sponsorId: string) => {
-    // This is a simplified helper; in a real app, you'd lookup in availableSponsors/Users
-    // For now, we'll try to guess if it's an ID or a name already saved
-    if (!sponsorId) return 'Not selected';
-    return sponsorId; 
-};
+
 
 const STEPS = [
     { id: 1, label: 'Protocol' },
@@ -31,7 +28,7 @@ const STEPS = [
     { id: 5, label: 'Screening' },
     { id: 6, label: 'Questionnaires' },
     { id: 7, label: 'Documents' },
-    { id: 8, label: 'Review' },
+    { id: 8, label: 'Launch Review' },
 ];
 
 const SponsorSearchModal = ({ isOpen, onClose, onSelect, availableSponsors, availableSponsorUsers, onAddOrg, onInviteDelegate }: any) => {
@@ -43,15 +40,13 @@ const SponsorSearchModal = ({ isOpen, onClose, onSelect, availableSponsors, avai
     useEffect(() => {
         if (!isOpen) return;
         setIsLoading(true);
-        const token = localStorage.getItem('access_token') || localStorage.getItem('token') || '';
-        const headers: any = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
         Promise.all([
             availableSponsors && availableSponsors.length > 0
                 ? Promise.resolve(availableSponsors)
-                : fetch('/api/sponsor-organizations/?limit=100', { headers }).then(r => r.json()).then(d => Array.isArray(d) ? d : (d?.results || [])),
+                : authFetch('/api/sponsor-organizations/?limit=100').then(r => r.json()).then(d => Array.isArray(d) ? d : (d?.results || [])),
             availableSponsorUsers && availableSponsorUsers.length > 0
                 ? Promise.resolve(availableSponsorUsers)
-                : fetch('/api/users/?limit=100', { headers }).then(r => r.json()).then(d => (Array.isArray(d) ? d : (d?.results || [])).filter((u: any) => (u.role || '').toString().toUpperCase() === 'SPONSOR'))
+                : authFetch('/api/users/?limit=100').then(r => r.json()).then(d => (Array.isArray(d) ? d : (d?.results || [])).filter((u: any) => (u.role || '').toString().toUpperCase() === 'SPONSOR'))
         ])
             .then(([orgList, userList]) => { setOrgs(orgList); setIndividuals(userList); })
             .catch(() => {})
@@ -256,9 +251,9 @@ const ToolbarButton = ({ icon: Icon, onClick, active = false }: any) => (
     <button
         type="button"
         onClick={onClick}
-        className={`p-1.5 rounded hover:bg-white/10 transition-colors ${active ? 'text-blue-400 bg-white/5' : 'text-slate-400'}`}
+        className={`p-2 rounded-lg hover:bg-white/10 transition-all ${active ? 'text-blue-400 bg-white/5' : 'text-slate-400 hover:text-white'}`}
     >
-        <Icon size={14} />
+        <Icon size={16} />
     </button>
 );
 
@@ -400,8 +395,14 @@ const BulletTextarea = ({ value, onChange, placeholder, rows = 4, name, mode, on
     return (
         <div className="space-y-2">
             <div className="flex items-center justify-between">
-                <div className="flex items-center gap-1">
-                    {/* Formatting buttons removed to prevent confusing raw markdown tags in textarea */}
+                <div className="flex items-center gap-1 bg-white/5 p-1 rounded-lg border border-white/10">
+                    <ToolbarButton icon={Bold} onClick={() => insertText('**', '**')} />
+                    <ToolbarButton icon={Italic} onClick={() => insertText('_', '_')} />
+                    <ToolbarButton icon={Underline} onClick={() => insertText('<u>', '</u>')} />
+                    <div className="w-px h-4 bg-white/10 mx-1" />
+                    <ToolbarButton icon={Link} onClick={() => insertText('link')} />
+                    <div className="w-px h-4 bg-white/10 mx-1" />
+                    <ToolbarButton icon={X} onClick={() => onChange('')} />
                 </div>
                 <button
                     type="button"
@@ -428,11 +429,218 @@ const BulletTextarea = ({ value, onChange, placeholder, rows = 4, name, mode, on
                 className="w-full bg-[#0B101B] border border-white/10 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors resize-y leading-relaxed font-medium"
                 style={{ lineHeight: '1.8' }}
             />
+            
+            {value && (value.includes('**') || value.includes('_') || value.includes('<u>') || value.includes('[') || value.includes('•')) && (
+                <div className="mt-2 p-4 bg-white/5 border border-dashed border-white/10 rounded-xl">
+                    <div className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-2 flex items-center gap-2">
+                        <Sparkles size={10} className="text-blue-400" />
+                        LIVE PREVIEW
+                    </div>
+                    <div className="text-sm text-slate-300 leading-relaxed font-medium">
+                        {mode === 'bullet' ? (
+                            <ul className="space-y-1">
+                                {value.split('\n').filter(Boolean).map((line, i) => (
+                                    <li key={i} className="flex gap-2">
+                                        <span className="text-blue-400 font-bold">•</span>
+                                        <MarkdownText text={line.replace(/^[•\-\*]\s*/, '')} />
+                                    </li>
+                                ))}
+                            </ul>
+                        ) : (
+                            <MarkdownText text={value} />
+                        )}
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
 
 // Manual currency Signs removed in favor of Intl.NumberFormat utility
+
+const CountrySelector = ({ selectedCountries, onChange }: { selectedCountries: string[], onChange: (countries: string[]) => void }) => {
+    const [search, setSearch] = useState('');
+    const [isOpen, setIsOpen] = useState(false);
+    const containerRef = useRef<HTMLDivElement>(null);
+
+    const countries = [
+        "Afghanistan", "Albania", "Algeria", "Andorra", "Angola", "Argentina", "Armenia", "Australia", "Austria", "Azerbaijan",
+        "Bahamas", "Bahrain", "Bangladesh", "Barbados", "Belarus", "Belgium", "Belize", "Benin", "Bhutan", "Bolivia",
+        "Bosnia and Herzegovina", "Botswana", "Brazil", "Brunei", "Bulgaria", "Burkina Faso", "Burundi", "Cambodia", "Cameroon", "Canada",
+        "Cape Verde", "Central African Republic", "Chad", "Chile", "China", "Colombia", "Comoros", "Congo", "Costa Rica", "Croatia",
+        "Cuba", "Cyprus", "Czech Republic", "Denmark", "Djibouti", "Dominica", "Dominican Republic", "East Timor", "Ecuador", "Egypt",
+        "El Salvador", "Equatorial Guinea", "Eritrea", "Estonia", "Ethiopia", "Fiji", "Finland", "France", "Gabon", "Gambia",
+        "Georgia", "Germany", "Ghana", "Greece", "Grenada", "Guatemala", "Guinea", "Guinea-Bissau", "Guyana", "Haiti",
+        "Honduras", "Hungary", "Iceland", "India", "Indonesia", "Iran", "Iraq", "Ireland", "Israel", "Italy",
+        "Ivory Coast", "Jamaica", "Japan", "Jordan", "Kazakhstan", "Kenya", "Kiribati", "North Korea", "South Korea", "Kuwait",
+        "Kyrgyzstan", "Laos", "Latvia", "Lebanon", "Lesotho", "Liberia", "Libya", "Liechtenstein", "Lithuania", "Luxembourg",
+        "Macedonia", "Madagascar", "Malawi", "Malaysia", "Maldives", "Mali", "Malta", "Marshall Islands", "Mauritania", "Mauritius",
+        "Mexico", "Micronesia", "Moldova", "Monaco", "Mongolia", "Montenegro", "Morocco", "Mozambique", "Myanmar", "Namibia",
+        "Nauru", "Nepal", "Netherlands", "New Zealand", "Nicaragua", "Niger", "Nigeria", "Norway", "Oman", "Pakistan",
+        "Palau", "Panama", "Papua New Guinea", "Paraguay", "Peru", "Philippines", "Poland", "Portugal", "Qatar", "Romania",
+        "Russia", "Rwanda", "Saint Kitts and Nevis", "Saint Lucia", "Saint Vincent", "Samoa", "San Marino", "Sao Tome and Principe", "Saudi Arabia", "Senegal",
+        "Serbia", "Seychelles", "Sierra Leone", "Singapore", "Slovakia", "Slovenia", "Solomon Islands", "Somalia", "South Africa", "Spain",
+        "Sri Lanka", "Sudan", "Suriname", "Swaziland", "Sweden", "Switzerland", "Syria", "Taiwan", "Tajikistan", "Tanzania",
+        "Thailand", "Togo", "Tonga", "Trinidad and Tobago", "Tunisia", "Turkey", "Turkmenistan", "Tuvalu", "Uganda", "Ukraine",
+        "United Arab Emirates", "United Kingdom", "United States", "Uruguay", "Uzbekistan", "Vanuatu", "Vatican City", "Venezuela", "Vietnam", "Yemen",
+        "Zambia", "Zimbabwe"
+    ];
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+                setIsOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    const toggleCountry = (c: string) => {
+        if (selectedCountries.includes(c)) {
+            onChange(selectedCountries.filter(item => item !== c));
+        } else {
+            onChange([...selectedCountries, c]);
+        }
+    };
+
+    const filtered = countries.filter(c => 
+        c.toLowerCase().includes(search.toLowerCase()) && 
+        !selectedCountries.includes(c)
+    );
+
+    return (
+        <div className="space-y-4 p-6 bg-white/5 border border-white/10 rounded-3xl relative" ref={containerRef}>
+            <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center">
+                        <Globe size={16} className="text-blue-400" />
+                    </div>
+                    <div>
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] block">Global Reach</label>
+                        <h4 className="text-[11px] font-black text-white uppercase tracking-wider">Recruitment Coverage</h4>
+                    </div>
+                </div>
+                <div className="flex flex-col items-end">
+                    <span className="text-[10px] font-black text-blue-400 bg-blue-400/10 border border-blue-400/20 px-3 py-1 rounded-full uppercase tracking-widest">
+                        {selectedCountries.length} Countries Selected
+                    </span>
+                </div>
+            </div>
+
+            {/* Selected Tags Area */}
+            {selectedCountries.length > 0 && (
+                <div className="flex flex-wrap gap-2 p-3 bg-[#0B101B]/50 border border-white/5 rounded-2xl min-h-[50px] items-center">
+                    <AnimatePresence>
+                        {selectedCountries.map(c => (
+                            <motion.div 
+                                key={c}
+                                initial={{ opacity: 0, scale: 0.9, x: -5 }}
+                                animate={{ opacity: 1, scale: 1, x: 0 }}
+                                exit={{ opacity: 0, scale: 0.9, x: 5 }}
+                                className="flex items-center gap-2 pl-3 pr-2 py-1.5 bg-blue-600/10 border border-blue-500/20 rounded-xl text-blue-400 group hover:bg-blue-600/20 transition-all cursor-default"
+                            >
+                                <span className="text-[11px] font-black uppercase tracking-tight">{c}</span>
+                                <button 
+                                    type="button" 
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        toggleCountry(c);
+                                    }}
+                                    className="w-5 h-5 rounded-lg flex items-center justify-center hover:bg-red-500/20 hover:text-red-400 transition-all text-blue-400/50"
+                                >
+                                    <X size={12} />
+                                </button>
+                            </motion.div>
+                        ))}
+                    </AnimatePresence>
+                </div>
+            )}
+
+            {/* Dropdown Container */}
+            <div className="relative">
+                <div 
+                    onClick={() => setIsOpen(!isOpen)}
+                    className={`group relative flex items-center gap-3 bg-[#0B101B] border rounded-2xl p-4 transition-all cursor-text shadow-inner ${
+                        isOpen ? 'border-blue-500/50 ring-4 ring-blue-500/10' : 'border-white/10 hover:border-white/20'
+                    }`}
+                >
+                    <Search className={`transition-colors duration-300 ${isOpen ? 'text-blue-400' : 'text-slate-500'}`} size={18} />
+                    <input 
+                        type="text" 
+                        placeholder={selectedCountries.length === 0 ? "Search for participating countries..." : "Add more countries..."}
+                        value={search}
+                        onChange={(e) => {
+                            setSearch(e.target.value);
+                            setIsOpen(true);
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                        className="flex-1 bg-transparent text-sm text-white placeholder-slate-600 focus:outline-none font-bold tracking-tight italic"
+                    />
+                    <ChevronDown className={`text-slate-500 transition-transform duration-500 ease-out ${isOpen ? 'rotate-180 text-blue-400' : ''}`} size={20} />
+                </div>
+
+                <AnimatePresence>
+                    {isOpen && (
+                        <motion.div 
+                            initial={{ opacity: 0, y: 15, scale: 0.98 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, y: 10, scale: 0.98 }}
+                            transition={{ type: 'spring', damping: 20, stiffness: 300 }}
+                            className="absolute left-0 right-0 mt-3 z-[100] bg-[#0F172A] border border-white/10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden flex flex-col"
+                        >
+                            <div className="max-h-[300px] overflow-y-auto p-3 space-y-1 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
+                                {filtered.length === 0 ? (
+                                    <div className="p-10 text-center space-y-3">
+                                        <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center mx-auto">
+                                            <Search className="text-slate-700" size={20} />
+                                        </div>
+                                        <div className="text-xs text-slate-500 font-bold uppercase tracking-widest italic">
+                                            {search ? `No matches for "${search}"` : "All regions selected"}
+                                        </div>
+                                    </div>
+                                ) : (
+                                    filtered.map(c => (
+                                        <button
+                                            key={c}
+                                            type="button"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                toggleCountry(c);
+                                                setSearch('');
+                                            }}
+                                            className="w-full flex items-center justify-between p-3.5 rounded-xl hover:bg-blue-600/10 border border-transparent hover:border-blue-500/20 transition-all text-left group"
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-2 h-2 rounded-full bg-slate-700 group-hover:bg-blue-400 transition-colors" />
+                                                <span className="text-sm font-black text-slate-400 group-hover:text-white uppercase tracking-tighter transition-colors">{c}</span>
+                                            </div>
+                                            <Plus size={16} className="text-slate-700 group-hover:text-blue-400 opacity-0 group-hover:opacity-100 transition-all scale-75 group-hover:scale-100" />
+                                        </button>
+                                    ))
+                                )}
+                            </div>
+                            
+                            {filtered.length > 0 && (
+                                <div className="p-3 bg-white/5 border-t border-white/5 flex items-center justify-between">
+                                    <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">{filtered.length} Regions Available</span>
+                                    <div className="text-[9px] font-black text-blue-400 uppercase tracking-widest italic">MusB Global Intelligence</div>
+                                </div>
+                            )}
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+            </div>
+            
+            {selectedCountries.length === 0 && !isOpen && (
+                <div className="flex items-center gap-2 mt-4 px-2">
+                    <div className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Action Required: Define recruitment territories</span>
+                </div>
+            )}
+        </div>
+    );
+};
 
 const LaunchStudyForm: React.FC<LaunchStudyFormProps> = ({
     onClose,
@@ -455,11 +663,9 @@ const LaunchStudyForm: React.FC<LaunchStudyFormProps> = ({
     const [fetchedSponsorUsers, setFetchedSponsorUsers] = useState<any[]>([]);
 
     const handleCreateOrg = async (orgData: any) => {
-        const token = localStorage.getItem('access_token') || localStorage.getItem('token') || '';
         try {
-            const res = await fetch('/api/sponsor-organizations/', {
+            const res = await authFetch('/api/sponsor-organizations/', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
                 body: JSON.stringify(orgData)
             });
             if (res.ok) {
@@ -467,24 +673,131 @@ const LaunchStudyForm: React.FC<LaunchStudyFormProps> = ({
                 setIsAddOrgModalOpen(false);
                 setIsSponsorModalOpen(true); // Re-open parent
                 alert(`Organization ${newOrg.name} created!`);
+            } else {
+                const err = await res.json();
+                alert(`Failed to create organization: ${JSON.stringify(err)}`);
             }
-        } catch (e) { alert("Failed to create organization"); }
+        } catch (e) { 
+            console.error(e);
+            alert("Failed to create organization"); 
+        }
     };
 
     const handleInviteDelegate = async (inviteData: any) => {
-        const token = localStorage.getItem('access_token') || localStorage.getItem('token') || '';
         try {
-            const res = await fetch('/api/invitations/', {
+            const res = await authFetch('/api/invitations/', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                body: JSON.stringify({ ...inviteData, role: 'SPONSOR' })
+                body: JSON.stringify({ 
+                    ...inviteData, 
+                    role: 'SPONSOR',
+                    organization: formData.sponsor || 'MusB Research'
+                })
             });
             if (res.ok) {
                 setIsInviteDelegateModalOpen(false);
                 setIsSponsorModalOpen(true);
                 alert(`Invitation sent to ${inviteData.email}!`);
+            } else {
+                const err = await res.json();
+                alert(`Failed to send invitation: ${JSON.stringify(err)}`);
             }
-        } catch (e) { alert("Failed to send invitation"); }
+        } catch (e) { 
+            console.error(e);
+            alert("Failed to send invitation - Network or Server Error"); 
+        }
+    };
+
+    const handleInvitePI = async () => {
+        if (!formData.invitePIEmail) return;
+        try {
+            const res = await authFetch('/api/invitations/', {
+                method: 'POST',
+                body: JSON.stringify({ 
+                    email: formData.invitePIEmail, 
+                    first_name: formData.invitePIFirstName,
+                    last_name: formData.invitePILastName,
+                    role: 'PI',
+                    organization: formData.sponsor || 'MusB Research' 
+                })
+            });
+            if (res.ok) {
+                alert(`Invitation sent to ${formData.invitePIEmail}!`);
+                setFormData(prev => ({ 
+                    ...prev, 
+                    invitePIEmail: '',
+                    invitePIFirstName: '',
+                    invitePILastName: ''
+                }));
+            } else {
+                const err = await res.json();
+                alert(`Failed to send invitation: ${JSON.stringify(err)}`);
+            }
+        } catch (e) { 
+            console.error(e);
+            alert("Failed to send invitation - Network or Server Error"); 
+        }
+    };
+
+    const handleInviteCoordinator = async () => {
+        if (!formData.inviteCoordinatorEmail) return;
+        try {
+            const res = await authFetch('/api/invitations/', {
+                method: 'POST',
+                body: JSON.stringify({ 
+                    email: formData.inviteCoordinatorEmail, 
+                    first_name: formData.inviteCoordinatorFirstName,
+                    last_name: formData.inviteCoordinatorLastName,
+                    role: 'COORDINATOR',
+                    organization: formData.sponsor || 'MusB Research'
+                })
+            });
+            if (res.ok) {
+                alert(`Invitation sent to ${formData.inviteCoordinatorEmail}!`);
+                setFormData(prev => ({ 
+                    ...prev, 
+                    inviteCoordinatorEmail: '',
+                    inviteCoordinatorFirstName: '',
+                    inviteCoordinatorLastName: ''
+                }));
+            } else {
+                const err = await res.json();
+                alert(`Failed to send invitation: ${JSON.stringify(err)}`);
+            }
+        } catch (e) { 
+            console.error(e);
+            alert("Failed to send invitation - Network or Server Error"); 
+        }
+    };
+
+    const handleInviteSponsor = async () => {
+        if (!formData.inviteSponsorEmail) return;
+        try {
+            const res = await authFetch('/api/invitations/', {
+                method: 'POST',
+                body: JSON.stringify({ 
+                    email: formData.inviteSponsorEmail, 
+                    first_name: formData.inviteSponsorFirstName,
+                    last_name: formData.inviteSponsorLastName,
+                    role: 'SPONSOR',
+                    organization: formData.sponsor || 'MusB Research'
+                })
+            });
+            if (res.ok) {
+                alert(`Invitation sent to ${formData.inviteSponsorEmail}!`);
+                setFormData(prev => ({ 
+                    ...prev, 
+                    inviteSponsorEmail: '',
+                    inviteSponsorFirstName: '',
+                    inviteSponsorLastName: ''
+                }));
+            } else {
+                const err = await res.json();
+                alert(`Failed to send invitation: ${JSON.stringify(err)}`);
+            }
+        } catch (e) { 
+            console.error(e);
+            alert("Failed to send invitation - Network or Server Error"); 
+        }
     };
 
     // Merge prop-based lists with fetched lists (prop takes priority if provided)
@@ -500,6 +813,22 @@ const LaunchStudyForm: React.FC<LaunchStudyFormProps> = ({
         OBSERVATIONAL: 'Observational study',
         BIOEQUIVALENCE: 'Bioequivalence study'
     };
+
+    const ReviewRow = ({ label, value, placeholder = 'Not provided', truncate = false, isCritical = false }: any) => (
+        <div className="flex items-center justify-between px-8 py-5 group hover:bg-white/[0.02] transition-colors">
+            <span className="text-sm font-black text-slate-500 uppercase tracking-widest shrink-0">{label}</span>
+            <div className="flex items-center gap-3 max-w-[70%] overflow-hidden text-right">
+                {isCritical && !value && (
+                    <div className="flex items-center gap-2 px-2 py-1 bg-red-500/10 border border-red-500/20 rounded text-xs font-black text-red-500 uppercase tracking-tighter shrink-0">
+                        <AlertTriangle size={12} /> MISSING
+                    </div>
+                )}
+                <span className={`text-base font-bold ${value ? 'text-white' : 'text-slate-600 italic'} ${truncate ? 'truncate' : ''}`}>
+                    {value || placeholder}
+                </span>
+            </div>
+        </div>
+    );
     const phaseToLabel: Record<string, string> = {
         'N/A': 'N/A',
         PHASE_0: 'Phase 0',
@@ -519,6 +848,23 @@ const LaunchStudyForm: React.FC<LaunchStudyFormProps> = ({
         TRIPLE_BLIND: 'Triple blind',
         QUADRUPLE_BLIND: 'Quadruple blind'
     };
+
+    const SignaturePlaceholder = ({ label, status, color }: any) => {
+        const colors: any = {
+            pink: 'text-pink-400 bg-pink-500/5 border-pink-500/20',
+            blue: 'text-blue-400 bg-blue-500/5 border-blue-500/20',
+            emerald: 'text-emerald-400 bg-emerald-500/5 border-emerald-500/20'
+        };
+        return (
+            <div className={`p-3 rounded-xl border border-dashed ${colors[color]} space-y-1`}>
+                <div className="text-[8px] font-black uppercase tracking-widest">{label}</div>
+                <div className="text-[10px] font-bold italic opacity-60 uppercase tracking-tighter leading-none">{status}</div>
+                <div className="h-[20px] flex items-end justify-center">
+                    <div className="w-full h-[1px] bg-white/10" />
+                </div>
+            </div>
+        );
+    };
     const studyTypeToLabel: Record<string, string> = {
         IN_PERSON: 'In-person',
         VIRTUAL: 'Remote',
@@ -536,23 +882,29 @@ const LaunchStudyForm: React.FC<LaunchStudyFormProps> = ({
         PER_TASK: 'Milestone based'
     };
     const getSponsorDisplayName = (value: string) => {
-        if (!value) return '';
-        return availableSponsors?.find((s: any) => String(s.id) === String(value))?.name || value;
+        if (!value) return null;
+        // Try to find in organizations
+        const org = (availableSponsors || []).find((s: any) => s.id === value || s.name === value || s.organization === value);
+        if (org) return org.organization || org.name || value;
+        // Try to find in sponsor users
+        const user = (availableSponsorUsers || []).find((u: any) => u.id === value || u.email === value);
+        if (user) return `${user.first_name} ${user.last_name}`;
+        return value;
     };
 
     // Form State
     const [formData, setFormData] = useState({
-        internalId: 'MUSB-2025-001',
+        protocol_id: 'MUSB-2025-001',
         sponsor: '',
         startDate: '',
         endDate: '',
-        fullTitle: '',
-        shortTitle: '',
+        full_title: '',
+        title: '',
         category: '',
         briefSummary: '',
-        studyOverview: '',
-        benefits: '',
-        participationMessage: '',
+        overview: '',
+        benefit: '',
+        participation_message: '',
         primaryModel: '',
         clinicalPhase: 'N/A',
         maskingStrategy: 'None (open label)',
@@ -564,9 +916,11 @@ const LaunchStudyForm: React.FC<LaunchStudyFormProps> = ({
         requireStudyKit: false,
         studyKitDetails: '',
         textModes: {
-            studyOverview: 'bullet',
-            benefits: 'bullet',
-            participationMessage: 'bullet'
+            overview: 'bullet',
+            benefit: 'bullet',
+            participation_message: 'bullet',
+            briefSummary: 'plain',
+            studyKitDetails: 'plain'
         },
         targetEnrollment: '',
         consentMethods: {
@@ -580,146 +934,53 @@ const LaunchStudyForm: React.FC<LaunchStudyFormProps> = ({
         selectedCoordinators: [] as string[],
         selectedSponsorUsers: [] as string[],
         invitePIEmail: '',
+        invitePIFirstName: '',
+        invitePILastName: '',
         inviteCoordinatorEmail: '',
+        inviteCoordinatorFirstName: '',
+        inviteCoordinatorLastName: '',
         inviteSponsorEmail: '',
+        inviteSponsorFirstName: '',
+        inviteSponsorLastName: '',
         screenerQuestions: [] as any[],
+        screenerFile: null as File | null,
         selectedQuestionnaires: [] as string[],
+        questionnaireDetails: [] as any[],
+        questionnaireFrequencies: {} as Record<string, string>,
         consentFormFile: null as File | null,
         extractedConsentText: '',
-        additionalDocuments: [] as File[]
+        additionalDocuments: [] as File[],
+        countries: [] as string[]
     });
 
     const [isExtracting, setIsExtracting] = useState(false);
     const [showAIImportModal, setShowAIImportModal] = useState(false);
     const [smartImportText, setSmartImportText] = useState('');
+    const [isQuestionnaireModalOpen, setIsQuestionnaireModalOpen] = useState(false);
 
     const handleAIExtraction = async (file: File) => {
         setIsExtracting(true);
-        // Simulation of AI extraction with a slight delay for realism
-        await new Promise(resolve => setTimeout(resolve, 4000));
-        
-        const mockConsentText = `INFORMED CONSENT AND PRIVACY AUTHORIZATION FORM
-
-STUDY IDENTIFIER: ${formData.internalId || 'MUSB-2025-001'}
-PROTOCOL TITLE: ${formData.fullTitle || 'Comprehensive Clinical Biomarker and Longitudinal Health Assessment Study'}
-PRINCIPAL INVESTIGATOR: Dr. Sarah MusB, PhD
-SPONSOR: ${formData.sponsor || 'MusB Research Institute'}
-
---------------------------------------------------
-1. KEY INFORMATION
---------------------------------------------------
-You are being asked to participate in a research study. Your participation is voluntary. This summary provides key information to help you decide whether to take part.
-- The purpose of this study is to track long-term clinical biomarkers.
-- Participation will last approximately 12 months.
-- Major procedures include monthly health screenings and digital diary entries.
-- The main risk is potential fatigue during assessments.
-- You may benefit from detailed personal health reports.
-
---------------------------------------------------
-2. DETAILED STUDY PURPOSE
---------------------------------------------------
-The primary objective of this research is to evaluate the clinical utility of non-invasive monitoring tools in predicting early-stage inflammatory responses. We seek to understand how environmental factors interact with genetic markers over a ${formData.endDate ? 'sustained' : '6-month'} period. This study is funded by the ${formData.sponsor || 'National Research Council'} and managed by MusB Research.
-
---------------------------------------------------
-3. STUDY PROCEDURES AND TIMELINE
---------------------------------------------------
-If you enroll, you will undergo the following:
-
-PHASE I: BASELINE (Month 1)
-- Initial Physical Assessment: 90 minutes
-- Genetic Screening: Single blood draw (10ml)
-- Portal Onboarding: Training on the digital health app
-
-PHASE II: MONITORING (Months 2-11)
-- Monthly Clinic Visits: Weight, Blood Pressure, and Vitals monitoring
-- Weekly Digital Surveys: 10-minute questionnaires via the secure participant portal
-- Quarterly Biomarker Tests: Non-invasive imaging at our central facility
-
-PHASE III: CONCLUSION (Month 12)
-- Final Health Evaluation: Comprehensive review of all collected data
-- Exit Interview: Feedback on study experience
-
---------------------------------------------------
-4. RISKS, DISCOMFORTS, AND SAFETY
---------------------------------------------------
-PHYSICAL RISKS:
-Minimal. Blood draws may cause minor bruising or lightheadedness. Imaging is non-invasive and does not use ionizing radiation.
-
-PSYCHOLOGICAL RISKS:
-Some questionnaires may ask sensitive health questions that could cause mild stress. You may skip any question you do not wish to answer.
-
-DATA RISKS:
-While we use high-grade encryption, there is always a minimal risk of unauthorized data access. We mitigate this through strict PII masking.
-
---------------------------------------------------
-5. BENEFITS TO YOU AND OTHERS
---------------------------------------------------
-DIRECT BENEFITS:
-You will receive complimentary health assessments and copies of your biomarker reports, which you may share with your personal physician.
-
-SOCIETAL BENEFITS:
-The data collected will contribute to the global understanding of preventative medicine and may lead to earlier diagnostic tools for millions of patients.
-
---------------------------------------------------
-6. DATA PRIVACY AND CONFIDENTIALITY (HIPAA)
---------------------------------------------------
-We will protect your information as required by law. Your identity will be replaced with a unique Research ID. All data is stored on MusB's Tier-4 encrypted clinical servers.
-Your protected health information (PHI) will only be shared with:
-- The Principal Investigator and authorized research staff
-- The Institutional Review Board (IRB) for safety monitoring
-- Regulatory agencies (e.g., FDA) if required by law
-
---------------------------------------------------
-7. COMPENSATION AND REWARDS
---------------------------------------------------
-For your participation, you will receive compensation as follows:
-- Baseline Completion: 50 ${formData.currency || 'USD'}
-- Monthly Monitoring: 20 ${formData.currency || 'USD'} per month (Total: 200 ${formData.currency || 'USD'})
-- Study Completion Bonus: 100 ${formData.currency || 'USD'}
-
-TOTAL POTENTIAL COMPENSATION: ${formData.stipendAmount || '350'} ${formData.currency || 'USD'}.
-Payments will be issued within 48 hours of each milestone via ${formData.rewardType || 'Digital Credit'}.
-
---------------------------------------------------
-8. NEW FINDINGS
---------------------------------------------------
-If we learn any new information that might change your mind about staying in the study, we will inform you immediately. You will then have a chance to decide if you want to continue.
-
---------------------------------------------------
-9. VOLUNTARY PARTICIPATION AND WITHDRAWAL
---------------------------------------------------
-Your participation is 100% voluntary. You can say 'no' now, or change your mind later. Your decision will not affect your relationship with MusB Research or your healthcare providers. To withdraw, contact the study coordinator or use the 'Withdraw' button in your portal.
-
---------------------------------------------------
-10. CONTACT INFORMATION
---------------------------------------------------
-STUDY TEAM:
-Principal Investigator: Dr. Sarah MusB
-Email: research@musb.ai | Phone: (555) 012-3456
-
-IRB OVERSIGHT:
-If you have questions about your rights as a participant, contact the MusB Ethics Committee at:
-Email: ethics@musb.ai | Phone: (555) 987-6543
-
---------------------------------------------------
-11. PARTICIPANT ACKNOWLEDGMENT AND SIGNATURES
---------------------------------------------------
-By signing this document, I acknowledge that:
-- I have read (or have had read to me) the information in this consent form.
-- I have had the opportunity to ask questions and have received satisfactory answers.
-- I understand that I am not giving up any of my legal rights.
-- I freely consent to participate in this research study.
-
-[SIGNATURE LINE: PARTICIPANT]
-[SIGNATURE LINE: PERSON OBTAINING CONSENT]
-[SIGNATURE LINE: PRINCIPAL INVESTIGATOR]
-
---------------------------------------------------
-END OF DOCUMENT
---------------------------------------------------`;
-        
-        setFormData(prev => ({ ...prev, extractedConsentText: mockConsentText }));
-        setIsExtracting(false);
+        try {
+            const body = new FormData();
+            body.append('file', file);
+            const res = await authFetch('/api/study-consent/extract/', {
+                method: 'POST',
+                body
+            });
+            if (res.ok) {
+                const data = await res.json();
+                setFormData(prev => ({ ...prev, extractedConsentText: data.text || '' }));
+            } else {
+                // Fallback: let user know extraction failed but don't block
+                console.warn('PDF extraction returned non-OK status, text will be empty.');
+                setFormData(prev => ({ ...prev, extractedConsentText: '' }));
+            }
+        } catch (err) {
+            console.error('PDF extraction failed:', err);
+            setFormData(prev => ({ ...prev, extractedConsentText: '' }));
+        } finally {
+            setIsExtracting(false);
+        }
     };
 
     const handleSmartImport = () => {
@@ -730,6 +991,7 @@ END OF DOCUMENT
     };
 
     const consentFileInputRef = useRef<HTMLInputElement>(null);
+    const screenerFileInputRef = useRef<HTMLInputElement>(null);
     const additionalFileInputRef = useRef<HTMLInputElement>(null);
 
     const handleChange = (e: any) => {
@@ -766,6 +1028,13 @@ END OF DOCUMENT
         }
     };
 
+    const handleScreenerFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files.length > 0) {
+            const file = e.target.files[0];
+            setFormData({ ...formData, screenerFile: file });
+        }
+    };
+
     const handleAdditionalFilesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files.length > 0) {
             setFormData({
@@ -788,7 +1057,7 @@ END OF DOCUMENT
             consentFormFile: null, // Files cannot be serialized
             additionalDocuments: []
         };
-        localStorage.setItem(`study_launch_draft_${formData.internalId || 'new'}`, JSON.stringify({ currentStep, formData: serializableData }));
+        localStorage.setItem(`study_launch_draft_${formData.protocol_id || 'new'}`, JSON.stringify({ currentStep, formData: serializableData }));
         alert("Draft saved successfully! You can leave this page and your progress will be restored when you return.");
     };
 
@@ -813,21 +1082,32 @@ END OF DOCUMENT
             const existingQuestionnaires = Array.isArray(initialData.study_questionnaires)
                 ? initialData.study_questionnaires.map((q: any) => q.template || q.template_details?.id).filter(Boolean)
                 : [];
-            const screenerQuestions = initialData.screener_config?.steps?.find((step: any) => step.type === 'user_input')?.questions || [];
+            const questionnaireDetails = Array.isArray(initialData.study_questionnaires)
+                ? initialData.study_questionnaires.map((q: any) => q.template_details).filter(Boolean)
+                : [];
+            const questionnaireFrequencies = Array.isArray(initialData.study_questionnaires)
+                ? initialData.study_questionnaires.reduce((acc: any, q: any) => {
+                      const id = q.template || q.template_details?.id;
+                      if (id) acc[id] = q.frequency || 'One time only';
+                      return acc;
+                  }, {})
+                : {};
+            const screenerQuestions = initialData.screener_config?.questions || 
+                                     initialData.screener_config?.steps?.find((step: any) => step.type === 'user_input')?.questions || [];
 
             setFormData(prev => ({
                 ...prev,
-                internalId: initialData.protocol_id || prev.internalId,
+                protocol_id: initialData.protocol_id || prev.protocol_id,
                 sponsor: initialData.sponsor_org_id || initialData.sponsor_org?.id || initialData.sponsor_name || '',
                 startDate: initialData.start_date || '',
                 endDate: initialData.end_date || '',
-                fullTitle: initialData.full_title || initialData.title || '',
-                shortTitle: initialData.title || '',
+                full_title: initialData.full_title || initialData.title || '',
+                title: initialData.title || '',
                 category: initialData.condition || initialData.primary_indication || '',
                 briefSummary: initialData.description || '',
-                studyOverview: initialData.overview || '',
-                benefits: initialData.benefit || '',
-                participationMessage: initialData.participation_message || '',
+                overview: initialData.overview || '',
+                benefit: initialData.benefit || '',
+                participation_message: initialData.participation_message || '',
                 primaryModel: trialModelToLabel[initialData.trial_model] || initialData.trial_model || '',
                 clinicalPhase: phaseToLabel[initialData.phase] || initialData.phase || 'N/A',
                 maskingStrategy: maskingToLabel[initialData.masking_strategy] || initialData.masking_strategy || 'None (open label)',
@@ -844,7 +1124,10 @@ END OF DOCUMENT
                 selectedSponsorUsers: initialData.sponsor_ids || [],
                 screenerQuestions,
                 selectedQuestionnaires: existingQuestionnaires,
-                extractedConsentText: initialData.consent_template || initialData.extracted_consent_text || ''
+                questionnaireDetails,
+                questionnaireFrequencies,
+                extractedConsentText: initialData.consent_content || initialData.consent_template || initialData.extracted_consent_text || '',
+                countries: initialData.countries || []
             }));
         }
     }, [initialData]);
@@ -902,7 +1185,7 @@ END OF DOCUMENT
                     {/* Header Menu (Stepper) - Responsive Dropdown on Mobile, Tabs on Desktop */}
                     <div className="w-full max-w-6xl mx-auto mb-10">
                         {initialData && initialData.status !== 'DRAFT' && (
-                            <div className="flex items-center justify-between mb-6">
+                            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
                                 <motion.div 
                                     initial={{ opacity: 0, x: -20 }}
                                     animate={{ opacity: 1, x: 0 }}
@@ -964,15 +1247,15 @@ END OF DOCUMENT
                                         key={step.id}
                                         onClick={() => setCurrentStep(step.id)}
                                         className={`
-                                            flex-1 py-5 px-4 text-center transition-all duration-300 flex flex-col items-center justify-center gap-1
+                                            flex-1 py-3 px-4 text-center transition-all duration-300 flex flex-col items-center justify-center gap-0.5
                                             ${isActive
                                                 ? 'bg-blue-600/20 text-blue-400 font-black relative after:absolute after:bottom-0 after:left-0 after:right-0 after:h-1 after:bg-blue-500'
                                                 : 'text-slate-500 hover:bg-white/5 hover:text-slate-200'}
                                             ${!isLast ? 'border-r border-white/5' : ''}
                                         `}
                                     >
-                                        <span className="text-[10px] font-black uppercase tracking-widest opacity-40">Step {step.id}</span>
-                                        <span className={`text-[13px] font-bold tracking-tight ${step.label.includes('Questionnaires') ? 'leading-tight' : ''}`}>
+                                        <span className="text-[9px] font-black uppercase tracking-widest opacity-40">Step {step.id}</span>
+                                        <span className={`text-[11px] font-bold tracking-tight ${isActive ? 'text-blue-400' : 'text-slate-400'}`}>
                                             {step.label}
                                         </span>
                                     </button>
@@ -981,13 +1264,13 @@ END OF DOCUMENT
                         </div>
                     </div>
 
-                    <div className={`w-full max-w-6xl mx-auto bg-[#0F172A] rounded-2xl p-6 md:p-8 border border-white/10 shadow-2xl min-h-[600px] transition-all ${!isEditMode ? 'opacity-80 grayscale-[0.3]' : ''}`}>
+                    <div className={`w-full max-w-5xl mx-auto bg-[#0F172A] rounded-xl p-3 md:p-4 border border-white/10 shadow-2xl min-h-[450px] transition-all ${!isEditMode ? 'opacity-80 grayscale-[0.3]' : ''}`}>
                         <fieldset disabled={!isEditMode} className="contents">
                 {currentStep === 1 ? (
-                    <div className="space-y-6">
-                        <div className="mb-6">
-                            <h2 className="text-2xl font-bold text-white tracking-tight">Protocol fundamentals</h2>
-                            <p className="text-slate-400 mt-1 text-sm md:text-base">Define the core identifiers for this study before proceeding.</p>
+                    <div className="space-y-4">
+                        <div className="mb-4">
+                            <h2 className="text-xl font-bold text-white tracking-tight">Protocol fundamentals</h2>
+                            <p className="text-slate-400 mt-0.5 text-xs md:text-sm">Define the core identifiers for this study before proceeding.</p>
                         </div>
 
                         <div className="bg-white/5 border border-white/10 rounded-xl p-6">
@@ -999,8 +1282,8 @@ END OF DOCUMENT
                                     <label className="text-sm font-medium text-[#e0e0e0]">Internal study ID</label>
                                     <input
                                         type="text"
-                                        name="internalId"
-                                        value={formData.internalId}
+                                        name="protocol_id"
+                                        value={formData.protocol_id}
                                         onChange={handleChange}
                                         placeholder="MUSB-2025-001"
                                         className="w-full bg-[#0B101B] border border-white/10 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
@@ -1044,6 +1327,14 @@ END OF DOCUMENT
                                         className="w-full bg-[#0B101B] border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors [color-scheme:dark]"
                                     />
                                 </div>
+
+                                {/* Participating Countries */}
+                                <div className="md:col-span-2">
+                                    <CountrySelector 
+                                        selectedCountries={formData.countries}
+                                        onChange={(countries) => setFormData(prev => ({ ...prev, countries }))}
+                                    />
+                                </div>
                             </div>
                         </div>
 
@@ -1073,8 +1364,8 @@ END OF DOCUMENT
                                     <label className="text-sm font-medium text-[#e0e0e0]">Official full title</label>
                                     <input
                                         type="text"
-                                        name="fullTitle"
-                                        value={formData.fullTitle}
+                                        name="full_title"
+                                        value={formData.full_title}
                                         onChange={handleChange}
                                         placeholder="Full protocol title as registered"
                                         className="w-full bg-[#0B101B] border border-white/10 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
@@ -1086,8 +1377,8 @@ END OF DOCUMENT
                                         <label className="text-sm font-medium text-[#e0e0e0]">Public short title</label>
                                         <input
                                             type="text"
-                                            name="shortTitle"
-                                            value={formData.shortTitle}
+                                            name="title"
+                                            value={formData.title}
                                             onChange={handleChange}
                                             placeholder="e.g. Beat the Bloat Study"
                                             className="w-full bg-[#0B101B] border border-white/10 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
@@ -1119,13 +1410,23 @@ END OF DOCUMENT
                             <div className="space-y-6">
                                 <div className="space-y-2">
                                     <label className="text-sm font-medium text-[#e0e0e0]">Brief summary (shown on eligibility page)</label>
-                                    <textarea
+                                    <BulletTextarea
                                         name="briefSummary"
                                         value={formData.briefSummary}
-                                        onChange={handleChange as any}
+                                        mode={formData.textModes.briefSummary as 'bullet' | 'plain' || 'plain'}
+                                        onModeToggle={() => setFormData(prev => {
+                                            const currentMode = prev.textModes.briefSummary || 'plain';
+                                            const newMode = currentMode === 'bullet' ? 'plain' : 'bullet';
+                                            const newValue = newMode === 'plain' ? stripBulletsFromText(prev.briefSummary) : addBulletsToText(prev.briefSummary);
+                                            return { 
+                                                ...prev, 
+                                                briefSummary: newValue,
+                                                textModes: { ...prev.textModes, briefSummary: newMode }
+                                            };
+                                        })}
+                                        onChange={(val) => setFormData(prev => ({ ...prev, briefSummary: val }))}
                                         placeholder="e.g. Are you feeling gassy and bloated? You may qualify for this study."
                                         rows={3}
-                                        className="w-full bg-[#0B101B] border border-white/10 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors resize-y"
                                     />
                                 </div>
 
@@ -1134,20 +1435,20 @@ END OF DOCUMENT
                                         Study overview
                                     </label>
                                     <BulletTextarea
-                                        name="studyOverview"
-                                        value={formData.studyOverview}
-                                        mode={formData.textModes.studyOverview as 'bullet' | 'plain'}
+                                        name="overview"
+                                        value={formData.overview}
+                                        mode={formData.textModes.overview as 'bullet' | 'plain'}
                                         onModeToggle={() => setFormData(prev => {
-                                            const newMode = prev.textModes.studyOverview === 'bullet' ? 'plain' : 'bullet';
-                                            const newValue = newMode === 'plain' ? stripBulletsFromText(prev.studyOverview) : addBulletsToText(prev.studyOverview);
+                                            const newMode = prev.textModes.overview === 'bullet' ? 'plain' : 'bullet';
+                                            const newValue = newMode === 'plain' ? stripBulletsFromText(prev.overview) : addBulletsToText(prev.overview);
                                             return { 
                                                 ...prev, 
-                                                studyOverview: newValue,
-                                                textModes: { ...prev.textModes, studyOverview: newMode }
+                                                overview: newValue,
+                                                textModes: { ...prev.textModes, overview: newMode }
                                             };
                                         })}
-                                        onChange={(val) => setFormData(prev => ({ ...prev, studyOverview: val }))}
-                                        placeholder={`Describe the study...`}
+                                        onChange={(val) => setFormData(prev => ({ ...prev, overview: val }))}
+                                        placeholder="Describe the study..."
                                         rows={4}
                                     />
                                 </div>
@@ -1157,21 +1458,21 @@ END OF DOCUMENT
                                         Benefits for participants
                                     </label>
                                     <BulletTextarea
-                                        name="benefits"
-                                        value={formData.benefits}
-                                        mode={formData.textModes.benefits as 'bullet' | 'plain'}
+                                        name="benefit"
+                                        value={formData.benefit}
+                                        mode={formData.textModes.benefit as 'bullet' | 'plain'}
                                         onModeToggle={() => setFormData(prev => {
-                                            const newMode = prev.textModes.benefits === 'bullet' ? 'plain' : 'bullet';
-                                            const newValue = newMode === 'plain' ? stripBulletsFromText(prev.benefits) : addBulletsToText(prev.benefits);
+                                            const newMode = prev.textModes.benefit === 'bullet' ? 'plain' : 'bullet';
+                                            const newValue = newMode === 'plain' ? stripBulletsFromText(prev.benefit) : addBulletsToText(prev.benefit);
                                             return { 
                                                 ...prev, 
-                                                benefits: newValue,
-                                                textModes: { ...prev.textModes, benefits: newMode }
+                                                benefit: newValue,
+                                                textModes: { ...prev.textModes, benefit: newMode }
                                             };
                                         })}
-                                        onChange={(val) => setFormData(prev => ({ ...prev, benefits: val }))}
-                                        placeholder={`List participant benefits...`}
-                                        rows={4}
+                                        onChange={(val) => setFormData(prev => ({ ...prev, benefit: val }))}
+                                        placeholder="List participant benefits..."
+                                        rows={3}
                                     />
                                 </div>
 
@@ -1180,19 +1481,19 @@ END OF DOCUMENT
                                         Community participation message
                                     </label>
                                     <BulletTextarea
-                                        name="participationMessage"
-                                        value={formData.participationMessage}
-                                        mode={formData.textModes.participationMessage as 'bullet' | 'plain'}
+                                        name="participation_message"
+                                        value={formData.participation_message}
+                                        mode={formData.textModes.participation_message as 'bullet' | 'plain'}
                                         onModeToggle={() => setFormData(prev => {
-                                            const newMode = prev.textModes.participationMessage === 'bullet' ? 'plain' : 'bullet';
-                                            const newValue = newMode === 'plain' ? stripBulletsFromText(prev.participationMessage) : addBulletsToText(prev.participationMessage);
+                                            const newMode = prev.textModes.participation_message === 'bullet' ? 'plain' : 'bullet';
+                                            const newValue = newMode === 'plain' ? stripBulletsFromText(prev.participation_message) : addBulletsToText(prev.participation_message);
                                             return { 
                                                 ...prev, 
-                                                participationMessage: newValue,
-                                                textModes: { ...prev.textModes, participationMessage: newMode }
+                                                participation_message: newValue,
+                                                textModes: { ...prev.textModes, participation_message: newMode }
                                             };
                                         })}
-                                        onChange={(val) => setFormData(prev => ({ ...prev, participationMessage: val }))}
+                                        onChange={(val) => setFormData(prev => ({ ...prev, participation_message: val }))}
                                         placeholder="Why should people participate?"
                                         rows={3}
                                     />
@@ -1327,10 +1628,32 @@ END OF DOCUMENT
                                     </select>
                                 </div>
                                 <div className="space-y-2">
+                                    <label className="text-sm font-medium text-[#e0e0e0]">Currency</label>
+                                    <select
+                                        name="currency"
+                                        value={formData.currency || 'USD'}
+                                        onChange={handleChange}
+                                        className="w-full bg-[#0B101B] border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors appearance-none"
+                                    >
+                                        <option value="USD">USD ($)</option>
+                                        <option value="EUR">EUR (€)</option>
+                                        <option value="GBP">GBP (£)</option>
+                                        <option value="INR">INR (₹)</option>
+                                        <option value="JPY">JPY (¥)</option>
+                                        <option value="CAD">CAD (CA$)</option>
+                                        <option value="AUD">AUD (A$)</option>
+                                        <option value="CNY">CNY (¥)</option>
+                                        <option value="CHF">CHF</option>
+                                        <option value="SEK">SEK (kr)</option>
+                                        <option value="SGD">SGD (S$)</option>
+                                        <option value="AED">AED</option>
+                                    </select>
+                                </div>
+                                <div className="space-y-2">
                                     <label className="text-sm font-medium text-[#e0e0e0]">Stipend amount</label>
                                     <div className="relative">
-                                        <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 font-bold pointer-events-none">
-                                            {getCurrencySymbol(formData.currency)}
+                                        <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold pointer-events-none">
+                                            {getCurrencySymbol(formData.currency || 'USD')}
                                         </div>
                                         <input
                                             type="number"
@@ -1341,26 +1664,6 @@ END OF DOCUMENT
                                             className="w-full bg-[#0B101B] border border-white/10 rounded-lg pl-10 pr-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
                                         />
                                     </div>
-                                </div>
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium text-[#e0e0e0]">Currency</label>
-                                    <select
-                                        name="currency"
-                                        value={formData.currency}
-                                        onChange={handleChange}
-                                        className="w-full bg-[#0B101B] border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors appearance-none"
-                                    >
-                                        <option value="USD">USD ($)</option>
-                                        <option value="EUR">EUR (€)</option>
-                                        <option value="GBP">GBP (£)</option>
-                                        <option value="AUD">AUD ($)</option>
-                                        <option value="CAD">CAD ($)</option>
-                                        <option value="JPY">JPY (¥)</option>
-                                        <option value="CNY">CNY (¥)</option>
-                                        <option value="INR">INR (₹)</option>
-                                        <option value="CHF">CHF (Fr)</option>
-                                        <option value="NZD">NZD ($)</option>
-                                    </select>
                                 </div>
                             </div>
                         </div>
@@ -1385,13 +1688,23 @@ END OF DOCUMENT
                                     {formData.requireStudyKit && (
                                         <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="space-y-2">
                                             <label className="text-sm font-medium text-[#e0e0e0]">Study kit details</label>
-                                            <textarea
+                                            <BulletTextarea
                                                 name="studyKitDetails"
                                                 value={formData.studyKitDetails}
-                                                onChange={handleChange}
+                                                mode={formData.textModes.studyKitDetails as 'bullet' | 'plain' || 'plain'}
+                                                onModeToggle={() => setFormData(prev => {
+                                                    const currentMode = prev.textModes.studyKitDetails || 'plain';
+                                                    const newMode = currentMode === 'bullet' ? 'plain' : 'bullet';
+                                                    const newValue = newMode === 'plain' ? stripBulletsFromText(prev.studyKitDetails) : addBulletsToText(prev.studyKitDetails);
+                                                    return { 
+                                                        ...prev, 
+                                                        studyKitDetails: newValue,
+                                                        textModes: { ...prev.textModes, studyKitDetails: newMode }
+                                                    };
+                                                })}
+                                                onChange={(val) => setFormData(prev => ({ ...prev, studyKitDetails: val }))}
                                                 placeholder="Enter components and instructions for the study kit..."
                                                 rows={3}
-                                                className="w-full bg-[#0B101B] border border-white/10 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors resize-y"
                                             />
                                         </motion.div>
                                     )}
@@ -1454,196 +1767,292 @@ END OF DOCUMENT
                                 onClick={() => setCurrentStep(4)}
                                 className="w-1/2 py-4 rounded-xl font-semibold bg-white/5 text-white hover:bg-white/10 border border-white/10 transition-colors flex items-center justify-center gap-2"
                             >
-                                Continue to research team <span className="text-xl leading-none">&rarr;</span>
+                                Continue to team management <span className="text-xl leading-none">&rarr;</span>
                             </button>
                         </div>
                     </div>
+
                 ) : currentStep === 4 ? (
-                    <div className="space-y-6">
-                        <div className="mb-6">
-                            <h2 className="text-2xl font-bold text-white tracking-tight">Research team</h2>
-                            <p className="text-slate-400 mt-1 text-sm md:text-base">Select or invite the personnel assigned to this study. They will be notified upon launch.</p>
+                    <div className="space-y-4">
+                        <div className="mb-4 px-4 md:px-0">
+                            <h2 className="text-xl font-bold text-white tracking-tight">Research team</h2>
+                            <p className="text-slate-400 mt-0.5 text-xs md:text-sm">Select or invite the personnel assigned to this study. They will be notified upon launch.</p>
                         </div>
 
-                        {/* PIs CARD */}
-                        <div className="bg-white/5 border border-white/10 rounded-xl p-6">
-                            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-6">PRINCIPAL INVESTIGATOR(S) ({resolvedPIs.length})</h3>
-
-                            <div className="space-y-4 mb-6">
-                                {teamLoading && <p className="text-sm text-slate-400 italic">Loading team members...</p>}
-                                {!teamLoading && resolvedPIs.length > 0 ? resolvedPIs.map((pi: any) => (
-                                    <div key={pi.id} className="flex items-center justify-between pb-4 border-b border-white/10 last:border-0 last:pb-0">
-                                        <div className="flex items-center gap-4">
-                                            <div className="w-10 h-10 rounded-full bg-[#1e4460] flex items-center justify-center text-[#5daee9] font-bold text-sm">
-                                                {pi.first_name?.[0] || ''}{pi.last_name?.[0] || ''}
-                                            </div>
-                                            <div>
-                                                <div className="flex items-center gap-2">
-                                                    <span className="font-bold text-white">{pi.first_name} {pi.last_name}</span>
-                                                    <span className="text-[10px] bg-[#1e4460] text-[#5daee9] px-2 py-0.5 rounded font-bold uppercase">PI</span>
+                        <div className="space-y-3 max-w-3xl px-2 md:px-0">
+                            {/* PRINCIPAL INVESTIGATOR(S) CARD */}
+                            <div className="bg-white/5 border border-white/10 rounded-lg p-3">
+                                <h3 className="text-[9px] font-black text-slate-500 uppercase tracking-wider mb-3">PRINCIPAL INVESTIGATOR(S)</h3>
+                                
+                                <div className="space-y-2">
+                                    {resolvedPIs.map((pi: any) => (
+                                        <div key={pi.id} className="flex items-center justify-between pb-1.5 border-b border-white/5 last:border-0 last:pb-0">
+                                            <div className="flex items-center gap-2.5 min-w-0">
+                                                <div className="w-7 h-7 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center text-[9px] font-bold shrink-0">
+                                                    {(pi.first_name?.[0] || '') + (pi.last_name?.[0] || pi.email?.[0] || 'P')}
                                                 </div>
-                                                <div className="text-sm text-gray-400">{pi.organization || 'MusB Research Institute'}</div>
-                                            </div>
-                                        </div>
-                                        <input
-                                            type="checkbox"
-                                            checked={(formData.selectedPIs as string[]).includes(pi.id)}
-                                            onChange={() => handleArrayToggle('selectedPIs', pi.id)}
-                                            className="w-5 h-5 rounded text-blue-400 bg-transparent border-gray-500 focus:ring-blue-500 focus:ring-1 cursor-pointer"
-                                        />
-                                    </div>
-                                )) : (
-                                    !teamLoading && <p className="text-sm text-gray-500 italic pb-4 border-b border-white/10">No available PIs found in database.</p>
-                                )}
-                            </div>
-
-                            <div className="flex items-center gap-4">
-                                <input
-                                    type="email"
-                                    name="invitePIEmail"
-                                    value={formData.invitePIEmail}
-                                    onChange={handleChange}
-                                    placeholder="Invite PI by email address"
-                                    className="flex-1 bg-[#0B101B] border border-white/10 rounded-lg px-4 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
-                                />
-                                <button className="px-6 py-2.5 rounded-lg font-semibold bg-white/10 text-white hover:bg-white/20 border border-white/10 transition-colors whitespace-nowrap">
-                                    Send invite
-                                </button>
-                            </div>
-                        </div>
-
-                        {/* CLINICAL COORDINATORS CARD */}
-                        <div className="bg-white/5 border border-white/10 rounded-xl p-4 md:p-6">
-                            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-6">CLINICAL COORDINATORS ({resolvedCoordinators.length})</h3>
-
-                            <div className="space-y-4 mb-6">
-                                {teamLoading && <p className="text-sm text-slate-400 italic">Loading...</p>}
-                                {!teamLoading && resolvedCoordinators.length > 0 ? resolvedCoordinators.map((coord: any) => (
-                                    <div key={coord.id} className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-white/10 last:border-0 last:pb-0 gap-4">
-                                        <div className="flex items-center gap-4">
-                                            <div className="w-10 h-10 rounded-full bg-[#1e4a2a] flex items-center justify-center text-[#5de97a] font-bold text-sm shrink-0">
-                                                {coord.first_name?.[0] || ''}{coord.last_name?.[0] || ''}
-                                            </div>
-                                            <div className="min-w-0">
-                                                <div className="flex flex-wrap items-center gap-2">
-                                                    <span className="font-bold text-white truncate">{coord.first_name} {coord.last_name}</span>
-                                                    <span className="text-[10px] bg-[#1e4a2a] text-[#5de97a] px-2 py-0.5 rounded font-bold uppercase whitespace-nowrap">Coordinator</span>
+                                                <div className="flex flex-col min-w-0">
+                                                    <div className="flex items-center gap-2 flex-wrap">
+                                                        <span className="text-sm font-bold text-white truncate">{pi.first_name || 'Unnamed'} {pi.last_name || ''}</span>
+                                                        <span className="text-[9px] font-black uppercase tracking-widest bg-blue-500/10 text-blue-400 px-2 py-0.5 rounded">PI</span>
+                                                    </div>
+                                                    <span className="text-xs text-slate-500 truncate">{pi.organization || 'MusB Research Institute'}</span>
                                                 </div>
-                                                <div className="text-sm text-gray-400 truncate">{coord.organization || 'MusB Research Institute'}</div>
                                             </div>
+                                            <input
+                                                type="checkbox"
+                                                checked={(formData.selectedPIs as string[]).includes(pi.id)}
+                                                onChange={() => handleArrayToggle('selectedPIs', pi.id)}
+                                                className="w-5 h-5 rounded border-white/20 bg-transparent text-blue-500 focus:ring-blue-500/50 transition-all cursor-pointer shrink-0 ml-4"
+                                            />
                                         </div>
-                                        <input
-                                            type="checkbox"
-                                            checked={(formData.selectedCoordinators as string[]).includes(coord.id)}
-                                            onChange={() => handleArrayToggle('selectedCoordinators', coord.id)}
-                                            className="w-5 h-5 rounded text-blue-400 bg-transparent border-gray-500 focus:ring-blue-500 focus:ring-1 cursor-pointer sm:ml-auto"
-                                        />
+                                    ))}
+                                </div>
+
+                                <div className="space-y-4 pt-4 border-t border-white/5">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        <div className="space-y-1.5">
+                                            <label className="text-[10px] font-bold text-slate-500 ml-1 uppercase">First Name</label>
+                                            <input
+                                                type="text"
+                                                name="invitePIFirstName"
+                                                value={formData.invitePIFirstName}
+                                                onChange={(e) => setFormData({...formData, invitePIFirstName: e.target.value})}
+                                                placeholder="e.g. John"
+                                                autoComplete="new-password"
+                                                className="w-full bg-[#0B101B] border border-white/10 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
+                                            />
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <label className="text-[10px] font-bold text-slate-500 ml-1 uppercase">Last Name</label>
+                                            <input
+                                                type="text"
+                                                name="invitePILastName"
+                                                value={formData.invitePILastName}
+                                                onChange={(e) => setFormData({...formData, invitePILastName: e.target.value})}
+                                                placeholder="e.g. Smith"
+                                                autoComplete="new-password"
+                                                className="w-full bg-[#0B101B] border border-white/10 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
+                                            />
+                                        </div>
                                     </div>
-                                )) : (
-                                    !teamLoading && <p className="text-sm text-gray-500 italic pb-4 border-b border-white/10">No available coordinators found in database.</p>
-                                )}
+                                    <div className="flex flex-col sm:flex-row items-end gap-4">
+                                        <div className="flex-1 w-full space-y-1.5">
+                                            <label className="text-[10px] font-bold text-slate-500 ml-1 uppercase">Email Address</label>
+                                            <input
+                                                type="email"
+                                                name="invitePIEmail"
+                                                value={formData.invitePIEmail}
+                                                onChange={(e) => setFormData({...formData, invitePIEmail: e.target.value})}
+                                                placeholder="pi@institution.edu"
+                                                autoComplete="new-password"
+                                                className="w-full bg-[#0B101B] border border-white/10 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
+                                            />
+                                        </div>
+                                        <button 
+                                            onClick={handleInvitePI} 
+                                            className="w-full sm:w-auto px-8 py-3.5 bg-white/5 hover:bg-white/10 text-blue-400 text-[11px] font-bold uppercase tracking-widest rounded-xl border border-blue-500/20 transition-all whitespace-nowrap h-[46px] flex items-center justify-center"
+                                        >
+                                            SEND INVITE
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
 
-                            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
-                                <input
-                                    type="email"
-                                    name="inviteCoordinatorEmail"
-                                    value={formData.inviteCoordinatorEmail}
-                                    onChange={handleChange}
-                                    placeholder="Invite coordinator by email address"
-                                    className="flex-1 bg-[#0B101B] border border-white/10 rounded-lg px-4 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
-                                />
-                                <button className="px-6 py-2.5 rounded-lg font-semibold bg-white/10 text-white hover:bg-white/20 border border-white/10 transition-colors whitespace-nowrap">
-                                    Send invite
-                                </button>
-                            </div>
-                        </div>
-
-                        {/* SPONSOR PERSONNEL CARD */}
-                        <div className="bg-white/5 border border-white/10 rounded-xl p-4 md:p-6">
-                            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-6">SPONSOR PERSONNEL ({resolvedSponsorUsers.length})</h3>
-
-                            <div className="space-y-4 mb-6">
-                                {teamLoading && <p className="text-sm text-slate-400 italic">Loading...</p>}
-                                {!teamLoading && resolvedSponsorUsers.length > 0 ? resolvedSponsorUsers.map((sponsor: any) => (
-                                    <div key={sponsor.id} className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-white/10 last:border-0 last:pb-0 gap-4">
-                                        <div className="flex items-center gap-4">
-                                            <div className="w-10 h-10 rounded-full bg-[#52411e] flex items-center justify-center text-[#e9b85d] font-bold text-sm shrink-0">
-                                                {sponsor.first_name?.[0] || ''}{sponsor.last_name?.[0] || ''}
-                                            </div>
-                                            <div className="min-w-0">
-                                                <div className="flex flex-wrap items-center gap-2">
-                                                    <span className="font-bold text-white truncate">{sponsor.first_name} {sponsor.last_name}</span>
-                                                    <span className="text-[10px] bg-[#52411e] text-[#e9b85d] px-2 py-0.5 rounded font-bold uppercase whitespace-nowrap">Sponsor</span>
+                            {/* CLINICAL COORDINATORS CARD */}
+                            <div className="bg-white/5 border border-white/10 rounded-lg p-3">
+                                <h3 className="text-[9px] font-black text-slate-500 uppercase tracking-wider mb-3">CLINICAL COORDINATORS</h3>
+                                
+                                <div className="space-y-4">
+                                    {resolvedCoordinators.map((c: any) => (
+                                        <div key={c.id} className="flex items-center justify-between pb-4 border-b border-white/5 last:border-0 last:pb-0">
+                                            <div className="flex items-center gap-4 min-w-0">
+                                                <div className="w-10 h-10 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-xs font-bold shrink-0">
+                                                    {(c.first_name?.[0] || '') + (c.last_name?.[0] || c.email?.[0] || 'C')}
                                                 </div>
-                                                <div className="text-sm text-gray-400 truncate">{sponsor.organization || 'External Sponsor Org'}</div>
+                                                <div className="flex flex-col min-w-0">
+                                                    <div className="flex items-center gap-2 flex-wrap">
+                                                        <span className="text-sm font-bold text-white truncate">{c.first_name || 'Unnamed'} {c.last_name || ''}</span>
+                                                        <span className="text-[9px] font-black uppercase tracking-widest bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded">Coordinator</span>
+                                                    </div>
+                                                    <span className="text-xs text-slate-500 truncate">{c.organization || 'MusB Research Institute'}</span>
+                                                </div>
                                             </div>
+                                            <input
+                                                type="checkbox"
+                                                checked={(formData.selectedCoordinators as string[]).includes(c.id)}
+                                                onChange={() => handleArrayToggle('selectedCoordinators', c.id)}
+                                                className="w-5 h-5 rounded border-white/20 bg-transparent text-emerald-500 focus:ring-emerald-500/50 transition-all cursor-pointer shrink-0 ml-4"
+                                            />
                                         </div>
-                                        <input
-                                            type="checkbox"
-                                            checked={(formData.selectedSponsorUsers as string[]).includes(sponsor.id)}
-                                            onChange={() => handleArrayToggle('selectedSponsorUsers', sponsor.id)}
-                                            className="w-5 h-5 rounded text-blue-400 bg-transparent border-gray-500 focus:ring-blue-500 focus:ring-1 cursor-pointer sm:ml-auto"
-                                        />
+                                    ))}
+                                </div>
+
+                                <div className="space-y-4 pt-4 border-t border-white/5">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        <div className="space-y-1.5">
+                                            <label className="text-[10px] font-bold text-slate-500 ml-1 uppercase">First Name</label>
+                                            <input
+                                                type="text"
+                                                name="inviteCoordinatorFirstName"
+                                                value={formData.inviteCoordinatorFirstName}
+                                                onChange={(e) => setFormData({...formData, inviteCoordinatorFirstName: e.target.value})}
+                                                placeholder="e.g. Jane"
+                                                autoComplete="new-password"
+                                                className="w-full bg-[#0B101B] border border-white/10 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-colors"
+                                            />
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <label className="text-[10px] font-bold text-slate-500 ml-1 uppercase">Last Name</label>
+                                            <input
+                                                type="text"
+                                                name="inviteCoordinatorLastName"
+                                                value={formData.inviteCoordinatorLastName}
+                                                onChange={(e) => setFormData({...formData, inviteCoordinatorLastName: e.target.value})}
+                                                placeholder="e.g. Doe"
+                                                autoComplete="new-password"
+                                                className="w-full bg-[#0B101B] border border-white/10 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-colors"
+                                            />
+                                        </div>
                                     </div>
-                                )) : (
-                                    !teamLoading && <p className="text-sm text-gray-500 italic pb-4 border-b border-white/10">No available sponsor personnel found in database.</p>
-                                )}
+                                    <div className="flex flex-col sm:flex-row items-end gap-4">
+                                        <div className="flex-1 w-full space-y-1.5">
+                                            <label className="text-[10px] font-bold text-slate-500 ml-1 uppercase">Email Address</label>
+                                            <input
+                                                type="email"
+                                                name="inviteCoordinatorEmail"
+                                                value={formData.inviteCoordinatorEmail}
+                                                onChange={(e) => setFormData({...formData, inviteCoordinatorEmail: e.target.value})}
+                                                placeholder="coordinator@clinic.org"
+                                                autoComplete="new-password"
+                                                className="w-full bg-[#0B101B] border border-white/10 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-colors"
+                                            />
+                                        </div>
+                                        <button 
+                                            onClick={handleInviteCoordinator} 
+                                            className="w-full sm:w-auto px-8 py-3.5 bg-white/5 hover:bg-white/10 text-emerald-400 text-[11px] font-bold uppercase tracking-widest rounded-xl border border-emerald-500/20 transition-all whitespace-nowrap h-[46px] flex items-center justify-center"
+                                        >
+                                            SEND INVITE
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
 
-                            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
-                                <input
-                                    type="email"
-                                    name="inviteSponsorEmail"
-                                    value={formData.inviteSponsorEmail}
-                                    onChange={handleChange}
-                                    placeholder="Invite sponsor contact by email address"
-                                    className="flex-1 bg-[#0B101B] border border-white/10 rounded-lg px-4 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
-                                />
-                                <button className="px-6 py-2.5 rounded-lg font-semibold bg-white/10 text-white hover:bg-white/20 border border-white/10 transition-colors whitespace-nowrap">
-                                    Send invite
-                                </button>
+                            {/* SPONSOR PERSONNEL CARD */}
+                            <div className="bg-white/5 border border-white/10 rounded-xl p-6">
+                                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-6">SPONSOR PERSONNEL</h3>
+                                
+                                <div className="space-y-4">
+                                    {resolvedSponsorUsers.map((s: any) => (
+                                        <div key={s.id} className="flex items-center justify-between pb-4 border-b border-white/5 last:border-0 last:pb-0">
+                                            <div className="flex items-center gap-4 min-w-0">
+                                                <div className="w-10 h-10 rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center text-xs font-bold shrink-0">
+                                                    {(s.first_name?.[0] || '') + (s.last_name?.[0] || s.email?.[0] || 'S')}
+                                                </div>
+                                                <div className="flex flex-col min-w-0">
+                                                    <div className="flex items-center gap-2 flex-wrap">
+                                                        <span className="text-sm font-bold text-white truncate">{s.first_name || 'Unnamed'} {s.last_name || ''}</span>
+                                                        <span className="text-[9px] font-black uppercase tracking-widest bg-amber-500/10 text-amber-400 px-2 py-0.5 rounded">Sponsor</span>
+                                                    </div>
+                                                    <span className="text-xs text-slate-500 truncate">{s.organization || 'NovaBiotics Inc.'}</span>
+                                                </div>
+                                            </div>
+                                            <input
+                                                type="checkbox"
+                                                checked={(formData.selectedSponsorUsers as string[]).includes(s.id)}
+                                                onChange={() => handleArrayToggle('selectedSponsorUsers', s.id)}
+                                                className="w-5 h-5 rounded border-white/20 bg-transparent text-amber-500 focus:ring-amber-500/50 transition-all cursor-pointer shrink-0 ml-4"
+                                            />
+                                        </div>
+                                    ))}
+                                </div>
+
+                                <div className="space-y-4 pt-4 border-t border-white/5">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        <div className="space-y-1.5">
+                                            <label className="text-[10px] font-bold text-slate-500 ml-1 uppercase">First Name</label>
+                                            <input
+                                                type="text"
+                                                name="inviteSponsorFirstName"
+                                                value={formData.inviteSponsorFirstName}
+                                                onChange={(e) => setFormData({...formData, inviteSponsorFirstName: e.target.value})}
+                                                placeholder="e.g. Alice"
+                                                autoComplete="new-password"
+                                                className="w-full bg-[#0B101B] border border-white/10 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/50 transition-colors"
+                                            />
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <label className="text-[10px] font-bold text-slate-500 ml-1 uppercase">Last Name</label>
+                                            <input
+                                                type="text"
+                                                name="inviteSponsorLastName"
+                                                value={formData.inviteSponsorLastName}
+                                                onChange={(e) => setFormData({...formData, inviteSponsorLastName: e.target.value})}
+                                                placeholder="e.g. Johnson"
+                                                autoComplete="new-password"
+                                                className="w-full bg-[#0B101B] border border-white/10 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/50 transition-colors"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="flex flex-col sm:flex-row items-end gap-4">
+                                        <div className="flex-1 w-full space-y-1.5">
+                                            <label className="text-[10px] font-bold text-slate-500 ml-1 uppercase">Email Address</label>
+                                            <input
+                                                type="email"
+                                                name="inviteSponsorEmail"
+                                                value={formData.inviteSponsorEmail}
+                                                onChange={(e) => setFormData({...formData, inviteSponsorEmail: e.target.value})}
+                                                placeholder="sponsor@pharma.com"
+                                                autoComplete="new-password"
+                                                className="w-full bg-[#0B101B] border border-white/10 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/50 transition-colors"
+                                            />
+                                        </div>
+                                        <button 
+                                            onClick={handleInviteSponsor} 
+                                            className="w-full sm:w-auto px-8 py-3.5 bg-white/5 hover:bg-white/10 text-amber-400 text-[11px] font-bold uppercase tracking-widest rounded-xl border border-amber-500/20 transition-all whitespace-nowrap h-[46px] flex items-center justify-center"
+                                        >
+                                            SEND INVITE
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
-                        <p className="text-slate-400 text-sm md:text-base text-center mt-2 mb-4">
-                            Selected personnel will be automatically assigned to this study upon launch and will receive portal access.
-                        </p>
+                        <p className="text-[11px] text-slate-500 px-4 md:px-0 pt-4 font-medium italic">Selected personnel will be automatically assigned to this study upon launch and will receive portal access.</p>
 
-                        {/* Footer Navigation specifically for Step 4 */}
-                        <div className="pt-8 flex items-center justify-between gap-4 mt-8 border-t border-white/10">
+                        {/* Footer Navigation for Step 4 (Team) */}
+                        <div className="pt-8 px-0 flex flex-col sm:flex-row items-center justify-between gap-4 max-w-4xl border-t border-white/5">
                             <button
                                 onClick={() => setCurrentStep(3)}
-                                className="w-1/4 py-4 rounded-xl font-semibold bg-white/5 text-white hover:bg-white/10 border border-white/10 transition-colors flex items-center justify-center gap-2"
+                                className="w-full sm:w-[160px] py-4 rounded-xl font-bold bg-white/5 text-slate-300 hover:bg-white/10 border border-white/10 transition-colors flex items-center justify-center gap-2 text-[10px] uppercase tracking-widest"
                             >
-                                <span className="text-xl leading-none">&larr;</span> Back
-                            </button>
-                            <button
-                                onClick={handleSaveDraft}
-                                className="w-1/4 py-4 rounded-xl font-semibold bg-white/5 text-white hover:bg-white/10 border border-white/10 transition-colors flex items-center justify-center"
-                            >
-                                Save as draft
+                                <span className="text-sm">&larr;</span> Back
                             </button>
                             <button
                                 onClick={() => setCurrentStep(5)}
-                                className="w-1/2 py-4 rounded-xl font-semibold bg-white/5 text-white hover:bg-white/10 border border-white/10 transition-colors flex items-center justify-center gap-2"
+                                className="w-full sm:flex-1 py-4 rounded-xl font-bold bg-white/5 text-white hover:bg-white/10 border border-white/10 transition-colors flex items-center justify-center gap-2 text-[10px] uppercase tracking-widest"
                             >
-                                Continue to screening form <span className="text-xl leading-none">&rarr;</span>
+                                Continue to screening form <span className="text-sm">&rarr;</span>
                             </button>
                         </div>
                     </div>
                 ) : currentStep === 5 ? (
                     <div className="space-y-6">
+                        <div className="mb-6">
+                            <h2 className="text-2xl font-bold text-white tracking-tight">Participant screening</h2>
+                            <p className="text-slate-400 mt-1 text-sm md:text-base">Build the qualification questionnaire for potential participants.</p>
+                        </div>
+
+                        {/* SCREENER DOCUMENT REMOVED FROM HERE - MOVED TO STEP 7 FOR CENTRALIZED DOC MGMT */}
+
                         <ScreenerBuilder
-                            standalone={true}
                             initialQuestions={formData.screenerQuestions}
-                            onSave={(questions) => {
-                                setFormData({ ...formData, screenerQuestions: questions });
-                            }}
+                            onSave={(questions: any[]) => setFormData(prev => ({ ...prev, screenerQuestions: questions }))}
+                            standalone={true}
                         />
 
-                        {/* Footer Navigation specifically for Step 5 */}
-                        <div className="pt-8 flex items-center justify-between gap-4 mt-8 border-t border-white/10">
+                        {/* Footer Navigation for Step 5 (Screening) */}
+                        <div className="pt-4 flex items-center justify-between gap-4">
                             <button
                                 onClick={() => setCurrentStep(4)}
                                 className="w-1/4 py-4 rounded-xl font-semibold bg-white/5 text-white hover:bg-white/10 border border-white/10 transition-colors flex items-center justify-center gap-2"
@@ -1660,19 +2069,77 @@ END OF DOCUMENT
                                 onClick={() => setCurrentStep(6)}
                                 className="w-1/2 py-4 rounded-xl font-semibold bg-white/5 text-white hover:bg-white/10 border border-white/10 transition-colors flex items-center justify-center gap-2"
                             >
-                                Continue to questionnaires <span className="text-xl leading-none">&rarr;</span>
+                                Continue to questionnaire builder <span className="text-xl leading-none">&rarr;</span>
                             </button>
                         </div>
                     </div>
                 ) : currentStep === 6 ? (
-                    <div className="space-y-6">
-                        <QuestionnaireBuilder
-                            selectedTemplates={formData.selectedQuestionnaires}
-                            onSelectTemplate={(id) => handleArrayToggle('selectedQuestionnaires', id)}
-                        />
+                    <div className="space-y-4">
+                        <div className="mb-4">
+                            <h2 className="text-xl font-bold text-white tracking-tight">Study questionnaires</h2>
+                            <p className="text-slate-400 mt-0.5 text-xs md:text-sm">Select or create follow-up questionnaires for enrolled participants.</p>
+                        </div>
 
-                        {/* Footer Navigation specifically for Step 6 */}
-                        <div className="pt-8 flex items-center justify-between gap-4 mt-8 border-t border-white/10">
+                        <div className="bg-[#111111] border border-white/5 rounded-2xl p-6">
+                            <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-6">SELECTED QUESTIONNAIRES</div>
+                            
+                            <div className="space-y-4">
+                                {formData.questionnaireDetails.map((q: any) => (
+                                    <div key={q.id} className="flex flex-col md:flex-row md:items-center justify-between gap-4 py-4 border-b border-white/5 last:border-0">
+                                        <div className="flex-1">
+                                            <div className="text-sm font-bold text-white mb-1">{q.name}</div>
+                                            <div className="text-[11px] text-slate-400 leading-relaxed">
+                                                {q.json_structure?.instructions ? q.json_structure.instructions.substring(0, 100) + '...' : 'Participant-reported outcome'}
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-3 shrink-0">
+                                            <div className="relative">
+                                                <select
+                                                    value={formData.questionnaireFrequencies[q.id] || 'One time only'}
+                                                    onChange={(e) => setFormData(prev => ({ ...prev, questionnaireFrequencies: { ...prev.questionnaireFrequencies, [q.id]: e.target.value } }))}
+                                                    className="appearance-none bg-white/5 border border-white/10 rounded-xl pl-4 pr-10 py-2.5 text-sm font-medium text-white focus:outline-none focus:border-blue-500 transition-colors w-40 cursor-pointer"
+                                                >
+                                                    <option value="One time only">One time only</option>
+                                                    <option value="Baseline only">Baseline only</option>
+                                                    <option value="Each visit">Each visit</option>
+                                                    <option value="Daily">Daily</option>
+                                                    <option value="3x per day">3x per day</option>
+                                                    <option value="Alternate days">Alternate days</option>
+                                                    <option value="Weekly">Weekly</option>
+                                                    <option value="Monthly">Monthly</option>
+                                                </select>
+                                                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={14} />
+                                            </div>
+                                            <button className="px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-sm font-medium text-white hover:bg-white/10 transition-colors">
+                                                Preview
+                                            </button>
+                                            <button onClick={() => {
+                                                    const nextIds = formData.selectedQuestionnaires.filter((id: string) => id !== q.id);
+                                                    const nextDetails = formData.questionnaireDetails.filter((d: any) => d.id !== q.id);
+                                                    setFormData(prev => ({ ...prev, selectedQuestionnaires: nextIds, questionnaireDetails: nextDetails }));
+                                                }} className="p-2 text-slate-500 hover:text-rose-500 transition-colors shrink-0">
+                                                <X size={16} />
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))}
+                                {formData.questionnaireDetails.length === 0 && (
+                                    <div className="text-center py-8 text-slate-500 text-sm italic">
+                                        No questionnaires selected.
+                                    </div>
+                                )}
+                            </div>
+
+                            <button 
+                                onClick={() => setIsQuestionnaireModalOpen(true)}
+                                className="w-full mt-4 py-3 bg-white/5 border border-white/10 rounded-xl text-[11px] font-black text-white tracking-widest uppercase hover:bg-white/10 transition-colors"
+                            >
+                                + Add from questionnaire repository
+                            </button>
+                        </div>
+
+                        {/* Footer Navigation for Step 6 (Questionnaires) */}
+                        <div className="pt-4 flex items-center justify-between gap-4">
                             <button
                                 onClick={() => setCurrentStep(5)}
                                 className="w-1/4 py-4 rounded-xl font-semibold bg-white/5 text-white hover:bg-white/10 border border-white/10 transition-colors flex items-center justify-center gap-2"
@@ -1689,27 +2156,68 @@ END OF DOCUMENT
                                 onClick={() => setCurrentStep(7)}
                                 className="w-1/2 py-4 rounded-xl font-semibold bg-white/5 text-white hover:bg-white/10 border border-white/10 transition-colors flex items-center justify-center gap-2"
                             >
-                                Continue to documents <span className="text-xl leading-none">&rarr;</span>
+                                Continue to documentation <span className="text-xl leading-none">&rarr;</span>
                             </button>
                         </div>
                     </div>
                 ) : currentStep === 7 ? (
                     <div className="space-y-6">
                         <div className="mb-6">
-                            <h2 className="text-2xl font-bold text-white tracking-tight">Study documents</h2>
+                            <h2 className="text-3xl font-black text-white tracking-tighter italic uppercase">Study documents</h2>
                             <p className="text-slate-400 mt-1 text-sm md:text-base">Upload required documents. The consent form will appear in the participant portal for electronic signature if e-consent was selected.</p>
                         </div>
 
+                        {/* SCREENER DOCUMENT (MOVED FROM STEP 5) */}
+                        <div className="bg-[#0F172A]/40 border border-white/10 rounded-[2rem] p-8 space-y-8">
+                            <div className="flex items-center justify-between">
+                                <h3 className="text-[10px] font-black text-white uppercase tracking-[0.2em]">ELIGIBILITY SCREENER PROTOCOL</h3>
+                                <div className="flex items-center gap-2 px-3 py-1.5 bg-blue-500/10 rounded-xl border border-blue-500/20">
+                                    <FileText className="w-3 h-3 text-blue-500" />
+                                    <span className="text-[10px] font-black text-blue-500 uppercase tracking-widest">SCREENING SOURCE</span>
+                                </div>
+                            </div>
+
+                            <div 
+                                onClick={() => screenerFileInputRef.current?.click()}
+                                className="h-[180px] border-2 border-dashed border-blue-500/20 bg-black/40 rounded-[2rem] flex flex-col items-center justify-center cursor-pointer hover:border-blue-500/40 transition-all group"
+                            >
+                                {formData.screenerFile ? (
+                                    <div className="flex flex-col items-center gap-4">
+                                        <div className="w-16 h-16 rounded-2xl bg-blue-500/10 flex items-center justify-center">
+                                            <CheckCircle2 className="w-8 h-8 text-blue-500" />
+                                        </div>
+                                        <div className="text-center">
+                                            <div className="text-xl font-black text-white uppercase italic tracking-tighter mb-1">{formData.screenerFile.name}</div>
+                                            <div className="text-[10px] text-blue-500 uppercase font-black tracking-widest">PROTOCOL ATTACHED</div>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="flex flex-col items-center gap-4">
+                                        <Upload className="w-10 h-10 text-blue-500 transition-transform group-hover:-translate-y-1" />
+                                        <div className="text-center">
+                                            <div className="text-2xl font-black text-white italic uppercase tracking-tighter leading-none mb-1">UPLOAD SCREENER</div>
+                                            <div className="text-[10px] font-bold text-blue-500 uppercase tracking-[0.3em] italic">ELIGIBILITY PROTOCOL</div>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                            <input
+                                type="file"
+                                ref={screenerFileInputRef}
+                                onChange={handleScreenerFileChange}
+                                className="hidden"
+                                accept=".pdf,.doc,.docx"
+                            />
+                        </div>
+
                         {/* INFORMED CONSENT FORM CARD */}
-                        <div className="bg-white/5 border border-white/10 rounded-xl p-6">
-                            <div className="flex justify-between items-center mb-6">
-                                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">INFORMED CONSENT FORM</h3>
-                                <button
-                                    onClick={() => setShowAIImportModal(true)}
-                                    className="flex items-center gap-2 px-4 py-1.5 bg-pink-500/10 border border-pink-500/20 rounded-lg text-[10px] font-bold text-pink-500 uppercase tracking-widest hover:bg-pink-500 hover:text-white transition-all"
-                                >
-                                    <Terminal className="w-3.5 h-3.5" /> AI Extract
-                                </button>
+                        <div className="bg-[#0F172A]/40 border border-white/10 rounded-[2rem] p-8 space-y-8">
+                            <div className="flex items-center justify-between">
+                                <h3 className="text-[10px] font-black text-white uppercase tracking-[0.2em]">INFORMED CONSENT FORM</h3>
+                                <div className="flex items-center gap-2 px-3 py-1.5 bg-pink-500/10 rounded-xl border border-pink-500/20">
+                                    <Terminal className="w-3 h-3 text-pink-500" />
+                                    <span className="text-[10px] font-black text-pink-500 uppercase tracking-widest">AI EXTRACT</span>
+                                </div>
                             </div>
 
                             <input
@@ -1720,190 +2228,119 @@ END OF DOCUMENT
                                 accept=".pdf,.doc,.docx"
                             />
 
-                            {formData.consentFormFile ? (
-                                <div className="p-6 border border-white/10 bg-[#0B101B] rounded-xl flex items-center justify-between">
-                                    <div className="flex items-center gap-4">
-                                        <div className="w-10 h-10 bg-blue-600/20 text-blue-400 rounded-lg flex items-center justify-center">
-                                            <Upload className="w-5 h-5" />
-                                        </div>
-                                        <div>
-                                            <p className="text-white font-medium">{formData.consentFormFile.name}</p>
-                                            <p className="text-sm text-gray-500">{(formData.consentFormFile.size / 1024 / 1024).toFixed(2)} MB</p>
-                                        </div>
-                                    </div>
-                                    <button
-                                        onClick={() => setFormData({ ...formData, consentFormFile: null })}
-                                        className="p-2 text-gray-400 hover:text-red-500 transition-colors"
-                                    >
-                                        <X className="w-5 h-5" />
-                                    </button>
-                                </div>
-                            ) : (
+                            {!formData.extractedConsentText && (
                                 <div
                                     onClick={() => consentFileInputRef.current?.click()}
-                                    className="border-2 border-dashed border-pink-500/20 bg-pink-500/5 hover:border-pink-500/50 transition-all rounded-[2.5rem] p-12 flex flex-col items-center justify-center cursor-pointer text-center group"
+                                    className={`relative h-[240px] border-2 border-dashed ${isExtracting ? 'border-pink-500 bg-pink-500/5' : 'border-pink-500/20 bg-black/40 hover:border-pink-500/40'} transition-all rounded-[2rem] flex flex-col items-center justify-center cursor-pointer text-center group`}
                                 >
-                                    <Upload className="w-10 h-10 text-pink-500 mb-6 group-hover:scale-110 transition-transform" />
-                                    <h4 className="text-xl font-black text-white italic uppercase tracking-tighter mb-2">Upload Doc</h4>
-                                    <p className="text-[10px] font-black text-pink-500 uppercase tracking-[0.2em]">AI Extraction</p>
-                                </div>
-                            )}
-
-                            {/* AI EXTRACTION ENGINE HUD */}
-                            {isExtracting && (
-                                <div className="mt-6 p-10 border-2 border-dashed border-pink-500/20 bg-pink-500/5 rounded-xl flex flex-col items-center justify-center gap-4 animate-pulse">
-                                    <div className="w-10 h-10 border-4 border-pink-500 border-t-transparent rounded-full animate-spin" />
-                                    <div className="text-center">
-                                        <p className="text-pink-500 font-black uppercase tracking-[0.2em] text-xs mb-1">AI Extraction Engine</p>
-                                        <p className="text-white/40 text-[10px] font-bold uppercase tracking-widest">Analyzing legal clauses & structures...</p>
-                                    </div>
+                                    {isExtracting ? (
+                                        <>
+                                            <div className="w-12 h-12 border-4 border-pink-500/20 border-t-pink-500 rounded-full animate-spin mb-4" />
+                                            <p className="text-pink-400 font-black uppercase tracking-[0.3em] text-[10px] italic">NEURAL SYNCHRONIZATION...</p>
+                                        </>
+                                    ) : (
+                                        <div className="flex flex-col items-center gap-4">
+                                            <Upload className="w-10 h-10 text-pink-500 transition-transform group-hover:-translate-y-1" />
+                                            <div>
+                                                <div className="text-2xl font-black text-white italic uppercase tracking-tighter leading-none mb-1">UPLOAD DOC</div>
+                                                <div className="text-[10px] font-bold text-pink-500 uppercase tracking-[0.3em] italic">AI EXTRACTION</div>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             )}
 
                             {formData.extractedConsentText && (
-                                <div className="mt-8 space-y-4">
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center gap-2">
-                                            <div className="w-2 h-2 rounded-full bg-pink-500 animate-ping" />
-                                            <span className="text-[10px] font-black text-white uppercase tracking-widest">AI Extracted Content Review</span>
+                                <div className="space-y-6">
+                                    {/* FILE HEADER */}
+                                    <div className="bg-black/40 border border-white/5 rounded-2xl p-4 flex items-center justify-between">
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center">
+                                                <FileText className="w-5 h-5 text-blue-400" />
+                                            </div>
+                                            <div>
+                                                <div className="text-sm font-bold text-white">{formData.consentFormFile?.name || 'Consent Form.pdf'}</div>
+                                                <div className="text-[10px] text-slate-500 font-medium">
+                                                    {formData.consentFormFile ? (formData.consentFormFile.size / (1024 * 1024)).toFixed(2) + ' MB' : '0.00 MB'}
+                                                </div>
+                                            </div>
                                         </div>
-                                        <div className="flex items-center gap-1">
-                                            {/* Formatting buttons removed to prevent confusing raw tags in textarea */}
-                                        </div>
+                                        <button onClick={() => setFormData({...formData, extractedConsentText: ''})} className="p-2 hover:bg-white/5 rounded-lg text-slate-500 transition-colors">
+                                            <X size={18} />
+                                        </button>
                                     </div>
-                                    <div className="relative group">
-                                        <textarea
-                                            value={formData.extractedConsentText}
-                                            onChange={(e) => setFormData({ ...formData, extractedConsentText: e.target.value })}
-                                            rows={formData.extractedConsentText ? Math.max(15, formData.extractedConsentText.split('\n').length + 2) : 12}
-                                            className="w-full h-auto bg-black/40 border border-white/10 rounded-xl p-6 text-sm text-slate-300 leading-relaxed outline-none focus:border-pink-500/50 resize-none font-sans"
-                                            placeholder="Review extracted text here..."
-                                        />
-                                        
-                                        {/* Clinical Oversight Signatures HUD */}
-                                        <div className="absolute bottom-16 right-6 w-80 p-5 bg-[#0B101B]/90 backdrop-blur-xl border border-pink-500/20 rounded-2xl shadow-2xl space-y-5">
-                                            <div className="flex justify-between items-center border-b border-white/5 pb-3">
-                                                <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Oversight Signatures</p>
-                                                <Shield className="w-3 h-3 text-pink-500" />
+
+                                    {/* AI EXTRACTION REVIEW AREA */}
+                                    <div className="space-y-4">
+                                        <div className="flex items-center gap-2 mb-4">
+                                            <Sparkles className="w-4 h-4 text-pink-500" />
+                                            <h4 className="text-[10px] font-black text-pink-500 uppercase tracking-[0.2em]">AI EXTRACTION DOCUMENT REVIEW</h4>
+                                        </div>
+
+                                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 bg-black/20 rounded-[2rem] border border-white/5 p-8 relative overflow-hidden">
+                                            {/* LEFT: TEXT CONTENT */}
+                                            <div className="lg:col-span-8 space-y-8 max-h-[600px] overflow-y-auto pr-6 custom-scrollbar">
+                                                <div className="font-mono text-[13px] leading-relaxed text-slate-300 whitespace-pre-wrap">
+                                                    {formData.extractedConsentText}
+                                                </div>
+                                            </div>
+
+                                            {/* RIGHT: SIGNATURE OVERSIGHT PREVIEW */}
+                                            <div className="lg:col-span-4">
+                                                <div className="bg-[#0F172A] border border-pink-500/20 rounded-2xl p-6 space-y-6 sticky top-0">
+                                                    <div className="flex items-center justify-between mb-2">
+                                                        <h5 className="text-[9px] font-black text-white uppercase tracking-widest">OVERSIGHT SIGNATURES</h5>
+                                                        <Shield className="w-3 h-3 text-pink-500" />
+                                                    </div>
+
+                                                    <div className="space-y-4">
+                                                        <SignaturePlaceholder label="01. PARTICIPANT" status="SIGNATURE REQUIRED" color="pink" />
+                                                        <SignaturePlaceholder label="02. COORDINATOR" status="VERIFICATION REQUIRED" color="blue" />
+                                                        <SignaturePlaceholder label="03. PRINCIPAL INV." status="FINAL APPROVAL" color="emerald" />
+                                                    </div>
+
+                                                    <div className="pt-4 border-t border-white/5">
+                                                        <div className="text-[8px] font-bold text-slate-500 uppercase tracking-tighter">Blockchain Hash</div>
+                                                        <div className="text-[10px] font-mono text-pink-500/50 truncate">0x71C22...F6B1</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* VALIDATION BUTTONS */}
+                                        <div className="flex items-center justify-between pt-4">
+                                            <div className="flex gap-3">
+                                                <button className="px-4 py-2 bg-emerald-500/10 border border-emerald-500/20 rounded-lg text-[10px] font-black text-emerald-400 uppercase tracking-widest flex items-center gap-2">
+                                                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> ITS VALIDATED
+                                                </button>
+                                                <button className="px-4 py-2 bg-red-500/10 border border-red-500/20 rounded-lg text-[10px] font-black text-red-400 uppercase tracking-widest">
+                                                    NOT VALIDATED
+                                                </button>
                                             </div>
                                             
-                                            {/* Participant */}
-                                            <div className="space-y-2">
-                                                <div className="flex justify-between items-center">
-                                                    <span className="text-[9px] font-black text-pink-500 uppercase tracking-widest">01. Participant</span>
-                                                    <span className="text-[8px] font-bold text-slate-600 uppercase">Awaiting Signature</span>
-                                                </div>
-                                                <div className="h-12 border border-dashed border-pink-500/20 rounded-lg flex items-center justify-center bg-pink-500/5 relative overflow-hidden">
-                                                     <div className="text-[9px] font-bold text-pink-500/30 uppercase italic tracking-tighter">Digital Signature Placeholder</div>
-                                                     <div className="absolute bottom-1.5 left-2 right-2 h-[1px] bg-pink-500/10" />
-                                                </div>
-                                            </div>
-
-                                            {/* Coordinator */}
-                                            <div className="space-y-2">
-                                                <div className="flex justify-between items-center">
-                                                    <span className="text-[9px] font-black text-blue-400 uppercase tracking-widest">02. Coordinator</span>
-                                                    <span className="text-[8px] font-bold text-slate-600 uppercase">Verification Required</span>
-                                                </div>
-                                                <div className="h-12 border border-dashed border-blue-400/20 rounded-lg flex items-center justify-center bg-blue-400/5 relative overflow-hidden">
-                                                     <div className="text-[9px] font-bold text-blue-400/30 uppercase italic tracking-tighter">Co-Sign Placeholder</div>
-                                                     <div className="absolute bottom-1.5 left-2 right-2 h-[1px] bg-blue-400/10" />
-                                                </div>
-                                            </div>
-
-                                            {/* PI */}
-                                            <div className="space-y-2">
-                                                <div className="flex justify-between items-center">
-                                                    <span className="text-[9px] font-black text-emerald-400 uppercase tracking-widest">03. Principal Inv.</span>
-                                                    <span className="text-[8px] font-bold text-slate-600 uppercase">Final Approval</span>
-                                                </div>
-                                                <div className="h-12 border border-dashed border-emerald-400/20 rounded-lg flex items-center justify-center bg-emerald-400/5 relative overflow-hidden">
-                                                     <div className="text-[9px] font-bold text-emerald-400/30 uppercase italic tracking-tighter">Oversight Placeholder</div>
-                                                     <div className="absolute bottom-1.5 left-2 right-2 h-[1px] bg-emerald-400/10" />
-                                                </div>
-                                            </div>
-
-                                            <div className="pt-3 flex justify-between items-center border-t border-white/5">
-                                                <div className="text-[7px] font-bold text-slate-600 uppercase tracking-widest">21 CFR Part 11 Compliant</div>
-                                                <div className="flex items-center gap-1.5">
-                                                    <div className="w-1.5 h-1.5 rounded-full bg-pink-500 animate-pulse" />
-                                                    <div className="text-[8px] font-black text-pink-500 uppercase tracking-widest">E-VERIFIED</div>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <div className="absolute bottom-4 left-4 flex gap-3">
-                                            <div className="flex items-center gap-2 px-3 py-1.5 bg-[#0B101B] border border-white/10 rounded-full shadow-xl">
-                                                <Shield className="w-3 h-3 text-blue-400" />
-                                                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">PII Masked</span>
-                                            </div>
-                                            <div className="flex items-center gap-2 px-3 py-1.5 bg-[#0B101B] border border-white/10 rounded-full shadow-xl">
-                                                <Database className="w-3 h-3 text-emerald-400" />
-                                                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">NLP Validated</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div className="flex justify-end gap-3 pt-2">
-                                        <button 
-                                            onClick={() => setFormData({ ...formData, extractedConsentText: '' })}
-                                            className="px-6 py-2.5 text-[10px] font-black text-slate-500 uppercase tracking-widest hover:text-white transition-colors"
-                                        >
-                                            Discard
-                                        </button>
-                                        <button className="px-8 py-2.5 bg-pink-600 hover:bg-pink-700 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-lg shadow-pink-600/20">
-                                            Apply to E-Consent Template
-                                        </button>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-
-                        {/* ADDITIONAL STUDY DOCUMENTS CARD */}
-                        <div className="bg-white/5 border border-white/10 rounded-xl p-6">
-                            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-6">ADDITIONAL STUDY DOCUMENTS</h3>
-
-                            <input
-                                type="file"
-                                ref={additionalFileInputRef}
-                                onChange={handleAdditionalFilesChange}
-                                className="hidden"
-                                multiple
-                            />
-
-                            <div
-                                onClick={() => additionalFileInputRef.current?.click()}
-                                className="border-2 border-dashed border-white/10 bg-[#0B101B] hover:border-blue-500 hover:bg-blue-600/5 transition-all rounded-xl p-10 flex flex-col items-center justify-center cursor-pointer text-center mb-6"
-                            >
-                                <Upload className="w-6 h-6 text-slate-400 mb-4" />
-                                <p className="text-white font-medium">Upload protocol, IRB approval, or other documents</p>
-                            </div>
-
-                            {formData.additionalDocuments.length > 0 && (
-                                <div className="space-y-3">
-                                    {formData.additionalDocuments.map((file, idx) => (
-                                        <div key={idx} className="p-4 border border-white/10 bg-[#0B101B] rounded-xl flex items-center justify-between">
-                                            <div className="flex items-center gap-4">
-                                                <div className="w-8 h-8 bg-gray-700 text-gray-300 rounded-lg flex items-center justify-center">
-                                                    <Upload className="w-4 h-4" />
-                                                </div>
-                                                <div>
-                                                    <p className="text-white text-sm font-medium">{file.name}</p>
-                                                    <p className="text-xs text-gray-500">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
-                                                </div>
-                                            </div>
-                                            <button
-                                                onClick={() => removeAdditionalFile(idx)}
-                                                className="p-1.5 text-gray-400 hover:text-red-500 transition-colors"
+                                            <button 
+                                                onClick={() => setCurrentStep(8)}
+                                                className="px-8 py-3 bg-gradient-to-r from-pink-600 to-purple-600 rounded-xl text-[11px] font-black text-white uppercase tracking-[0.2em] shadow-[0_0_20px_rgba(219,39,119,0.3)] hover:shadow-[0_0_30px_rgba(219,39,119,0.5)] transition-all"
                                             >
-                                                <X className="w-4 h-4" />
+                                                DATA SYNCHRONIZED
                                             </button>
                                         </div>
-                                    ))}
+                                    </div>
                                 </div>
                             )}
                         </div>
 
-                        {/* Footer Navigation specifically for Step 7 */}
+                        {/* ADDITIONAL DOCUMENTS CARD */}
+                        <div className="bg-[#0F172A]/40 border border-white/10 rounded-[2rem] p-8 space-y-8">
+                            <h3 className="text-[10px] font-black text-white uppercase tracking-[0.2em]">ADDITIONAL STUDY DOCUMENTS</h3>
+                            
+                            <div className="h-[180px] border-2 border-dashed border-white/5 bg-black/40 rounded-[2rem] flex flex-col items-center justify-center cursor-pointer hover:border-white/10 transition-all">
+                                <Upload className="w-6 h-6 text-slate-600 mb-4" />
+                                <p className="text-sm font-bold text-white tracking-tight">Upload protocol, IRB approval, or other documents</p>
+                            </div>
+                        </div>
+
+                        {/* Footer Navigation for Step 7 (Documents) */}
                         <div className="pt-4 flex items-center justify-between gap-4">
                             <button
                                 onClick={() => setCurrentStep(6)}
@@ -1926,210 +2363,126 @@ END OF DOCUMENT
                         </div>
                     </div>
                 ) : currentStep === 8 ? (
-                    <div className="space-y-6">
-                        <div className="mb-8">
-                            <h2 className="text-2xl font-bold text-white">Review & launch</h2>
-                            <p className="text-gray-400 mt-2">Review your study configuration before submitting. Missing fields are highlighted below.</p>
-                        </div>
+                    <div className="space-y-12">
+                        {/* THE NEW REVIEW PAGE - REDESIGNED TO MATCH SCREENSHOT 2 */}
+                        <div className="flex flex-col gap-10">
+                            <div className="mb-6">
+                                <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter">Review & Launch</h2>
+                                <p className="text-slate-500 mt-2 text-sm font-medium">
+                                    Review your study configuration before submitting. <span className="text-blue-400">Missing fields are highlighted below.</span>
+                                </p>
+                            </div>
 
-                        {/* PROTOCOL */}
-                        <div className="bg-white/5 border border-white/10 rounded-xl p-6 group">
-                            <div className="flex justify-between items-center mb-6">
-                                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">01. Protocol Identification</h3>
-                                <button onClick={() => setCurrentStep(1)} className="text-[10px] font-black text-blue-400 uppercase tracking-widest hover:text-white transition-colors opacity-0 group-hover:opacity-100 flex items-center gap-2">
-                                    <DraftingCompass className="w-3 h-3" /> Edit Section
-                                </button>
-                            </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div className="space-y-4">
-                                    <div className="flex flex-col gap-1">
-                                        <span className="text-[10px] text-slate-500 font-black uppercase tracking-widest">Internal ID</span>
-                                        <p className="text-sm text-white font-bold italic">{formData.internalId || 'Not set'}</p>
+                            {/* CONFIGURATION SUMMARY TABLES */}
+                            <div className="grid grid-cols-1 gap-8">
+                                {/* 1. PROTOCOL SECTION */}
+                                <div className="bg-[#0B101B]/60 border border-white/10 rounded-[2rem] overflow-hidden">
+                                    <div className="px-8 py-5 bg-white/5 border-b border-white/5 flex items-center gap-3">
+                                        <Terminal className="w-4 h-4 text-blue-400" />
+                                        <h3 className="text-[11px] font-black text-white uppercase tracking-[0.2em]">Protocol</h3>
                                     </div>
-                                    <div className="flex flex-col gap-1">
-                                        <span className="text-[10px] text-slate-500 font-black uppercase tracking-widest">Timeline</span>
-                                        <p className="text-sm text-white font-bold italic">{formData.startDate || 'TBD'} — {formData.endDate || 'TBD'}</p>
+                                    <div className="divide-y divide-white/5">
+                                        <ReviewRow label="Internal ID" value={formData.protocol_id} placeholder="Required" isCritical={!formData.protocol_id} />
+                                        <ReviewRow label="Sponsor" value={getSponsorDisplayName(formData.sponsor)} placeholder="Not selected" isCritical={!formData.sponsor} />
+                                        <ReviewRow label="Start Date" value={formData.startDate} placeholder="Not set" />
+                                        <ReviewRow label="End Date" value={formData.endDate} placeholder="Not set" />
+                                        <ReviewRow label="Countries" value={formData.countries.join(', ')} placeholder="Global Study" />
                                     </div>
                                 </div>
-                                <div className="space-y-4">
-                                    <div className="flex flex-col gap-1">
-                                        <span className="text-[10px] text-slate-500 font-black uppercase tracking-widest">Sponsor Organization</span>
-                                        <p className="text-sm text-blue-400 font-black uppercase italic">{getSponsorDisplayName(formData.sponsor) || 'Internal'}</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
 
-                        {/* STUDY CONTENT */}
-                        <div className="bg-white/5 border border-white/10 rounded-xl p-6 group">
-                            <div className="flex justify-between items-center mb-6">
-                                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">02. Descriptive Content</h3>
-                                <button onClick={() => setCurrentStep(2)} className="text-[10px] font-black text-blue-400 uppercase tracking-widest hover:text-white transition-colors opacity-0 group-hover:opacity-100 flex items-center gap-2">
-                                    <DraftingCompass className="w-3 h-3" /> Edit Section
-                                </button>
-                            </div>
-                            <div className="space-y-6">
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-6 border-b border-white/5">
-                                    <div className="flex flex-col gap-1">
-                                        <span className="text-[10px] text-slate-500 font-black uppercase tracking-widest">Official Title</span>
-                                        <p className="text-sm text-white font-bold italic">{formData.fullTitle || 'Untitled'}</p>
+                                {/* 2. STUDY INFORMATION SECTION */}
+                                <div className="bg-[#0B101B]/60 border border-white/10 rounded-[2rem] overflow-hidden">
+                                    <div className="px-8 py-5 bg-white/5 border-b border-white/5 flex items-center gap-3">
+                                        <Info className="w-4 h-4 text-emerald-400" />
+                                        <h3 className="text-[11px] font-black text-white uppercase tracking-[0.2em]">Study Information</h3>
                                     </div>
-                                    <div className="flex flex-col gap-1">
-                                        <span className="text-[10px] text-slate-500 font-black uppercase tracking-widest">Public Name</span>
-                                        <p className="text-sm text-white font-bold italic">{formData.shortTitle || 'Untitled'}</p>
+                                    <div className="divide-y divide-white/5">
+                                        <ReviewRow label="Category" value={formData.category} placeholder="Not selected" />
+                                        <ReviewRow label="Brief summary" value={formData.briefSummary} placeholder="No summary provided" truncate />
+                                        <ReviewRow label="Public short title" value={formData.title} placeholder="Required" isCritical={!formData.title} />
+                                        <ReviewRow label="Official full title" value={formData.full_title} placeholder="Required" isCritical={!formData.full_title} />
                                     </div>
                                 </div>
-                                <div className="space-y-4">
-                                    <div className="flex flex-col gap-2">
-                                        <span className="text-[10px] text-slate-500 font-black uppercase tracking-widest">Brief Summary</span>
-                                        <p className="text-xs text-slate-400 leading-relaxed italic line-clamp-2">{formData.briefSummary || 'No summary provided'}</p>
+
+                                {/* 3. TEAM & DESIGN SECTION */}
+                                <div className="bg-[#0B101B]/60 border border-white/10 rounded-[2rem] overflow-hidden">
+                                    <div className="px-8 py-5 bg-white/5 border-b border-white/5 flex items-center gap-3">
+                                        <Layout className="w-4 h-4 text-amber-400" />
+                                        <h3 className="text-[11px] font-black text-white uppercase tracking-[0.2em]">Team & Design</h3>
                                     </div>
-                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                        <div className="flex flex-col gap-1">
-                                            <span className="text-[10px] text-slate-500 font-black uppercase tracking-widest">Overview</span>
-                                            <p className="text-[11px] text-emerald-400 font-bold uppercase tracking-tighter italic">{formData.studyOverview ? 'Configured' : 'Missing'}</p>
-                                        </div>
-                                        <div className="flex flex-col gap-1">
-                                            <span className="text-[10px] text-slate-500 font-black uppercase tracking-widest">Benefits</span>
-                                            <p className="text-[11px] text-emerald-400 font-bold uppercase tracking-tighter italic">{formData.benefits ? 'Configured' : 'Missing'}</p>
-                                        </div>
-                                        <div className="flex flex-col gap-1">
-                                            <span className="text-[10px] text-slate-500 font-black uppercase tracking-widest">Message</span>
-                                            <p className="text-[11px] text-emerald-400 font-bold uppercase tracking-tighter italic">{formData.participationMessage ? 'Configured' : 'Missing'}</p>
-                                        </div>
+                                    <div className="divide-y divide-white/5">
+                                        <ReviewRow 
+                                            label="PI assigned" 
+                                            value={[
+                                                ...resolvedPIs.filter((pi: any) => formData.selectedPIs.includes(pi.id) || formData.selectedPIs.includes(pi.email)).map((pi: any) => `${pi.first_name} ${pi.last_name}`),
+                                                ...formData.selectedPIs.filter((idOrEmail: string) => !resolvedPIs.some(p => p.id === idOrEmail || p.email === idOrEmail))
+                                            ].join(', ')} 
+                                            placeholder="No PI selected" 
+                                            isCritical={formData.selectedPIs.length === 0}
+                                        />
+                                        <ReviewRow 
+                                            label="Coordinator assigned" 
+                                            value={[
+                                                ...resolvedCoordinators.filter((c: any) => formData.selectedCoordinators.includes(c.id) || formData.selectedCoordinators.includes(c.email)).map((c: any) => `${c.first_name} ${c.last_name}`),
+                                                ...formData.selectedCoordinators.filter((idOrEmail: string) => !resolvedCoordinators.some(p => p.id === idOrEmail || p.email === idOrEmail))
+                                            ].join(', ')} 
+                                            placeholder="No Coordinator selected" 
+                                            isCritical={formData.selectedCoordinators.length === 0}
+                                        />
+                                        <ReviewRow label="Trial phase" value={phaseToLabel[formData.clinicalPhase] || formData.clinicalPhase} />
+                                        <ReviewRow label="Masking" value={maskingToLabel[formData.maskingStrategy] || formData.maskingStrategy} />
+                                        <ReviewRow label="Execution" value={studyTypeToLabel[formData.executionMode] || formData.executionMode} />
+                                        <ReviewRow label="Reward" value={rewardTypeToLabel[formData.rewardType] || formData.rewardType} />
+                                        <ReviewRow label="Incentive" value={rewardLogicToLabel[formData.incentiveLogic] || formData.incentiveLogic} />
+                                        <ReviewRow label="Target Enrollment" value={formData.targetEnrollment?.toString()} placeholder="0" />
                                     </div>
                                 </div>
                             </div>
-                        </div>
 
-                        {/* CLINICAL DESIGN & COMPENSATION */}
-                        <div className="bg-white/5 border border-white/10 rounded-xl p-6 group">
-                            <div className="flex justify-between items-center mb-6">
-                                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">03. Design, Compensation & Logistics</h3>
-                                <button onClick={() => setCurrentStep(3)} className="text-[10px] font-black text-blue-400 uppercase tracking-widest hover:text-white transition-colors opacity-0 group-hover:opacity-100 flex items-center gap-2">
-                                    <DraftingCompass className="w-3 h-3" /> Edit Section
-                                </button>
+                            {/* 4. SCREENER & INSTRUMENTS SECTION */}
+                            <div className="bg-[#0B101B]/60 border border-white/10 rounded-[2rem] overflow-hidden">
+                                <div className="px-8 py-5 bg-white/5 border-b border-white/5 flex items-center gap-3">
+                                    <ClipboardList className="w-4 h-4 text-cyan-400" />
+                                    <h3 className="text-[11px] font-black text-white uppercase tracking-[0.2em]">Screener & Instruments</h3>
+                                </div>
+                                <div className="divide-y divide-white/5">
+                                    <ReviewRow 
+                                        label="Eligibility Screener" 
+                                        value={formData.screenerQuestions.length > 0 ? `${formData.screenerQuestions.length} Questions Configured` : ''} 
+                                        placeholder="Not Configured" 
+                                        isCritical={formData.screenerQuestions.length === 0}
+                                    />
+                                    <ReviewRow 
+                                        label="Clinical Instruments" 
+                                        value={formData.selectedQuestionnaires.length > 0 ? `${formData.selectedQuestionnaires.length} Templates Selected` : ''} 
+                                        placeholder="None Selected" 
+                                    />
+                                </div>
                             </div>
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                                <div className="flex flex-col gap-1">
-                                    <span className="text-[10px] text-slate-500 font-black uppercase tracking-widest">Model</span>
-                                    <p className="text-xs text-white font-bold uppercase italic">{formData.primaryModel || 'RCT'}</p>
-                                </div>
-                                <div className="flex flex-col gap-1">
-                                    <span className="text-[10px] text-slate-500 font-black uppercase tracking-widest">Phase</span>
-                                    <p className="text-xs text-white font-bold uppercase italic">{formData.clinicalPhase || 'N/A'}</p>
-                                </div>
-                                <div className="flex flex-col gap-1">
-                                    <span className="text-[10px] text-slate-500 font-black uppercase tracking-widest">Enrollment</span>
-                                    <p className="text-xs text-white font-bold uppercase italic">{formData.targetEnrollment || '0'} Subjects</p>
-                                </div>
-                                <div className="flex flex-col gap-1">
-                                    <span className="text-[10px] text-slate-500 font-black uppercase tracking-widest">Stipend</span>
-                                    <p className="text-xs text-emerald-400 font-black uppercase italic">
-                                        {getCurrencySymbol(formData.currency)}
-                                        {formData.stipendAmount || '0'} ({formData.rewardType})
-                                    </p>
-                                </div>
-                                <div className="flex flex-col gap-1">
-                                    <span className="text-[10px] text-slate-500 font-black uppercase tracking-widest">Study Kit</span>
-                                    <p className="text-xs text-white font-bold uppercase italic">{formData.requireStudyKit ? 'Required' : 'None'}</p>
-                                </div>
-                                {formData.requireStudyKit && formData.studyKitDetails && (
-                                    <div className="col-span-2 md:col-span-4 mt-2 p-3 bg-[#0B101B] border border-white/5 rounded-lg">
-                                        <span className="text-[9px] text-slate-500 font-black uppercase tracking-widest block mb-1">Kit Logistics</span>
-                                        <p className="text-[11px] text-slate-400 italic line-clamp-2">{formData.studyKitDetails}</p>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
 
-                        {/* TEAM & DESIGN */}
-                        <div className="bg-white/5 border border-white/10 rounded-xl p-6 group">
-                            <div className="flex justify-between items-center mb-6">
-                                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">04. Operational Team</h3>
-                                <button onClick={() => setCurrentStep(4)} className="text-[10px] font-black text-blue-400 uppercase tracking-widest hover:text-white transition-colors opacity-0 group-hover:opacity-100 flex items-center gap-2">
-                                    <DraftingCompass className="w-3 h-3" /> Edit Section
-                                </button>
-                            </div>
-                            <div className="space-y-4">
-                                <div className="flex justify-between items-center border-b border-white/10 pb-4">
-                                    <span className="text-sm text-slate-300 font-medium italic">Principal Investigator(s)</span>
-                                    {formData.selectedPIs.length > 0 ? (
-                                        <span className="text-sm text-emerald-400 font-bold uppercase tracking-tight italic">
-                                            {formData.selectedPIs.map(id => {
-                                                const person = resolvedPIs?.find(p => String(p.id) === String(id));
-                                                return person ? `${person.first_name || ''} ${person.last_name || ''}`.trim() || id : id;
-                                            }).join(', ')}
-                                        </span>
-                                    ) : (
-                                        <span className="text-sm text-red-400 italic">Not assigned</span>
-                                    )}
+                            {/* 5. DOCUMENTATION SECTION */}
+                            <div className="bg-[#0B101B]/60 border border-white/10 rounded-[2rem] overflow-hidden">
+                                <div className="px-8 py-5 bg-white/5 border-b border-white/5 flex items-center gap-3">
+                                    <ShieldCheck className="w-4 h-4 text-indigo-400" />
+                                    <h3 className="text-[11px] font-black text-white uppercase tracking-[0.2em]">Documentation</h3>
                                 </div>
-                                <div className="flex justify-between items-center border-b border-white/10 pb-4">
-                                    <span className="text-sm text-slate-300 font-medium italic">Coordinators</span>
-                                    {formData.selectedCoordinators.length > 0 ? (
-                                        <span className="text-sm text-emerald-400 font-bold uppercase tracking-tight italic">
-                                            {formData.selectedCoordinators.map(id => {
-                                                const person = resolvedCoordinators?.find(c => String(c.id) === String(id));
-                                                return person ? `${person.first_name || ''} ${person.last_name || ''}`.trim() || id : id;
-                                            }).join(', ')}
-                                        </span>
-                                    ) : (
-                                        <span className="text-sm text-red-400 italic">Not assigned</span>
-                                    )}
+                                <div className="divide-y divide-white/5">
+                                    <ReviewRow 
+                                        label="Informed Consent" 
+                                        value={formData.extractedConsentText ? 'AI-Extracted Content Provided' : (formData.consentFormFile ? 'PDF Template Provided' : '')} 
+                                        placeholder="No document provided" 
+                                        isCritical={!formData.extractedConsentText && !formData.consentFormFile}
+                                    />
+                                    <ReviewRow 
+                                        label="Additional Docs" 
+                                        value={formData.additionalDocuments.length > 0 ? `${formData.additionalDocuments.length} files attached` : ''} 
+                                        placeholder="None"
+                                    />
                                 </div>
                             </div>
-                        </div>
 
-                        {/* WORKFLOWS */}
-                        <div className="bg-white/5 border border-white/10 rounded-xl p-6 group">
-                            <div className="flex justify-between items-center mb-6">
-                                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">05. Digital Workflows</h3>
-                                <div className="flex gap-4">
-                                    <button onClick={() => setCurrentStep(5)} className="text-[10px] font-black text-blue-400 uppercase tracking-widest hover:text-white transition-colors opacity-0 group-hover:opacity-100 flex items-center gap-2">
-                                        <DraftingCompass className="w-3 h-3" /> Screener
-                                    </button>
-                                    <button onClick={() => setCurrentStep(6)} className="text-[10px] font-black text-blue-400 uppercase tracking-widest hover:text-white transition-colors opacity-0 group-hover:opacity-100 flex items-center gap-2">
-                                        <DraftingCompass className="w-3 h-3" /> Questionnaires
-                                    </button>
-                                </div>
-                            </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div className="flex flex-col gap-1">
-                                    <span className="text-[10px] text-slate-500 font-black uppercase tracking-widest">Screener Form</span>
-                                    <p className={`text-xs font-bold uppercase italic ${formData.screenerQuestions.length > 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                                        {formData.screenerQuestions.length > 0 ? `${formData.screenerQuestions.length} Questions Configured` : 'Not Configured'}
-                                    </p>
-                                </div>
-                                <div className="flex flex-col gap-1">
-                                    <span className="text-[10px] text-slate-500 font-black uppercase tracking-widest">Active Instruments</span>
-                                    <p className={`text-xs font-bold uppercase italic ${formData.selectedQuestionnaires.length > 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                                        {formData.selectedQuestionnaires.length > 0 ? `${formData.selectedQuestionnaires.length} Questionnaires Assigned` : 'None Assigned'}
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* DOCUMENTS */}
-                        <div className="bg-white/5 border border-white/10 rounded-xl p-6 group">
-                            <div className="flex justify-between items-center mb-6">
-                                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">06. Regulatory Documents</h3>
-                                <button onClick={() => setCurrentStep(7)} className="text-[10px] font-black text-blue-400 uppercase tracking-widest hover:text-white transition-colors opacity-0 group-hover:opacity-100 flex items-center gap-2">
-                                    <DraftingCompass className="w-3 h-3" /> Edit Section
-                                </button>
-                            </div>
-                            <div className="flex justify-between items-center">
-                                <span className="text-sm text-slate-300 font-medium italic">Master Consent Template</span>
-                                {formData.consentFormFile ? (
-                                    <span className="text-sm text-emerald-400 font-bold uppercase tracking-tight italic">{formData.consentFormFile.name}</span>
-                                ) : (
-                                    <span className="text-sm text-yellow-500 italic">No File Uploaded</span>
-                                )}
-                            </div>
-                        </div>
-
-                        {/* Footer Navigation */}
-                        <div className="pt-4 flex items-center justify-between gap-4">
+                            {/* Footer Navigation */}
+                            <div className="pt-12 flex items-center justify-between gap-4 border-t border-white/10">
                             <button
                                 onClick={() => setCurrentStep(7)}
                                 className="w-1/4 py-4 rounded-xl font-semibold bg-white/5 text-white hover:bg-white/10 border border-white/10 transition-colors flex items-center justify-center gap-2"
@@ -2155,18 +2508,54 @@ END OF DOCUMENT
                                     if (!onSave || isSubmitting) return;
                                     try {
                                         setIsSubmitting(true);
-                                        await onSave(formData);
+                                        const documentsToUpload = [];
+                                        if (formData.consentFormFile) {
+                                            documentsToUpload.push({
+                                                file: formData.consentFormFile,
+                                                name: 'Consent Form - ' + formData.title,
+                                                category: 'CONSENT',
+                                                version: 'V1.0'
+                                            });
+                                        }
+                                        if (formData.screenerFile) {
+                                            documentsToUpload.push({
+                                                file: formData.screenerFile,
+                                                name: 'Screener Form - ' + formData.title,
+                                                category: 'SCREENER',
+                                                version: 'V1.0'
+                                            });
+                                        }
+                                        if (formData.additionalDocuments && formData.additionalDocuments.length > 0) {
+                                            formData.additionalDocuments.forEach((file: File) => {
+                                                documentsToUpload.push({
+                                                    file: file,
+                                                    name: file.name,
+                                                    category: 'OTHER',
+                                                    version: 'V1.0'
+                                                });
+                                            });
+                                        }
+                                        await onSave(formData, documentsToUpload);
+                                    } catch (err: any) {
+                                        console.error("Launch error:", err);
+                                        const errorMsg = err.message || JSON.stringify(err);
+                                        if (errorMsg.includes('protocol_id') && errorMsg.includes('exists')) {
+                                            alert("CRITICAL ERROR: A study with this Protocol ID already exists. Please return to Step 1 and provide a unique ID (e.g., MUSB-" + new Date().getFullYear() + "-" + Math.floor(1000 + Math.random() * 9000) + ").");
+                                        } else {
+                                            alert("LAUNCH FAILED: " + errorMsg);
+                                        }
                                     } finally {
                                         setIsSubmitting(false);
                                     }
                                 }}
                                 disabled={isSubmitting || !isEditMode}
-                                className="w-1/4 py-4 rounded-xl font-semibold bg-white/5 text-white hover:bg-white/10 border border-white/10 transition-colors flex items-center justify-center disabled:opacity-60 disabled:cursor-not-allowed"
+                                className="w-1/4 py-4 rounded-xl font-black text-sm uppercase tracking-widest bg-white text-slate-900 hover:bg-blue-400 hover:text-white transition-all disabled:opacity-60 disabled:cursor-not-allowed shadow-2xl shadow-white/10"
                             >
                                 {isSubmitting 
-                                    ? (initialData ? 'Saving...' : 'Launching...') 
-                                    : (initialData ? (isEditMode ? 'Save Protocol Changes' : 'Locked') : 'Preview & launch study')}
+                                    ? (initialData ? 'SAVING...' : 'LAUNCHING...') 
+                                    : (initialData ? (isEditMode ? 'SAVE CHANGES' : 'LOCKED') : 'CONFIRM & LAUNCH')}
                             </button>
+                        </div>
                         </div>
                     </div>
                 ) : null}
@@ -2175,31 +2564,31 @@ END OF DOCUMENT
                 </div>
 
                 {/* Live Summary Sidebar - Fulfilling "show all details when we start filling" */}
-                <div className="w-full lg:w-80 2xl:w-96 shrink-0 order-1 lg:order-2 lg:sticky lg:top-8">
-                    <div className="bg-[#0F172A] border border-white/10 rounded-2xl p-6 shadow-2xl space-y-8">
+                <div className="w-full lg:w-72 2xl:w-80 shrink-0 order-1 lg:order-2 lg:sticky lg:top-4">
+                    <div className="bg-[#0F172A] border border-white/10 rounded-2xl p-4 shadow-2xl space-y-5">
                         <div>
-                            <div className="text-[10px] font-black text-blue-400 tracking-[0.3em] uppercase mb-4">Live Study Summary</div>
+                            <div className="text-[9px] font-black text-blue-400 tracking-[0.3em] uppercase mb-3">Live Study Summary</div>
                             
                             {/* Key Identity */}
-                            <div className="space-y-4">
-                                <div className="bg-white/5 rounded-xl p-4 border border-white/5">
-                                    <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Protocol Identification</div>
-                                    <div className="text-sm font-black text-white italic truncate">{formData.internalId || 'PENDING ID'}</div>
-                                    <div className="text-[11px] font-bold text-blue-400 mt-1 truncate">{formData.shortTitle || 'UNTITLED STUDY'}</div>
+                            <div className="space-y-2.5">
+                                <div className="bg-white/5 rounded-xl p-3 border border-white/5">
+                                    <div className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-0.5">Protocol Identification</div>
+                                    <div className="text-[13px] font-black text-white italic truncate">{formData.protocol_id || 'PENDING ID'}</div>
+                                    <div className="text-[10px] font-bold text-blue-400 mt-0.5 truncate">{formData.title || 'UNTITLED STUDY'}</div>
                                 </div>
 
-                                <div className="bg-white/5 rounded-xl p-4 border border-white/5">
-                                    <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Sponsor Entity</div>
-                                    <div className="text-sm font-bold text-white truncate flex items-center gap-2">
-                                        <Building2 size={14} className="text-slate-500" />
+                                <div className="bg-white/5 rounded-xl p-3 border border-white/5">
+                                    <div className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-0.5">Sponsor Entity</div>
+                                    <div className="text-[12px] font-bold text-white truncate flex items-center gap-2">
+                                        <Building2 size={12} className="text-slate-500" />
                                         {formData.sponsor ? getSponsorDisplayName(formData.sponsor) : <span className="text-slate-600 italic">None selected</span>}
                                     </div>
                                 </div>
 
-                                <div className="bg-white/5 rounded-xl p-4 border border-white/5">
-                                    <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Timeline</div>
-                                    <div className="text-xs font-bold text-white flex items-center gap-2">
-                                        <Calendar size={14} className="text-slate-500" />
+                                <div className="bg-white/5 rounded-xl p-3 border border-white/5">
+                                    <div className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-0.5">Timeline</div>
+                                    <div className="text-[11px] font-bold text-white flex items-center gap-2">
+                                        <Calendar size={12} className="text-slate-500" />
                                         {formData.startDate || '??'} → {formData.endDate || '??'}
                                     </div>
                                 </div>
@@ -2222,18 +2611,18 @@ END OF DOCUMENT
                         </div>
 
                         {/* Quick Tips */}
-                        <div className="p-4 bg-blue-600/5 border border-blue-500/20 rounded-xl">
-                            <div className="flex gap-3">
-                                <Sparkles size={16} className="text-blue-400 shrink-0" />
+                        <div className="p-3 bg-blue-600/5 border border-blue-500/20 rounded-xl">
+                            <div className="flex gap-2.5">
+                                <Sparkles size={14} className="text-blue-400 shrink-0" />
                                 <div>
-                                    <div className="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-1">PRO TIP</div>
-                                    <p className="text-[11px] text-slate-300 leading-relaxed font-medium">Study identifiers like Internal ID are required for billing and IRB tracking. Ensure accuracy before launch.</p>
+                                    <div className="text-[9px] font-black text-blue-400 uppercase tracking-widest mb-0.5">PRO TIP</div>
+                                    <p className="text-[10px] text-slate-300 leading-relaxed font-medium">Study identifiers like Internal ID are required for billing and IRB tracking. Ensure accuracy before launch.</p>
                                 </div>
                             </div>
                         </div>
 
-                        <button onClick={handleSaveDraft} className="w-full py-3.5 rounded-xl bg-white/5 border border-white/10 text-white font-bold text-[11px] uppercase tracking-widest hover:bg-white/10 transition-all flex items-center justify-center gap-2">
-                            <Upload size={14} className="text-slate-400" />
+                        <button onClick={handleSaveDraft} className="w-full py-3 rounded-xl bg-white/5 border border-white/10 text-white font-bold text-[10px] uppercase tracking-widest hover:bg-white/10 transition-all flex items-center justify-center gap-2">
+                            <Upload size={12} className="text-slate-400" />
                             Save Progress Draft
                         </button>
                     </div>
@@ -2269,6 +2658,37 @@ END OF DOCUMENT
                             </div>
                         </motion.div>
                     </React.Fragment>
+                )}
+            </AnimatePresence>
+
+            <AnimatePresence>
+                {isQuestionnaireModalOpen && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 bg-[#060B16]/90 backdrop-blur-md z-[200] overflow-y-auto"
+                    >
+                        <div className="min-h-screen p-4 flex flex-col">
+                            <div className="flex justify-end p-4">
+                                <button onClick={() => setIsQuestionnaireModalOpen(false)} className="p-3 bg-white/5 text-white hover:bg-white/10 rounded-xl transition-colors">
+                                    <X size={24} />
+                                </button>
+                            </div>
+                            <div className="flex-1 bg-[#0B101B] rounded-3xl border border-white/10 p-6 md:p-10 mx-auto w-full max-w-7xl mb-8">
+                                <QuestionnaireBuilder
+                                    selectedIds={formData.selectedQuestionnaires}
+                                    onChange={(ids, templates) => {
+                                        setFormData(prev => ({ 
+                                            ...prev, 
+                                            selectedQuestionnaires: ids,
+                                            questionnaireDetails: templates || prev.questionnaireDetails
+                                        }));
+                                    }}
+                                />
+                            </div>
+                        </div>
+                    </motion.div>
                 )}
             </AnimatePresence>
         </div>

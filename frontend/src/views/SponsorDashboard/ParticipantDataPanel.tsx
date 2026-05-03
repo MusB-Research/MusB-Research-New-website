@@ -103,15 +103,19 @@ export default function ParticipantDataPanel({ protocols, addToast, windowWidth,
            // Map backend fields to the expected frontend structure
            const mapped = data.map((p: any) => ({
              id: p.participant_sid || `P-${p.id}`,
-             age: p.age || 'N/A',
-             gender: p.gender || 'Unknown',
+             age: p.age || p.user_details?.age || 'N/A',
+             gender: p.gender || p.user_details?.gender || 'Unknown',
              arm: p.assigned_arm || 'Main Arm',
              status: p.status || 'Active',
              compliance: 100, // Placeholder
-             lastVisit: 'Today',
-             aeCount: 0,
-             visitsCompleted: 1,
-             totalVisits: 5
+             lastVisit: new Date(p.updated_at || p.created_at || Date.now()).toLocaleDateString(),
+             aeCount: p.adverseEvents?.length || 0,
+             visitsCompleted: p.visits?.filter((v:any)=>v.status==='Completed').length || 1,
+             totalVisits: p.visits?.length || 5,
+             enrollmentDate: p.created_at ? new Date(p.created_at).toLocaleDateString() : 'N/A',
+             site: p.site || 'Primary Site',
+             scores: p.scores || [],
+             visits: p.visits || []
            }));
            setParticipants(mapped);
         }
@@ -222,10 +226,10 @@ export default function ParticipantDataPanel({ protocols, addToast, windowWidth,
           <div style={{ width: windowWidth > 1024 ? '300px' : '100%', padding: windowWidth > 1024 ? 0 : '16px 0', borderTop: windowWidth > 1024 ? 'none' : '1px solid #334155', borderBottom: windowWidth > 1024 ? 'none' : '1px solid #334155' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12, fontSize: 13, fontWeight: 900, color: '#94a3b8' }}>
               <span>ENROLLMENT</span>
-              <span style={{ color: '#2563eb' }}>{Math.round((selectedStudy.enrollment.current/selectedStudy.enrollment.target)*100)}%</span>
+              <span style={{ color: '#2563eb' }}>{Math.round((Math.max(selectedStudy.enrollment.current, participants.length)/selectedStudy.enrollment.target)*100)}%</span>
             </div>
             <div style={{ width: '100%', height: 10, background: '#0f172a', borderRadius: 999, overflow: 'hidden' }}>
-              <div style={{ background: '#2563eb', height: '100%', width: `${(selectedStudy.enrollment.current/selectedStudy.enrollment.target)*100}%`, borderRadius: 999, transition: 'width 0.6s ease' }} />
+              <div style={{ background: '#2563eb', height: '100%', width: `${(Math.max(selectedStudy.enrollment.current, participants.length)/selectedStudy.enrollment.target)*100}%`, borderRadius: 999, transition: 'width 0.6s ease' }} />
             </div>
           </div>
 
@@ -277,15 +281,22 @@ export default function ParticipantDataPanel({ protocols, addToast, windowWidth,
 
             <button onClick={() => {
               setConfirmModal({
-                title: 'Export Participant Data',
-                message: 'Select the primary format for the participant dataset export.',
+                title: 'Export De-identified Participant Dataset',
+                message: 'Select the format to export your study participation data.',
                 buttons: [
-                  { label: 'Export PDF', color: '#2563eb', onClick: () => { downloadFile('PDF Data', `${selectedStudyId}_participants.pdf`, 'application/pdf'); addToast({ type: 'success', message: 'PDF generated' }); } },
                   { label: 'Export CSV', color: '#10b981', onClick: () => { 
                     const csv = 'Participant ID,Age,Gender,Study Arm,Status,Visits Completed,Compliance %,Last Visit\n' + 
                       filteredParticipants.map(p => `${p.id},${p.age},${p.gender},${p.arm},${p.status},${p.visitsCompleted}/${p.totalVisits},${p.compliance}%,${p.lastVisit}`).join('\n');
                     downloadCSV(csv, `${selectedStudyId}_participants.csv`);
                     addToast({ type: 'success', message: 'CSV exported successfully' });
+                    setConfirmModal(null);
+                  } },
+                  { label: 'Export CLC', color: '#2563eb', onClick: () => { 
+                    const clc = 'Participant ID\tAge\tGender\tStudy Arm\tStatus\tVisits Completed\tCompliance %\tLast Visit\n' + 
+                      filteredParticipants.map(p => `${p.id}\t${p.age}\t${p.gender}\t${p.arm}\t${p.status}\t${p.visitsCompleted}/${p.totalVisits}\t${p.compliance}%\t${p.lastVisit}`).join('\n');
+                    downloadCSV(clc, `${selectedStudyId}_participants.clc`);
+                    addToast({ type: 'success', message: 'CLC exported successfully' });
+                    setConfirmModal(null);
                   } }
                 ]
               });

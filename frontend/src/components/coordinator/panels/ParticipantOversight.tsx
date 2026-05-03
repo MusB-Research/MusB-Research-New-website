@@ -62,12 +62,29 @@ function CompensationModal({
     onClose: () => void;
     onSuccess: () => void;
 }) {
+    const [currency, setCurrency] = useState('INR');
     const [amount, setAmount] = useState('');
     const [description, setDescription] = useState('Participation Reward');
     const [method, setMethod] = useState('GIFT_CARD');
     const [txType, setTxType] = useState('VISIT_COMPLETION');
+    const [cardNumber, setCardNumber] = useState('');
+    const [reference, setReference] = useState('');
     const [isSaving, setIsSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
+
+    const CURRENCIES: { code: string; symbol: string; label: string }[] = [
+        { code: 'INR', symbol: '₹', label: 'INR (₹)' },
+        { code: 'USD', symbol: '$', label: 'USD ($)' },
+        { code: 'EUR', symbol: '€', label: 'EUR (€)' },
+        { code: 'GBP', symbol: '£', label: 'GBP (£)' },
+        { code: 'AUD', symbol: 'A$', label: 'AUD (A$)' },
+        { code: 'CAD', symbol: 'C$', label: 'CAD (C$)' },
+        { code: 'JPY', symbol: '¥', label: 'JPY (¥)' },
+        { code: 'SGD', symbol: 'S$', label: 'SGD (S$)' },
+        { code: 'AED', symbol: 'د.إ', label: 'AED (د.إ)' },
+    ];
+
+    const selectedCurrency = CURRENCIES.find(c => c.code === currency) || CURRENCIES[0];
 
     const handleSubmit = async () => {
         if (!amount || parseFloat(amount) <= 0) { setError('Enter a valid amount.'); return; }
@@ -81,7 +98,10 @@ function CompensationModal({
                     transaction_type: txType,
                     description,
                     amount: parseFloat(amount),
+                    currency,
                     payment_method: method,
+                    card_number: cardNumber || undefined,
+                    reference_number: reference || undefined,
                     status: 'PENDING',
                 }),
             });
@@ -108,13 +128,14 @@ function CompensationModal({
                 initial={{ scale: 0.92, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.92, opacity: 0 }}
                 className="bg-[#0B101B] border border-white/10 rounded-[2rem] p-8 w-full max-w-md shadow-2xl space-y-5"
             >
+                {/* Header */}
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
                         <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
                             <DollarSign className="w-5 h-5 text-emerald-400" />
                         </div>
                         <div>
-                            <h3 className="text-base font-black text-white uppercase italic tracking-tight">Send Compensation</h3>
+                            <h3 className="text-base font-black text-white uppercase italic tracking-tight">Record Compensation</h3>
                             <p className="text-[11px] text-slate-500 font-bold uppercase tracking-widest mt-0.5">{participant.name}</p>
                         </div>
                     </div>
@@ -129,7 +150,7 @@ function CompensationModal({
                     <span className="text-[11px] font-black text-blue-400 uppercase">{participant.study}</span>
                 </div>
 
-                {/* Contact Information */}
+                {/* Contact Information — Email + Phone only */}
                 <div className="px-4 py-3 bg-blue-500/5 border border-blue-500/10 rounded-2xl space-y-2">
                     <div className="flex items-center justify-between">
                         <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Email:</span>
@@ -139,40 +160,85 @@ function CompensationModal({
                         <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Phone:</span>
                         <span className="text-[11px] font-bold text-white">{(participant as any).phone}</span>
                     </div>
-                    <div className="flex flex-col gap-1">
-                        <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Address:</span>
-                        <span className="text-[11px] font-bold text-white/70">{(participant as any).address || 'N/A'}</span>
+                </div>
+
+                {/* Currency + Amount side by side */}
+                <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                        <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest">Currency</label>
+                        <select
+                            value={currency} onChange={e => setCurrency(e.target.value)}
+                            className="w-full bg-[#0F1929] border border-white/10 rounded-2xl px-4 py-3 text-[12px] text-white font-black uppercase tracking-widest outline-none focus:border-blue-500/50 transition-all"
+                        >
+                            {CURRENCIES.map(c => (
+                                <option key={c.code} value={c.code}>{c.label}</option>
+                            ))}
+                        </select>
+                    </div>
+                    <div className="space-y-1.5">
+                        <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest">Amount ({currency})</label>
+                        <div className="relative">
+                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-emerald-400 font-black text-sm">{selectedCurrency.symbol}</span>
+                            <input
+                                type="number" min="0" step="0.01"
+                                value={amount} onChange={e => setAmount(e.target.value)}
+                                placeholder="0"
+                                className="w-full bg-white/5 border border-white/10 rounded-2xl pl-8 pr-4 py-3 text-[15px] text-white font-black outline-none focus:border-emerald-500/50 transition-all"
+                            />
+                        </div>
                     </div>
                 </div>
 
-                {/* Amount */}
-                <div className="space-y-1.5">
-                    <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest">Amount (USD)</label>
-                    <div className="relative">
-                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-emerald-400 font-black text-lg">$</span>
+                {/* Transaction Type + Payment Method side by side */}
+                <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                        <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest">Transaction Type</label>
+                        <select
+                            value={txType} onChange={e => setTxType(e.target.value)}
+                            className="w-full bg-[#0F1929] border border-white/10 rounded-2xl px-4 py-3 text-[12px] text-white font-black uppercase tracking-widest outline-none focus:border-blue-500/50 transition-all"
+                        >
+                            <option value="VISIT_COMPLETION">Visit Completion</option>
+                            <option value="STUDY_COMPLETION">Study Completion</option>
+                            <option value="TASK_COMPLETION">Task Completion</option>
+                            <option value="TRAVEL_REIMBURSEMENT">Travel Reimbursement</option>
+                            <option value="ADVERSE_EVENT">Adverse Event</option>
+                            <option value="OTHER">Other</option>
+                        </select>
+                    </div>
+                    <div className="space-y-1.5">
+                        <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest">Payment Method</label>
+                        <select
+                            value={method} onChange={e => setMethod(e.target.value)}
+                            className="w-full bg-[#0F1929] border border-white/10 rounded-2xl px-4 py-3 text-[12px] text-white font-black uppercase tracking-widest outline-none focus:border-blue-500/50 transition-all"
+                        >
+                            <option value="GIFT_CARD">Gift Card</option>
+                            <option value="CHECK">Check</option>
+                            <option value="BANK_TRANSFER">Bank Transfer</option>
+                            <option value="CASH">Cash</option>
+                            <option value="UPI">UPI</option>
+                            <option value="WALLET">Wallet</option>
+                        </select>
+                    </div>
+                </div>
+
+                {/* Card Number + Reference # side by side */}
+                <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                        <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest">Card Number</label>
                         <input
-                            type="number" min="0" step="0.01"
-                            value={amount} onChange={e => setAmount(e.target.value)}
-                            placeholder="0.00"
-                            className="w-full bg-white/5 border border-white/10 rounded-2xl pl-9 pr-4 py-3 text-[15px] text-white font-black outline-none focus:border-emerald-500/50 transition-all"
+                            type="text" value={cardNumber} onChange={e => setCardNumber(e.target.value)}
+                            placeholder="Optional card #"
+                            className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-[12px] text-white font-bold outline-none focus:border-blue-500/50 transition-all placeholder:text-slate-600"
                         />
                     </div>
-                </div>
-
-                {/* Transaction Type */}
-                <div className="space-y-1.5">
-                    <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest">Transaction Type</label>
-                    <select
-                        value={txType} onChange={e => setTxType(e.target.value)}
-                        className="w-full bg-[#0F1929] border border-white/10 rounded-2xl px-4 py-3 text-[12px] text-white font-black uppercase tracking-widest outline-none focus:border-blue-500/50 transition-all"
-                    >
-                        <option value="VISIT_COMPLETION">Visit Completion</option>
-                        <option value="STUDY_COMPLETION">Study Completion</option>
-                        <option value="TASK_COMPLETION">Task Completion</option>
-                        <option value="TRAVEL_REIMBURSEMENT">Travel Reimbursement</option>
-                        <option value="ADVERSE_EVENT">Adverse Event</option>
-                        <option value="OTHER">Other</option>
-                    </select>
+                    <div className="space-y-1.5">
+                        <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest">Reference #</label>
+                        <input
+                            type="text" value={reference} onChange={e => setReference(e.target.value)}
+                            placeholder="Payment reference #"
+                            className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-[12px] text-white font-bold outline-none focus:border-blue-500/50 transition-all placeholder:text-slate-600"
+                        />
+                    </div>
                 </div>
 
                 {/* Description */}
@@ -182,20 +248,6 @@ function CompensationModal({
                         type="text" value={description} onChange={e => setDescription(e.target.value)}
                         className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-[12px] text-white font-bold outline-none focus:border-blue-500/50 transition-all"
                     />
-                </div>
-
-                {/* Payment Method */}
-                <div className="space-y-1.5">
-                    <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest">Payment Method</label>
-                    <select
-                        value={method} onChange={e => setMethod(e.target.value)}
-                        className="w-full bg-[#0F1929] border border-white/10 rounded-2xl px-4 py-3 text-[12px] text-white font-black uppercase tracking-widest outline-none focus:border-blue-500/50 transition-all"
-                    >
-                        <option value="GIFT_CARD">Gift Card</option>
-                        <option value="CHECK">Check</option>
-                        <option value="BANK_TRANSFER">Bank Transfer</option>
-                        <option value="CASH">Cash</option>
-                    </select>
                 </div>
 
                 {error && (
@@ -211,13 +263,14 @@ function CompensationModal({
                         className="flex-1 px-5 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all shadow-lg shadow-emerald-600/20 disabled:opacity-50 flex items-center justify-center gap-2"
                     >
                         <DollarSign className="w-3.5 h-3.5" />
-                        {isSaving ? 'Sending...' : 'Send Compensation'}
+                        {isSaving ? 'Recording...' : 'Record'}
                     </button>
                 </div>
             </motion.div>
         </motion.div>
     );
 }
+
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function ParticipantOversight({

@@ -25,7 +25,7 @@ const TasksView = ({
     isLoading?: boolean;
 }) => {
     const [filter, setFilter] = useState(defaultFilter);
-    const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+    const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
     const [isFilterMenuOpen, setIsFilterMenuOpen] = useState(false);
 
     const safeArray = (data: any) => Array.isArray(data) ? data : [];

@@ -40,8 +40,6 @@ def generate_signed_consent_pdf(consent_obj):
 
     # Predefined fields from template
     fields = consent_obj.template.placed_fields or []
-    if not fields:
-        return None
 
     # 1. Group fields by page (1-based index)
     pages_to_fields = {}
@@ -62,7 +60,7 @@ def generate_signed_consent_pdf(consent_obj):
         page = reader.pages[i]
         page_num = i + 1
 
-        if page_num in pages_to_fields:
+        if pages_to_fields and page_num in pages_to_fields:
             # Create overlay for this specific page
             packet = io.BytesIO()
             can = canvas.Canvas(packet, pagesize=letter)
@@ -123,10 +121,7 @@ def generate_signed_questionnaire_pdf(instance):
         return None
 
     fields = template.placed_fields or []
-    if not fields:
-        # If no fields placed, we still want to indicate completion if needed
-        return None
-
+    
     pages_to_fields = {}
     for f in fields:
         p = f.get('page', 1)
@@ -140,10 +135,11 @@ def generate_signed_questionnaire_pdf(instance):
     for i in range(len(reader.pages)):
         page = reader.pages[i]
         page_num = i + 1
-        if page_num in pages_to_fields:
+        if pages_to_fields and page_num in pages_to_fields:
             packet = io.BytesIO()
             can = canvas.Canvas(packet, pagesize=letter)
             for f in pages_to_fields[page_num]:
+
                 f_type = f.get('type')
                 px = (f.get('x', 0) / 100.0) * WIDTH
                 py = HEIGHT - ((f.get('y', 0) / 100.0) * HEIGHT)
