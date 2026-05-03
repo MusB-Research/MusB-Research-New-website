@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, UserPlus, Eye, Edit2, Shield, MoreVertical, GraduationCap, Loader2 } from 'lucide-react';
+import { Search, Eye, Edit2, Shield, MoreVertical, GraduationCap, Loader2, Trash2 } from 'lucide-react';
 import { authFetch , API, revealValue } from '../../utils/auth';
 
 interface PI {
@@ -18,10 +18,10 @@ interface PIsManagementProps {
   allStudies: any[];
   onRefresh: () => void;
   onViewUser: (user: any) => void;
-  onRegister: () => void;
+  onRegister?: () => void;
 }
 
-export default function PIsManagement({ allUsers = [], allStudies = [], onRefresh, onViewUser, onRegister }: PIsManagementProps) {
+export default function PIsManagement({ allUsers = [], allStudies = [], onRefresh, onViewUser }: PIsManagementProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   
@@ -31,7 +31,7 @@ export default function PIsManagement({ allUsers = [], allStudies = [], onRefres
       .map(u => ({
         id: u.id,
         raw: u, // Keep original object for modal
-        name: revealValue(u.full_name, u.decrypted_name) || revealValue(u.name, u.decrypted_name) || (u.email ? u.email.split('@')[0] : 'Unnamed PI'),
+        name: revealValue(u.full_name, u.decrypted_name) || revealValue(u.name, u.decrypted_name) || (u.email ? u.email.split('@')[0] : 'Unnamed Investigator'),
         email: revealValue(u.email) || u.email || 'unknown@domain',
         credentials: (u as any).credentials || 'MD, PhD',
         status: (u as any).status === 'Suspended' ? 'Inactive' : 'Active',
@@ -57,11 +57,36 @@ export default function PIsManagement({ allUsers = [], allStudies = [], onRefres
       if (res.ok) {
         onRefresh();
       } else {
-        alert('Failed to update PI status');
+        alert('Failed to update investigator status');
       }
     } catch (err) {
       console.error(err);
       alert('Network error during status update');
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
+  const handleDeletePI = async (piId: string) => {
+    if (!window.confirm('Are you sure you want to permanently delete this investigator?')) return;
+    
+    setUpdatingId(piId);
+    const apiUrl = API || 'http://localhost:8000';
+    
+    try {
+      const res = await authFetch(`${apiUrl}/api/users/${piId}/`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      
+      if (res.ok || res.status === 204) {
+        onRefresh();
+      } else {
+        alert('Failed to delete investigator');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Network error during deletion');
     } finally {
       setUpdatingId(null);
     }
@@ -74,18 +99,7 @@ export default function PIsManagement({ allUsers = [], allStudies = [], onRefres
 
   return (
     <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
-        <div>
-          <h1 className="text-3xl sm:text-5xl font-black text-white italic uppercase tracking-tighter">Principal <span className="text-[#6366f1]">Investigators</span></h1>
-          <p className="text-[12px] sm:text-sm text-[#8b8fa8] uppercase tracking-[0.2em] font-black mt-3">Manage lead clinical researchers and study oversight</p>
-        </div>
-        <button 
-          onClick={onRegister}
-          className="px-8 py-4 bg-[#6366f1] text-white rounded-3xl font-black text-[12px] uppercase tracking-[0.2em] flex items-center justify-center gap-3 shadow-xl shadow-indigo-500/20 hover:bg-[#4f46e5] transition-all"
-        >
-          <UserPlus className="w-5 h-5" /> Register New PI
-        </button>
-      </div>
+
 
       <div className="bg-[#0f1133] border border-white/5 rounded-3xl overflow-hidden shadow-2xl">
         <div className="p-8 border-b border-white/5 bg-white/[0.01]">
@@ -93,10 +107,10 @@ export default function PIsManagement({ allUsers = [], allStudies = [], onRefres
             <Search className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-600" />
             <input
               type="text"
-              placeholder="Search PIs by name, email or specialty..."
+              placeholder="Search investigators by name, email or specialty..."
               className="w-full bg-[#0a0b1a] border border-white/5 rounded-3xl pl-16 pr-6 py-5 text-sm text-white outline-none focus:border-indigo-500/30 font-bold uppercase italic tracking-widest placeholder:text-slate-800"
               value={searchTerm}
-              onChange={e => setSearchTerm(e.target.value)}
+              onChange={e => setSearchTerm(e.target.value) }
             />
           </div>
         </div>
@@ -115,7 +129,7 @@ export default function PIsManagement({ allUsers = [], allStudies = [], onRefres
             <tbody className="divide-y divide-white/5">
               {filteredPIs.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-10 py-20 text-center opacity-30 italic uppercase tracking-[0.2em] text-[12px]">No principal investigators found in persistence layers</td>
+                  <td colSpan={5} className="px-10 py-20 text-center opacity-30 italic uppercase tracking-[0.2em] text-[12px]">No investigators found in persistence layers</td>
                 </tr>
               ) : (
                 filteredPIs.map((pi) => (
@@ -171,13 +185,21 @@ export default function PIsManagement({ allUsers = [], allStudies = [], onRefres
                         </button>
                         <button 
                           onClick={() => onViewUser(pi.raw)}
-                          title="Edit PI Profile" 
+                          title="Edit Investigator Profile" 
                           className="p-3 bg-white/5 border border-white/5 rounded-2xl text-slate-600 hover:text-indigo-400 transition-all active:scale-95"
                         >
                           <Edit2 className="w-5 h-5" />
                         </button>
                         <button 
-                          onClick={() => alert('Extra controls: Delete PI, Reset Password, Audit Logs')}
+                          onClick={() => handleDeletePI(pi.id)}
+                          disabled={updatingId === pi.id}
+                          title="Delete Investigator" 
+                          className="p-3 bg-white/5 border border-white/5 rounded-2xl text-slate-600 hover:text-red-500 transition-all active:scale-95 disabled:opacity-50"
+                        >
+                          {updatingId === pi.id ? <Loader2 className="w-5 h-5 animate-spin" /> : <Trash2 className="w-5 h-5" />}
+                        </button>
+                        <button 
+                          onClick={() => alert('Extra controls: Reset Password, Audit Logs')}
                           className="p-3 text-slate-700 hover:text-white transition-all active:scale-95"
                         >
                           <MoreVertical className="w-5 h-5" />

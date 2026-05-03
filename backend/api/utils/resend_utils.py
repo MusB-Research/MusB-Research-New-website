@@ -190,23 +190,29 @@ def send_booklet_request_email(request_id):
     from api.models import BookletDownloadRequest
     try:
         b_req = BookletDownloadRequest.objects.get(pk=request_id)
+        
+        subject = f"New Technical Booklet Request: {b_req.technology_name}"
         text_content = f"""
-NEW CATALOG/BOOKLET REQUEST
-===========================
-Name: {b_req.name}
+NEW TECHNICAL BOOKLET DOWNLOAD REQUEST
+======================================
+Name: {b_req.first_name} {b_req.last_name}
 Email: {b_req.email}
+Phone: {b_req.phone}
 Company: {b_req.company}
-Role: {b_req.role}
-Timestamp: {b_req.created_at}
+Designation: {b_req.designation}
+Technology: {b_req.technology_name}
+Timestamp: {b_req.downloaded_at}
+
+NDA Agreed: {"Yes" if b_req.nda_agreed else "No"}
 """
         
-        subject = f"Alert: New Booklet/Catalog Request - {b_req.name}"
-        return safe_resend_send({
+        params = {
             "from": "MusB Downloads <onboarding@resend.dev>",
             "to": ["info@musbresearch.com"],
             "subject": subject,
-            "text": text_content
-        })
+            "text": text_content,
+        }
+        return safe_resend_send(params)
     except Exception as e:
         print(f"Error sending booklet request email: {e}")
         return False
@@ -600,13 +606,23 @@ Inquiry Message:
 Submitted on {inquiry.created_at.strftime('%Y-%m-%d %H:%M:%S')} UTC
 """
     try:
-        # Send Admin ONLY Notification (Strict Plain Text)
-        return safe_resend_send({
+        # 1. Send Admin Notification (Plain Text for reliability)
+        safe_resend_send({
             "from": "MusB Partnership <onboarding@resend.dev>",
             "to": [admin_recipient],
             "subject": subject,
             "text": text_content
         })
+
+        # 2. Send Inquirer Confirmation (Branded HTML)
+        safe_resend_send({
+            "from": "MusB Research <onboarding@resend.dev>",
+            "to": [inquiry.email],
+            "subject": confirmation_subject,
+            "html": confirmation_html
+        })
+        
+        return True
     except Exception as e:
         print(f"Error sending sponsor inquiry emails: {e}")
         return False

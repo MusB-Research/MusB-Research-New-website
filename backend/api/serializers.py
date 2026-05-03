@@ -10,8 +10,10 @@ from .models import (
     StudyActionRequest, DailyMedicationLog, AssignedForm, SponsorOrganization,
     StudyKit, QuestionnaireTemplate, StudyQuestionnaire, QuestionnaireScheduleInstance,
     Technology, InnovationPageSettings, SponsorInquiry, TeamMember,
-    ClinicalAuditLog, PIIRevealLog
+ClinicalAuditLog, PIIRevealLog,
+    StaffMember, Advisor, ClinicalCollaborator
 )
+
 from authentication.models import User, Invitation
 from authentication.security import decrypt_data
 from .utils.sanitizers import sanitize_html
@@ -180,7 +182,8 @@ class UserSerializer(SanitizedModelSerializer):
             'npi', 'qualifications',
             'must_change_password', 'profile_completed', 'is_screener_completed', 'is_active', 'timezone',
             'status', 'affiliation', 'assigned_studies', 'created_by',
-            'first_name', 'last_name', 'google_auth'
+            'first_name', 'last_name', 'google_auth',
+            'is_mellow_member', 'lat', 'lng', 'organization'
         ]
 
     def validate_status(self, value):
@@ -596,7 +599,7 @@ class VisitSerializer(SanitizedModelSerializer):
                 'name': pi.full_name,
                 'email': pi.email,
                 'phone': pi.decrypted_phone or pi.phone_number or 'N/A',
-                'role': 'Principal Investigator'
+                'role': 'Investigator'
             }
         return None
 
@@ -1444,15 +1447,77 @@ class QuestionnaireScheduleInstanceBriefSerializer(SanitizedModelSerializer):
         return {'full_name': obj.participant.user.full_name if obj.participant and obj.participant.user else 'Subject'}
 
 
+
 class TechnologySerializer(SanitizedModelSerializer):
     class Meta:
         model = Technology
         fields = '__all__'
 
 class TeamMemberSerializer(SanitizedModelSerializer):
+    image_url = serializers.SerializerMethodField()
+    def get_image_url(self, obj):
+        if not obj.image: return None
+        request = self.context.get('request')
+        if request: return request.build_absolute_uri(obj.image.url)
+        return obj.image.url
+    def to_representation(self, instance):
+        ret = super().to_representation(instance)
+        if not ret.get('category'):
+            ret['category'] = 'leadership'
+        return ret
     class Meta:
         model = TeamMember
         fields = '__all__'
+
+class StaffMemberSerializer(SanitizedModelSerializer):
+    image_url = serializers.SerializerMethodField()
+    def get_image_url(self, obj):
+        if not obj.image: return None
+        request = self.context.get('request')
+        if request: return request.build_absolute_uri(obj.image.url)
+        return obj.image.url
+    def to_representation(self, instance):
+        ret = super().to_representation(instance)
+        if not ret.get('category'):
+            ret['category'] = 'staff'
+        return ret
+    class Meta:
+        model = StaffMember
+        fields = '__all__'
+
+class AdvisorSerializer(SanitizedModelSerializer):
+    image_url = serializers.SerializerMethodField()
+    def get_image_url(self, obj):
+        if not obj.image: return None
+        request = self.context.get('request')
+        if request: return request.build_absolute_uri(obj.image.url)
+        return obj.image.url
+    def to_representation(self, instance):
+        ret = super().to_representation(instance)
+        if not ret.get('category'):
+            ret['category'] = 'advisors'
+        return ret
+    class Meta:
+        model = Advisor
+        fields = '__all__'
+
+class ClinicalCollaboratorSerializer(SanitizedModelSerializer):
+    image_url = serializers.SerializerMethodField()
+    def get_image_url(self, obj):
+        if not obj.image: return None
+        request = self.context.get('request')
+        if request: return request.build_absolute_uri(obj.image.url)
+        return obj.image.url
+    def to_representation(self, instance):
+        ret = super().to_representation(instance)
+        if not ret.get('category'):
+            ret['category'] = 'collaborators'
+        return ret
+    class Meta:
+        model = ClinicalCollaborator
+        fields = '__all__'
+
+
 
 class InnovationPageSettingsSerializer(SanitizedModelSerializer):
     class Meta:

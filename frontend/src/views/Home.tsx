@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, ChevronLeft, ChevronRight, ChevronDown, Brain, FlaskConical, Activity, TestTube, Microscope, Leaf, Flower, Flower2, ShieldCheck, Zap, Beaker, BarChart, FileText, Stethoscope, Database, Smartphone, Box, CheckCircle2, Building2, Globe, HeartPulse, X, Calendar, Newspaper, Clock } from 'lucide-react';
+import { ArrowRight, ChevronLeft, ChevronRight, ChevronDown, Brain, FlaskConical, Activity, TestTube, Microscope, Leaf, Flower, Flower2, ShieldCheck, Zap, Beaker, BarChart, FileText, Stethoscope, Database, Smartphone, Box, CheckCircle2, Building2, Globe, HeartPulse, X, Calendar, Newspaper, Clock, GraduationCap } from 'lucide-react';
 import StudyFilterSection from '@/components/StudyFilterSection';
 import { authFetch, API } from '../utils/auth';
-import { getMediaUrl, handleImageError } from '../utils/media';
+import { getMediaUrl, handleImageError, getYoutubeId } from '../utils/media';
 import SEO from '@/components/SEO';
 
 const decodeHTML = (html: string) => {
@@ -23,8 +23,7 @@ const slides = [
             "Community-based clinical trials and translational research under one umbrella"
         ],
         primaryCTA: "Find a Clinical Study",
-        secondaryCTA: "Work With Us (Sponsors & Partners)",
-        image: "/hero-1.png"
+        secondaryCTA: "Work With Us (Sponsors & Partners)"
     },
     {
         id: 2,
@@ -35,8 +34,7 @@ const slides = [
             "Bridging the gap between clinical excellence and commercial success"
         ],
         primaryCTA: "Our Research",
-        secondaryCTA: "Partner With Us",
-        image: "/hero-2.png"
+        secondaryCTA: "Partner With Us"
     }
 ];
 
@@ -1389,13 +1387,15 @@ export default function Home() {
     const [selectedExpertise, setSelectedExpertise] = useState<any>(null);
     const [activeAccordionIndex, setActiveAccordionIndex] = useState<number | null>(0);
     const [latestUpdates, setLatestUpdates] = useState<any[]>([]);
+    const [playingVideoId, setPlayingVideoId] = useState<string | null>(null);
 
     useEffect(() => {
         const fetchUpdates = async () => {
             try {
-                const [newsRes, eventsRes] = await Promise.all([
+                const [newsRes, eventsRes, eduRes] = await Promise.all([
                     authFetch('/api/news/'),
-                    authFetch('/api/events/')
+                    authFetch('/api/events/'),
+                    authFetch('/api/education/')
                 ]);
                 
                 let combined: any[] = [];
@@ -1424,6 +1424,23 @@ export default function Home() {
                         displayDate: new Date(e.date || e.event_date || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
                         imageUrl: getMediaUrl(e.image_url || e.image)
                     }))];
+                }
+                if (eduRes.ok) {
+                    const data = await eduRes.json();
+                    const eduArray = Array.isArray(data) ? data : (data.results || []);
+                    combined = [...combined, ...eduArray.map((e: any) => {
+                        const ytId = getYoutubeId(e.youtube_url);
+                        return {
+                            ...e,
+                            uiType: 'Education',
+                            title: decodeHTML(e.title),
+                            excerpt: decodeHTML(e.content || 'Educational video content available.'),
+                            date: e.created_at,
+                            displayDate: new Date(e.created_at || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+                            imageUrl: ytId ? `https://img.youtube.com/vi/${ytId}/maxresdefault.jpg` : getMediaUrl(e.file_url || e.file),
+                            youtubeId: ytId
+                        };
+                    })];
                 }
                 
                 combined.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -1484,18 +1501,6 @@ export default function Home() {
                                     className={`absolute inset-0 transition-all duration-1000 ease-in-out ${isActive ? 'opacity-100 z-10' : 'opacity-0 z-0'
                                         }`}
                                 >
-                                    {/* Background Image with Overlay */}
-                                    <div className="absolute inset-0 z-0">
-                                        <img
-                                            src={slide.image}
-                                            alt=""
-                                            loading="lazy"
-                                            className={`w-full h-full object-cover transition-transform duration-[10000ms] ease-linear ${isActive ? 'scale-110' : 'scale-100'}`}
-                                        />
-                                        <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-[2px]"></div>
-                                        <div className="absolute inset-0 bg-gradient-to-b from-slate-950/40 via-transparent to-slate-950/80"></div>
-                                    </div>
-
                                     <div className={`relative z-10 h-full max-w-[1800px] mx-auto px-6 md:px-12 w-full flex flex-col items-center justify-start lg:justify-center pt-36 pb-48 md:pt-48 lg:pt-32 md:pb-12 transform transition-all duration-1000 ${isActive ? 'scale-100 -translate-y-6 md:-translate-y-8 lg:-translate-y-12' : 'scale-95 translate-y-12'}`}>
 
 
@@ -1606,23 +1611,62 @@ export default function Home() {
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                             {latestUpdates.map((item, idx) => (
                                 <Link 
-                                    to="/news" 
+                                    to={`/news/${item.id}`} 
                                     key={idx}
                                     className="group relative flex flex-col h-full bg-slate-950/40 border border-white/5 rounded-[2.5rem] overflow-hidden hover:bg-white/5 hover:border-cyan-500/30 transition-all duration-700 animate-fade-in-up"
                                     style={{ animationDelay: `${idx * 150}ms` }}
                                 >
                                     {/* Image Container */}
-                                    <div className="relative aspect-[16/10] overflow-hidden bg-slate-900">
-                                        <img 
-                                            src={getMediaUrl(item.imageUrl)} 
-                                            onError={handleImageError}
-                                            alt={item.title}
-                                            className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
-                                        />
-                                        <div className="absolute inset-0 bg-slate-950/20 group-hover:bg-transparent transition-colors"></div>
-                                        <div className="absolute top-6 left-6 flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-950/80 backdrop-blur-md border border-white/10">
-                                            {item.uiType === 'News' ? <Newspaper className="w-3.5 h-3.5 text-cyan-400" /> : <Calendar className="w-3.5 h-3.5 text-cyan-400" />}
-                                            <span className="text-[10px] font-black uppercase tracking-widest text-white">{item.uiType}</span>
+                                    <div className="relative aspect-[16/10] overflow-hidden bg-slate-900 group/video">
+                                        {item.youtubeId ? (
+                                            playingVideoId === item.id ? (
+                                                <iframe
+                                                    className="w-full h-full relative z-10"
+                                                    src={`https://www.youtube.com/embed/${item.youtubeId}?autoplay=1&rel=0&modestbranding=1`}
+                                                    title={item.title}
+                                                    frameBorder="0"
+                                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                                    allowFullScreen
+                                                ></iframe>
+                                            ) : (
+                                                <div className="w-full h-full cursor-pointer relative"
+                                                     onClick={(e) => {
+                                                         e.preventDefault();
+                                                         e.stopPropagation();
+                                                         setPlayingVideoId(item.id);
+                                                     }}>
+                                                    <img 
+                                                        src={item.imageUrl} 
+                                                        onError={handleImageError}
+                                                        alt={item.title}
+                                                        className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105 opacity-80"
+                                                    />
+                                                    <div className="absolute inset-0 flex items-center justify-center z-20">
+                                                        <div className="w-16 h-16 rounded-full bg-cyan-500/80 flex items-center justify-center backdrop-blur-md shadow-2xl shadow-cyan-500/40 group-hover/video:scale-110 transition-transform">
+                                                            <div className="w-0 h-0 border-t-[10px] border-t-transparent border-l-[18px] border-l-white border-b-[10px] border-b-transparent ml-1"></div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )
+                                        ) : (
+                                            <img 
+                                                src={item.imageUrl} 
+                                                onError={handleImageError}
+                                                alt={item.title}
+                                                className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
+                                            />
+                                        )}
+                                        <div className="absolute top-4 left-4 z-30">
+                                            <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-950/80 backdrop-blur-md border border-white/10">
+                                                {item.uiType === 'News' ? (
+                                                    <Newspaper className="w-3.5 h-3.5 text-cyan-400" />
+                                                ) : item.uiType === 'Event' ? (
+                                                    <Calendar className="w-3.5 h-3.5 text-cyan-400" />
+                                                ) : (
+                                                    <GraduationCap className="w-3.5 h-3.5 text-cyan-400" />
+                                                )}
+                                                <span className="text-[10px] font-black text-white uppercase tracking-widest">{item.uiType}</span>
+                                            </div>
                                         </div>
                                     </div>
 
@@ -1774,13 +1818,8 @@ export default function Home() {
                                 <div className="relative animate-fade-in-up stagger-1 h-[500px] rounded-[4rem] overflow-hidden group">
                                     <div className="absolute inset-0 bg-gradient-to-tr from-cyan-500/30 to-cyan-500/30 blur-[80px] z-0"></div>
                                     <div className="relative w-full h-full bg-white/5 backdrop-blur-xl border border-white/10 rounded-[4rem] p-4 overflow-hidden shadow-2xl z-10 transition-all duration-700">
-                                        <div className="w-full h-full rounded-[3.5rem] overflow-hidden relative">
-                                            <img
-                                                src="/why-choose-us.webp"
-                                                alt="MUSB Research Innovation"
-                                                className="w-full h-full object-cover opacity-60 group-hover:opacity-100 group-hover:scale-110 animate-slow-zoom transition-all duration-1000 ease-out"
-                                            />
-                                            <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-transparent opacity-80 group-hover:opacity-40 transition-opacity duration-700"></div>
+                                        <div className="w-full h-full rounded-[3.5rem] overflow-hidden relative bg-gradient-to-br from-cyan-500/20 to-transparent">
+                                            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(6,182,212,0.15)_0%,transparent_70%)] animate-pulse"></div>
                                         </div>
                                         <div className="absolute inset-x-8 bottom-8 p-10 rounded-3xl bg-slate-950/80 backdrop-blur-md border border-white/10 space-y-3 transform group-hover:-translate-y-2 transition-transform duration-700 z-20">
                                             <h4 className="text-white font-black text-xl md:text-2xl uppercase tracking-wider">Mission-Driven Innovation</h4>
@@ -1896,16 +1935,16 @@ export default function Home() {
 
                             <div className="relative group h-full">
                                 <div className="absolute -inset-4 bg-gradient-to-tr from-cyan-500/20 to-cyan-500/20 blur-3xl opacity-50 group-hover:opacity-75 transition-opacity"></div>
-                                <div className="relative aspect-square rounded-[4rem] bg-cyan-500/5 border border-white/10 overflow-hidden flex items-center justify-center">
-                                    <img
-                                        src="/facilities-infrastructure.webp"
-                                        alt="MUSB Research Facilities"
-                                        className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-100 group-hover:scale-110 animate-slow-zoom transition-all duration-1000 ease-out"
+                                <div className="relative aspect-square rounded-[4rem] bg-cyan-500/5 border border-white/10 overflow-hidden flex items-center justify-center bg-gradient-to-br from-cyan-500/10 to-transparent shadow-2xl shadow-cyan-500/10">
+                                    <img 
+                                        src="/facility_image.webp" 
+                                        alt="MusB Research Facility" 
+                                        className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-100 group-hover:scale-110 transition-all duration-1000"
                                     />
-                                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent opacity-60 group-hover:opacity-40 transition-opacity duration-700"></div>
-                                    <div className="absolute bottom-12 left-12 right-12 p-8 glass-dark rounded-3xl border border-white/10 backdrop-blur-md transform group-hover:-translate-y-2 transition-transform duration-700 z-10">
-                                        <p className="text-slate-300 italic text-sm">"Our facility is more than just a lab; it's a hub of clinical innovation designed with participant care at its core."</p>
-                                    </div>
+                                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-transparent opacity-80"></div>
+                                </div>
+                                <div className="mt-8 p-8 glass-dark rounded-3xl border border-white/10 backdrop-blur-md transform group-hover:-translate-y-2 transition-transform duration-700 relative z-10">
+                                    <p className="text-slate-200 italic text-sm font-medium leading-relaxed">"Our facility is more than just a lab; it's a hub of clinical innovation designed with participant care at its core."</p>
                                 </div>
                             </div>
                         </div>

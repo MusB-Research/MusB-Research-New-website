@@ -17,8 +17,10 @@ from .models import (
     StudyActionRequest, DailyMedicationLog, AssignedForm, SponsorOrganization,
     StudyKit, QuestionnaireTemplate, StudyQuestionnaire, QuestionnaireScheduleInstance,
     Technology, InnovationPageSettings, SponsorInquiry, TeamMember,
-    ClinicalAuditLog, PIIRevealLog
+ClinicalAuditLog, PIIRevealLog,
+    StaffMember, Advisor, ClinicalCollaborator
 )
+
 import logging
 
 logger = logging.getLogger(__name__)
@@ -42,8 +44,10 @@ from .serializers import (
     PublicStudySerializer, StudyKitSerializer, QuestionnaireTemplateSerializer, QuestionnaireTemplateBriefSerializer, StudyQuestionnaireSerializer,
     QuestionnaireScheduleInstanceSerializer, QuestionnaireScheduleInstanceBriefSerializer,
     TechnologySerializer, InnovationPageSettingsSerializer, SponsorInquirySerializer, InvitationSerializer,
-    TeamMemberSerializer, ClinicalAuditLogSerializer, PIIRevealLogSerializer
+TeamMemberSerializer, ClinicalAuditLogSerializer, PIIRevealLogSerializer,
+    StaffMemberSerializer, AdvisorSerializer, ClinicalCollaboratorSerializer
 )
+
 from authentication.models import User, AuditLog, Invitation
 from django.db.models import Q, Count, Case, When, IntegerField, FloatField, Avg
 from django.utils import timezone
@@ -2871,6 +2875,26 @@ class UserViewSet(viewsets.ModelViewSet):
             return [IsAdminOrCoordinator()]
         return super().get_permissions()
 
+    def destroy(self, request, *args, **kwargs):
+        from django.http import Http404
+        from .utils.cache_utils import invalidate_cache
+        try:
+            response = super().destroy(request, *args, **kwargs)
+        except Http404:
+            # If already deleted, heal frontend state by returning 204 and invalidating cache
+            invalidate_cache("users_list")
+            from rest_framework.response import Response
+            from rest_framework import status
+            return Response({'status': 'Already deleted'}, status=status.HTTP_204_NO_CONTENT)
+            
+        invalidate_cache("users_list")
+        return response
+
+    def perform_update(self, serializer):
+        super().perform_update(serializer)
+        from .utils.cache_utils import invalidate_cache
+        invalidate_cache("users_list")
+
     def create(self, request, *args, **kwargs):
         # 1. Validation check for duplicate email before processing
         email = request.data.get('email', '').strip().lower()
@@ -3047,9 +3071,8 @@ class InvitationViewSet(viewsets.ModelViewSet):
         })
 
 class NewsViewSet(viewsets.ModelViewSet):
-    queryset = News.objects.all().order_by('-published_at')
+    queryset = News.objects.all().order_by('-sequence', '-published_at')
     serializer_class = NewsSerializer
-    authentication_classes = []
 
     def get_permissions(self):
         # Public can read; authenticated staff can create/edit/delete
@@ -3109,9 +3132,8 @@ class StaffTaskViewSet(viewsets.ModelViewSet):
         return Response({'status': 'task marked as completed'})
 
 class EventViewSet(viewsets.ModelViewSet):
-    queryset = Event.objects.all().order_by('-date')
+    queryset = Event.objects.all().order_by('-sequence', '-date')
     serializer_class = EventSerializer
-    authentication_classes = []
 
     def get_permissions(self):
         if self.action in ['list', 'retrieve']:
@@ -3204,12 +3226,19 @@ class BookletDownloadRequestCreateView(APIView):
     def post(self, request):
         serializer = BookletDownloadRequestSerializer(data=request.data)
         if serializer.is_valid():
-            serializer.save()
+            instance = serializer.save()
+            # Trigger Email Notification via Resend
+            try:
+                from .utils.resend_utils import send_booklet_request_email
+                send_booklet_request_email(instance.id)
+            except Exception as e:
+                logger.error(f"Failed to trigger booklet request email: {e}")
+            
             return Response({"status": "success", "message": "Download request logged."}, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class PartnershipViewSet(WorkflowContentMixin, viewsets.ModelViewSet):
-    queryset = Partnership.objects.all().order_by('-created_at')
+    queryset = Partnership.objects.all().order_by('-sequence', '-created_at')
     serializer_class = PartnershipSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
     parser_classes = (parsers.MultiPartParser, parsers.FormParser, parsers.JSONParser)
@@ -3235,7 +3264,7 @@ class PartnershipViewSet(WorkflowContentMixin, viewsets.ModelViewSet):
 
 
 class PublicationViewSet(WorkflowContentMixin, viewsets.ModelViewSet):
-    queryset = Publication.objects.all().order_by('-publication_date')
+    queryset = Publication.objects.all().order_by('-sequence', '-publication_date')
     serializer_class = PublicationSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
@@ -3260,7 +3289,7 @@ class PublicationViewSet(WorkflowContentMixin, viewsets.ModelViewSet):
 
 
 class EducationMaterialViewSet(WorkflowContentMixin, viewsets.ModelViewSet):
-    queryset = EducationMaterial.objects.all().order_by('-created_at')
+    queryset = EducationMaterial.objects.all().order_by('-sequence', '-created_at')
     serializer_class = EducationMaterialSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
     parser_classes = (parsers.MultiPartParser, parsers.FormParser, parsers.JSONParser)
@@ -4115,20 +4144,65 @@ class TeamMemberViewSet(viewsets.ModelViewSet):
             return [permissions.AllowAny()]
         return [permissions.IsAuthenticated()]
 
-    def get_queryset(self):
-        queryset = TeamMember.objects.all().order_by('display_order', 'created_at')
-        category = self.request.query_params.get('category')
-        status_filter = self.request.query_params.get('status')
-
+    def list(self, request, *args, **kwargs):
+        """Aggregate team members from TeamMember, StaffMember, Advisor, and ClinicalCollaborator models."""
+        category = request.query_params.get('category')
+        status_filter = request.query_params.get('status')
+        
+        # 1. Fetch from all collections
+        tm_qs = TeamMember.objects.all()
+        sm_qs = StaffMember.objects.all()
+        ad_qs = Advisor.objects.all()
+        cc_qs = ClinicalCollaborator.objects.all()
+        
+        # 2. Apply filters to each
         if category:
-            queryset = queryset.filter(category=category)
+            tm_qs = tm_qs.filter(category=category)
+            sm_qs = sm_qs.filter(category=category)
+            ad_qs = ad_qs.filter(category=category)
+            cc_qs = cc_qs.filter(category=category)
         if status_filter:
-            queryset = queryset.filter(status=status_filter)
+            tm_qs = tm_qs.filter(status=status_filter)
+            sm_qs = sm_qs.filter(status=status_filter)
+            ad_qs = ad_qs.filter(status=status_filter)
+            cc_qs = cc_qs.filter(status=status_filter)
+            
+        # 3. RBAC filter (unless super admin, only show active)
+        user = request.user
+        is_admin = user.is_authenticated and (user.role or '').upper() in ['SUPER_ADMIN', 'ADMIN']
+        if not is_admin:
+            tm_qs = tm_qs.filter(status='Active')
+            sm_qs = sm_qs.filter(status='Active')
+            ad_qs = ad_qs.filter(status='Active')
+            cc_qs = cc_qs.filter(status='Active')
+            
+        # 4. Serialize all
+        tm_data = TeamMemberSerializer(tm_qs, many=True).data
+        sm_data = StaffMemberSerializer(sm_qs, many=True).data
+        ad_data = AdvisorSerializer(ad_qs, many=True).data
+        cc_data = ClinicalCollaboratorSerializer(cc_qs, many=True).data
 
-        user = self.request.user
-        if user.is_authenticated and (user.role or '').upper() in ['SUPER_ADMIN', 'ADMIN']:
-            return queryset
-        return queryset.filter(status='Active')
+        
+        # 5. Combine and Sort
+        combined = tm_data + sm_data + ad_data + cc_data
+        # Sort by display_order, then created_at (if available)
+        combined.sort(key=lambda x: (x.get('display_order') or 0, x.get('created_at') or ''))
+        
+        return Response(combined)
+
+    def get_object(self):
+        """Search for the object across all four team models."""
+        pk = self.kwargs.get('pk')
+        for model in [TeamMember, StaffMember, Advisor, ClinicalCollaborator]:
+            try:
+                obj = model.objects.get(pk=pk)
+                # Ensure we use the correct model for later operations
+                self.model_class = model
+                return obj
+            except (model.DoesNotExist, ValueError):
+                continue
+        from django.http import Http404
+        raise Http404
 
     def _assert_can_manage(self):
         role = (self.request.user.role or '').upper()
@@ -4137,15 +4211,45 @@ class TeamMemberViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         self._assert_can_manage()
-        serializer.save()
+        category = self.request.data.get('category', 'staff')
+        
+        try:
+            # Route to the correct collection based on category
+            if category == 'staff':
+                serializer.instance = StaffMember.objects.create(**serializer.validated_data)
+            elif category == 'advisors':
+                serializer.instance = Advisor.objects.create(**serializer.validated_data)
+            elif category == 'collaborators':
+                serializer.instance = ClinicalCollaborator.objects.create(**serializer.validated_data)
+            else:
+                # default to leadership or catch-all TeamMember
+                serializer.save()
+            logger.info(f"Successfully created team member in {category} collection: {serializer.instance.id if serializer.instance else 'N/A'}")
+        except Exception as e:
+            logger.exception(f"Error creating team member in {category} collection: {e}")
+            raise serializers.ValidationError({"detail": f"Database error during creation: {str(e)}"})
 
     def perform_update(self, serializer):
         self._assert_can_manage()
-        serializer.save()
+        try:
+            # The instance returned by get_object() is already from the correct collection
+            serializer.save()
+            logger.info(f"Successfully updated team member: {serializer.instance.id if serializer.instance else 'unknown'}")
+        except Exception as e:
+            logger.exception(f"Error updating team member: {e}")
+            raise serializers.ValidationError({"detail": f"Database error during update: {str(e)}"})
 
     def perform_destroy(self, instance):
         self._assert_can_manage()
-        instance.delete()
+        try:
+            member_id = getattr(instance, 'id', 'unknown')
+            instance.delete()
+            logger.info(f"Successfully deleted team member: {member_id}")
+        except Exception as e:
+            logger.exception(f"Error deleting team member: {e}")
+            raise serializers.ValidationError({"detail": f"Database error during deletion: {str(e)}"})
+
+
 
 class InnovationPageSettingsView(APIView):
     permission_classes = [permissions.AllowAny]
@@ -4158,10 +4262,52 @@ class SponsorInquiryView(APIView):
     permission_classes = [permissions.AllowAny]
     authentication_classes = []
     def post(self, request):
+        # 1. Deduplication Guard: Prevent duplicate submissions within 10 seconds
+        email = request.data.get('email')
+        if email:
+            from django.utils import timezone
+            from datetime import timedelta
+            recent_inquiry = SponsorInquiry.objects.filter(
+                email=email, 
+                created_at__gte=timezone.now() - timedelta(seconds=10)
+            ).exists()
+            
+            if recent_inquiry:
+                return Response({
+                    "status": "success", 
+                    "message": "We have already received your inquiry. A team member will reach out soon."
+                }, status=status.HTTP_201_CREATED)
+
         serializer = SponsorInquirySerializer(data=request.data)
         if serializer.is_valid():
-            serializer.save()
-            return Response({"status": "success", "message": "Inquiry submitted successfully. A confirmation email has been sent."}, status=status.HTTP_201_CREATED)
+            # 2. Race Condition Lock: Ensure only one thread/worker processes this specific email right now
+            from django.core.cache import cache
+            lock_key = f"inquiry_processing:{email}"
+            if cache.get(lock_key):
+                return Response({
+                    "status": "success", 
+                    "message": "Processing inquiry..."
+                }, status=status.HTTP_201_CREATED)
+            
+            # Set a short lock for 10 seconds
+            cache.set(lock_key, True, timeout=10)
+            
+            try:
+                # Save to database
+                instance = serializer.save()
+                
+                # Manually trigger email notification
+                from .utils.resend_utils import send_sponsor_inquiry_email
+                send_sponsor_inquiry_email(instance)
+                
+                return Response({
+                    "status": "success", 
+                    "message": "Inquiry submitted successfully. A confirmation email has been sent."
+                }, status=status.HTTP_201_CREATED)
+            finally:
+                # We keep the lock for 10s to be safe, don't delete it immediately
+                pass
+                
         import logging
         logging.getLogger(__name__).error(f"Sponsor Inquiry Validation Failed: {serializer.errors}")
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

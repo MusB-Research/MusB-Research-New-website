@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     ArrowRight,
     X,
@@ -21,9 +21,12 @@ import {
     Dna,
     Pill,
     HeartPulse,
-    Layers
+    Layers,
+    ExternalLink
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { authFetch, API } from '../utils/auth';
+import { getMediaUrl, handleImageError } from '../utils/media';
 
 const GutIcon = (props: React.SVGProps<SVGSVGElement>) => (
     <svg
@@ -81,6 +84,28 @@ const IntestineIcon = (props: React.SVGProps<SVGSVGElement>) => (
 
 const Support: React.FC = () => {
     const [showRouter, setShowRouter] = useState(false);
+    const [successStories, setSuccessStories] = useState<any[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchStories = async () => {
+            try {
+                const res = await authFetch(`${API}/api/news/`);
+                if (res.ok) {
+                    const data = await res.json();
+                    const stories = (Array.isArray(data) ? data : data.results || [])
+                        .filter((n: any) => n.is_success_story)
+                        .slice(0, 3);
+                    setSuccessStories(stories);
+                }
+            } catch (err) {
+                console.error("Failed to fetch success stories:", err);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        fetchStories();
+    }, []);
 
     const routerOptions = [
         { label: "Research & Innovation", icon: FlaskConical, desc: "Scientific validation and clinical evidence" },
@@ -319,17 +344,72 @@ const Support: React.FC = () => {
                             </div>
                         </div>
 
-                        <div className="py-20 flex flex-col items-center justify-center text-center">
-                            <div className="w-24 h-24 rounded-full bg-cyan-500/10 flex items-center justify-center text-cyan-400 mb-8 border border-cyan-500/20">
-                                <Hourglass className="w-10 h-10" />
+                        {isLoading ? (
+                            <div className="py-20 flex flex-col items-center justify-center space-y-4">
+                                <div className="w-12 h-12 border-4 border-cyan-500/20 border-t-cyan-500 rounded-full animate-spin"></div>
+                                <p className="text-slate-500 font-bold uppercase tracking-widest text-xs">Loading Stories...</p>
                             </div>
-                            <h3 className="text-4xl md:text-5xl font-black text-white tracking-widest uppercase italic">
-                                COMING SOON
-                            </h3>
-                            <p className="text-lg md:text-xl text-slate-400 font-medium mt-6">
-                                We are preparing exciting success stories. Stay tuned!
-                            </p>
-                        </div>
+                        ) : successStories.length > 0 ? (
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 pt-12">
+                                {successStories.map((story) => (
+                                    <div key={story.id} className="group bg-white/5 border border-white/5 rounded-[2.5rem] overflow-hidden flex flex-col hover:bg-white/10 hover:border-cyan-500/30 transition-all duration-500 shadow-2xl">
+                                        <div className="aspect-[16/10] overflow-hidden relative">
+                                            <img 
+                                                src={getMediaUrl(story.image_url || story.image)} 
+                                                onError={handleImageError}
+                                                alt={story.title} 
+                                                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                                            />
+                                            <div className="absolute top-4 left-4">
+                                                <span className="px-3 py-1.5 rounded-lg bg-emerald-500/20 text-emerald-400 text-[10px] font-black uppercase tracking-widest border border-emerald-500/30 backdrop-blur-md">
+                                                    ★ Success Story
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div className="p-8 space-y-4 flex flex-col flex-grow">
+                                            <h3 className="text-xl font-bold text-white group-hover:text-cyan-400 transition-colors line-clamp-2 uppercase italic leading-tight">
+                                                {story.title}
+                                            </h3>
+                                            <p className="text-slate-400 text-sm font-medium leading-relaxed line-clamp-3">
+                                                {story.content?.replace(/<[^>]*>?/gm, '').substring(0, 150)}...
+                                            </p>
+                                            <div className="flex items-center gap-4 mt-auto">
+                                                <Link
+                                                    to={`/news/${story.id}`}
+                                                    className="inline-flex items-center gap-2 text-white font-black text-[10px] uppercase tracking-widest pt-4 group-hover:text-cyan-400 transition-colors"
+                                                >
+                                                    Read Case Study <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                                                </Link>
+                                                {story.link && (
+                                                    <a
+                                                        href={story.link}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="ml-auto p-2 rounded-xl bg-white/5 border border-white/10 text-slate-400 hover:text-cyan-400 hover:border-cyan-400/50 transition-all mt-3"
+                                                        title="External Link"
+                                                        onClick={(e) => e.stopPropagation()}
+                                                    >
+                                                        <ExternalLink className="w-4 h-4" />
+                                                    </a>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="py-20 flex flex-col items-center justify-center text-center">
+                                <div className="w-24 h-24 rounded-full bg-cyan-500/10 flex items-center justify-center text-cyan-400 mb-8 border border-cyan-500/20">
+                                    <Hourglass className="w-10 h-10" />
+                                </div>
+                                <h3 className="text-4xl md:text-5xl font-black text-white tracking-widest uppercase italic">
+                                    STAY TUNED
+                                </h3>
+                                <p className="text-lg md:text-xl text-slate-400 font-medium mt-6">
+                                    New success stories are in development. Check back soon!
+                                </p>
+                            </div>
+                        )}
                     </div>
                 </section>
 

@@ -94,7 +94,10 @@ class ApiConfig(AppConfig):
             from django.db import connections
             try:
                 # Test MongoDB connection
-                connections['default'].cursor()
-                print(">>> SERVER STATUS: RUNNING on port 8000 (MongoDB Connected)")
+                connections['default'].ensure_connection()
+                print("\n" + "="*60)
+                print(">>> SERVER STATUS: RUNNING (MongoDB Connected)")
+                print(">>> PORT: 8000")
+                print("="*60 + "\n")
             except Exception as e:
-                print(f">>> DATABASE ERROR: {e}")
+                print(f"\n>>> DATABASE CONNECTION ERROR: {e}\n")

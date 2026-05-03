@@ -87,6 +87,20 @@ def admin_create_user(request):
     middle_name = request.data.get('middle_name', '').strip() or None
     last_name   = request.data.get('last_name', '').strip()
     role_input  = request.data.get('role', '').strip()
+    lat         = request.data.get('lat')
+    lng         = request.data.get('lng')
+    # Safely convert lat/lng to float
+    try:
+        lat = float(lat) if lat is not None else None
+    except (ValueError, TypeError):
+        lat = None
+    try:
+        lng = float(lng) if lng is not None else None
+    except (ValueError, TypeError):
+        lng = None
+    is_mellow   = request.data.get('is_mellow_member', False)
+    org         = (request.data.get('organization') or '').strip() or None
+    bio         = (request.data.get('bio') or '').strip() or None
     
     # 2. Validation
     if not all([email, first_name, last_name, role_input]):
@@ -158,6 +172,7 @@ def admin_create_user(request):
              if role == 'team_member':
                  status_val = 'PENDING'
 
+        # New user creation
         new_user = User.objects.create_user(
             email=email,
             password=temp_password,
@@ -173,7 +188,17 @@ def admin_create_user(request):
             profile_completed=False,
             created_by=admin_user,
             invited_by=admin_user,
-            invited_in_study=study_id
+            invited_in_study=study_id,
+            is_active=True,
+            # Consortium Data
+            lat=lat,
+            lng=lng,
+            is_mellow_member=is_mellow,
+            organization=org,
+            bio=bio,
+            zip_code=request.data.get('zip_code') or None,
+            country=request.data.get('country') or None,
+            state=request.data.get('state') or None
         )
         
         # 4.1 Approval Request for Onsite Team Members
@@ -548,3 +573,57 @@ def admin_list_users(request):
     } for u in users]
     
     return Response(data)
+
+@api_view(['GET'])
+@permission_classes([permissions.AllowAny])
+def get_mellow_investigators(request):
+    """
+    Public view to fetch investigators for the Mellow Consortium map.
+    Returns only users flagged with is_mellow_member=True.
+    """
+    investigators = User.objects.filter(is_mellow_member=True, role='PI', is_active=True)
+    
+    # One pin per investigator - no grouping
+    # If two share exact coordinates, offset slightly so pins don't stack
+    seen_coords = {}
+    sites = []
+    
+    for u in investigators:
+        org_name = u.organization or "Independent Researcher"
+        u_lat = float(u.lat or 0.0)
+        u_lng = float(u.lng or 0.0)
+        
+        # Offset duplicate coordinates so pins are visually distinct
+        coord_key = f"{u_lat}|{u_lng}"
+        if coord_key in seen_coords:
+            count = seen_coords[coord_key]
+            u_lat += count * 0.5
+            u_lng += count * 0.5
+            seen_coords[coord_key] = count + 1
+        else:
+            seen_coords[coord_key] = 1
+        
+        inv_data = {
+            'id': str(u.id),
+            'name': u.full_name or f"{u.first_name} {u.last_name}",
+            'email': u.email,
+            'bio': u.bio or "Clinical Investigator specializing in multi-center research protocols.",
+            'profile_picture': u.profile_picture or None,
+            'qualifications': u.qualifications or "MD, PhD",
+            'is_active': u.is_active
+        }
+        
+        sites.append({
+            'id': f"site-{u.id}",
+            'name': org_name,
+            'country': u.country or "Global",
+            'lat': u_lat,
+            'lng': u_lng,
+            'institutions': [{
+                'id': f"inst-{u.id}",
+                'name': org_name,
+                'investigators': [inv_data]
+            }]
+        })
+
+    return Response(sites)

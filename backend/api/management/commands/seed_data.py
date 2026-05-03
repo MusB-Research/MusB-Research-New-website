@@ -26,7 +26,7 @@ class Command(BaseCommand):
         # ---- Team Members ----
         if TeamMember.objects.count() == 0:
             members = [
-                dict(name='Dr. Sarah Mitchell', role='Chief Scientific Officer & Principal Investigator',
+                dict(name='Dr. Sarah Mitchell', role='Chief Scientific Officer & Investigator',
                      bio='Leading translational research in microbiome and metabolic health.',
                      expanded_bio='Dr. Sarah Mitchell brings over 20 years of experience in translational research, with a focus on microbiome-based interventions for metabolic disorders.',
                      expertise_tags=['Microbiome', 'Clinical Trials', 'Metabolic Health'],
@@ -86,12 +86,23 @@ class Command(BaseCommand):
         # ---- Clinical Collaborators ----
         if ClinicalCollaborator.objects.count() == 0:
             collabs = [
-                dict(name='Tampa General Hospital', specialty='Multi-Specialty Research', location='Tampa, FL', display_order=1),
-                dict(name='Moffitt Cancer Center', specialty='Oncology', location='Tampa, FL', display_order=2),
-                dict(name='USF Health', specialty='Academic Research', location='Tampa, FL', display_order=3),
-                dict(name='Bay Area Gastroenterology', specialty='Gastroenterology', location='St. Petersburg, FL', display_order=4),
-                dict(name='Florida Neurology Associates', specialty='Neurology', location='Tampa Bay Area', display_order=5),
-                dict(name="Women's Health Specialists", specialty="Women's Health", location='Clearwater, FL', display_order=6),
+                dict(name='Unilever', display_order=1),
+                dict(name='Synbiotic Health', display_order=2),
+                dict(name='Vidya Herbs', display_order=3),
+                dict(name='Biova', display_order=4),
+                dict(name='India Glycol Ltd', display_order=5),
+                dict(name='APT Testing and Research Pvt. Ltd.', display_order=6),
+                dict(name='Croissance Clinical Research', display_order=7),
+                dict(name='Clintek', display_order=8),
+                dict(name='Zeda AI', display_order=9),
+                dict(name='Excel Imaging Center', display_order=10),
+                dict(name='Bay Area Gastroenterology Associates LLC', display_order=11),
+                dict(name='Tampa General Hospital', specialty='Multi-Specialty Research', location='Tampa, FL', display_order=12),
+                dict(name='Moffitt Cancer Center', specialty='Oncology', location='Tampa, FL', display_order=13),
+                dict(name='USF Health', specialty='Academic Research', location='Tampa, FL', display_order=14),
+                dict(name='Bay Area Gastroenterology', specialty='Gastroenterology', location='St. Petersburg, FL', display_order=15),
+                dict(name='Florida Neurology Associates', specialty='Neurology', location='Tampa Bay Area', display_order=16),
+                dict(name="Women's Health Specialists", specialty="Women's Health", location='Clearwater, FL', display_order=17),
             ]
             for c in collabs:
                 ClinicalCollaborator.objects.create(**c)
@@ -100,22 +111,14 @@ class Command(BaseCommand):
         # ---- Staff Members ----
         if StaffMember.objects.count() == 0:
             staff = [
-                dict(name='Jennifer Adams', role='Senior Clinical Research Coordinator', department='Clinical Operations',
-                     role_description='Manages day-to-day clinical trial operations and participant recruitment', display_order=1),
-                dict(name='Mark Johnson', role='Laboratory Manager', department='Laboratory Services',
-                     role_description='Oversees sample processing and laboratory quality control', display_order=2),
-                dict(name='Rachel Green', role='Data Manager', department='Data Science',
-                     role_description='Manages clinical trial databases and ensures data integrity', display_order=3),
-                dict(name='Carlos Ramirez', role='Regulatory Affairs Specialist', department='Compliance',
-                     role_description='Ensures regulatory compliance and manages IRB submissions', display_order=4),
-                dict(name='Amanda Foster', role='Research Nurse', department='Clinical Operations',
-                     role_description='Conducts participant assessments and clinical procedures', display_order=5),
-                dict(name='Kevin Park', role='Laboratory Technician', department='Laboratory Services',
-                     role_description='Performs sample analysis and maintains laboratory equipment', display_order=6),
-                dict(name='Michelle Carter', role='Participant Coordinator', department='Clinical Operations',
-                     role_description='Manages participant scheduling and communication', display_order=7),
-                dict(name='Daniel Lee', role='IT Systems Administrator', department='Information Technology',
-                     role_description='Maintains HIPAA-compliant IT infrastructure and data security', display_order=8),
+                dict(name='Vaishnavi S', role='Business & Administration Manager', dept='Operations', display_order=1),
+                dict(name='Indushekar Manjunatha', role='Clinical Coordinator', dept='Clinical Research', display_order=2),
+                dict(name='Falguni Kanani', role='Community Outreach Liaison', dept='Public Relations', display_order=3),
+                dict(name='Alain Ramirez', role='Laboratory Technician', dept='Lab Services', display_order=4),
+                dict(name='Andreas Mbah', role='Medical Laboratory Director', dept='Diagnostics', display_order=5),
+                dict(name='Jason Chandler', role='IT Professional', dept='Technology', display_order=6),
+                dict(name='Shray Paliwal', role='Research Intern', dept='Scientific Support', display_order=7),
+                dict(name='Osula Ebiuwa', role='Research Intern', dept='Scientific Support', display_order=8),
             ]
             for s in staff:
                 StaffMember.objects.create(**s)

@@ -22,7 +22,7 @@ import { authFetch , API } from '../utils/auth';
 import { Link } from 'react-router-dom';
 import SEO from '@/components/SEO';
 import { SkeletonLoader } from '../components/shared/SkeletonLoader';
-import { getMediaUrl, handleImageError } from '../utils/media';
+import { getMediaUrl, handleImageError, getYoutubeId } from '../utils/media';
 import { usePolling } from '@/hooks/usePolling';
 import { subscribeNewsletter } from '../api';
 
@@ -80,9 +80,8 @@ const decodeEntities = (str: string): string => {
     }
 };
 
-
-
 export default function News() {
+    const [playingVideoId, setPlayingVideoId] = useState<string | null>(null);
     const [activeCategory, setActiveCategory] = useState<NewsType | 'All'>('All');
     const [searchQuery, setSearchQuery] = useState('');
     const [viewMode, setViewMode] = useState<'grid' | 'calendar'>('grid');
@@ -132,11 +131,13 @@ export default function News() {
                 const newsArray = Array.isArray(newsData) ? newsData : (newsData.results || []);
                 combined = [...combined, ...newsArray.map((n: any) => ({
                     ...n,
-                    type: n.is_success_story ? 'Success Story' : 'News',
+                    type: 'News',
                     title: decodeEntities(n.title || 'Untitled News'),
-                    excerpt: stripToPlainText(n.excerpt || n.content || 'No excerpt available.'),
+                    excerpt: stripToPlainText(n.content || n.description || n.summary || 'No description available.'),
                     date: new Date(n.published_at || n.created_at || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-                    imageUrl: getMediaUrl(n.image_url || n.image)
+                    rawDate: new Date(n.published_at || n.created_at || Date.now()).getTime(),
+                    imageUrl: getMediaUrl(n.image_url || n.image),
+                    link: n.link
                 }))];
             }
 
@@ -149,7 +150,10 @@ export default function News() {
                     title: decodeEntities(e.title || e.name || 'Untitled Event'),
                     excerpt: stripToPlainText(e.description || e.excerpt || 'No description available.'),
                     date: new Date(e.date || e.event_date || e.created_at || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-                    imageUrl: getMediaUrl(e.image_url || e.image)
+                    rawDate: new Date(e.date || e.event_date || e.created_at || Date.now()).getTime(),
+                    imageUrl: getMediaUrl(e.image_url || e.image),
+                    link: e.link,
+                    registrationLink: e.link || e.registrationLink
                 }))];
             }
 
@@ -162,6 +166,7 @@ export default function News() {
                     title: decodeEntities(p.name || p.partner_name || p.title || 'New Partnership'),
                     excerpt: stripToPlainText(p.description || p.collaboration_details || 'Partnership details not provided.'),
                     date: new Date(p.announcement_date || p.created_at || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+                    rawDate: new Date(p.announcement_date || p.created_at || Date.now()).getTime(),
                     imageUrl: getMediaUrl(p.logo_url || p.logo)
                 }))];
             }
@@ -175,6 +180,7 @@ export default function News() {
                     title: decodeEntities(p.title || 'Untitled Publication'),
                     excerpt: stripToPlainText(p.abstract || p.summary || 'No abstract available.'),
                     date: new Date(p.publication_date || p.created_at || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+                    rawDate: new Date(p.publication_date || p.created_at || Date.now()).getTime(),
                     imageUrl: getMediaUrl(p.image_url || p.image)
                 }))];
             }
@@ -182,20 +188,32 @@ export default function News() {
             if (eduRes.ok) {
                 const eduData = await eduRes.json();
                 const eduArray = Array.isArray(eduData) ? eduData : (eduData.results || []);
-                combined = [...combined, ...eduArray.map((e: any) => ({
-                    ...e,
-                    type: 'Educational Material',
-                    title: decodeEntities(e.title || 'Untitled Material'),
-                    excerpt: stripToPlainText(e.content || e.description || e.summary || 'No description available.'),
-                    date: new Date(e.created_at || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-                    imageUrl: getMediaUrl(e.file_url || e.file || e.attachment)
-                }))];
+                combined = [...combined, ...eduArray.map((e: any) => {
+                    const ytId = getYoutubeId(e.youtube_url);
+                    const dateObj = new Date(e.created_at || Date.now());
+                    return {
+                        ...e,
+                        type: 'Educational Material',
+                        title: decodeEntities(e.title || 'Untitled Material'),
+                        excerpt: stripToPlainText(e.content || e.description || e.summary || 'Educational video content available.'),
+                        displayDate: dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+                        rawDate: dateObj.getTime(),
+                        imageUrl: ytId ? `https://img.youtube.com/vi/${ytId}/maxresdefault.jpg` : getMediaUrl(e.file_url || e.file || e.attachment),
+                        youtubeId: ytId
+                    };
+                })];
             }
 
             // If we got real data, use it; otherwise fallback to hardcoded
             if (combined.length > 0) {
-                // Sort descending by date
-                combined.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+                // Sort descending by date, then by ID as a tie-breaker for "newest first"
+                combined.sort((a, b) => {
+                    const dateDiff = b.rawDate - a.rawDate;
+                    if (dateDiff !== 0) return dateDiff;
+                    // String comparison for MongoDB hex IDs works well for chronological order if created at same time
+                    return (b.id || "").toString().localeCompare((a.id || "").toString());
+                });
+                console.log("News items loaded:", combined);
                 setNewsItems(combined);
             } else {
                 setNewsItems(HARDCODED_NEWS);
@@ -444,12 +462,43 @@ export default function News() {
                                                 return (
                                                     <div key={item.id} className={`group bg-white/5 border border-white/5 rounded-[2.5rem] overflow-hidden flex flex-col hover:bg-white/10 hover:border-white/10 ${accent.border} transition-all duration-300 shadow-xl`}>
                                                         <div className="aspect-[16/10] overflow-hidden relative">
-                                                            <img 
-                                                                src={getMediaUrl(item.imageUrl)} 
-                                                                onError={handleImageError}
-                                                                alt={item.title} 
-                                                                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-                                                            />
+                                                            {item.youtubeId ? (
+                                                                <div className="relative w-full h-full bg-slate-900 group/video cursor-pointer"
+                                                                     onClick={() => setPlayingVideoId(playingVideoId === item.id ? null : item.id)}>
+                                                                    {playingVideoId === item.id ? (
+                                                                        <iframe
+                                                                            className="w-full h-full relative z-10"
+                                                                            src={`https://www.youtube.com/embed/${item.youtubeId}?autoplay=1&rel=0&modestbranding=1`}
+                                                                            title={item.title}
+                                                                            frameBorder="0"
+                                                                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                                                            allowFullScreen
+                                                                        ></iframe>
+                                                                    ) : (
+                                                                        <>
+                                                                            <img 
+                                                                                src={item.imageUrl} 
+                                                                                onError={handleImageError}
+                                                                                alt={item.title} 
+                                                                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 opacity-80"
+                                                                            />
+                                                                            <div className="absolute inset-0 flex items-center justify-center z-20">
+                                                                                <div className="w-16 h-16 rounded-full bg-cyan-500/80 flex items-center justify-center backdrop-blur-md shadow-2xl shadow-cyan-500/40 group-hover/video:scale-110 transition-transform">
+                                                                                    <div className="w-0 h-0 border-t-[10px] border-t-transparent border-l-[18px] border-l-white border-b-[10px] border-b-transparent ml-1"></div>
+                                                                                </div>
+                                                                            </div>
+                                                                            <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-transparent to-transparent opacity-60"></div>
+                                                                        </>
+                                                                    )}
+                                                                </div>
+                                                            ) : (
+                                                                <img 
+                                                                    src={item.imageUrl} 
+                                                                    onError={handleImageError}
+                                                                    alt={item.title} 
+                                                                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                                                                />
+                                                            )}
                                                             <div className="absolute top-4 left-4">
                                                                 <span className={`flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-950/80 backdrop-blur-md text-[12px] font-black uppercase tracking-widest border border-white/10 ${accent.badge}`}>
                                                                     <Icon className="w-3 h-3" />
@@ -458,19 +507,34 @@ export default function News() {
                                                             </div>
                                                         </div>
                                                         <div className="p-8 flex flex-col flex-grow space-y-4">
-                                                            <div className="text-slate-500 text-[12px] font-bold uppercase tracking-widest">{item.date}</div>
+                                                            <div className="text-slate-500 text-[12px] font-bold uppercase tracking-widest">{item.displayDate || item.date}</div>
                                                             <h3 className="text-xl font-bold text-white group-hover:text-cyan-400 transition-colors line-clamp-2">
                                                                 {item.title}
                                                             </h3>
                                                             <p className="text-slate-400 text-sm font-medium leading-relaxed line-clamp-2">
                                                                 {item.excerpt}
                                                             </p>
-                                                            <Link
-                                                                to={`/news/${item.id}`}
-                                                                className="inline-flex items-center gap-2 text-white font-black text-[12px] uppercase tracking-[0.2em] pt-4 group-hover:text-cyan-400 transition-colors mt-auto"
-                                                            >
-                                                                Read More <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                                                            </Link>
+                                                            <div className="flex items-center gap-4 pt-4 mt-auto">
+                                                                <Link
+                                                                    to={`/news/${item.id}`}
+                                                                    className="inline-flex items-center gap-2 text-white font-black text-[12px] uppercase tracking-[0.2em] group-hover:text-cyan-400 transition-colors"
+                                                                >
+                                                                    Read More <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                                                                </Link>
+                                                                
+                                                                {item.link && (
+                                                                    <a
+                                                                        href={item.link}
+                                                                        target="_blank"
+                                                                        rel="noopener noreferrer"
+                                                                        className="ml-auto p-2 rounded-xl bg-white/5 border border-white/10 text-slate-400 hover:text-cyan-400 hover:border-cyan-400/50 transition-all"
+                                                                        title="External Link"
+                                                                        onClick={(e) => e.stopPropagation()}
+                                                                    >
+                                                                        <ExternalLink className="w-4 h-4" />
+                                                                    </a>
+                                                                )}
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 );
@@ -534,12 +598,14 @@ export default function News() {
                                             )}
                                         </div>
                                     </div>
-                                    <Link
-                                        to={event.registrationLink || '#'}
+                                    <a
+                                        href={event.registrationLink || '#'}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
                                         className="w-full md:w-auto px-8 py-4 rounded-2xl bg-white text-slate-950 font-black uppercase tracking-widest text-[12px] hover:bg-cyan-500 transition-all text-center"
                                     >
                                         Register
-                                    </Link>
+                                    </a>
                                 </div>
                             ))
                         ) : (
@@ -592,14 +658,14 @@ export default function News() {
                 </main>
             ) : (
                 <main className="max-w-[1700px] mx-auto px-4 md:px-12 py-32 min-h-[40vh] flex flex-col items-center justify-center text-center">
-                    <div className="w-24 h-24 rounded-full bg-cyan-500/10 flex items-center justify-center text-cyan-400 mb-8">
-                        <Clock className="w-12 h-12" />
+                    <div className="w-20 h-20 rounded-full bg-white/5 flex items-center justify-center text-slate-600 mb-8">
+                        <Newspaper className="w-10 h-10" />
                     </div>
-                    <h2 className="text-5xl md:text-7xl font-black text-white tracking-widest uppercase italic">
-                        COMING SOON
+                    <h2 className="text-3xl md:text-5xl font-black text-white tracking-tight uppercase">
+                        No Updates <span className="text-cyan-400">Available</span>
                     </h2>
                     <p className="text-xl text-slate-400 font-medium mt-6">
-                        We are preparing exciting news and events. Stay tuned!
+                        We are preparing exciting news and events. Please check back later.
                     </p>
                 </main>
             )}

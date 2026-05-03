@@ -42,7 +42,7 @@ export default function TeamManagementPanel({ addToast }: any) {
   const roles = [
     { id: 'sponsor', label: 'Sponsor Admin' },
     { id: 'coordinator', label: 'Coordinator' },
-    { id: 'pi', label: 'Principal Investigator' },
+    { id: 'pi', label: 'Investigator' },
     { id: 'team_member', label: 'Team Member' }
   ];
 

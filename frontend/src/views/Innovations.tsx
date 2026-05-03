@@ -190,19 +190,24 @@ export default function Innovations() {
         setBookletSubmitting(true);
         setBookletError('');
         try {
+            // 1. Submit data to backend (Backend triggers Resend Email Notification)
             await submitBookletDownload({
                 ...bookletForm,
                 technology_name: bookletTechName,
             });
-            console.log('Booklet form submitted', bookletForm);
+            
+            // 2. Hide form on success
             setShowBookletForm(false);
-            // Trigger download
+            
+            // 3. Trigger file download
             const link = document.createElement('a');
             link.href = `/booklets/${bookletTechName.replace(/[^a-zA-Z0-9]/g, '').toLowerCase()}_booklet.pdf`;
             link.download = `${bookletTechName}_Technical_Booklet.pdf`;
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
+            
+            console.log('Booklet request processed and download triggered');
         } catch (err: any) {
             setBookletError(err.message || 'Something went wrong. Please try again.');
         } finally {
@@ -803,13 +808,23 @@ export default function Innovations() {
                                                 <p className="text-red-400 text-[12px] font-medium text-center">{bookletError}</p>
                                             )}
 
-                                            {/* Submit Button */}
+                                            {/* Submit Button - Triggers Backend & Resend Flow */}
                                             <button
                                                 type="submit"
                                                 disabled={bookletSubmitting}
-                                                className="w-full bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-black uppercase tracking-widest py-3 rounded-xl transition-all shadow-lg shadow-cyan-500/20 hover:shadow-[0_0_30px_rgba(6,182,212,0.4)] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer animate-field-reveal field-delay-7"
+                                                className="w-full bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-black uppercase tracking-[0.2em] py-3.5 rounded-xl transition-all shadow-lg shadow-cyan-500/20 flex items-center justify-center gap-2 hover:shadow-cyan-500/40 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed group/submit animate-field-reveal field-delay-7"
                                             >
-                                                {bookletSubmitting ? 'Submitting...' : 'Submit'}
+                                                {bookletSubmitting ? (
+                                                    <>
+                                                        <span className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin"></span>
+                                                        <span>Processing Download...</span>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <span>Submit & Download</span>
+                                                        <ArrowRight className="w-4 h-4 group-hover/submit:translate-x-1 transition-transform" />
+                                                    </>
+                                                )}
                                             </button>
                                         </form>
                                     </div>

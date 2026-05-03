@@ -286,15 +286,20 @@ class News(models.Model):
     title = models.CharField(max_length=255)
     content = models.TextField()
     type = models.CharField(max_length=50, blank=True)
+    sequence = models.IntegerField(default=0)
     published_at = models.DateTimeField(auto_now_add=True)
     created_at = models.DateTimeField(auto_now_add=True)
     image = models.ImageField(upload_to='news_images/', null=True, blank=True)
+    link = models.URLField(max_length=500, null=True, blank=True)
+    is_success_story = models.BooleanField(default=False)
 
 class Event(models.Model):
     title = models.CharField(max_length=255)
     description = models.TextField()
     date = models.DateTimeField()
+    sequence = models.IntegerField(default=0)
     image = models.ImageField(upload_to='event_images/', null=True, blank=True)
+    link = models.URLField(max_length=500, null=True, blank=True)
 
 class FacilityInquiry(models.Model):
     name = models.CharField(max_length=255)
@@ -318,7 +323,7 @@ class StudyAssignment(models.Model):
     study = models.ForeignKey(Study, on_delete=models.CASCADE, related_name='assignments', db_index=True)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='study_assignments', db_index=True)
     role = models.CharField(max_length=30, choices=[
-        ('PI', 'Principal Investigator'),
+        ('PI', 'Investigator'),
         ('COORDINATOR', 'Clinical Coordinator'),
         ('SPONSOR_ADMIN', 'Sponsor Admin'),
         ('SPONSOR_MANAGER', 'Study Manager'),
@@ -1136,7 +1141,7 @@ class Consent(BaseMongoModel):
             self.audit_trail.append({
                 "action": "PI_VERIFIED",
                 "time": self.pi_verified_at.isoformat(),
-                "actor": self.pi_name or "Principal Investigator",
+                "actor": self.pi_name or "Investigator",
                 "role": "PI"
             })
 
@@ -1447,6 +1452,7 @@ class BookletDownloadRequest(models.Model):
 class Partnership(BaseMongoModel):
     name = models.CharField(max_length=255)
     description = models.TextField()
+    sequence = models.IntegerField(default=0)
     logo = models.ImageField(upload_to='partnership_logos/', max_length=1024, blank=True, null=True)
     link = models.URLField(blank=True, null=True)
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='authored_partnerships')
@@ -1461,11 +1467,12 @@ class Partnership(BaseMongoModel):
     def __str__(self):
         return f"{self.name} ({self.status})"
 
-class TeamMember(BaseMongoModel):
+class AbstractTeamMember(BaseMongoModel):
     CATEGORY_CHOICES = [
         ('leadership', 'Leadership'),
         ('advisors', 'Advisors'),
         ('staff', 'Operational Staff'),
+        ('collaborators', 'Clinical Collaborators'),
     ]
     STATUS_CHOICES = [
         ('Active', 'Active'),
@@ -1485,7 +1492,7 @@ class TeamMember(BaseMongoModel):
     areas_of_expertise = models.JSONField(default=list, blank=True)
     affiliations = models.JSONField(default=list, blank=True)
     publications = models.JSONField(default=list, blank=True)
-    image = models.CharField(max_length=512, blank=True, default='')
+    image = models.ImageField(upload_to='team/', null=True, blank=True)
     linkedin_url = models.CharField(max_length=512, blank=True, default='')
     system_role = models.CharField(max_length=50, blank=True, default='')
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Active')
@@ -1494,15 +1501,45 @@ class TeamMember(BaseMongoModel):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta(BaseMongoModel.Meta):
+        abstract = True
         ordering = ['display_order', 'created_at']
 
     def __str__(self):
         return f"{self.name} ({self.category})"
 
+class TeamMember(AbstractTeamMember):
+    class Meta(AbstractTeamMember.Meta):
+        abstract = False
+        db_table = 'api_teammember'
+
+class StaffMember(AbstractTeamMember):
+    class Meta(AbstractTeamMember.Meta):
+        abstract = False
+        db_table = 'api_staffmember'
+        verbose_name = 'Operational Staff'
+        verbose_name_plural = 'Operational Staff'
+
+class Advisor(AbstractTeamMember):
+    class Meta(AbstractTeamMember.Meta):
+        abstract = False
+        db_table = 'api_advisor'
+        verbose_name = 'Strategic Advisor'
+        verbose_name_plural = 'Strategic Advisors'
+
+class ClinicalCollaborator(AbstractTeamMember):
+    class Meta(AbstractTeamMember.Meta):
+        abstract = False
+        db_table = 'api_clinicalcollaborator'
+        verbose_name = 'Clinical Collaborator'
+        verbose_name_plural = 'Clinical Collaborators'
+
+
+
 class Publication(BaseMongoModel):
     title = models.CharField(max_length=255)
     authors = models.TextField()
     journal = models.CharField(max_length=255)
+    sequence = models.IntegerField(default=0)
     publication_date = models.DateField()
     link = models.URLField(blank=True, null=True)
     abstract = models.TextField(blank=True, null=True)
@@ -1520,9 +1557,11 @@ class Publication(BaseMongoModel):
 
 class EducationMaterial(BaseMongoModel):
     title = models.CharField(max_length=255)
-    content = models.TextField()
+    content = models.TextField(blank=True, null=True)
     category = models.CharField(max_length=100, blank=True)
+    sequence = models.IntegerField(default=0)
     file = models.FileField(upload_to='education_materials/', blank=True, null=True)
+    youtube_url = models.URLField(blank=True, null=True)
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='authored_education')
     status = models.CharField(max_length=20, choices=[
         ('pending', 'Pending'),
@@ -2149,14 +2188,6 @@ class SponsorInquiry(BaseMongoModel):
     def __str__(self):
         return f"Sponsor Inquiry: {self.name} ({self.company})"
 
-@receiver(post_save, sender=SponsorInquiry)
-def notify_team_on_sponsor_inquiry(sender, instance, created, **kwargs):
-    if created:
-        from .utils.resend_utils import send_sponsor_inquiry_email
-        try:
-            send_sponsor_inquiry_email(instance)
-        except Exception as e:
-            print(f"Error triggering sponsor inquiry email: {e}")
 
 @receiver(post_save, sender=QuestionnaireScheduleInstance)
 def notify_on_questionnaire_completion(sender, instance, created, **kwargs):

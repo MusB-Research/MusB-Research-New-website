@@ -46,6 +46,9 @@ urlpatterns = [
     path('admin/audit-logs/', admin_users.admin_get_audit_logs, name='admin_audit_logs'),
     path('admin/analytics-stats/', admin_users.admin_get_analytics_stats, name='admin_analytics_stats'),
     
+    # Mellow Consortium (Public)
+    path('mellow/investigators/', admin_users.get_mellow_investigators, name='mellow_investigators'),
+    
     # RBAC Approvals
     path('admin/approvals/', admin_users.get_pending_approvals, name='get_pending_approvals'),
     path('admin/approvals/<str:request_id>/<str:action>/', admin_users.process_approval, name='process_approval'),

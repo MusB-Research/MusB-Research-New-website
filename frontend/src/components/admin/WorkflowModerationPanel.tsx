@@ -186,6 +186,11 @@ export default function WorkflowModerationPanel() {
                                             
                                             <div>
                                                 <h3 className="text-2xl font-black text-white italic uppercase tracking-tighter group-hover:text-indigo-400 transition-colors">{item.title}</h3>
+                                                {item.youtube_url && (
+                                                    <div className="mt-2 text-red-500 font-bold text-xs uppercase tracking-widest flex items-center gap-2">
+                                                        <Sparkles className="w-3 h-3" /> Video: {item.youtube_url}
+                                                    </div>
+                                                )}
                                                 <p className="text-sm text-[#8b8fa8] font-medium leading-relaxed mt-4 line-clamp-2 max-w-2xl selection:bg-indigo-500/30 selection:text-white">
                                                     {item.content || item.description || 'No detailed data packets accompanying this transmission.'}
                                                 </p>

@@ -54,7 +54,7 @@ export default function TeamModule() {
     }, [fetchData]);
 
     const tabs = [
-        { id: 'PI', label: 'Principal Investigators', icon: Shield, color: 'text-indigo-400' },
+        { id: 'PI', label: 'Investigators', icon: Shield, color: 'text-indigo-400' },
         { id: 'COORDINATOR', label: 'Staff Coordinators', icon: Users, color: 'text-emerald-400' },
         { id: 'SPONSOR', label: 'Research Sponsors', icon: Building2, color: 'text-cyan-400' },
         { id: 'PARTICIPANT', label: 'Study Participants', icon: UserIcon, color: 'text-pink-400' },

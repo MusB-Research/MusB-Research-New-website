@@ -5,10 +5,11 @@ import {
     Plus, Save, Layout, FileText, List, Calendar,
     X, AlertCircle, ChevronDown, Layers, MousePointer2,
     CheckSquare, GripVertical, Settings2, Trash2, Upload, Eye, FileUp, ExternalLink, Database,
-    Terminal, CheckCircle2, AlertTriangle, Wand2, DraftingCompass, ShieldCheck
+    Terminal, CheckCircle2, AlertTriangle, Wand2, DraftingCompass, ShieldCheck, Sparkles
 } from 'lucide-react';
 import { apiFetch } from '../../api';
 import { authFetch, API } from '../../utils/auth';
+import { getMediaUrl } from '../../utils/media';
 
 interface Question {
     id: string;
@@ -41,18 +42,7 @@ interface QuestionnaireBuilderProps {
 
 const getFullUrl = (path: string | null) => {
     if (!path) return '';
-    if (path.startsWith('http')) return path;
-
-    // In Django, media files are usually /media/...
-    // If the path doesn't start with /media/ but it's a relative path, we might need to prepend it
-    let cleanPath = path.startsWith('/') ? path : `/${path}`;
-
-    // If it doesn't already have /media/ and doesn't look like an absolute API path
-    if (!cleanPath.startsWith('/media/')) {
-        cleanPath = `/media${cleanPath}`;
-    }
-
-    return `${API}${cleanPath}`;
+    return getMediaUrl(path);
 };
 
 export default function QuestionnaireBuilder({ 
@@ -354,7 +344,7 @@ export default function QuestionnaireBuilder({
             console.error(err);
         }
     };
-    const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
         if (!file) return;
 
@@ -797,181 +787,158 @@ export default function QuestionnaireBuilder({
                                                         onChange={e => setQuestions(questions.map(item => item.id === q.id ? { ...item, type: e.target.value as any } : item))}
                                                         className="appearance-none bg-black/40 border border-white/10 rounded-xl px-3 py-2 pr-8 text-[10px] font-black text-indigo-400 uppercase tracking-widest outline-none focus:border-indigo-500/50 transition-all cursor-pointer"
                                                     >
-                                                        <option value="short_text">One Line Text</option>
-                                                        <option value="choice">Choice (Radio)</option>
-                                                        <option value="dropdown">Selection Menu</option>
-                                                        <option value="date">Date Field</option>
+                                                        <option value="short_text">Text Field</option>
+                                                        <option value="choice">Multi-Choice</option>
                                                         <option value="yesno">Yes / No</option>
+                                                        <option value="date">Date Picker</option>
                                                     </select>
-                                                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-indigo-400/50 pointer-events-none" size={12} />
+                                                    <ChevronDown size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-indigo-500 pointer-events-none transition-transform group-hover/select:translate-y-[-40%]" />
                                                 </div>
 
-                                                {(q.type === 'choice' || q.type === 'dropdown') && (
-                                                    <button
-                                                        onClick={() => setQuestions(questions.map(item => item.id === q.id ? { ...item, allow_multiple: !item.allow_multiple } : item))}
-                                                        className={`text-[9px] font-black px-3 py-2 rounded-xl border transition-all uppercase tracking-widest ${q.allow_multiple ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-400 shadow-lg shadow-emerald-500/10' : 'bg-white/5 border-white/10 text-slate-500 hover:border-emerald-500/30'}`}
-                                                    >
-                                                        {q.allow_multiple ? 'Multi Select' : 'Single Select'}
-                                                    </button>
-                                                )}
-                                                
-                                                <button onClick={() => setQuestions(questions.filter(item => item.id !== q.id))} className="p-2 text-rose-500/40 hover:text-rose-500 hover:bg-rose-500/10 rounded-xl transition-all shrink-0">
-                                                    <Trash2 className="w-4 h-4" />
+                                                <button
+                                                    onClick={() => setQuestions(questions.filter(item => item.id !== q.id))}
+                                                    className="p-2 text-slate-600 hover:text-rose-500 hover:bg-rose-500/10 rounded-xl transition-all"
+                                                >
+                                                    <Trash2 size={16} />
                                                 </button>
                                             </div>
                                         </div>
 
-                                        {(q.type === 'choice' || q.type === 'dropdown') && (
-                                            <div className="mt-10 pl-16 pr-4">
-                                                <div className="p-10 bg-black/30 border border-white/5 rounded-[2rem]">
-                                                    <div className="flex items-center justify-between mb-8">
-                                                        <div className="flex items-center gap-3">
-                                                            <div className="w-2 h-2 rounded-full bg-indigo-500 shadow-[0_0_12px_rgba(99,102,241,0.5)]" />
-                                                            <h5 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">Response Levels & Scales</h5>
+                                        {q.type === 'choice' && (
+                                            <div className="mt-4 pl-11 space-y-2">
+                                                <div className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1 flex items-center justify-between">
+                                                    <span>Configuration Options</span>
+                                                    <label className="flex items-center gap-2 cursor-pointer hover:text-indigo-400 transition-colors">
+                                                        <input 
+                                                            type="checkbox" 
+                                                            checked={q.allow_multiple}
+                                                            onChange={e => setQuestions(questions.map(item => item.id === q.id ? { ...item, allow_multiple: e.target.checked } : item))}
+                                                            className="w-3 h-3 rounded border-white/10 bg-white/5"
+                                                        />
+                                                        Allow Multiple Selections
+                                                    </label>
+                                                </div>
+                                                <div className="flex flex-wrap gap-2">
+                                                    {(q.options || []).map((opt, optIdx) => (
+                                                        <div key={optIdx} className="flex items-center gap-2 bg-indigo-500/5 border border-indigo-500/10 rounded-xl px-3 py-1.5 group/opt">
+                                                            <input
+                                                                value={opt}
+                                                                onChange={e => {
+                                                                    const nextOpts = [...(q.options || [])];
+                                                                    nextOpts[optIdx] = e.target.value;
+                                                                    setQuestions(questions.map(item => item.id === q.id ? { ...item, options: nextOpts } : item));
+                                                                }}
+                                                                className="bg-transparent text-[11px] font-bold text-indigo-300 outline-none w-24"
+                                                            />
+                                                            <button
+                                                                onClick={() => {
+                                                                    const nextOpts = (q.options || []).filter((_, i) => i !== optIdx);
+                                                                    setQuestions(questions.map(item => item.id === q.id ? { ...item, options: nextOpts } : item));
+                                                                }}
+                                                                className="text-slate-600 hover:text-rose-500 opacity-0 group-hover/opt:opacity-100 transition-opacity"
+                                                            >
+                                                                <X size={10} />
+                                                            </button>
                                                         </div>
-                                                        <button
-                                                            onClick={() => {
-                                                                const opts = q.options || [];
-                                                                setQuestions(questions.map(item => item.id === q.id ? { ...item, options: [...opts, `Level ${opts.length + 1}`] } : item));
-                                                            }}
-                                                            className="px-5 py-2.5 bg-indigo-500/10 rounded-xl text-[10px] font-black text-indigo-400 uppercase tracking-widest hover:bg-indigo-600 hover:text-white transition-all border border-indigo-500/20"
-                                                        >
-                                                            + Add Scale Item
-                                                        </button>
-                                                    </div>
-                                                    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-                                                        {(q.options || []).map((opt, optIdx) => (
-                                                            <div key={optIdx} className="flex items-center gap-3 bg-white/5 border border-white/10 rounded-2xl pl-5 pr-2 py-4 hover:border-indigo-500/30 transition-all group/opt min-w-0">
-                                                                <input
-                                                                    value={opt}
-                                                                    onChange={e => {
-                                                                        const newOpts = [...(q.options || [])];
-                                                                        newOpts[optIdx] = e.target.value;
-                                                                        setQuestions(questions.map(item => item.id === q.id ? { ...item, options: newOpts } : item));
-                                                                    }}
-                                                                    className="bg-transparent text-[13px] font-bold text-slate-300 outline-none w-full placeholder:text-slate-800 min-w-0"
-                                                                />
-                                                                <button
-                                                                    onClick={() => {
-                                                                        const newOpts = (q.options || []).filter((_, idx) => idx !== optIdx);
-                                                                        setQuestions(questions.map(item => item.id === q.id ? { ...item, options: newOpts } : item));
-                                                                    }}
-                                                                    className="p-2 text-slate-600 hover:text-rose-500 opacity-0 group-hover/opt:opacity-100 transition-all shrink-0"
-                                                                >
-                                                                    <X className="w-4 h-4" />
-                                                                </button>
-                                                            </div>
-                                                        ))}
-                                                    </div>
+                                                    ))}
+                                                    <button
+                                                        onClick={() => {
+                                                            const nextOpts = [...(q.options || []), 'New Option'];
+                                                            setQuestions(questions.map(item => item.id === q.id ? { ...item, options: nextOpts } : item));
+                                                        }}
+                                                        className="px-3 py-1.5 border border-dashed border-white/10 rounded-xl text-[10px] font-bold text-slate-500 hover:border-indigo-500/30 hover:text-indigo-400 transition-all flex items-center gap-2"
+                                                    >
+                                                        <Plus size={12} /> Add Option
+                                                    </button>
                                                 </div>
                                             </div>
                                         )}
                                     </div>
                                 ))}
 
-                                <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3 mt-6">
-                                    {[
-                                        { type: 'short_text', icon: FileText, label: 'One Line Text', color: 'indigo' },
-                                        { type: 'choice', icon: List, label: 'Choice Selection', color: 'indigo' },
-                                        { type: 'dropdown', icon: ChevronDown, label: 'Menu List', color: 'indigo' },
-                                        { type: 'date', icon: Calendar, label: 'Date Pick', color: 'indigo' },
-                                        { type: 'yesno', icon: AlertCircle, label: 'Yes / No', color: 'indigo' }
-                                    ].map((btn) => (
-                                        <button
-                                            key={btn.type}
-                                            onClick={() => addQuestion(btn.type as any)}
-                                            className="p-4 bg-[#0B101B]/40 border border-white/10 rounded-2xl flex flex-col items-center gap-3 hover:bg-indigo-500/10 hover:border-indigo-500/30 transition-all group active:scale-95"
-                                        >
-                                            <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center group-hover:bg-indigo-500/20 group-hover:text-indigo-400 transition-all border border-white/5">
-                                                <btn.icon className="w-5 h-5" />
-                                            </div>
-                                            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest group-hover:text-white transition-all text-center">
-                                                {btn.label}
-                                            </span>
-                                        </button>
-                                    ))}
-
-                                    <div className="relative">
-                                        <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden" accept=".pdf,.doc,.docx,.txt" />
-                                        <button
-                                            onClick={() => fileInputRef.current?.click()}
-                                            disabled={isExtracting}
-                                            className="w-full h-full p-4 bg-pink-500/5 border border-pink-500/20 rounded-2xl flex flex-col items-center gap-3 hover:bg-pink-500/10 hover:border-pink-500/30 transition-all group active:scale-95 relative overflow-hidden"
-                                        >
-                                            {isExtracting && (
-                                                <div className="absolute inset-0 bg-pink-500/20 backdrop-blur-sm z-10 flex items-center justify-center">
-                                                    <div className="w-6 h-6 border-2 border-pink-500 border-t-transparent rounded-full animate-spin" />
-                                                </div>
-                                            )}
-                                            <div className="w-12 h-12 rounded-2xl bg-pink-500/10 flex items-center justify-center text-pink-500 group-hover:bg-pink-500/20 transition-all border border-pink-500/10">
-                                                <Terminal className="w-6 h-6" />
-                                            </div>
-                                            <span className="text-[10px] font-black text-pink-500 uppercase tracking-widest group-hover:text-white transition-all text-center">
-                                                Neural Upload
-                                            </span>
-                                        </button>
-                                    </div>
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 pt-6 border-t border-white/5">
+                                    <button onClick={() => addQuestion('short_text')} className="p-4 bg-white/5 border border-white/10 rounded-2xl hover:border-blue-500/30 hover:bg-blue-500/5 transition-all group flex flex-col items-center gap-2">
+                                        <FileText size={18} className="text-slate-500 group-hover:text-blue-400 transition-colors" />
+                                        <span className="text-[10px] font-black text-slate-400 group-hover:text-white uppercase tracking-widest">Text Field</span>
+                                    </button>
+                                    <button onClick={() => addQuestion('choice')} className="p-4 bg-white/5 border border-white/10 rounded-2xl hover:border-indigo-500/30 hover:bg-indigo-500/5 transition-all group flex flex-col items-center gap-2">
+                                        <List size={18} className="text-slate-500 group-hover:text-indigo-400 transition-colors" />
+                                        <span className="text-[10px] font-black text-slate-400 group-hover:text-white uppercase tracking-widest">Multi-Choice</span>
+                                    </button>
+                                    <button onClick={() => addQuestion('yesno')} className="p-4 bg-white/5 border border-white/10 rounded-2xl hover:border-emerald-500/30 hover:bg-emerald-500/5 transition-all group flex flex-col items-center gap-2">
+                                        <CheckSquare size={18} className="text-slate-500 group-hover:text-emerald-400 transition-colors" />
+                                        <span className="text-[10px] font-black text-slate-400 group-hover:text-white uppercase tracking-widest">Yes / No</span>
+                                    </button>
+                                    <button onClick={() => addQuestion('date')} className="p-4 bg-white/5 border border-white/10 rounded-2xl hover:border-amber-500/30 hover:bg-amber-500/5 transition-all group flex flex-col items-center gap-2">
+                                        <Calendar size={18} className="text-slate-500 group-hover:text-amber-400 transition-colors" />
+                                        <span className="text-[10px] font-black text-slate-400 group-hover:text-white uppercase tracking-widest">Date Picker</span>
+                                    </button>
                                 </div>
                             </div>
                         </div>
+
+                        <div className="flex items-center gap-4 pt-4">
+                            <button
+                                onClick={saveStructured}
+                                disabled={isSaving}
+                                className="flex-1 py-5 bg-blue-600 rounded-[2rem] text-[13px] font-black text-white uppercase tracking-[0.3em] hover:bg-blue-500 transition-all shadow-2xl shadow-blue-500/20 disabled:opacity-50 flex items-center justify-center gap-3"
+                            >
+                                <Save className="w-5 h-5" />
+                                {isSaving ? 'Synching Matrix...' : 'Commit Specification'}
+                            </button>
+                            <button
+                                onClick={() => setViewMode('LIBRARY')}
+                                className="px-10 py-5 bg-white/5 border border-white/10 rounded-[2rem] text-[13px] font-black text-slate-400 uppercase tracking-[0.2em] hover:bg-white/10 hover:text-white transition-all"
+                            >
+                                Cancel
+                            </button>
+                        </div>
                     </div>
-                    
-                    <div className="col-span-12 lg:col-span-4 space-y-8">
-                        <div className="bg-[#0B101B]/60 backdrop-blur-xl border border-white/10 rounded-[2.5rem] p-10 sticky top-8">
-                            <div className="flex items-center gap-3 mb-8">
-                                <div className="w-10 h-[1px] bg-indigo-500/50" />
-                                <span className="text-[10px] font-black text-slate-400 tracking-[0.3em] uppercase">Protocol Actions</span>
+
+                    <div className="col-span-12 lg:col-span-4 space-y-6">
+                        <div className="bg-[#0B101B]/40 backdrop-blur-xl border border-white/10 rounded-3xl p-6">
+                            <div className="flex items-center justify-between mb-6">
+                                <h3 className="text-[11px] font-black text-white uppercase tracking-[0.3em]">Protocol AI</h3>
+                                <div className="px-3 py-1 bg-blue-500/10 rounded-full text-[9px] font-black text-blue-400 uppercase tracking-widest border border-blue-500/20">Neural V2</div>
                             </div>
                             
-                            <div className="space-y-4">
-                                <button
-                                    type="button"
-                                    onClick={saveStructured}
-                                    disabled={isSaving}
-                                    className={`w-full py-5 rounded-2xl text-[12px] font-black text-white uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-4 shadow-2xl ${isSaving ? 'bg-indigo-600/50 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-500 shadow-indigo-500/30 active:scale-[0.98]'}`}
-                                >
-                                    <Save className="w-5 h-5" /> {isSaving ? 'SYNCHRONIZING...' : 'COMMIT TO LIBRARY'}
-                                </button>
+                            <p className="text-[11px] text-slate-400 font-medium leading-relaxed mb-6 opacity-70 italic">
+                                Use our neural engine to extract structured data fields directly from your clinical protocol PDF.
+                            </p>
 
-                                <div className="grid grid-cols-2 gap-4">
-                                    <button
-                                        type="button"
-                                        onClick={runAIExtraction}
-                                        disabled={isSaving || !editingId}
-                                        className="py-4 bg-[#f43f5e] hover:bg-[#e11d48] border border-pink-500/20 rounded-2xl text-[10px] font-black text-white uppercase tracking-[0.2em] transition-all flex flex-col items-center gap-2 group active:scale-[0.98] shadow-lg shadow-pink-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
-                                    >
-                                        <Terminal className="w-4 h-4 text-white group-hover:scale-110 transition-transform" />
-                                        <span>AI Extract</span>
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowSourceText(true)}
-                                        className="py-4 bg-white/5 border border-white/10 rounded-2xl text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] hover:bg-emerald-500/10 hover:text-emerald-400 hover:border-emerald-500/30 transition-all flex flex-col items-center gap-2 group"
-                                    >
-                                        <Database className="w-4 h-4 group-hover:scale-110 transition-transform" />
-                                        <span>Source Node</span>
-                                    </button>
-                                </div>
-
+                            <div className="space-y-3">
                                 <button
-                                    type="button"
-                                    onClick={() => setPreviewData({ name, json_structure: { instructions, questions } } as any)}
-                                    className="w-full py-4 bg-white/5 border border-white/10 rounded-2xl text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] hover:bg-white/10 hover:text-white transition-all flex items-center justify-center gap-3"
+                                    onClick={runAIExtraction}
+                                    disabled={isSaving || !editingId}
+                                    className="w-full py-4 bg-indigo-500/10 border border-indigo-500/20 rounded-2xl text-[11px] font-black text-indigo-400 uppercase tracking-widest hover:bg-indigo-500/20 transition-all flex items-center justify-center gap-3 group"
                                 >
-                                    <Eye className="w-4 h-4" /> Live Interface Preview
+                                    <Sparkles className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                                    {isSaving ? 'Extracting...' : 'Neural Extraction'}
                                 </button>
                                 
-                                <div className="pt-6 border-t border-white/5 space-y-4">
-                                    <div className="px-6 py-5 bg-white/5 rounded-2xl border border-white/5">
-                                        <div className="text-[10px] font-black text-slate-600 uppercase tracking-widest mb-2">Protocol Integrity</div>
-                                        <div className="flex items-center gap-2 text-[11px] font-bold text-white uppercase italic">
-                                            <ShieldCheck size={14} className="text-emerald-500" />
-                                            Validated for Production
-                                        </div>
+                                <button
+                                    onClick={fetchSourceLines}
+                                    disabled={!editingId}
+                                    className="w-full py-4 bg-white/5 border border-white/10 rounded-2xl text-[11px] font-black text-slate-400 uppercase tracking-widest hover:bg-white/10 hover:text-white transition-all flex items-center justify-center gap-3"
+                                >
+                                    <Terminal className="w-4 h-4" />
+                                    Manual Source Map
+                                </button>
+                            </div>
+
+                            <div className="mt-8 pt-6 border-t border-white/5">
+                                <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4 flex items-center gap-2">
+                                    <ShieldCheck className="w-3 h-3" /> System Diagnostics
+                                </h4>
+                                <div className="space-y-2">
+                                    <div className="flex items-center justify-between text-[10px] font-bold">
+                                        <span className="text-slate-500">Status</span>
+                                        <span className="text-emerald-500 uppercase">Operational</span>
                                     </div>
-                                    <p className="text-[10px] text-slate-500 font-medium leading-relaxed px-2">
-                                        Once committed, this clinical instrument will be available for global deployment across all authorized study protocols.
-                                    </p>
+                                    <div className="flex items-center justify-between text-[10px] font-bold">
+                                        <span className="text-slate-500">Neural Sync</span>
+                                        <span className="text-slate-400 uppercase">Active</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -979,208 +946,128 @@ export default function QuestionnaireBuilder({
                 </div>
             )}
 
-            {/* PDF Preview Modal */}
             <AnimatePresence>
                 {previewPdf && (
-                    <>
-                        <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            onClick={() => setPreviewPdf(null)}
-                            className="fixed inset-0 bg-black/95 backdrop-blur-2xl z-[200]"
-                        />
-                        <motion.div
-                            initial={{ opacity: 0, y: 30 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: 30 }}
-                            className="fixed inset-0 bg-[#0B101B] z-[201] flex flex-col overflow-hidden shadow-2xl"
+                    <div className="fixed inset-0 bg-black/90 z-[1000] flex items-center justify-center p-4 md:p-10 backdrop-blur-md">
+                        <motion.div 
+                            initial={{ scale: 0.9, opacity: 0 }} 
+                            animate={{ scale: 1, opacity: 1 }} 
+                            exit={{ scale: 0.9, opacity: 0 }}
+                            className="bg-[#0F172A] border border-white/10 rounded-[2.5rem] w-full h-full overflow-hidden flex flex-col shadow-2xl"
                         >
-                            <div className="px-8 py-4 border-b border-white/5 flex items-center justify-between bg-white/[0.02]">
-                                <div className="flex items-center gap-6">
-                                    <div className="w-10 h-10 rounded-xl bg-indigo-500/20 flex items-center justify-center text-indigo-400">
-                                        <Eye className="w-5 h-5" />
+                            <div className="p-6 md:p-8 border-b border-white/5 flex items-center justify-between bg-white/[0.02]">
+                                <div className="flex items-center gap-4">
+                                    <div className="w-12 h-12 rounded-2xl bg-blue-500/10 flex items-center justify-center border border-blue-500/20">
+                                        <FileText className="text-blue-400" size={24} />
                                     </div>
                                     <div>
-                                        <h4 className="text-lg font-black text-white uppercase italic tracking-tighter leading-none">Protocol Preview</h4>
-                                        <p className="text-[9px] text-slate-500 font-black uppercase tracking-widest mt-1">Full-Scale Clinical Instrument Access</p>
+                                        <h3 className="text-xl md:text-2xl font-black text-white italic uppercase tracking-tighter">Protocol Preview</h3>
+                                        <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest mt-1">Source Documentation Reference</p>
                                     </div>
                                 </div>
-                                <button onClick={closePreview} className="p-3 text-slate-500 hover:text-white transition-all hover:bg-white/5 rounded-xl">
-                                    <X className="w-6 h-6" />
+                                <button onClick={closePreview} className="p-3 hover:bg-white/5 rounded-2xl text-slate-400 hover:text-white transition-all">
+                                    <X size={32} />
                                 </button>
                             </div>
-                            <div className="flex-1 bg-black">
-                                <iframe
-                                    src={previewPdf}
-                                    className="w-full h-full border-0"
-                                    title="PDF Preview"
-                                />
-                            </div>
-                            <div className="px-10 py-6 bg-white/[0.02] border-t border-white/5 flex items-center justify-between">
-                                <div className="flex items-center gap-4">
-                                    <div className="w-3 h-3 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_12px_rgba(16,185,129,0.5)]" />
-                                    <p className="text-[10px] text-slate-600 font-black uppercase tracking-[0.4em]">Encrypted Data Stream Active</p>
-                                </div>
-                                <div className="flex items-center gap-6">
-                                    <a
-                                        href={previewPdf}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="px-8 py-3 bg-white/5 rounded-2xl text-[11px] font-black text-slate-400 uppercase tracking-widest hover:text-white transition-all flex items-center gap-3 border border-white/10 hover:bg-white/10"
-                                    >
-                                        <ExternalLink className="w-4 h-4" /> Export to Viewport
-                                    </a>
-                                    <button onClick={closePreview} className="px-10 py-3 bg-indigo-600 rounded-2xl text-[11px] font-black text-white uppercase tracking-widest hover:bg-indigo-500 transition-all shadow-2xl shadow-indigo-500/20 active:scale-95">
-                                        Terminate Preview
-                                    </button>
-                                </div>
+                            <div className="flex-1 bg-black/40">
+                                <iframe src={`${previewPdf}#toolbar=0`} className="w-full h-full border-none" />
                             </div>
                         </motion.div>
-                    </>
+                    </div>
                 )}
-            </AnimatePresence>
-            {/* Structured Preview Modal */}
-            <AnimatePresence>
+
                 {previewData && (
-                    <>
-                        <motion.div
-                            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                            onClick={() => setPreviewData(null)}
-                            className="fixed inset-0 bg-black/95 backdrop-blur-3xl z-[300]"
-                        />
-                        <motion.div
-                            initial={{ opacity: 0, scale: 0.98, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.98, y: 20 }}
-                            className="fixed inset-0 flex items-center justify-center z-[301] p-4 md:p-8 pointer-events-none"
-                        >                             <div className="bg-[#0B101B]/90 backdrop-blur-2xl w-full max-w-5xl max-h-[92vh] rounded-[2.5rem] border border-white/10 shadow-[0_0_100px_rgba(0,0,0,0.8)] flex flex-col overflow-hidden relative pointer-events-auto">
-                                <div className="p-8 border-b border-white/5 bg-white/[0.02] flex items-center justify-between">
-                                    <div className="flex items-center gap-6">
-                                        <div className="w-12 h-12 rounded-xl bg-indigo-500/10 flex items-center justify-center text-indigo-400 border border-indigo-500/20">
-                                            <Wand2 className="w-6 h-6" />
-                                        </div>
-                                        <div>
-                                            <h4 className="text-xl font-semibold text-white leading-none">Preview Questionnaire</h4>
-                                            <p className="text-xs text-slate-400 font-medium mt-1">
-                                                This is how the questions will appear to the participant
-                                            </p>
-                                        </div>
+                    <div className="fixed inset-0 bg-black/90 z-[1000] flex items-center justify-center p-4 md:p-10 backdrop-blur-md">
+                        <motion.div 
+                            initial={{ scale: 0.9, opacity: 0 }} 
+                            animate={{ scale: 1, opacity: 1 }} 
+                            exit={{ scale: 0.9, opacity: 0 }}
+                            className="bg-[#0F172A] border border-white/10 rounded-[2.5rem] w-full max-w-4xl h-[80vh] overflow-hidden flex flex-col shadow-2xl"
+                        >
+                            <div className="p-6 md:p-8 border-b border-white/5 flex items-center justify-between bg-white/[0.02]">
+                                <div className="flex items-center gap-4">
+                                    <div className="w-12 h-12 rounded-2xl bg-purple-500/10 flex items-center justify-center border border-purple-500/20">
+                                        <Layout className="text-purple-400" size={24} />
                                     </div>
-                                    <button onClick={() => setPreviewData(null)} className="p-3 text-slate-600 hover:text-white transition-all hover:bg-white/5 rounded-xl">
-                                        <X className="w-6 h-6" />
-                                    </button>
-                                </div>
-                                
-                                <div className="flex-1 overflow-y-auto p-10 space-y-12 custom-scrollbar">
-                                    <div className="max-w-3xl">
-                                        <h2 className="text-3xl font-semibold text-white leading-tight mb-4">{previewData.name}</h2>
-                                        {previewData.json_structure?.instructions && (
-                                            <div className="p-6 bg-white/[0.02] border-l-2 border-indigo-500 rounded-r-2xl">
-                                                <p className="text-slate-300 font-normal text-base leading-relaxed">{previewData.json_structure.instructions}</p>
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    <div className="space-y-10">
-                                        {(previewData.json_structure?.questions || []).map((q, idx) => (
-                                            <div key={q.id} className="space-y-4 group/field">
-                                                <div className="flex items-center gap-4">
-                                                    <div className="text-xs font-semibold text-slate-400 bg-white/5 w-8 h-8 rounded-lg flex items-center justify-center border border-white/5">{idx + 1}</div>
-                                                    <label className="text-lg font-medium text-white transition-colors">{q.label}</label>
-                                                </div>
-                                                
-                                                <div className="pl-12">
-                                                    {q.type === 'short_text' && (
-                                                        <div className="w-full bg-black/20 border border-white/10 rounded-xl px-6 py-4 text-slate-500 text-sm">
-                                                            Your answer here
-                                                        </div>
-                                                    )}
-                                                    {q.type === 'yesno' && (
-                                                        <div className="flex gap-4">
-                                                            {['Yes', 'No'].map(opt => (
-                                                                <div key={opt} className="px-8 py-3 bg-white/5 border border-white/10 rounded-xl text-sm font-medium text-slate-400">
-                                                                    {opt}
-                                                                </div>
-                                                            ))}
-                                                        </div>
-                                                    )}
-                                                    {(q.type === 'choice' || q.type === 'dropdown') && (
-                                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                                            {(q.options || []).map(opt => (
-                                                                <div key={opt} className="px-6 py-4 bg-white/5 border border-white/10 rounded-xl text-sm font-medium text-slate-300 flex items-center gap-4">
-                                                                    <div className="w-3 h-3 rounded-full border border-white/30" />
-                                                                    {opt}
-                                                                </div>
-                                                            ))}
-                                                        </div>
-                                                    )}
-                                                    {q.type === 'date' && (
-                                                        <div className="w-full max-w-sm bg-white/5 border border-white/10 rounded-xl px-6 py-4 text-slate-400 flex items-center justify-between">
-                                                            <span className="text-sm">Select date</span>
-                                                            <Calendar className="w-5 h-5 opacity-60" />
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        ))}
+                                    <div>
+                                        <h3 className="text-xl md:text-2xl font-black text-white italic uppercase tracking-tighter">{previewData.name}</h3>
+                                        <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest mt-1">EDC Template Definition</p>
                                     </div>
                                 </div>
-
-                                <div className="p-8 bg-[#0B101B]/80 border-t border-white/5 flex items-center justify-end">
-                                    <button onClick={() => setPreviewData(null)} className="px-8 py-3 bg-indigo-600 rounded-xl text-sm font-medium text-white hover:bg-indigo-500 transition-all shadow-lg shadow-indigo-600/20 active:scale-95">
-                                        Close Preview
-                                    </button>
+                                <button onClick={() => setPreviewData(null)} className="p-3 hover:bg-white/5 rounded-2xl text-slate-400 hover:text-white transition-all">
+                                    <X size={32} />
+                                </button>
+                            </div>
+                            <div className="flex-1 overflow-y-auto p-8 space-y-8 bg-[#0B101B]/40">
+                                {previewData.json_structure?.instructions && (
+                                    <div className="p-6 bg-white/5 rounded-3xl border border-white/5">
+                                        <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3">Global Instructions</div>
+                                        <p className="text-sm text-slate-300 leading-relaxed font-medium">{previewData.json_structure.instructions}</p>
+                                    </div>
+                                )}
+                                <div className="space-y-4">
+                                    <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4">Field Specification ({previewData.json_structure?.questions?.length || 0} Items)</div>
+                                    {previewData.json_structure?.questions?.map((q, i) => (
+                                        <div key={i} className="p-6 bg-white/[0.02] border border-white/5 rounded-2xl">
+                                            <div className="flex items-center gap-3 mb-2">
+                                                <span className="text-xs font-black text-indigo-400">{i + 1}.</span>
+                                                <h4 className="text-sm font-bold text-white uppercase tracking-tight italic">{q.label}</h4>
+                                            </div>
+                                            <div className="pl-6">
+                                                <span className="text-[9px] font-black text-slate-600 uppercase tracking-[0.2em]">{q.type.replace('_', ' ')}</span>
+                                                {q.options && q.options.length > 0 && (
+                                                    <div className="mt-3 flex flex-wrap gap-2">
+                                                        {q.options.map((opt, oi) => (
+                                                            <span key={oi} className="px-3 py-1 bg-indigo-500/5 border border-indigo-500/10 rounded-full text-[10px] font-bold text-indigo-300">
+                                                                {opt}
+                                                            </span>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    ))}
                                 </div>
                             </div>
                         </motion.div>
-                    </>
+                    </div>
                 )}
             </AnimatePresence>
 
-            {/* Source Text Selector Sidebar */}
             <AnimatePresence>
                 {showSourceText && (
                     <>
                         <motion.div
                             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                             onClick={() => setShowSourceText(false)}
-                            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[250]"
+                            className="fixed inset-0 bg-black/20 z-[250]"
                         />
                         <motion.div
                             initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
-                            transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-                            className="fixed right-0 top-0 bottom-0 w-[550px] bg-[#0B101B]/95 backdrop-blur-3xl border-l border-white/10 z-[251] shadow-[-20px_0_60px_rgba(0,0,0,0.5)] flex flex-col"
+                            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+                            className="fixed right-0 top-0 bottom-0 w-[500px] bg-[#0f172a] border-l border-white/10 z-[251] shadow-2xl flex flex-col"
                         >
-                            <div className="p-10 border-b border-white/5 flex items-center justify-between bg-white/[0.02]">
-                                <div className="flex items-center gap-5">
-                                    <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 flex items-center justify-center text-indigo-400 border border-indigo-500/20">
-                                        <Database className="w-6 h-6" />
-                                    </div>
-                                    <div>
-                                        <h4 className="text-2xl font-black text-white uppercase italic tracking-tighter">Field Ingestion</h4>
-                                        <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.3em] mt-1.5">Source Component Mapping</p>
-                                    </div>
+                            <div className="p-8 border-b border-white/10 flex items-center justify-between bg-white/[0.02]">
+                                <div>
+                                    <h4 className="text-xl font-black text-white uppercase italic tracking-tighter">Choose Component</h4>
+                                    <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest mt-1">Select logic or options from the protocol</p>
                                 </div>
-                                <button onClick={() => setShowSourceText(false)} className="p-3 text-slate-600 hover:text-white transition-all hover:bg-white/5 rounded-xl">
-                                    <X size={24} />
-                                </button>
+                                <button onClick={() => setShowSourceText(false)} className="p-2 text-slate-500 hover:text-white transition-all"><X /></button>
                             </div>
-                            <div className="flex-1 overflow-y-auto p-8 space-y-6 custom-scrollbar">
-                                <div className="px-4 py-3 bg-indigo-500/5 border border-indigo-500/10 rounded-xl mb-4 text-center">
-                                    <p className="text-[9px] font-black text-indigo-400 uppercase tracking-widest leading-relaxed">
-                                        Select components below to inject them into the clinical designer.
-                                    </p>
-                                </div>
+                            <div className="flex-1 overflow-y-auto p-4 space-y-2">
                                 {sourceLines.map((line, idx) => (
-                                    <div key={idx} className="w-full bg-white/[0.02] border border-white/5 rounded-3xl p-8 hover:bg-white/[0.05] hover:border-indigo-500/30 transition-all group relative overflow-hidden">
-                                        <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-500/5 blur-[40px] pointer-events-none" />
-                                        <p className="text-[14px] font-bold text-slate-300 group-hover:text-white mb-8 leading-relaxed italic border-l-2 border-indigo-500/30 pl-6">{line}</p>
-                                        <div className="flex items-center gap-4">
+                                    <div key={idx} className="w-full bg-white/5 border border-white/5 rounded-2xl p-4 hover:border-indigo-500/30 transition-all group">
+                                        <p className="text-[12px] font-bold text-slate-300 group-hover:text-white mb-4">{line}</p>
+                                        <div className="flex items-center gap-3">
                                             <button
                                                 onClick={() => {
+                                                    // Smart New Question Logic
                                                     let type: 'short_text' | 'choice' | 'date' | 'yesno' = 'short_text';
                                                     let label = line;
                                                     let options: string[] = [];
+
                                                     const boxPattern = /[\u25A1\u2610\u2611\u2612\uf0a8\uf0fe\uf071\u0001\u0002]|(?:\[\s?\])/g;
+
                                                     if (boxPattern.test(line)) {
                                                         const parts = line.split(boxPattern).map(p => p.trim()).filter(p => p.length > 1);
                                                         if (parts.length > 1) {
@@ -1204,6 +1091,7 @@ export default function QuestionnaireBuilder({
                                                             type = 'yesno';
                                                         }
                                                     }
+
                                                     const newQ: Question = {
                                                         id: `q_src_${Date.now()}`,
                                                         type,
@@ -1214,9 +1102,9 @@ export default function QuestionnaireBuilder({
                                                     };
                                                     setQuestions([...questions, newQ]);
                                                 }}
-                                                className="flex-1 py-4 bg-indigo-500 text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] hover:bg-indigo-400 transition-all shadow-lg shadow-indigo-500/20 active:scale-95 flex items-center justify-center gap-3"
+                                                className="flex-1 py-2 bg-indigo-500/10 rounded-lg text-[9px] font-black text-indigo-400 uppercase tracking-widest hover:bg-indigo-500/20 transition-all flex items-center justify-center gap-2"
                                             >
-                                                <Plus className="w-4 h-4" /> Inject New
+                                                <Plus className="w-3 h-3" /> New Question
                                             </button>
                                             <button
                                                 onClick={() => {
@@ -1224,6 +1112,7 @@ export default function QuestionnaireBuilder({
                                                     const lastQ = questions[questions.length - 1];
                                                     let newOpts: string[] = [];
                                                     const boxPattern = /[\u25A1\u2610\u2611\u2612\uf0a8\uf0fe\uf071\u0001\u0002]|(?:\[\s?\])/g;
+
                                                     if (boxPattern.test(line)) {
                                                         newOpts = line.split(boxPattern).map(p => p.trim()).filter(p => p.length > 1);
                                                     } else {
@@ -1234,15 +1123,16 @@ export default function QuestionnaireBuilder({
                                                         }
                                                     }
                                                     if (newOpts.length === 0) newOpts = [line.trim()];
+
                                                     setQuestions(questions.map((q, qIdx) =>
                                                         qIdx === questions.length - 1
                                                             ? { ...q, type: 'choice', options: [...(q.options || []), ...newOpts] }
                                                             : q
                                                     ));
                                                 }}
-                                                className="flex-1 py-4 bg-white/5 border border-white/10 rounded-2xl text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] hover:text-white hover:bg-white/10 transition-all flex items-center justify-center gap-3"
+                                                className="flex-1 py-2 bg-pink-500/10 rounded-lg text-[9px] font-black text-pink-400 uppercase tracking-widest hover:bg-pink-500/20 transition-all flex items-center justify-center gap-2"
                                             >
-                                                <Layers className="w-4 h-4" /> Map Scales
+                                                <Layers className="w-3 h-3" /> + Add to Options
                                             </button>
                                         </div>
                                     </div>
@@ -1252,35 +1142,19 @@ export default function QuestionnaireBuilder({
                     </>
                 )}
             </AnimatePresence>
-
             <AnimatePresence>
                 {statusMessage && (
                     <motion.div 
-                        initial={{ opacity: 0, y: 40, scale: 0.9 }} 
-                        animate={{ opacity: 1, y: 0, scale: 1 }} 
-                        exit={{ opacity: 0, y: 40, scale: 0.9 }} 
-                        className={`fixed bottom-12 right-12 px-8 py-5 rounded-[2rem] border-2 shadow-2xl flex items-center gap-5 z-[1000] backdrop-blur-3xl ${
-                            statusMessage.type === 'success' 
-                                ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400 shadow-emerald-500/10' 
-                                : 'bg-rose-500/10 border-rose-500/20 text-rose-400 shadow-rose-500/10'
-                        }`}
+                        initial={{ opacity: 0, y: 20 }} 
+                        animate={{ opacity: 1, y: 0 }} 
+                        exit={{ opacity: 0, y: 20 }} 
+                        className={`fixed bottom-8 right-8 px-6 py-4 rounded-xl border flex items-center gap-3 z-[1000] backdrop-blur-xl ${statusMessage.type === 'success' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-rose-500/10 border-rose-500/20 text-rose-400'}`}
                     >
-                        <div className={`w-10 h-10 rounded-2xl flex items-center justify-center ${
-                            statusMessage.type === 'success' ? 'bg-emerald-500/20' : 'bg-rose-500/20'
-                        }`}>
-                            {statusMessage.type === 'success' ? <CheckCircle2 className="w-5 h-5" /> : <AlertTriangle className="w-5 h-5" />}
-                        </div>
-                        <div className="flex flex-col">
-                            <span className="text-[11px] font-black uppercase tracking-[0.2em] leading-none">System Notification</span>
-                            <span className="text-[10px] font-bold uppercase tracking-widest mt-1.5 opacity-80">{statusMessage.text}</span>
-                        </div>
-                        <button onClick={() => setStatusMessage(null)} className="ml-4 p-2 hover:bg-white/5 rounded-xl transition-all">
-                            <X className="w-4 h-4" />
-                        </button>
+                        {statusMessage.type === 'success' ? <CheckCircle2 className="w-4 h-4" /> : <AlertTriangle className="w-4 h-4" />}
+                        <span className="text-[10px] font-black uppercase tracking-widest">{statusMessage.text}</span>
                     </motion.div>
                 )}
             </AnimatePresence>
         </div>
     );
-};
-
+}

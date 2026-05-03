@@ -94,6 +94,8 @@ export interface NewsItem {
     imageUrl?: string;
     image?: string;
     date: string;
+    displayDate?: string;
+    link?: string;
     // Event specific
     startTime?: string;
     endTime?: string;
@@ -101,6 +103,8 @@ export interface NewsItem {
     location?: string;
     registrationLink?: string;
     tags?: string[];
+    youtube_url?: string;
+    youtubeId?: string;
 }
 
 export interface CareerCategory {
@@ -110,16 +114,26 @@ export interface CareerCategory {
     icon: string;
 }
 
+export interface ResponsibilityItem {
+    text: string;
+    subItems?: string[];
+}
+
 export interface JobOpening {
     id: string;
     title: string;
     department: string;
     location: string;
-    type: 'Full-time' | 'Part-time' | 'Contract' | 'Internship';
+    duration?: string;
+    type: 'Full-time' | 'Part-time' | 'Contract' | 'Internship' | 'Full-time Internship';
     experienceLevel: 'Entry-level' | 'Mid-level' | 'Senior' | 'Executive';
     summary: string;
     description: string;
+    responsibilities?: (string | ResponsibilityItem)[];
     requirements?: string[];
+    benefits?: string[];
+    apply_instructions?: string[];
+    about_hiring?: string;
     applyUrl?: string;
     deadline?: string;
     isFeatured: boolean;

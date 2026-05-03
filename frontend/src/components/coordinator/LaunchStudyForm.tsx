@@ -2363,6 +2363,7 @@ const LaunchStudyForm: React.FC<LaunchStudyFormProps> = ({
                         </div>
                     </div>
                 ) : currentStep === 8 ? (
+                    <>
                     <div className="space-y-12">
                         {/* THE NEW REVIEW PAGE - REDESIGNED TO MATCH SCREENSHOT 2 */}
                         <div className="flex flex-col gap-10">
@@ -2404,31 +2405,13 @@ const LaunchStudyForm: React.FC<LaunchStudyFormProps> = ({
                                     </div>
                                 </div>
 
-                                {/* 3. TEAM & DESIGN SECTION */}
+                                {/* 3. DESIGN & DESIGN SECTION */}
                                 <div className="bg-[#0B101B]/60 border border-white/10 rounded-[2rem] overflow-hidden">
                                     <div className="px-8 py-5 bg-white/5 border-b border-white/5 flex items-center gap-3">
                                         <Layout className="w-4 h-4 text-amber-400" />
-                                        <h3 className="text-[11px] font-black text-white uppercase tracking-[0.2em]">Team & Design</h3>
+                                        <h3 className="text-[11px] font-black text-white uppercase tracking-[0.2em]">Study Design</h3>
                                     </div>
                                     <div className="divide-y divide-white/5">
-                                        <ReviewRow 
-                                            label="PI assigned" 
-                                            value={[
-                                                ...resolvedPIs.filter((pi: any) => formData.selectedPIs.includes(pi.id) || formData.selectedPIs.includes(pi.email)).map((pi: any) => `${pi.first_name} ${pi.last_name}`),
-                                                ...formData.selectedPIs.filter((idOrEmail: string) => !resolvedPIs.some(p => p.id === idOrEmail || p.email === idOrEmail))
-                                            ].join(', ')} 
-                                            placeholder="No PI selected" 
-                                            isCritical={formData.selectedPIs.length === 0}
-                                        />
-                                        <ReviewRow 
-                                            label="Coordinator assigned" 
-                                            value={[
-                                                ...resolvedCoordinators.filter((c: any) => formData.selectedCoordinators.includes(c.id) || formData.selectedCoordinators.includes(c.email)).map((c: any) => `${c.first_name} ${c.last_name}`),
-                                                ...formData.selectedCoordinators.filter((idOrEmail: string) => !resolvedCoordinators.some(p => p.id === idOrEmail || p.email === idOrEmail))
-                                            ].join(', ')} 
-                                            placeholder="No Coordinator selected" 
-                                            isCritical={formData.selectedCoordinators.length === 0}
-                                        />
                                         <ReviewRow label="Trial phase" value={phaseToLabel[formData.clinicalPhase] || formData.clinicalPhase} />
                                         <ReviewRow label="Masking" value={maskingToLabel[formData.maskingStrategy] || formData.maskingStrategy} />
                                         <ReviewRow label="Execution" value={studyTypeToLabel[formData.executionMode] || formData.executionMode} />
@@ -2439,7 +2422,35 @@ const LaunchStudyForm: React.FC<LaunchStudyFormProps> = ({
                                 </div>
                             </div>
 
-                            {/* 4. SCREENER & INSTRUMENTS SECTION */}
+                            {/* 4. TEAM SECTION */}
+                            <div className="bg-[#0B101B]/60 border border-white/10 rounded-[2rem] overflow-hidden">
+                                <div className="px-8 py-5 bg-white/5 border-b border-white/5 flex items-center gap-3">
+                                    <Users className="w-4 h-4 text-blue-400" />
+                                    <h3 className="text-[11px] font-black text-white uppercase tracking-[0.2em]">Operational Team</h3>
+                                </div>
+                                <div className="divide-y divide-white/5">
+                                    <ReviewRow 
+                                        label="PI assigned" 
+                                        value={[
+                                            ...resolvedPIs.filter((pi: any) => formData.selectedPIs.includes(pi.id) || formData.selectedPIs.includes(pi.email)).map((pi: any) => `${pi.first_name} ${pi.last_name}`),
+                                            ...formData.selectedPIs.filter((idOrEmail: string) => !resolvedPIs.some(p => p.id === idOrEmail || p.email === idOrEmail))
+                                        ].join(', ')} 
+                                        placeholder="No PI selected" 
+                                        isCritical={formData.selectedPIs.length === 0}
+                                    />
+                                    <ReviewRow 
+                                        label="Coordinator assigned" 
+                                        value={[
+                                            ...resolvedCoordinators.filter((c: any) => formData.selectedCoordinators.includes(c.id) || formData.selectedCoordinators.includes(c.email)).map((c: any) => `${c.first_name} ${c.last_name}`),
+                                            ...formData.selectedCoordinators.filter((idOrEmail: string) => !resolvedCoordinators.some(p => p.id === idOrEmail || p.email === idOrEmail))
+                                        ].join(', ')} 
+                                        placeholder="No Coordinator selected" 
+                                        isCritical={formData.selectedCoordinators.length === 0}
+                                    />
+                                </div>
+                            </div>
+
+                            {/* 5. SCREENER & INSTRUMENTS SECTION */}
                             <div className="bg-[#0B101B]/60 border border-white/10 rounded-[2rem] overflow-hidden">
                                 <div className="px-8 py-5 bg-white/5 border-b border-white/5 flex items-center gap-3">
                                     <ClipboardList className="w-4 h-4 text-cyan-400" />
@@ -2460,10 +2471,9 @@ const LaunchStudyForm: React.FC<LaunchStudyFormProps> = ({
                                 </div>
                             </div>
 
-                            {/* 5. DOCUMENTATION SECTION */}
+                            {/* 6. DOCUMENTATION SECTION */}
                             <div className="bg-[#0B101B]/60 border border-white/10 rounded-[2rem] overflow-hidden">
                                 <div className="px-8 py-5 bg-white/5 border-b border-white/5 flex items-center gap-3">
-                                    <ShieldCheck className="w-4 h-4 text-indigo-400" />
                                     <h3 className="text-[11px] font-black text-white uppercase tracking-[0.2em]">Documentation</h3>
                                 </div>
                                 <div className="divide-y divide-white/5">
@@ -2483,81 +2493,82 @@ const LaunchStudyForm: React.FC<LaunchStudyFormProps> = ({
 
                             {/* Footer Navigation */}
                             <div className="pt-12 flex items-center justify-between gap-4 border-t border-white/10">
-                            <button
-                                onClick={() => setCurrentStep(7)}
-                                className="w-1/4 py-4 rounded-xl font-semibold bg-white/5 text-white hover:bg-white/10 border border-white/10 transition-colors flex items-center justify-center gap-2"
-                            >
-                                <span className="text-xl leading-none">&larr;</span> Back
-                            </button>
-                            <button
-                                onClick={handleSaveDraft}
-                                disabled={!isEditMode}
-                                className="w-1/4 py-4 rounded-xl font-semibold bg-white/5 text-white hover:bg-white/10 border border-white/10 transition-colors flex items-center justify-center disabled:opacity-40"
-                            >
-                                Save as draft
-                            </button>
-                            <button
-                                onClick={handleResetForm}
-                                disabled={!isEditMode}
-                                className="w-1/4 py-4 rounded-xl font-semibold bg-white/5 text-white hover:bg-white/10 border border-white/10 transition-colors flex items-center justify-center disabled:opacity-40"
-                            >
-                                Reset form
-                            </button>
-                            <button
-                                onClick={async () => {
-                                    if (!onSave || isSubmitting) return;
-                                    try {
-                                        setIsSubmitting(true);
-                                        const documentsToUpload = [];
-                                        if (formData.consentFormFile) {
-                                            documentsToUpload.push({
-                                                file: formData.consentFormFile,
-                                                name: 'Consent Form - ' + formData.title,
-                                                category: 'CONSENT',
-                                                version: 'V1.0'
-                                            });
-                                        }
-                                        if (formData.screenerFile) {
-                                            documentsToUpload.push({
-                                                file: formData.screenerFile,
-                                                name: 'Screener Form - ' + formData.title,
-                                                category: 'SCREENER',
-                                                version: 'V1.0'
-                                            });
-                                        }
-                                        if (formData.additionalDocuments && formData.additionalDocuments.length > 0) {
-                                            formData.additionalDocuments.forEach((file: File) => {
+                                <button
+                                    onClick={() => setCurrentStep(7)}
+                                    className="w-1/4 py-4 rounded-xl font-semibold bg-white/5 text-white hover:bg-white/10 border border-white/10 transition-colors flex items-center justify-center gap-2"
+                                >
+                                    <span className="text-xl leading-none">&larr;</span> Back
+                                </button>
+                                <button
+                                    onClick={handleSaveDraft}
+                                    disabled={!isEditMode}
+                                    className="w-1/4 py-4 rounded-xl font-semibold bg-white/5 text-white hover:bg-white/10 border border-white/10 transition-colors flex items-center justify-center disabled:opacity-40"
+                                >
+                                    Save as draft
+                                </button>
+                                <button
+                                    onClick={handleResetForm}
+                                    disabled={!isEditMode}
+                                    className="w-1/4 py-4 rounded-xl font-semibold bg-white/5 text-white hover:bg-white/10 border border-white/10 transition-colors flex items-center justify-center disabled:opacity-40"
+                                >
+                                    Reset form
+                                </button>
+                                <button
+                                    onClick={async () => {
+                                        if (!onSave || isSubmitting) return;
+                                        try {
+                                            setIsSubmitting(true);
+                                            const documentsToUpload = [];
+                                            if (formData.consentFormFile) {
                                                 documentsToUpload.push({
-                                                    file: file,
-                                                    name: file.name,
-                                                    category: 'OTHER',
+                                                    file: formData.consentFormFile,
+                                                    name: 'Consent Form - ' + formData.title,
+                                                    category: 'CONSENT',
                                                     version: 'V1.0'
                                                 });
-                                            });
+                                            }
+                                            if (formData.screenerFile) {
+                                                documentsToUpload.push({
+                                                    file: formData.screenerFile,
+                                                    name: 'Screener Form - ' + formData.title,
+                                                    category: 'SCREENER',
+                                                    version: 'V1.0'
+                                                });
+                                            }
+                                            if (formData.additionalDocuments && formData.additionalDocuments.length > 0) {
+                                                formData.additionalDocuments.forEach((file: File) => {
+                                                    documentsToUpload.push({
+                                                        file: file,
+                                                        name: file.name,
+                                                        category: 'OTHER',
+                                                        version: 'V1.0'
+                                                    });
+                                                });
+                                            }
+                                            await onSave(formData, documentsToUpload);
+                                        } catch (err: any) {
+                                            console.error("Launch error:", err);
+                                            const errorMsg = err.message || JSON.stringify(err);
+                                            if (errorMsg.includes('protocol_id') && errorMsg.includes('exists')) {
+                                                alert("CRITICAL ERROR: A study with this Protocol ID already exists. Please return to Step 1 and provide a unique ID (e.g., MUSB-" + new Date().getFullYear() + "-" + Math.floor(1000 + Math.random() * 9000) + ").");
+                                            } else {
+                                                alert("LAUNCH FAILED: " + errorMsg);
+                                            }
+                                        } finally {
+                                            setIsSubmitting(false);
                                         }
-                                        await onSave(formData, documentsToUpload);
-                                    } catch (err: any) {
-                                        console.error("Launch error:", err);
-                                        const errorMsg = err.message || JSON.stringify(err);
-                                        if (errorMsg.includes('protocol_id') && errorMsg.includes('exists')) {
-                                            alert("CRITICAL ERROR: A study with this Protocol ID already exists. Please return to Step 1 and provide a unique ID (e.g., MUSB-" + new Date().getFullYear() + "-" + Math.floor(1000 + Math.random() * 9000) + ").");
-                                        } else {
-                                            alert("LAUNCH FAILED: " + errorMsg);
-                                        }
-                                    } finally {
-                                        setIsSubmitting(false);
-                                    }
-                                }}
-                                disabled={isSubmitting || !isEditMode}
-                                className="w-1/4 py-4 rounded-xl font-black text-sm uppercase tracking-widest bg-white text-slate-900 hover:bg-blue-400 hover:text-white transition-all disabled:opacity-60 disabled:cursor-not-allowed shadow-2xl shadow-white/10"
-                            >
-                                {isSubmitting 
-                                    ? (initialData ? 'SAVING...' : 'LAUNCHING...') 
-                                    : (initialData ? (isEditMode ? 'SAVE CHANGES' : 'LOCKED') : 'CONFIRM & LAUNCH')}
-                            </button>
-                        </div>
+                                    }}
+                                    disabled={isSubmitting || !isEditMode}
+                                    className="w-1/4 py-4 rounded-xl font-black text-sm uppercase tracking-widest bg-white text-slate-900 hover:bg-blue-400 hover:text-white transition-all disabled:opacity-60 disabled:cursor-not-allowed shadow-2xl shadow-white/10"
+                                >
+                                    {isSubmitting 
+                                        ? (initialData ? 'SAVING...' : 'LAUNCHING...') 
+                                        : (initialData ? (isEditMode ? 'SAVE CHANGES' : 'LOCKED') : 'CONFIRM & LAUNCH')}
+                                </button>
+                            </div>
                         </div>
                     </div>
+                    </>
                 ) : null}
                 </fieldset>
                 </div>
@@ -2589,7 +2600,7 @@ const LaunchStudyForm: React.FC<LaunchStudyFormProps> = ({
                                     <div className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-0.5">Timeline</div>
                                     <div className="text-[11px] font-bold text-white flex items-center gap-2">
                                         <Calendar size={12} className="text-slate-500" />
-                                        {formData.startDate || '??'} → {formData.endDate || '??'}
+                                        {formData.startDate || '??'} to {formData.endDate || '??'}
                                     </div>
                                 </div>
                             </div>

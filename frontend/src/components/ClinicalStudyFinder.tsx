@@ -43,9 +43,9 @@ export default function ClinicalStudyFinder() {
             <div className="w-full bg-transparent border-y border-transparent py-24 px-4 md:px-8 lg:px-10">
                 <div className="w-full">
                     <div className="flex flex-col lg:flex-row justify-between items-end lg:items-center gap-8 mb-12">
-                        <div className="shrink-0 max-w-xl">
-                            <h2 className="text-3xl md:text-4xl font-black text-slate-900 mb-3 tracking-tight">
-                                Ongoing Clinical Study
+                        <div className="shrink-0 max-w-3xl">
+                            <h2 className="text-3xl md:text-4xl font-black text-slate-900 mb-3 tracking-tight md:whitespace-nowrap">
+                                Ongoing Clinical Studies
                             </h2>
                             <p className="text-slate-600 text-lg">
                                 Participate in groundbreaking research and access advanced health insights.

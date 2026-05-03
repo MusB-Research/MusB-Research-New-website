@@ -51,7 +51,7 @@ def list_active_jobs(request):
             status='Active',
             publish_date__lte=current_date, # Only show if publish_date reached
             expiry_date__gt=current_date
-        )
+        ).order_by('-created_at')
         serializer = JobPostingSerializer(jobs, many=True)
         return Response(serializer.data)
     except Exception as e:

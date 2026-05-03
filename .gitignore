@@ -16,3 +16,5 @@ node_modules/
 Thumbs.db
 *.log
 o p t i m e . t x t  
+server_log.txt
+.gemini/

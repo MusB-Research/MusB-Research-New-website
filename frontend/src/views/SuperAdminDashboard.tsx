@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { authFetch, clearToken, getRole, performLogout, getDisplayName, revealValue, API } from '../utils/auth';
+import { getMediaUrl } from '../utils/media';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Users, Briefcase, Activity, Crown, Shield, Bell, Settings, LogOut, Search,
@@ -39,8 +40,9 @@ type Page =
   | 'DASHBOARD' | 'ACTIVITY_LOG' | 'ALL_USERS' | 'STUDIES' | 'SPONSORS'
   | 'SPONSOR_LEADS' | 'METRICS' | 'TEAM' | 'INQUIRIES'
   | 'ANNOUNCEMENTS' | 'AUDIT_LOGS' | 'SETTINGS'
-  | 'LAUNCH_STUDY' | 'SCREENER_BUILDER' | 'PIS'
-  | 'COORDINATORS' | 'PARTICIPANTS' | 'LIVE_USERS' | 'WORKFLOW' | 'SUBMIT_CONTENT' | 'TEAM_APPROVALS' | 'CAREERS' | 'SUPPORT';
+  | 'LAUNCH_STUDY' | 'SCREENER_BUILDER'
+  | 'COORDINATORS' | 'PARTICIPANTS' | 'LIVE_USERS' | 'WORKFLOW' | 'SUBMIT_CONTENT' | 'TEAM_APPROVALS' | 'CAREERS' | 'SUPPORT'
+  | 'MELLOW_TRIAL' | 'MELLOW_INVESTIGATORS';
 
 interface User {
   id: string;
@@ -56,6 +58,7 @@ interface User {
   city?: string;
   state?: string;
   zip_code?: string;
+  is_mellow_member?: boolean;
   country?: string;
   mobile_number?: string;
   place_of_origin?: string;
@@ -555,12 +558,14 @@ export default function SuperAdminDashboard() {
   const emptyStaffRecords = {
     leadership: [] as any[],
     advisors: [] as any[],
-    staff: [] as any[]
+    staff: [] as any[],
+    collaborators: [] as any[]
   };
   const groupTeamMembers = useCallback((members: any[] = []) => ({
     leadership: members.filter((member: any) => member.category === 'leadership'),
     advisors: members.filter((member: any) => member.category === 'advisors'),
-    staff: members.filter((member: any) => member.category === 'staff')
+    staff: members.filter((member: any) => member.category === 'staff'),
+    collaborators: members.filter((member: any) => member.category === 'collaborators')
   }), []);
   const navigate = useNavigate();
   const location = useLocation();
@@ -580,7 +585,6 @@ export default function SuperAdminDashboard() {
     if (route === 'settings') return 'SETTINGS';
     if (route === 'launch-study') return 'LAUNCH_STUDY';
     if (route === 'screener-builder') return 'SCREENER_BUILDER';
-    if (route === 'pis') return 'PIS';
     if (route === 'coordinators') return 'COORDINATORS';
     if (route === 'participants') return 'PARTICIPANTS';
     if (route === 'live-users') return 'LIVE_USERS';
@@ -607,7 +611,6 @@ export default function SuperAdminDashboard() {
     else if (route === 'settings') setCurrentPage('SETTINGS');
     else if (route === 'launch-study') setCurrentPage('LAUNCH_STUDY');
     else if (route === 'screener-builder') setCurrentPage('SCREENER_BUILDER');
-    else if (route === 'pis') setCurrentPage('PIS');
     else if (route === 'coordinators') setCurrentPage('COORDINATORS');
     else if (route === 'participants') setCurrentPage('PARTICIPANTS');
     else if (route === 'live-users') setCurrentPage('LIVE_USERS');
@@ -616,6 +619,8 @@ export default function SuperAdminDashboard() {
     else if (route === 'approvals') setCurrentPage('TEAM_APPROVALS');
     else if (route === 'careers') setCurrentPage('CAREERS');
     else if (route === 'support') setCurrentPage('SUPPORT');
+    else if (route === 'mellow-trial') setCurrentPage('MELLOW_TRIAL');
+    else if (route === 'mellow-investigators') setCurrentPage('MELLOW_INVESTIGATORS');
     else if (location.pathname.endsWith('/super-admin') || !route || route === 'super-admin') setCurrentPage('DASHBOARD');
   }, [location.pathname]);
 
@@ -635,7 +640,6 @@ export default function SuperAdminDashboard() {
       'SETTINGS': 'settings',
       'LAUNCH_STUDY': 'launch-study',
       'SCREENER_BUILDER': 'screener-builder',
-      'PIS': 'pis',
       'COORDINATORS': 'coordinators',
       'PARTICIPANTS': 'participants',
       'LIVE_USERS': 'live-users',
@@ -643,7 +647,9 @@ export default function SuperAdminDashboard() {
       'SUBMIT_CONTENT': 'content',
       'TEAM_APPROVALS': 'approvals',
       'CAREERS': 'careers',
-      'SUPPORT': 'support'
+      'SUPPORT': 'support',
+      'MELLOW_TRIAL': 'mellow-trial',
+      'MELLOW_INVESTIGATORS': 'mellow-investigators'
     };
     
     // Clear selected items when navigating via menu to prevent state carry-over
@@ -704,7 +710,7 @@ export default function SuperAdminDashboard() {
   const [isEditStaffModalOpen, setIsEditStaffModalOpen] = useState(false);
   const [editingStaff, setEditingStaff] = useState<any>(null);
   const [isAddStaffModalOpen, setIsAddStaffModalOpen] = useState(false);
-  const [addingStaffCategory, setAddingStaffCategory] = useState<'leadership' | 'advisors' | 'staff'>('staff');
+  const [addingStaffCategory, setAddingStaffCategory] = useState<'leadership' | 'advisors' | 'staff' | 'collaborators'>('staff');
   const [isRemoveStaffConfirmOpen, setIsRemoveStaffConfirmOpen] = useState(false);
   const [staffToRemove, setStaffToRemove] = useState<any>(null);
   const [newStaffData, setNewStaffData] = useState<any>({ 
@@ -715,7 +721,8 @@ export default function SuperAdminDashboard() {
     expanded_bio: '',
     expertise_tags: '',
     affiliations: '',
-    publications: ''
+    publications: '',
+    image: null
   });
   const [activities, setActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
@@ -778,6 +785,18 @@ export default function SuperAdminDashboard() {
   // ═══════════════════════════════════════════
   // DATA FETCHING
   // ═══════════════════════════════════════════
+  // UTILS: MEDIA & EXTENSION MITIGATION
+  // ═══════════════════════════════════════════
+
+  // Removed local resolveImageUrl in favor of getMediaUrl utility
+
+  const extensionProps = {
+    spellCheck: false,
+    "data-gramm": "false",
+    "data-quillbot-disable": "true",
+    autoComplete: "off"
+  };
+
 
   const fetchData = useCallback(async (isInitial = false, isSilent = false) => {
     if (isInitial) setLoading(true);
@@ -843,8 +862,15 @@ export default function SuperAdminDashboard() {
       if (tmRes.ok) {
         const raw = await tmRes.json();
         const members = Array.isArray(raw) ? raw : (raw.results || []);
+        console.log("Team members synchronized:", { total: members.length, categories: { 
+          leadership: members.filter((m: any) => m.category === 'leadership').length,
+          advisors: members.filter((m: any) => m.category === 'advisors').length,
+          staff: members.filter((m: any) => m.category === 'staff').length,
+          collaborators: members.filter((m: any) => m.category === 'collaborators').length
+        }});
         setStaffRecords(groupTeamMembers(members));
       }
+
       try {
         const aRes = await authFetch(`${apiUrl}/api/auth/admin/audit-logs/`, fetchOpts);
         if (aRes.ok) {
@@ -939,11 +965,17 @@ export default function SuperAdminDashboard() {
   const refreshDashboard = () => fetchData();
 
   const handleRemoveStaff = async () => {
-    if (!staffToRemove?.id) return;
+    if (!staffToRemove || !staffToRemove.id) {
+      addToast('Invalid removal target: Missing ID', 'error');
+      return;
+    }
     try {
       const apiUrl = API || 'http://localhost:8000';
       const res = await authFetch(`${apiUrl}/api/team-members/${staffToRemove.id}/`, { method: 'DELETE' });
-      if (!res.ok) throw new Error('Delete failed');
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.detail || errorData.error || 'Deletion request refused by core');
+      }
       setStaffRecords((prev: any) => ({
         ...prev,
         [staffToRemove.category]: prev[staffToRemove.category as keyof typeof prev].filter((item: any) => item.id !== staffToRemove.id)
@@ -963,30 +995,47 @@ export default function SuperAdminDashboard() {
       return;
     }
     const category = addingStaffCategory;
-    const formatted: any = {
-      ...newStaffData,
-      category,
-      status: 'Active',
-      [category === 'advisors' ? 'advisory_role' : 'role']: newStaffData.role,
-      [category === 'advisors' ? 'expertise_area' : 'dept']: newStaffData.dept,
-      expertise_tags: newStaffData.expertise_tags ? newStaffData.expertise_tags.split(',').map((s: string) => s.trim()).filter(Boolean) : [],
-      affiliations: newStaffData.affiliations ? newStaffData.affiliations.split('\n').map((s: string) => s.trim()).filter(Boolean) : [],
-      publications: newStaffData.publications ? newStaffData.publications.split('\n').map((s: string) => s.trim()).filter(Boolean) : [],
-    };
     
-    // Clean up temporary fields ONLY if they were replaced by specialized advisor fields
-    if (category === 'advisors') {
-      delete formatted.role;
-      delete formatted.dept;
+    // Calculate display_order to ensure new member is added at the end
+    const currentMembers = staffRecords[category as keyof typeof staffRecords] || [];
+    const maxOrder = currentMembers.reduce((max: number, m: any) => Math.max(max, m.display_order || 0), 0);
+    const nextOrder = maxOrder + 1;
+
+    const formData = new FormData();
+    formData.append('name', newStaffData.name);
+    formData.append('category', category);
+    formData.append('status', 'Active');
+    formData.append('display_order', nextOrder.toString());
+    
+    const roleKey = (category === 'advisors' || category === 'collaborators') ? 'advisory_role' : 'role';
+    const deptKey = (category === 'advisors' || category === 'collaborators') ? 'expertise_area' : 'dept';
+    
+    formData.append(roleKey, newStaffData.role);
+    formData.append(deptKey, newStaffData.dept);
+    formData.append('bio', newStaffData.bio);
+    formData.append('expanded_bio', newStaffData.expanded_bio);
+    
+    const tags = newStaffData.expertise_tags ? newStaffData.expertise_tags.split(',').map((s: string) => s.trim()).filter(Boolean) : [];
+    const affs = newStaffData.affiliations ? newStaffData.affiliations.split('\n').map((s: string) => s.trim()).filter(Boolean) : [];
+    const pubs = newStaffData.publications ? newStaffData.publications.split('\n').map((s: string) => s.trim()).filter(Boolean) : [];
+    
+    formData.append('expertise_tags', JSON.stringify(tags));
+    formData.append('affiliations', JSON.stringify(affs));
+    formData.append('publications', JSON.stringify(pubs));
+    
+    if (newStaffData.image) {
+      formData.append('image', newStaffData.image);
     }
+
     try {
       const apiUrl = API || 'http://localhost:8000';
       const res = await authFetch(`${apiUrl}/api/team-members/`, {
         method: 'POST',
-        body: JSON.stringify(formatted)
+        body: formData
       });
       if (!res.ok) {
-        throw new Error('Create failed');
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.detail || errorData.error || 'Creation protocol rejected by core');
       }
       const created = await res.json();
       setStaffRecords((prev: any) => ({
@@ -1005,8 +1054,9 @@ export default function SuperAdminDashboard() {
         publications: ''
       });
       addToast(`${category.charAt(0).toUpperCase() + category.slice(1)} record added successfully`, 'success');
-    } catch (err) {
-      addToast('Failed to save team member to database', 'error');
+    } catch (err: any) {
+      console.error("Team creation failed:", err);
+      addToast(err.message || 'Failed to save team member to database', 'error');
     }
   };
 
@@ -1746,34 +1796,36 @@ export default function SuperAdminDashboard() {
   // PAGE: TEAM
   // ═══════════════════════════════════════════
 
-  const TeamPage = ({ users, viewDetails, staffRecords }: any) => {
+  const TeamPage = ({ users, viewDetails, staffRecords, API }: any) => {
     const internalUsers = (users || []).filter((u: any) => ['SUPER_ADMIN', 'ADMIN', 'PI', 'COORDINATOR'].includes(u.role));
 
-    const renderCard = (displayData: any, index: number, category: 'leadership' | 'advisors' | 'staff', systemUser: any = null) => {
+    const renderCard = (displayData: any, index: number, category: 'leadership' | 'advisors' | 'staff' | 'collaborators', systemUser: any = null) => {
       const isUser = !!systemUser;
       const member = displayData;
+      const imageUrl = getMediaUrl(member.image);
       
       return (
         <motion.div 
+          key={member.id || `${category}-${index}`}
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ delay: (index % 5) * 0.05 }}
           whileHover={{ y: -10, scale: 1.02 }}
-          className="group relative"
+          className="group relative h-full"
         >
           <div className="absolute inset-0 bg-gradient-to-br from-[#7c3aed]/20 to-cyan-500/20 rounded-[2.5rem] blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
           
-          <div className="relative h-full bg-[#0f1133]/60 backdrop-blur-xl border border-white/10 rounded-[2.5rem] p-8 md:p-10 flex flex-col gap-8 overflow-hidden shadow-2xl transition-all duration-500">
+          <div className="relative h-full bg-[#0f1133]/60 backdrop-blur-xl border border-white/10 rounded-[2.5rem] p-6 md:p-8 flex flex-col gap-4 overflow-hidden shadow-2xl transition-all duration-500">
             <div className="absolute -top-12 -right-12 w-24 h-24 bg-[#7c3aed]/10 rounded-full blur-3xl group-hover:bg-[#7c3aed]/20 transition-all duration-700" />
             
-            <div className="flex flex-col md:flex-row items-center md:items-start text-center md:text-left gap-8 flex-1">
+            <div className="flex flex-col md:flex-row items-center md:items-start text-center md:text-left gap-6 flex-1">
               <div className="absolute top-8 right-8 flex gap-2 opacity-0 group-hover:opacity-100 transition-all z-20">
                 {category !== 'staff' && (
                   <button 
                     onClick={(e) => { 
                       e.stopPropagation(); 
-                      setEditingStaff(isUser ? { ...systemUser, designation: member.role || member.advisory_role, isSystemUser: true } : { ...member, isSystemUser: false, originalIndex: index, category }); 
+                      setEditingStaff(isUser ? { ...systemUser, ...member, designation: member.role || member.advisory_role, isSystemUser: true, directoryId: member.id } : { ...member, isSystemUser: false, originalIndex: index, category }); 
                       setIsEditStaffModalOpen(true); 
                     }}
                     className="p-3 bg-white/5 hover:bg-cyan-500/20 border border-white/10 rounded-2xl text-white/40 hover:text-cyan-400 transition-all"
@@ -1785,7 +1837,7 @@ export default function SuperAdminDashboard() {
                 <button 
                   onClick={(e) => { 
                     e.stopPropagation(); 
-                    setStaffToRemove({ category, index, name: member.name });
+                    setStaffToRemove({ category, index, name: member.name, id: member.id });
                     setIsRemoveStaffConfirmOpen(true);
                   }}
                   className="p-3 bg-white/5 hover:bg-red-500/20 border border-white/10 rounded-2xl text-white/40 hover:text-red-400 transition-all"
@@ -1795,10 +1847,17 @@ export default function SuperAdminDashboard() {
                 </button>
               </div>
               <div className="relative shrink-0">
-                <div className="w-28 h-28 p-1.5 bg-gradient-to-br from-[#7c3aed] via-cyan-500 to-purple-500 rounded-[2.2rem] shadow-[0_0_30px_rgba(124,58,237,0.3)] group-hover:shadow-[0_0_50px_rgba(124,58,237,0.5)] transition-all duration-500">
-                  <div className="w-full h-full bg-[#0a0b1a] rounded-[2rem] flex items-center justify-center overflow-hidden border border-white/10 relative">
-                    {member.image ? (
-                      <img src={member.image} alt={member.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                <div className="w-24 h-24 p-1 bg-gradient-to-br from-[#7c3aed] via-cyan-500 to-purple-500 rounded-[2rem] shadow-[0_0_20px_rgba(124,58,237,0.3)] group-hover:shadow-[0_0_40px_rgba(124,58,237,0.5)] transition-all duration-500">
+                  <div className="w-full h-full bg-[#0a0b1a] rounded-[1.8rem] flex items-center justify-center overflow-hidden border border-white/10 relative">
+                    {imageUrl ? (
+                      <img 
+                        src={imageUrl} 
+                        alt={member.name} 
+                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
+                        onError={(e: any) => {
+                          e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(member.name)}&background=0d8abc&color=fff`;
+                        }}
+                      />
                     ) : (
                       <span className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-br from-white to-white/30 italic">
                         {member.name ? member.name[0] : '?'}
@@ -1830,47 +1889,49 @@ export default function SuperAdminDashboard() {
               </div>
             </div>
 
-            <div className="w-full mt-4 pt-6 border-t border-white/5 flex flex-col justify-center">
-              {isUser ? (
-                <button
-                  onClick={() => viewDetails({
-                    ...systemUser,
-                    ...member,
-                    category,
-                    index,
-                    designation: member.role || member.advisory_role || 'Staff Member',
-                    image: member.image
-                  })}
-                  className="w-full group/btn relative overflow-hidden py-4 bg-white/5 border border-white/10 text-white rounded-2xl font-black text-[11px] uppercase tracking-[0.2em] italic transition-all hover:bg-white/10 hover:border-cyan-400/50"
-                >
-                  <span className="relative z-10 flex items-center justify-center gap-2">
-                    View Profile <Eye className="w-3 h-3 group-hover/btn:scale-110 transition-transform" />
-                  </span>
-                  <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/10 to-purple-500/10 opacity-0 group-hover/btn:opacity-100 transition-opacity duration-500" />
-                </button>
-              ) : (
-                <button
-                  onClick={() => viewDetails({
-                    ...member,
-                    category,
-                    index,
-                    id: member.id || `static-${index}-${member.name.replace(/\s+/g, '-')}`,
-                    status: member.status || 'Active',
-                    created: 'Directory Record',
-                    role: member.system_role || (member.role || member.advisory_role || 'Staff').toUpperCase(),
-                    email: 'No System Account',
-                    mobile_number: 'N/A',
-                    full_address: 'N/A'
-                  })}
-                  className="w-full group/btn relative overflow-hidden py-4 bg-white/5 border border-white/10 text-white rounded-2xl font-black text-[11px] uppercase tracking-[0.2em] italic transition-all hover:bg-white/10 hover:border-cyan-400/50"
-                >
-                  <span className="relative z-10 flex items-center justify-center gap-2">
-                    View Profile <Eye className="w-3 h-3 group-hover/btn:scale-110 transition-transform" />
-                  </span>
-                  <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/10 to-purple-500/10 opacity-0 group-hover/btn:opacity-100 transition-opacity duration-500" />
-                </button>
-              )}
-            </div>
+            {category !== 'collaborators' && (
+              <div className="w-full mt-2 pt-4 border-t border-white/5 flex flex-col justify-center">
+                {isUser ? (
+                  <button
+                    onClick={() => viewDetails({
+                      ...systemUser,
+                      ...member,
+                      category,
+                      index,
+                      designation: member.role || member.advisory_role || 'Staff Member',
+                      image: member.image
+                    })}
+                    className="w-full group/btn relative overflow-hidden py-4 bg-white/5 border border-white/10 text-white rounded-2xl font-black text-[11px] uppercase tracking-[0.2em] italic transition-all hover:bg-white/10 hover:border-cyan-400/50"
+                  >
+                    <span className="relative z-10 flex items-center justify-center gap-2">
+                      View Profile <Eye className="w-3 h-3 group-hover/btn:scale-110 transition-transform" />
+                    </span>
+                    <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/10 to-purple-500/10 opacity-0 group-hover/btn:opacity-100 transition-opacity duration-500" />
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => viewDetails({
+                      ...member,
+                      category,
+                      index,
+                      id: member.id || `static-${index}-${member.name.replace(/\s+/g, '-')}`,
+                      status: member.status || 'Active',
+                      created: 'Directory Record',
+                      role: member.system_role || (member.role || member.advisory_role || 'Staff').toUpperCase(),
+                      email: 'No System Account',
+                      mobile_number: 'N/A',
+                      full_address: 'N/A'
+                    })}
+                    className="w-full group/btn relative overflow-hidden py-4 bg-white/5 border border-white/10 text-white rounded-2xl font-black text-[11px] uppercase tracking-[0.2em] italic transition-all hover:bg-white/10 hover:border-cyan-400/50"
+                  >
+                    <span className="relative z-10 flex items-center justify-center gap-2">
+                      View Profile <Eye className="w-3 h-3 group-hover/btn:scale-110 transition-transform" />
+                    </span>
+                    <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/10 to-purple-500/10 opacity-0 group-hover/btn:opacity-100 transition-opacity duration-500" />
+                  </button>
+                )}
+              </div>
+            )}
           </div>
         </motion.div>
       );
@@ -1948,6 +2009,20 @@ export default function SuperAdminDashboard() {
           </div>
         </section>
 
+        {/* CLINICAL COLLABORATORS SECTION */}
+        <section className="space-y-10">
+          <SectionHeader 
+            title="Clinical Collaborators" 
+            subtitle="Medical professionals and research partners"
+            icon={Network}
+            color="text-emerald-500"
+            onAdd={() => { setAddingStaffCategory('collaborators'); setIsAddStaffModalOpen(true); }}
+          />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
+            {staffRecords.collaborators.map((member: any, i: number) => renderCard(member, i, 'collaborators', null))}
+          </div>
+        </section>
+
         {/* STAFF SECTION */}
         <section className="space-y-10">
           <SectionHeader 
@@ -1972,7 +2047,7 @@ export default function SuperAdminDashboard() {
         {/* Dynamic Intel Footer */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 pt-12 border-t border-white/5">
           {[
-            { label: 'Network Reach', val: staffRecords.leadership.length + staffRecords.advisors.length + staffRecords.staff.length, sub: 'Global Personnel Units', icon: Globe, color: 'text-cyan-500' },
+            { label: 'Network Reach', val: staffRecords.leadership.length + staffRecords.advisors.length + staffRecords.staff.length + staffRecords.collaborators.length, sub: 'Global Personnel Units', icon: Globe, color: 'text-cyan-500' },
             { label: 'System Access', val: internalUsers.length, sub: 'Authenticated Operators', icon: ShieldCheck, color: 'text-[#7c3aed]' },
             { label: 'Operational Nodes', val: 12, sub: 'Clinical Departments', icon: Activity, color: 'text-emerald-500' },
           ].map((stat, i) => (
@@ -2039,6 +2114,12 @@ export default function SuperAdminDashboard() {
         { id: 'SPONSOR_LEADS', label: 'Prospecting', icon: BarChart2 },
         { id: 'INQUIRIES', label: 'Inquiries', icon: Bell, hasNotify: studyInquiries.length > 0 },
         { id: 'SPONSORS', label: 'Sponsors', icon: Building },
+      ]
+    },
+    {
+      group: 'Mellow Consortium', items: [
+        { id: 'MELLOW_TRIAL', label: 'Trials', icon: Activity },
+        { id: 'MELLOW_INVESTIGATORS', label: 'Add Investigators', icon: UserPlus },
       ]
     },
     {
@@ -2132,8 +2213,97 @@ export default function SuperAdminDashboard() {
   const CreateUserModal = () => {
     const [newUser, setNewUser] = useState({
       firstName: '', middleName: '', lastName: '', email: '',
-      role: creationRole ? creationRole.toUpperCase() : 'PI'
+      role: creationRole ? creationRole.toUpperCase() : 'PI',
+      lat: '',
+      lng: '',
+      organization: '',
+      bio: '',
+      zipCode: '',
+      country: '',
+      state: '',
+      isMellowMember: currentPage === 'MELLOW_INVESTIGATORS'
     });
+
+    const [locationOptions, setLocationOptions] = useState<any[]>([]);
+    const [isLookingUp, setIsLookingUp] = useState(false);
+
+    // ── ZIP CODE AUTO-FILL & SELECTION LOGIC ──
+    useEffect(() => {
+      const lookupZip = async () => {
+        const zip = newUser.zipCode.trim();
+        
+        // Reset dependent fields when zip changes
+        if (zip.length < 5) {
+          setLocationOptions([]);
+          // Only reset if fields actually have values to avoid re-render cascades
+          setNewUser(prev => {
+            if (prev.state || prev.country || prev.lat || prev.lng) {
+              return { ...prev, state: '', country: '', lat: '', lng: '' };
+            }
+            return prev;
+          });
+          setIsLookingUp(false);
+          return;
+        }
+
+        setIsLookingUp(true);
+        const results: any[] = [];
+        
+        // Only try regions whose zip length matches
+        const regions: { code: string; name: string }[] = [];
+        if (zip.length === 5 && /^\d{5}$/.test(zip)) {
+          regions.push({ code: 'us', name: 'United States' });
+        }
+        if (zip.length === 6 && /^\d{6}$/.test(zip)) {
+          regions.push({ code: 'in', name: 'India' });
+        }
+        
+        if (regions.length === 0) return;
+
+        try {
+          await Promise.all(regions.map(async (region) => {
+            try {
+              const response = await fetch(`https://api.zippopotam.us/${region.code}/${zip}`);
+              if (response.ok) {
+                const data = await response.json();
+                if (data.places) {
+                  data.places.forEach((p: any) => {
+                    results.push({
+                      state: p.state,
+                      country: region.name,
+                      lat: p.latitude,
+                      lng: p.longitude,
+                      placeName: p['place name']
+                    });
+                  });
+                }
+              }
+            } catch (e) {}
+          }));
+
+          setLocationOptions(results);
+          
+          // Auto-fill if exactly one unique location found
+          if (results.length === 1) {
+            const loc = results[0];
+            setNewUser(prev => ({
+              ...prev,
+              state: loc.state,
+              country: loc.country,
+              lat: loc.lat,
+              lng: loc.lng
+            }));
+          } else if (results.length === 0) {
+            setNewUser(prev => ({ ...prev, state: '', country: '', lat: '', lng: '' }));
+          }
+        } finally {
+          setIsLookingUp(false);
+        }
+      };
+
+      const timer = setTimeout(lookupZip, 500); // Debounce
+      return () => clearTimeout(timer);
+    }, [newUser.zipCode]);
 
     useEffect(() => {
       if (creationRole) setNewUser(prev => ({ ...prev, role: creationRole.toUpperCase() }));
@@ -2144,6 +2314,19 @@ export default function SuperAdminDashboard() {
 
     const handleCreateUser = async (e: React.FormEvent) => {
       e.preventDefault();
+
+      // Mellow Consortium Validation
+      if (newUser.isMellowMember) {
+        if (!newUser.zipCode) {
+          addToast("Zip Code is required for Consortium membership.", "error");
+          return;
+        }
+        if (!newUser.organization) {
+          addToast("Institution/Organization name is required for Consortium membership.", "error");
+          return;
+        }
+      }
+
       setIsCreating(true);
       try {
         const apiUrl = API || 'http://localhost:8000';
@@ -2154,21 +2337,30 @@ export default function SuperAdminDashboard() {
             first_name: newUser.firstName,
             middle_name: newUser.middleName,
             last_name: newUser.lastName,
-            role: newUser.role
+            role: newUser.role,
+            lat: newUser.lat ? Number(newUser.lat) : null,
+            lng: newUser.lng ? Number(newUser.lng) : null,
+            is_mellow_member: newUser.isMellowMember,
+            organization: newUser.organization || null,
+            bio: newUser.bio || null,
+            zip_code: newUser.zipCode || null,
+            country: newUser.country || null,
+            state: newUser.state || null
           })
         });
         if (res.ok) {
           const data = await res.json();
-          alert(`✅ INITIALIZATION COMPLETE\n\nGenerated Username: ${data.username}\nCredentials sent to ${newUser.email}`);
+          addToast(`Initialization complete. Credentials dispatched to ${newUser.email}`, "success");
           setModals({ ...modals, createUser: false });
-          setNewUser({ firstName: '', middleName: '', lastName: '', email: '', role: creationRole ? creationRole.toUpperCase() : 'PI' });
-          fetchData();
+          setNewUser({ firstName: '', middleName: '', lastName: '', email: '', role: creationRole ? creationRole.toUpperCase() : 'PI', lat: '', lng: '', organization: '', bio: '', zipCode: '', country: '', state: '', isMellowMember: false });
+          // Pass true as second argument to fetchData to skip cache and get the new user immediately
+          fetchData(false, true);
         } else {
           const err = await res.json();
-          alert(`❌ PROTOCOL ERROR: ${err.error || err.detail || 'Unknown failure'}`);
+          addToast(`Protocol Error: ${err.error || err.detail || 'Unknown failure'}`, "error");
         }
       } catch (err) {
-        alert('❌ CRITICAL SYSTEM FAILURE: Authorization stack trace in console.');
+        addToast('Critical system failure during authorization dispatch.', 'error');
         console.error(err);
       } finally {
         setIsCreating(false);
@@ -2176,67 +2368,160 @@ export default function SuperAdminDashboard() {
     };
 
     return (
-      <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 backdrop-blur-3xl bg-black/60">
-        <motion.div initial={{ opacity: 0, scale: 0.9, y: 30 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 30 }} className="bg-[#0f1133] border border-white/10 w-full max-w-2xl rounded-[3rem] p-12 shadow-2xl relative overflow-hidden">
-          <div className="absolute top-0 right-0 p-12 opacity-5 pointer-events-none">
-            <Users className="w-64 h-64 text-white" />
+      <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 backdrop-blur-3xl bg-black/60">
+        <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} className="bg-[#0f1133] border border-white/10 w-full max-w-xl rounded-[2.5rem] p-8 shadow-2xl relative overflow-hidden">
+          <div className="absolute top-0 right-0 p-8 opacity-5 pointer-events-none">
+            <Users className="w-32 h-32 text-white" />
           </div>
-          <div className="flex justify-between items-start mb-14 relative z-10 text-left">
-            <div className="space-y-3 flex flex-col items-start">
-              <div className="w-12 h-12 bg-purple-500/10 border border-purple-500/20 rounded-2xl flex items-center justify-center text-[#7c3aed] shrink-0">
-                <UserPlus className="w-6 h-6" />
+          <div className="flex justify-between items-start mb-6 relative z-10 text-left">
+            <div className="flex flex-col items-start">
+              <div className="w-10 h-10 bg-purple-500/10 border border-purple-500/20 rounded-xl flex items-center justify-center text-[#7c3aed] mb-3">
+                <UserPlus className="w-5 h-5" />
               </div>
-              <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter text-left">Initialize <span className="text-[#7c3aed]">Personnel</span></h2>
-              <p className="text-[12px] text-[#555a7a] font-black uppercase tracking-widest text-left">Secure credential provisioning and onboarding module</p>
+              <h2 className="text-xl font-black text-white italic uppercase tracking-tighter text-left leading-none">Initialize <span className="text-[#7c3aed]">Personnel</span></h2>
+              <p className="text-[10px] text-[#555a7a] font-black uppercase tracking-widest mt-1 text-left">Secure credential provisioning module</p>
             </div>
-            <button onClick={() => setModals({ ...modals, createUser: false })} className="p-3 hover:bg-white/5 rounded-2xl transition-colors" disabled={isCreating}>
-              <X className="w-6 h-6 text-slate-700 hover:text-white" />
+            <button onClick={() => setModals({ ...modals, createUser: false })} className="p-2 hover:bg-white/5 rounded-xl transition-colors" disabled={isCreating}>
+              <X className="w-5 h-5 text-slate-700 hover:text-white" />
             </button>
           </div>
-          <form onSubmit={handleCreateUser} className="space-y-8 relative z-10">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <div className="space-y-4 text-left w-full">
-                <label className="block text-sm font-black text-[#555a7a] uppercase tracking-widest italic text-left">First Name <span className="text-red-500">*</span></label>
-                <input type="text" placeholder="John" required value={newUser.firstName} onChange={e => setNewUser({ ...newUser, firstName: e.target.value })} className="w-full bg-[#0a0b1a] border border-white/5 rounded-2xl px-6 py-5 text-base text-white font-bold outline-none focus:border-purple-500/40 transition-all font-mono text-left" />
+          <form onSubmit={handleCreateUser} className="space-y-4 relative z-10">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-1.5 text-left w-full">
+                <label className="block text-[10px] font-black text-[#555a7a] uppercase tracking-widest italic text-left">First Name <span className="text-red-500">*</span></label>
+                <input type="text" placeholder="John" required value={newUser.firstName} onChange={e => setNewUser({ ...newUser, firstName: e.target.value })} className="w-full bg-[#0a0b1a] border border-white/5 rounded-xl px-4 py-3 text-sm text-white font-bold outline-none focus:border-purple-500/40 transition-all font-mono text-left" />
               </div>
-              <div className="space-y-4 text-left w-full">
-                <label className="block text-sm font-black text-[#555a7a] uppercase tracking-widest italic text-left">Middle Name (Optional)</label>
-                <input type="text" placeholder="Quincy" value={newUser.middleName} onChange={e => setNewUser({ ...newUser, middleName: e.target.value })} className="w-full bg-[#0a0b1a] border border-white/5 rounded-2xl px-6 py-5 text-base text-white font-bold outline-none focus:border-purple-500/40 transition-all font-mono text-left" />
-              </div>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <div className="space-y-4 text-left w-full">
-                <label className="block text-sm font-black text-[#555a7a] uppercase tracking-widest italic text-left">Last Name <span className="text-red-500">*</span></label>
-                <input type="text" placeholder="Doe" required value={newUser.lastName} onChange={e => setNewUser({ ...newUser, lastName: e.target.value })} className="w-full bg-[#0a0b1a] border border-white/5 rounded-2xl px-6 py-5 text-base text-white font-bold outline-none focus:border-purple-500/40 transition-all font-mono text-left" />
-              </div>
-              <div className="space-y-4 text-left w-full">
-                <label className="block text-sm font-black text-[#555a7a] uppercase tracking-widest italic text-left">Personal Gmail <span className="text-red-500">*</span></label>
-                <input type="email" placeholder="john.doe@gmail.com" required value={newUser.email} onChange={e => setNewUser({ ...newUser, email: e.target.value })} className="w-full bg-[#0a0b1a] border border-white/5 rounded-2xl px-6 py-5 text-base text-white font-bold outline-none focus:border-purple-500/40 transition-all font-mono text-left" />
+              <div className="space-y-1.5 text-left w-full">
+                <label className="block text-[10px] font-black text-[#555a7a] uppercase tracking-widest italic text-left">Middle Name</label>
+                <input type="text" placeholder="Quincy" value={newUser.middleName} onChange={e => setNewUser({ ...newUser, middleName: e.target.value })} className="w-full bg-[#0a0b1a] border border-white/5 rounded-xl px-4 py-3 text-sm text-white font-bold outline-none focus:border-purple-500/40 transition-all font-mono text-left" />
               </div>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <div className="space-y-4 text-left w-full">
-                <label className="block text-sm font-black text-[#555a7a] uppercase tracking-widest italic text-left">Access Tier (Role)</label>
-                <select className="w-full bg-[#0a0b1a] border border-white/5 rounded-2xl px-6 py-5 text-base text-white font-bold outline-none focus:border-purple-500/40 transition-all font-mono text-left" value={newUser.role} onChange={e => setNewUser({ ...newUser, role: e.target.value })}>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-1.5 text-left w-full">
+                <label className="block text-[10px] font-black text-[#555a7a] uppercase tracking-widest italic text-left">Last Name <span className="text-red-500">*</span></label>
+                <input type="text" placeholder="Doe" required value={newUser.lastName} onChange={e => setNewUser({ ...newUser, lastName: e.target.value })} className="w-full bg-[#0a0b1a] border border-white/5 rounded-xl px-4 py-3 text-sm text-white font-bold outline-none focus:border-purple-500/40 transition-all font-mono text-left" />
+              </div>
+              <div className="space-y-1.5 text-left w-full">
+                <label className="block text-[10px] font-black text-[#555a7a] uppercase tracking-widest italic text-left">Personal Gmail <span className="text-red-500">*</span></label>
+                <input type="email" placeholder="john.doe@gmail.com" required value={newUser.email} onChange={e => setNewUser({ ...newUser, email: e.target.value })} className="w-full bg-[#0a0b1a] border border-white/5 rounded-xl px-4 py-3 text-sm text-white font-bold outline-none focus:border-purple-500/40 transition-all font-mono text-left" />
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-1.5 text-left w-full">
+                <label className="block text-[10px] font-black text-[#555a7a] uppercase tracking-widest italic text-left">Access Tier (Role)</label>
+                <select className="w-full bg-[#0a0b1a] border border-white/5 rounded-xl px-4 py-3 text-sm text-white font-bold outline-none focus:border-purple-500/40 transition-all font-mono text-left" value={newUser.role} onChange={e => setNewUser({ ...newUser, role: e.target.value })}>
                   {filteredRoles.map(r => <option key={r.id} value={r.id} className="bg-[#0a0b1a]">{r.label}</option>)}
                 </select>
               </div>
-              <div className="flex items-center pt-8">
-                <div className="p-6 bg-purple-500/5 rounded-[2rem] border border-purple-500/10 flex items-center gap-4 w-full">
-                  <ShieldAlert className="w-8 h-8 text-purple-500 opacity-50" />
-                  <div>
-                    <p className="text-[12px] text-white font-black uppercase tracking-widest leading-relaxed">System Rule:</p>
-                    <p className="text-[12px] text-[#555a7a] font-medium leading-relaxed">Username & Temp Password will be auto-generated and encrypted.</p>
-                  </div>
-                </div>
+              <div className="space-y-1.5 text-left w-full">
+                <label className="block text-[10px] font-black text-[#555a7a] uppercase tracking-widest italic text-left">Institution</label>
+                <input type="text" placeholder="MusB Research Institute" value={newUser.organization} onChange={e => setNewUser({ ...newUser, organization: e.target.value })} className="w-full bg-[#0a0b1a] border border-white/5 rounded-xl px-4 py-3 text-sm text-white font-bold outline-none focus:border-purple-500/40 transition-all font-mono text-left" />
               </div>
             </div>
-            <div className="pt-10 flex gap-4">
-              <button type="button" onClick={() => setModals({ ...modals, createUser: false })} className="flex-1 py-5 bg-white/5 border border-white/5 text-[#555a7a] rounded-2xl font-black text-[12px] uppercase tracking-widest hover:bg-red-500/10 hover:text-red-500 hover:border-red-500/20 transition-all" disabled={isCreating}>
+
+            {/* MELLOW CONSORTIUM EXTENSIONS */}
+            <div className="p-4 bg-cyan-500/5 border border-cyan-500/10 rounded-3xl space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-cyan-500/10 rounded-lg flex items-center justify-center text-cyan-400">
+                    <Globe className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 className="text-[11px] font-black text-white uppercase tracking-wider italic">Consortium Membership</h4>
+                    <p className="text-[9px] text-slate-600 font-bold uppercase tracking-widest">Global investigator map visibility</p>
+                  </div>
+                </div>
+                <button 
+                  type="button"
+                  onClick={() => setNewUser({ ...newUser, isMellowMember: !newUser.isMellowMember })}
+                  className={`w-12 h-7 rounded-full p-1 transition-all ${newUser.isMellowMember ? 'bg-cyan-500' : 'bg-slate-800'}`}
+                >
+                  <div className={`w-5 h-5 bg-white rounded-full transition-all ${newUser.isMellowMember ? 'translate-x-5' : 'translate-x-0'}`} />
+                </button>
+              </div>
+
+              {newUser.isMellowMember && (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-3 border-t border-white/5 animate-in fade-in slide-in-from-top-2">
+                  <div className="space-y-1 text-left relative">
+                    <label className="block text-[9px] font-black text-cyan-400 uppercase tracking-widest italic">Zip Code</label>
+                    <div className="relative">
+                      <input 
+                        type="text" 
+                        placeholder="90210" 
+                        value={newUser.zipCode} 
+                        onChange={e => setNewUser({ ...newUser, zipCode: e.target.value })} 
+                        className={`w-full bg-black/40 border border-white/5 rounded-xl px-4 py-2.5 text-xs text-white font-mono outline-none focus:border-cyan-500/50 ${isLookingUp ? 'pr-10' : ''}`} 
+                      />
+                      {isLookingUp && (
+                        <RefreshCw className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-cyan-500/50 animate-spin" />
+                      )}
+                    </div>
+                    
+                    {/* Location Selection Dropdown */}
+                    <AnimatePresence>
+                      {locationOptions.length > 1 && (
+                        <motion.div 
+                          initial={{ opacity: 0, y: -10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -10 }}
+                          className="absolute z-50 left-0 right-0 top-full mt-2 bg-[#0a0b1a] border border-white/10 rounded-xl shadow-2xl overflow-hidden backdrop-blur-xl"
+                        >
+                          <div className="p-2 border-b border-white/5 bg-white/[0.02]">
+                            <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest px-2">Multiple Locations Detected</p>
+                          </div>
+                          <div className="max-h-[160px] overflow-y-auto custom-scrollbar">
+                            {locationOptions.map((loc, idx) => (
+                              <button
+                                key={idx}
+                                type="button"
+                                onClick={() => {
+                                  setNewUser(prev => ({ ...prev, state: loc.state, country: loc.country, lat: loc.lat, lng: loc.lng }));
+                                  setLocationOptions([]);
+                                }}
+                                className="w-full text-left px-4 py-3 hover:bg-white/5 transition-colors border-b border-white/[0.02] last:border-0"
+                              >
+                                <p className="text-[10px] font-black text-white uppercase italic">{loc.placeName}, {loc.state}</p>
+                                <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest mt-0.5">{loc.country}</p>
+                              </button>
+                            ))}
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                  <div className="space-y-1 text-left">
+                    <label className="block text-[9px] font-black text-[#555a7a] uppercase tracking-widest italic">State</label>
+                    <input type="text" placeholder="California" value={newUser.state} onChange={e => setNewUser({ ...newUser, state: e.target.value })} className="w-full bg-black/20 border border-white/5 rounded-xl px-4 py-2.5 text-xs text-slate-400 font-mono outline-none" readOnly />
+                  </div>
+                  <div className="space-y-1 text-left">
+                    <label className="block text-[9px] font-black text-[#555a7a] uppercase tracking-widest italic">Country</label>
+                    <input type="text" placeholder="United States" value={newUser.country} onChange={e => setNewUser({ ...newUser, country: e.target.value })} className="w-full bg-black/20 border border-white/5 rounded-xl px-4 py-2.5 text-xs text-slate-400 font-mono outline-none" readOnly />
+                  </div>
+                  <div className="col-span-full space-y-1 text-left">
+                    <label className="block text-[9px] font-black text-cyan-400 uppercase tracking-widest italic">Professional Biography</label>
+                    <textarea 
+                      placeholder="Professor of Geriatrics with a focus on cellular senescence..." 
+                      value={newUser.bio} 
+                      onChange={e => setNewUser({ ...newUser, bio: e.target.value })} 
+                      className="w-full bg-black/40 border border-white/5 rounded-xl px-4 py-2.5 text-xs text-white font-medium outline-none focus:border-cyan-500/50 min-h-[80px] resize-none"
+                      spellCheck={false}
+                      data-gramm="false"
+                      data-gramm_editor="false"
+                      data-enable-grammarly="false"
+                      data-quillbot-disable="true"
+                      autoComplete="off"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="pt-4 flex gap-3">
+              <button type="button" onClick={() => setModals({ ...modals, createUser: false })} className="flex-1 py-3.5 bg-white/5 border border-white/5 text-[#555a7a] rounded-xl font-black text-[11px] uppercase tracking-widest hover:bg-red-500/10 hover:text-red-500 hover:border-red-500/20 transition-all" disabled={isCreating}>
                 Abort
               </button>
-              <button type="submit" disabled={isCreating} className="flex-[2] py-5 bg-[#7c3aed] text-white rounded-2xl font-black text-[12px] uppercase tracking-[0.2em] italic shadow-xl shadow-purple-900/40 hover:scale-[1.02] transition-all disabled:opacity-50">
-                {isCreating ? 'Synchronizing...' : 'Authorize & Dispatch Credentials'}
+              <button type="submit" disabled={isCreating} className="flex-[2] py-3.5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl font-black text-[11px] uppercase tracking-[0.15em] italic shadow-xl shadow-purple-900/40 hover:scale-[1.01] transition-all disabled:opacity-50">
+                {isCreating ? 'Synchronizing Terminal...' : 'Authorized and Dispatch Credential'}
               </button>
             </div>
           </form>
@@ -2276,7 +2561,7 @@ export default function SuperAdminDashboard() {
         <nav className="flex-1 overflow-y-auto px-4 space-y-10 py-4 custom-scrollbar">
           {sidebarItems.map((group, i) => (
             <div key={i} className="space-y-6">
-              <p className="px-4 text-[10px] xl:text-[11px] font-black text-[#555a7a] uppercase tracking-[0.4em] font-mono opacity-50">{group.group}</p>
+              <p className="px-4 text-[10px] xl:text-[11px] font-black text-[#BF953F] uppercase tracking-[0.4em] font-mono opacity-80 bg-clip-text text-transparent bg-gradient-to-r from-[#BF953F] via-[#FCF6BA] via-[#B38728] via-[#FBF5B7] to-[#AA771C]">{group.group}</p>
               <div className="space-y-1.5">
                 {group.items.map((item, j) => (
                   <button
@@ -2473,18 +2758,7 @@ export default function SuperAdminDashboard() {
             />
           )}
           {currentPage === 'SCREENER_BUILDER' && <QuestionnaireBuilder />}
-          {currentPage === 'PIS' && (
-            <PIsManagement
-              allUsers={users}
-              allStudies={studies}
-              onRefresh={fetchData}
-              onViewUser={viewDetails}
-              onRegister={() => {
-                setCreationRole('PI');
-                setModals({ ...modals, createUser: true });
-              }}
-            />
-          )}
+
           {currentPage === 'COORDINATORS' && (
             <CoordinatorsManagement
               allUsers={users}
@@ -2537,7 +2811,51 @@ export default function SuperAdminDashboard() {
             />
           )}
           {currentPage === 'SPONSOR_LEADS' && <SponsorLeadsPage studyInquiries={studyInquiries} handlePageChange={handlePageChange} />}
-          {currentPage === 'TEAM' && <TeamPage users={users} viewDetails={viewDetails} staffRecords={staffRecords} />}
+          {currentPage === 'TEAM' && <TeamPage users={users} viewDetails={viewDetails} staffRecords={staffRecords} API={API} />}
+          {currentPage === 'MELLOW_TRIAL' && (
+            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <div className="flex justify-between items-center mb-8">
+                <div>
+                  <h1 className="text-4xl font-black text-white italic uppercase tracking-tighter">Mellow <span className="text-cyan-400">Trial Management</span></h1>
+                  <p className="text-[11px] text-slate-500 font-black uppercase tracking-[0.4em] mt-2 italic">Consortium protocol synchronization and site monitoring</p>
+                </div>
+              </div>
+              <StudiesPage
+                studies={studies.filter(s => s.is_mellow_trial)}
+                users={users}
+                fetchData={fetchData}
+                handleStudiesLink={handleStudiesLink}
+                setSelectedStudy={setSelectedStudy}
+                handlePageChange={handlePageChange}
+              />
+            </div>
+          )}
+          {currentPage === 'MELLOW_INVESTIGATORS' && (
+            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <div className="flex justify-between items-center mb-8">
+                <div>
+                  <h1 className="text-4xl font-black text-white italic uppercase tracking-tighter">Mellow <span className="text-cyan-400">Consortium Investigators</span></h1>
+                  <p className="text-[11px] text-slate-500 font-black uppercase tracking-[0.4em] mt-2 italic">Global investigator network and mapping synchronization</p>
+                </div>
+                <button 
+                  onClick={() => {
+                    setCreationRole('PI');
+                    setModals({ ...modals, createUser: true });
+                  }}
+                  className="px-8 py-4 bg-cyan-500 text-white rounded-2xl font-black text-[11px] uppercase tracking-[0.2em] italic shadow-xl shadow-cyan-900/40 hover:scale-105 transition-all flex items-center gap-3"
+                >
+                  <Plus className="w-4 h-4" /> Add Consortium Investigator
+                </button>
+              </div>
+              <PIsManagement
+                allUsers={users.filter(u => u.is_mellow_member)}
+                allStudies={studies}
+                onRefresh={fetchData}
+                onViewUser={viewDetails}
+              />
+            </div>
+          )}
+
           {currentPage === 'INQUIRIES' && (
             <InquiriesPage
               studyInquiries={studyInquiries}
@@ -2552,7 +2870,7 @@ export default function SuperAdminDashboard() {
             />
           )}
 
-          {!['DASHBOARD', 'ALL_USERS', 'STUDIES', 'SPONSORS', 'LAUNCH_STUDY', 'SCREENER_BUILDER', 'PIS', 'COORDINATORS', 'PARTICIPANTS', 'LIVE_USERS', 'METRICS', 'AUDIT_LOGS', 'SETTINGS', 'ANNOUNCEMENTS', 'SPONSOR_LEADS', 'TEAM', 'INQUIRIES', 'TEAM_APPROVALS', 'CAREERS', 'WORKFLOW', 'SUBMIT_CONTENT', 'ACTIVITY_LOG', 'SUPPORT'].includes(currentPage) && (
+          {!['DASHBOARD', 'ALL_USERS', 'STUDIES', 'SPONSORS', 'LAUNCH_STUDY', 'SCREENER_BUILDER', 'PIS', 'COORDINATORS', 'PARTICIPANTS', 'LIVE_USERS', 'METRICS', 'AUDIT_LOGS', 'SETTINGS', 'ANNOUNCEMENTS', 'SPONSOR_LEADS', 'TEAM', 'INQUIRIES', 'TEAM_APPROVALS', 'CAREERS', 'WORKFLOW', 'SUBMIT_CONTENT', 'ACTIVITY_LOG', 'SUPPORT', 'MELLOW_TRIAL', 'MELLOW_INVESTIGATORS'].includes(currentPage) && (
             <div className="h-[70vh] flex flex-col items-center justify-center text-center space-y-6">
               <div className="w-24 h-24 bg-white/5 border border-white/10 rounded-[2.5rem] flex items-center justify-center">
                 <LayoutDashboard className="w-12 h-12 text-[#555a7a] animate-pulse" />
@@ -2616,8 +2934,15 @@ export default function SuperAdminDashboard() {
                 <div className="relative -mt-12 mb-8 flex items-end gap-6">
                   <div className="w-24 h-24 rounded-3xl bg-[#0a0b1a] border-4 border-[#0d0e2b] flex items-center justify-center text-3xl font-black text-white italic shadow-2xl overflow-hidden relative">
                     <div className="absolute inset-0 bg-gradient-to-br from-[#7c3aed]/20 to-cyan-500/20" />
-                    {selectedUser.image ? (
-                      <img src={selectedUser.image} alt={selectedUser.name} className="w-full h-full object-cover relative z-10" />
+                    {getMediaUrl(selectedUser.image) ? (
+                      <img 
+                        src={getMediaUrl(selectedUser.image)!} 
+                        alt={selectedUser.name} 
+                        className="w-full h-full object-cover relative z-10" 
+                        onError={(e: any) => {
+                          e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(selectedUser.name)}&background=0d8abc&color=fff`;
+                        }}
+                      />
                     ) : (
                       <span className="relative z-10">{(selectedUser.name?.[0] || 'U').toUpperCase()}</span>
                     )}
@@ -2796,7 +3121,12 @@ export default function SuperAdminDashboard() {
                   <button 
                     onClick={() => {
                       setIsUserDetailOpen(false);
-                      setStaffToRemove({ category: selectedUser.category, index: selectedUser.index });
+                      setStaffToRemove({ 
+                        category: selectedUser.category, 
+                        index: selectedUser.index,
+                        id: selectedUser.id,
+                        name: selectedUser.name
+                      });
                       setIsRemoveStaffConfirmOpen(true);
                     }} 
                     className="flex-1 py-4 bg-red-500/5 hover:bg-red-600 text-red-500 hover:text-white border border-red-500/10 hover:border-red-600 rounded-[1.5rem] text-[10px] font-black uppercase tracking-[0.15em] italic transition-all flex items-center justify-center gap-2 shadow-xl hover:shadow-red-600/30 group/remove"
@@ -2834,44 +3164,93 @@ export default function SuperAdminDashboard() {
                 <div className="space-y-8">
                   {/* CORE INFO SECTION */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {editingStaff.category === 'collaborators' && (
+                      <div className="space-y-3">
+                        <label className="text-[11px] font-black text-[#555a7a] uppercase tracking-widest px-1 italic">Name</label>
+                        <input 
+                          type="text" 
+                          defaultValue={editingStaff.name}
+                          onChange={(e) => setEditingStaff({ ...editingStaff, newName: e.target.value })}
+                          className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white font-bold italic focus:border-cyan-500/50 outline-none transition-all"
+                          placeholder="e.g. Synbiotic Health"
+                          {...extensionProps}
+                        />
+                      </div>
+                    )}
                     <div className="space-y-3">
-                      <label className="text-[11px] font-black text-[#555a7a] uppercase tracking-widest px-1 italic">Professional Designation</label>
+                      <label className="text-[11px] font-black text-[#555a7a] uppercase tracking-widest px-1 italic">
+                        {editingStaff.category === 'collaborators' ? 'Staff' : 'Professional Designation'}
+                      </label>
                       <input 
                         type="text" 
                         defaultValue={editingStaff.designation || editingStaff.role}
                         onChange={(e) => setEditingStaff({ ...editingStaff, newDesignation: e.target.value })}
                         className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white font-bold italic focus:border-cyan-500/50 outline-none transition-all"
-                        placeholder="e.g. Chief Operations Officer"
+                        placeholder={editingStaff.category === 'collaborators' ? "e.g. Staff" : "e.g. Chief Operations Officer"}
+                        {...extensionProps}
                       />
                     </div>
 
                     <div className="space-y-3">
-                      <label className="text-[11px] font-black text-[#555a7a] uppercase tracking-widest px-1 italic">Department / Focus Area</label>
+                      <label className="text-[11px] font-black text-[#555a7a] uppercase tracking-widest px-1 italic">
+                        {editingStaff.category === 'collaborators' ? 'Global Operation' : 'Department / Focus Area'}
+                      </label>
                       <input 
                         type="text" 
-                        defaultValue={editingStaff.dept || editingStaff.expertise_area || 'Global Operations'}
+                        defaultValue={editingStaff.dept || editingStaff.expertise_area || (editingStaff.category === 'collaborators' ? 'Global Operations' : '')}
                         onChange={(e) => setEditingStaff({ ...editingStaff, newDept: e.target.value })}
                         className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white font-bold italic focus:border-cyan-500/50 outline-none transition-all"
-                        placeholder="e.g. Product Engineering"
+                        placeholder={editingStaff.category === 'collaborators' ? "e.g. Global Operations" : "e.g. Product Engineering"}
+                        {...extensionProps}
                       />
                     </div>
                   </div>
 
+                  {/* IMAGE UPLOAD SECTION */}
+                  {editingStaff.category !== 'collaborators' && editingStaff.category !== 'staff' && (
+                    <div className="space-y-3">
+                      <label className="text-[11px] font-black text-[#555a7a] uppercase tracking-widest px-1 italic">Update Profile Image</label>
+                      <div className="flex items-center gap-6 p-6 bg-white/5 rounded-3xl border border-dashed border-white/10">
+                        <div className="w-20 h-20 rounded-2xl bg-white/5 flex items-center justify-center overflow-hidden border border-white/10 shrink-0">
+                          {editingStaff.newImage ? (
+                            <img src={URL.createObjectURL(editingStaff.newImage)} alt="Preview" className="w-full h-full object-cover" />
+                          ) : editingStaff.image ? (
+                            <img src={getMediaUrl(editingStaff.image)} alt="Current" className="w-full h-full object-cover" />
+                          ) : (
+                            <Users className="w-8 h-8 text-slate-700" />
+                          )}
+                        </div>
+                        <div className="space-y-2">
+                          <input 
+                            type="file" 
+                            accept="image/*"
+                            onChange={(e) => setEditingStaff({ ...editingStaff, newImage: e.target.files?.[0] })}
+                            className="text-xs text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-[10px] file:font-black file:uppercase file:bg-cyan-500/10 file:text-cyan-400 hover:file:bg-cyan-500/20 cursor-pointer"
+                          />
+                          <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Select a new photo to replace the current one.</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   {/* SCIENTIFIC PROFILE EXTENSIONS */}
                     <div className="space-y-8 pt-10 border-t border-white/5">
-                      <div className="space-y-3">
-                        <label className="text-[11px] font-black text-purple-400 uppercase tracking-widest px-1 italic flex items-center gap-2">
-                          <FileText className="w-3 h-3" /> {editingStaff.category === 'staff' ? 'Professional Summary' : 'Short Biography (Summary Card)'}
-                        </label>
-                        <textarea 
-                          defaultValue={editingStaff.bio}
-                          onChange={(e) => setEditingStaff({ ...editingStaff, newBio: e.target.value })}
-                          className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white font-medium text-sm focus:border-purple-500/50 outline-none transition-all h-32 custom-scrollbar leading-relaxed"
-                          placeholder={editingStaff.category === 'staff' ? "Enter professional summary..." : "Brief summary for the team card..."}
-                        ></textarea>
-                      </div>
+                      {editingStaff.category !== 'collaborators' && (
+                        <div className="space-y-3">
+                          <label className="text-[11px] font-black text-purple-400 uppercase tracking-widest px-1 italic flex items-center gap-2">
+                            <FileText className="w-3 h-3" /> {editingStaff.category === 'staff' ? 'Professional Summary' : 'Short Biography (Summary Card)'}
+                          </label>
+                          <textarea 
+                            defaultValue={editingStaff.bio}
+                            onChange={(e) => setEditingStaff({ ...editingStaff, newBio: e.target.value })}
+                            className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white font-medium text-sm focus:border-purple-500/50 outline-none transition-all h-32 custom-scrollbar leading-relaxed"
+                            placeholder={editingStaff.category === 'staff' ? "Enter professional summary..." : "Brief summary for the team card..."}
+                            {...extensionProps}
+                          ></textarea>
+                        </div>
+                      )}
 
-                      {editingStaff.category !== 'staff' && (
+                      {editingStaff.category !== 'staff' && editingStaff.category !== 'collaborators' && (
                         <>
                           <div className="space-y-3">
                             <label className="text-[11px] font-black text-cyan-400 uppercase tracking-widest px-1 italic flex items-center gap-2">
@@ -2882,6 +3261,7 @@ export default function SuperAdminDashboard() {
                               onChange={(e) => setEditingStaff({ ...editingStaff, newExpandedBio: e.target.value })}
                               className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white font-medium text-sm focus:border-cyan-500/50 outline-none transition-all h-48 custom-scrollbar leading-relaxed"
                               placeholder="Full professional history and vision..."
+                              {...extensionProps}
                             ></textarea>
                           </div>
 
@@ -2893,6 +3273,7 @@ export default function SuperAdminDashboard() {
                                 onChange={(e) => setEditingStaff({ ...editingStaff, newTags: e.target.value })}
                                 className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white font-bold italic focus:border-cyan-500/50 outline-none transition-all h-24 text-xs"
                                 placeholder="Microbiome, Immunology, Brain Health..."
+                                {...extensionProps}
                               ></textarea>
                             </div>
                             <div className="space-y-3">
@@ -2902,6 +3283,7 @@ export default function SuperAdminDashboard() {
                                 onChange={(e) => setEditingStaff({ ...editingStaff, newAffiliations: e.target.value })}
                                 className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white font-bold italic focus:border-cyan-500/50 outline-none transition-all h-24 text-xs"
                                 placeholder="University of Illinois, NIH..."
+                                {...extensionProps}
                               ></textarea>
                             </div>
                           </div>
@@ -2915,6 +3297,7 @@ export default function SuperAdminDashboard() {
                               onChange={(e) => setEditingStaff({ ...editingStaff, newPublications: e.target.value })}
                               className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white font-bold italic focus:border-cyan-500/50 outline-none transition-all h-32 text-xs leading-relaxed"
                               placeholder="Title, Journal, Year..."
+                              {...extensionProps}
                             ></textarea>
                           </div>
                         </>
@@ -2960,12 +3343,50 @@ export default function SuperAdminDashboard() {
                       const updatedTags = editingStaff.newTags ? editingStaff.newTags.split(',').map((t: string) => t.trim()) : editingStaff.expertise_tags;
                       const updatedAffiliations = editingStaff.newAffiliations ? editingStaff.newAffiliations.split('\n').map((t: string) => t.trim()).filter(Boolean) : editingStaff.affiliations;
                       const updatedPublications = editingStaff.newPublications ? editingStaff.newPublications.split('\n').map((t: string) => t.trim()).filter(Boolean) : editingStaff.publications;
+                      const updatedName = editingStaff.newName || editingStaff.name;
 
-                      // 2. Update Directory Records State (Frontend)
+                      // 2. Persist to Backend Directory
+                      try {
+                        const directoryId = editingStaff.directoryId || editingStaff.id;
+                        const formData = new FormData();
+                        formData.append('name', updatedName);
+                        formData.append('role', updatedDesignation);
+                        formData.append('advisory_role', updatedDesignation);
+                        formData.append('dept', updatedDept);
+                        formData.append('expertise_area', updatedDept);
+                        formData.append('bio', updatedBio);
+                        formData.append('expanded_bio', updatedExpandedBio);
+                        formData.append('expertise_tags', JSON.stringify(updatedTags));
+                        formData.append('affiliations', JSON.stringify(updatedAffiliations));
+                        formData.append('publications', JSON.stringify(updatedPublications));
+                        formData.append('system_role', updatedRole);
+                        
+                        if (editingStaff.newImage) {
+                          formData.append('image', editingStaff.newImage);
+                        }
+
+                        const response = await authFetch(`${API}/api/team-members/${directoryId}/`, {
+                          method: 'PATCH',
+                          body: formData
+                        });
+
+                        if (!response.ok) {
+                          const errorData = await response.json().catch(() => ({}));
+                          addToast(errorData.detail || "Database synchronization failed", "error");
+                          return;
+                        }
+                      } catch (error) {
+                        console.error("Profile synchronization error:", error);
+                        addToast("Network failure during profile synchronization", "error");
+                        return;
+                      }
+
+                      // 3. Update Directory Records State (Frontend)
                       setStaffRecords((prev: any) => {
                         const updateList = (list: any[]) => list.map(m => 
                           (m.name === editingStaff.name) ? { 
                             ...m, 
+                            name: updatedName,
                             role: updatedDesignation, 
                             advisory_role: updatedDesignation,
                             system_role: updatedRole,
@@ -2981,7 +3402,8 @@ export default function SuperAdminDashboard() {
                         return {
                           leadership: updateList(prev.leadership),
                           advisors: updateList(prev.advisors),
-                          staff: updateList(prev.staff)
+                          staff: updateList(prev.staff),
+                          collaborators: updateList(prev.collaborators)
                         };
                       });
 
@@ -3080,56 +3502,89 @@ export default function SuperAdminDashboard() {
               <div className="space-y-8">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   <div className="space-y-3">
-                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1 italic">Full Name</label>
+                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1 italic">
+                      {addingStaffCategory === 'collaborators' ? 'Name' : 'Full Name'}
+                    </label>
                     <input 
                       type="text" 
-                      placeholder="e.g. Dr. Jane Smith"
+                      placeholder={addingStaffCategory === 'collaborators' ? "e.g. Synbiotic Health" : "e.g. Dr. Jane Smith"}
                       className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white font-bold focus:border-cyan-500/50 transition-all outline-none italic"
                       value={newStaffData.name}
                       onChange={(e) => setNewStaffData({...newStaffData, name: e.target.value})}
+                      {...extensionProps}
                     />
                   </div>
                   <div className="space-y-3">
                     <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1 italic">
-                      {addingStaffCategory === 'advisors' ? 'Advisory Role' : 'Professional Role'}
+                      {addingStaffCategory === 'collaborators' ? 'Staff' : (addingStaffCategory === 'advisors' ? 'Advisory Role' : 'Professional Role')}
                     </label>
                     <input 
                       type="text" 
-                      placeholder="e.g. Chief Scientist"
+                      placeholder={addingStaffCategory === 'collaborators' ? "e.g. Staff" : "e.g. Chief Scientist"}
                       className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white font-bold focus:border-cyan-500/50 transition-all outline-none italic"
                       value={newStaffData.role}
                       onChange={(e) => setNewStaffData({...newStaffData, role: e.target.value})}
+                      {...extensionProps}
                     />
                   </div>
                 </div>
 
                 <div className="space-y-3">
                   <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1 italic">
-                    {addingStaffCategory === 'advisors' ? 'Expertise Area' : 'Department'}
+                    {addingStaffCategory === 'collaborators' ? 'Global Operation' : (addingStaffCategory === 'advisors' ? 'Expertise Area' : 'Department')}
                   </label>
                   <input 
                     type="text" 
-                    placeholder={addingStaffCategory === 'advisors' ? "e.g. Regulatory Affairs" : "e.g. Clinical Operations"}
+                    placeholder={addingStaffCategory === 'collaborators' ? "e.g. Global Operations" : (addingStaffCategory === 'advisors' ? "e.g. Regulatory Affairs" : "e.g. Clinical Operations")}
                     className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white font-bold focus:border-cyan-500/50 transition-all outline-none italic"
                     value={newStaffData.dept}
                     onChange={(e) => setNewStaffData({...newStaffData, dept: e.target.value})}
+                    {...extensionProps}
                   />
                 </div>
 
-                <div className="space-y-6">
-                  <div className="space-y-3">
-                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1 italic">
-                      {addingStaffCategory === 'staff' ? 'Professional Summary' : 'SHORT BIOGRAPHY (SUMMARY CARD)'}
-                    </label>
-                    <textarea 
-                      placeholder={addingStaffCategory === 'staff' ? "Brief professional summary..." : "Professional summary for the card view..."}
-                      className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white font-medium focus:border-cyan-500/50 transition-all outline-none h-28 resize-none italic"
-                      value={newStaffData.bio}
-                      onChange={(e) => setNewStaffData({...newStaffData, bio: e.target.value})}
-                    ></textarea>
+                {/* IMAGE UPLOAD SECTION */}
+                {addingStaffCategory !== 'collaborators' && addingStaffCategory !== 'staff' && (
+                  <div className="space-y-4">
+                    <label className="block text-[11px] font-black text-[#555a7a] uppercase tracking-widest italic">Profile Image</label>
+                    <div className="flex items-center gap-6 p-6 bg-white/5 rounded-3xl border border-dashed border-white/10">
+                      <div className="w-20 h-20 rounded-2xl bg-white/5 flex items-center justify-center overflow-hidden border border-white/10 shrink-0">
+                        {newStaffData.image ? (
+                          <img src={URL.createObjectURL(newStaffData.image)} alt="Preview" className="w-full h-full object-cover" />
+                        ) : (
+                          <Users className="w-8 h-8 text-slate-700" />
+                        )}
+                      </div>
+                      <div className="space-y-2">
+                        <input 
+                          type="file" 
+                          accept="image/*"
+                          onChange={(e) => setNewStaffData({...newStaffData, image: e.target.files?.[0]})}
+                          className="text-xs text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-[10px] file:font-black file:uppercase file:bg-cyan-500/10 file:text-cyan-400 hover:file:bg-cyan-500/20 cursor-pointer"
+                        />
+                        <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">JPG, PNG or WEBP. Max 2MB recommended.</p>
+                      </div>
+                    </div>
                   </div>
+                )}
 
-                  {addingStaffCategory !== 'staff' && (
+                <div className="space-y-6">
+                  {addingStaffCategory !== 'collaborators' && (
+                    <div className="space-y-3">
+                      <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1 italic">
+                        {addingStaffCategory === 'staff' ? 'Professional Summary' : 'SHORT BIOGRAPHY (SUMMARY CARD)'}
+                      </label>
+                      <textarea 
+                        placeholder={addingStaffCategory === 'staff' ? "Brief professional summary..." : "Professional summary for the card view..."}
+                        className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white font-medium focus:border-cyan-500/50 transition-all outline-none h-28 resize-none italic"
+                        value={newStaffData.bio}
+                        onChange={(e) => setNewStaffData({...newStaffData, bio: e.target.value})}
+                        {...extensionProps}
+                      ></textarea>
+                    </div>
+                  )}
+
+                  {addingStaffCategory !== 'staff' && addingStaffCategory !== 'collaborators' && (
                     <>
                       <div className="space-y-3">
                         <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1 italic">FULL PROFESSIONAL BACKGROUND (EXPANDED BIO)</label>
@@ -3138,6 +3593,7 @@ export default function SuperAdminDashboard() {
                           className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white font-medium focus:border-cyan-500/50 transition-all outline-none h-32 resize-none italic"
                           value={newStaffData.expanded_bio}
                           onChange={(e) => setNewStaffData({...newStaffData, expanded_bio: e.target.value})}
+                          {...extensionProps}
                         ></textarea>
                       </div>
 
@@ -3149,6 +3605,7 @@ export default function SuperAdminDashboard() {
                           className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white font-bold focus:border-cyan-500/50 transition-all outline-none italic"
                           value={newStaffData.expertise_tags}
                           onChange={(e) => setNewStaffData({...newStaffData, expertise_tags: e.target.value})}
+                          {...extensionProps}
                         />
                       </div>
 
@@ -3160,6 +3617,7 @@ export default function SuperAdminDashboard() {
                             className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white font-medium focus:border-cyan-500/50 transition-all outline-none h-32 resize-none italic"
                             value={newStaffData.affiliations}
                             onChange={(e) => setNewStaffData({...newStaffData, affiliations: e.target.value})}
+                            {...extensionProps}
                           ></textarea>
                         </div>
                         <div className="space-y-3">
@@ -3169,6 +3627,7 @@ export default function SuperAdminDashboard() {
                             className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white font-medium focus:border-cyan-500/50 transition-all outline-none h-32 resize-none italic"
                             value={newStaffData.publications}
                             onChange={(e) => setNewStaffData({...newStaffData, publications: e.target.value})}
+                            {...extensionProps}
                           ></textarea>
                         </div>
                       </div>

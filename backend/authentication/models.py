@@ -94,6 +94,10 @@ class User(AbstractBaseUser, PermissionsMixin):
     # Regional & Global Config
     timezone = models.CharField(max_length=50, default='UTC')
     country = models.CharField(max_length=100, blank=True, null=True)
+    lat = models.FloatField(null=True, blank=True)
+    lng = models.FloatField(null=True, blank=True)
+    is_mellow_member = models.BooleanField(default=False)
+    bio = models.TextField(blank=True, null=True)
     
     # Mandatory Profile Data (Cont.)
     date_of_birth = models.DateField(null=True, blank=True)

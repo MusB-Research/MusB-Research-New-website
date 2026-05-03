@@ -9,7 +9,8 @@ import {
     CheckCircle2,
     Calendar,
     ArrowRight,
-    Star
+    Star,
+    Timer
 } from 'lucide-react';
 import { JobOpening } from '@/types';
 import SEO from '@/components/SEO';
@@ -114,12 +115,15 @@ export default function JobDetail() {
                                     </span>
                                 )}
                             </div>
-                            <h1 className="text-5xl md:text-7xl lg:text-8xl font-black text-white uppercase italic tracking-tighter leading-none">
+                            <h1 className="text-3xl md:text-5xl font-black text-white uppercase italic tracking-tighter leading-none">
                                 {job.title}
                             </h1>
                             <div className="flex flex-wrap gap-8 text-[12px] font-black text-slate-500 uppercase tracking-[0.2em] pt-4">
                                 <div className="flex items-center gap-3"><MapPin className="w-5 h-5 text-cyan-500" /> {job.location}</div>
                                 <div className="flex items-center gap-3"><Clock className="w-5 h-5 text-cyan-500" /> {job.type}</div>
+                                {job.duration && (
+                                    <div className="flex items-center gap-3"><Timer className="w-5 h-5 text-cyan-500" /> {job.duration}</div>
+                                )}
                                 <div className="flex items-center gap-3"><Briefcase className="w-5 h-5 text-cyan-500" /> {job.experienceLevel}</div>
                                 {job.deadline && (
                                     <div className="flex items-center gap-3"><Calendar className="w-5 h-5 text-cyan-500" /> Apply By {job.deadline}</div>
@@ -139,18 +143,62 @@ export default function JobDetail() {
             </section>
 
             {/* CONTENT SECTION */}
-            <section className="max-w-[1200px] mx-auto px-4 md:px-12 py-16 grid lg:grid-cols-3 gap-16">
-                <div className="lg:col-span-2 space-y-16">
+            <section className="max-w-[1200px] mx-auto px-4 md:px-12 pt-16 pb-0 grid lg:grid-cols-3 gap-16">
+                <div className="lg:col-span-2 space-y-8">
                     {/* Description */}
-                    <div className="space-y-6">
-                        <h2 className="text-2xl font-black text-white uppercase italic border-l-4 border-cyan-500 pl-6">The Role</h2>
-                        <p className="text-xl text-slate-400 leading-relaxed font-medium">
-                            {job.description}
-                        </p>
-                    </div>
+
+
+                    {/* About Hiring */}
+                    {job.about_hiring && (
+                        <div className="space-y-8">
+                            <h2 className="text-2xl font-black text-white uppercase italic border-l-4 border-emerald-500 pl-6">About Hiring</h2>
+                            <p className="text-lg text-slate-400 font-medium leading-relaxed">
+                                {job.about_hiring}
+                            </p>
+                        </div>
+                    )}
+
+                    {/* Responsibilities */}
+                    {job.responsibilities && job.responsibilities.length > 0 && (
+                        <div className="space-y-8">
+                            <h2 className="text-2xl font-black text-white uppercase italic border-l-4 border-cyan-500 pl-6">Responsibilities</h2>
+                            <div className="grid gap-6">
+                                {job.responsibilities.map((resp: any, index: number) => {
+                                    const isString = typeof resp === 'string';
+                                    const mainText = isString ? resp : resp.text;
+                                    const subItems = isString ? [] : (resp.subItems || []);
+
+                                    return (
+                                        <div key={index} className="space-y-4">
+                                            <div className="flex gap-4 group">
+                                                <div className="mt-1 flex-shrink-0 w-6 h-6 rounded-full bg-cyan-500/10 flex items-center justify-center text-cyan-400 group-hover:bg-cyan-500 group-hover:text-slate-950 transition-colors">
+                                                    <CheckCircle2 className="w-4 h-4" />
+                                                </div>
+                                                <p className="text-lg text-slate-400 font-medium group-hover:text-slate-200 transition-colors">
+                                                    {mainText.replace(/^[•\s\-\*]+/, '')}
+                                                </p>
+                                            </div>
+                                            {subItems.length > 0 && (
+                                                <div className="pl-10 space-y-3">
+                                                    {subItems.map((sub: string, sIdx: number) => (
+                                                        <div key={sIdx} className="flex gap-3 items-start group/sub">
+                                                            <div className="mt-2 flex-shrink-0 w-1.5 h-1.5 rounded-full bg-cyan-500/40 group-hover/sub:bg-cyan-400 transition-colors" />
+                                                            <p className="text-slate-500 font-medium text-base group-hover/sub:text-slate-300 transition-colors">
+                                                                {sub.replace(/^[•\s\-\*]+/, '')}
+                                                            </p>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    )}
 
                     {/* Requirements */}
-                    {job.requirements && (
+                    {job.requirements && job.requirements.length > 0 && (
                         <div className="space-y-8">
                             <h2 className="text-2xl font-black text-white uppercase italic border-l-4 border-cyan-500 pl-6">What You'll Bring</h2>
                             <div className="grid gap-6">
@@ -159,7 +207,47 @@ export default function JobDetail() {
                                         <div className="mt-1 flex-shrink-0 w-6 h-6 rounded-full bg-cyan-500/10 flex items-center justify-center text-cyan-400 group-hover:bg-cyan-500 group-hover:text-slate-950 transition-colors">
                                             <CheckCircle2 className="w-4 h-4" />
                                         </div>
-                                        <p className="text-lg text-slate-400 font-medium group-hover:text-slate-200 transition-colors">{req}</p>
+                                        <p className="text-lg text-slate-400 font-medium group-hover:text-slate-200 transition-colors">
+                                            {req.replace(/^[•\s\-\*]+/, '')}
+                                        </p>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* What Will You Get */}
+                    {job.benefits && job.benefits.length > 0 && (
+                        <div className="space-y-8">
+                            <h2 className="text-2xl font-black text-white uppercase italic border-l-4 border-blue-500 pl-6">What Will You Get</h2>
+                            <div className="grid gap-6">
+                                {job.benefits.map((benefit: string, index: number) => (
+                                    <div key={index} className="flex gap-4 group">
+                                        <div className="mt-1 flex-shrink-0 w-6 h-6 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-400 group-hover:bg-blue-500 group-hover:text-slate-950 transition-colors">
+                                            <CheckCircle2 className="w-4 h-4" />
+                                        </div>
+                                        <p className="text-lg text-slate-400 font-medium group-hover:text-slate-200 transition-colors">
+                                            {benefit.replace(/^[•\s\-\*]+/, '')}
+                                        </p>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Apply Now Instructions */}
+                    {job.apply_instructions && job.apply_instructions.length > 0 && (
+                        <div className="space-y-8">
+                            <h2 className="text-2xl font-black text-white uppercase italic border-l-4 border-amber-500 pl-6">Apply Now</h2>
+                            <div className="grid gap-6">
+                                {job.apply_instructions.map((instruction: string, index: number) => (
+                                    <div key={index} className="flex gap-4 group">
+                                        <div className="mt-1 flex-shrink-0 w-6 h-6 rounded-full bg-amber-500/10 flex items-center justify-center text-amber-400 group-hover:bg-amber-500 group-hover:text-slate-950 transition-colors">
+                                            <CheckCircle2 className="w-4 h-4" />
+                                        </div>
+                                        <p className="text-lg text-slate-400 font-medium group-hover:text-slate-200 transition-colors">
+                                            {instruction.replace(/^[•\s\-\*]+/, '')}
+                                        </p>
                                     </div>
                                 ))}
                             </div>
@@ -167,7 +255,7 @@ export default function JobDetail() {
                     )}
 
                     {/* Team Info Placeholder */}
-                    <div className="bg-white/5 border border-white/5 rounded-[3rem] p-8 md:p-16 relative overflow-hidden group">
+                    <div className="bg-white/5 border border-white/5 rounded-[3rem] p-8 md:px-12 md:pt-12 md:pb-6 relative overflow-hidden group">
                         <div className="absolute top-0 right-0 w-64 h-64 bg-cyan-500/5 blur-[80px] rounded-full"></div>
                         <div className="relative z-10 space-y-8">
                             <div className="space-y-4">
