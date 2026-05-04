@@ -322,7 +322,9 @@ def admin_create_user(request):
 
     except Exception as e:
         logger.error(f"Failed to onboarding user {email}: {str(e)}")
-        return Response({'error': f'Finalization failed: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        res = Response({'error': f'Finalization failed: {str(e)}'}, status=status.HTTP_400_BAD_REQUEST)
+        res["Access-Control-Allow-Origin"] = "*"
+        return res
 
 @api_view(['POST'])
 def admin_resend_credentials(request, user_id):
@@ -383,7 +385,9 @@ def admin_resend_credentials(request, user_id):
     except User.DoesNotExist:
         return Response({'error': 'User not found.'}, status=status.HTTP_404_NOT_FOUND)
     except Exception as e:
-        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        res = Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        res["Access-Control-Allow-Origin"] = "*"
+        return res
 
 @api_view(['GET'])
 def admin_get_audit_logs(request):

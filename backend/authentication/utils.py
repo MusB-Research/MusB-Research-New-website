@@ -117,6 +117,7 @@ def send_mail_premium(to_email, subject, title, body, button_text=None, button_u
     try:
         from django.core.mail import EmailMultiAlternatives
         from django.conf import settings
+        from django.utils.html import strip_tags
         msg = EmailMultiAlternatives(subject, strip_tags(html_content), settings.DEFAULT_FROM_EMAIL, [to_email])
         msg.attach_alternative(html_content, "text/html")
         msg.send(fail_silently=False)
