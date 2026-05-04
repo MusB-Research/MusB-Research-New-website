@@ -381,27 +381,6 @@ def send_musb_system_email(
         return True
 
     except Exception as e:
-        logger.error(f"[EMAIL] SMTP failed for {mode} to {user_email}: {e}. Trying Resend fallback.")
-        try:
-            import os
-            import resend
-            resend.api_key = os.environ.get('RESEND_API_KEY', getattr(settings, 'RESEND_API_KEY', ''))
-            if resend.api_key:
-                from_addr = "MusB Research <onboarding@resend.dev>"
-                if hasattr(settings, 'DEFAULT_FROM_EMAIL') and '@resend.dev' not in settings.DEFAULT_FROM_EMAIL:
-                    from_addr = settings.DEFAULT_FROM_EMAIL
-                
-                params = {
-                    "from": from_addr,
-                    "to": [user_email],
-                    "subject": subject,
-                    "html": html_message,
-                }
-                resend.Emails.send(params)
-                logger.info(f"[EMAIL] {mode} sent to {user_email} via Resend fallback.")
-                return True
-        except Exception as resend_err:
-            logger.error(f"[EMAIL] Resend fallback also failed: {resend_err}")
-            
+        logger.error(f"[EMAIL] Failed to send {mode} to {user_email}: {e}")
         return False
 
