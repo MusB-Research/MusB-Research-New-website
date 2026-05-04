@@ -32,7 +32,8 @@ def forgot_password(request):
     MagicLink.objects.filter(email=email).delete()
     MagicLink.objects.create(email=email, token=token)
 
-    reset_link = f"{os.getenv('FRONTEND_URL', 'http://localhost:5173')}/reset-password?token={token}"
+    from django.conf import settings
+    reset_link = f"{getattr(settings, 'FRONTEND_URL', 'https://musbhealth.com').rstrip('/')}/reset-password?token={token}"
     
     from ..utils import send_mail_premium
     success = send_mail_premium(

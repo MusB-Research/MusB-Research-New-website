@@ -11,6 +11,7 @@ import uuid
 from datetime import timedelta
 from typing import List
 
+from django.conf import settings
 from ..models import User, OTP, Invitation, RefreshToken, AuditLog
 from ..utils import handle_credential_upload
 from ..security import generate_access_token, generate_refresh_token, hash_token, REFRESH_TOKEN_LIFETIME, decrypt_data
@@ -84,7 +85,7 @@ def invite_team_member(request):
             existing_invite.organization = organization
             existing_invite.save()
             
-            setup_link = f"{os.getenv('FRONTEND_URL', 'http://localhost:5173')}/setup-credentials?token={existing_invite.token}"
+            setup_link = f"{getattr(settings, 'FRONTEND_URL', 'https://musbhealth.com').rstrip('/')}/setup-credentials?token={existing_invite.token}"
             
             from ..utils import send_mail_premium
             success = send_mail_premium(
@@ -122,7 +123,7 @@ def invite_team_member(request):
             expires_at=expires_at
         )
         
-        setup_link = f"{os.getenv('FRONTEND_URL', 'http://localhost:5173')}/setup-credentials?token={token}"
+        setup_link = f"{getattr(settings, 'FRONTEND_URL', 'https://musbhealth.com').rstrip('/')}/setup-credentials?token={token}"
         
         from ..utils import send_mail_premium
         success = send_mail_premium(
@@ -364,8 +365,8 @@ def resend_invitation(request, invitation_id):
     invitation.expires_at = now() + timedelta(days=7)
     invitation.save()
     
-    frontend_url = os.getenv('FRONTEND_URL', 'https://musbhealth.com')
-    setup_link = f"{frontend_url}/setup-credentials?token={invitation.token}"
+    frontend_url = getattr(settings, 'FRONTEND_URL', 'https://musbhealth.com')
+    setup_link = f"{frontend_url.rstrip('/')}/setup-credentials?token={invitation.token}"
     
     from ..utils import send_mail_premium
     success = send_mail_premium(

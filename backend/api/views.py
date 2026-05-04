@@ -3050,7 +3050,7 @@ class InvitationViewSet(viewsets.ModelViewSet):
 
             from django.conf import settings as django_settings
             import urllib.parse
-            frontend_url = getattr(django_settings, 'FRONTEND_URL', 'http://localhost:5173')
+            frontend_url = getattr(django_settings, 'FRONTEND_URL', 'https://musbhealth.com')
 
             qs = urllib.parse.urlencode({'token': token, 'email': invitee_email, 'role': invitee_role, 'org': invitee_org})
             accept_link = f"{frontend_url}/auth/accept-invitation?{qs}"
