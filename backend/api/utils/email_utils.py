@@ -53,9 +53,21 @@ def _build_invite_html(name: str, invite_link: str, study_name: str = None, stud
     encoded = urllib.parse.quote(invite_link, safe='')
     qr_url = f"https://api.qrserver.com/v1/create-qr-code/?size=150x150&data={encoded}"
     
-    # Defaults in case none are provided
-    study_n = study_name or "CardioLife-2025 Clinical Trial"
-    study_t = study_title or "A Phase III Study to Evaluate the Efficacy and Safety of CL-2025 in Patients with Chronic Heart Failure"
+    # Fetch the first active or latest study to use real data instead of hardcoded defaults
+    if not study_name or not study_title:
+        try:
+            from api.models import Study
+            first_study = Study.objects.order_by('-created_at').first()
+            if first_study:
+                if not study_name:
+                    study_name = first_study.title
+                if not study_title:
+                    study_title = first_study.full_title or first_study.description or ""
+        except Exception:
+            pass
+
+    study_n = study_name or "MusB Research Study Program"
+    study_t = study_title or "A Clinical Study to Evaluate the Efficacy and Safety of our Treatment"
     role_n = role or "Principal Investigator (PI)"
 
     # Make sure we normalize the role to human-readable
@@ -369,5 +381,27 @@ def send_musb_system_email(
         return True
 
     except Exception as e:
-        logger.error(f"[EMAIL] Failed to send {mode} to {user_email}: {e}")
+        logger.error(f"[EMAIL] SMTP failed for {mode} to {user_email}: {e}. Trying Resend fallback.")
+        try:
+            import os
+            import resend
+            resend.api_key = os.environ.get('RESEND_API_KEY', getattr(settings, 'RESEND_API_KEY', ''))
+            if resend.api_key:
+                from_addr = "MusB Research <onboarding@resend.dev>"
+                if hasattr(settings, 'DEFAULT_FROM_EMAIL') and '@resend.dev' not in settings.DEFAULT_FROM_EMAIL:
+                    from_addr = settings.DEFAULT_FROM_EMAIL
+                
+                params = {
+                    "from": from_addr,
+                    "to": [user_email],
+                    "subject": subject,
+                    "html": html_message,
+                }
+                resend.Emails.send(params)
+                logger.info(f"[EMAIL] {mode} sent to {user_email} via Resend fallback.")
+                return True
+        except Exception as resend_err:
+            logger.error(f"[EMAIL] Resend fallback also failed: {resend_err}")
+            
         return False
+
