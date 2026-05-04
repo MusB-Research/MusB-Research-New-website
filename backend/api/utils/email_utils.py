@@ -367,26 +367,11 @@ def send_musb_system_email(
             logger.error(f"send_musb_system_email: unknown mode '{mode}'")
             return False
 
-        from_email = f"MusB Research <{getattr(settings, 'SMTP_EMAIL', None) or getattr(settings, 'EMAIL_HOST_USER', 'noreplymusbresearch@gmail.com')}>"
-        
-        send_mail(
-            subject=subject,
-            message=plain_message,
-            from_email=from_email,
-            recipient_list=[user_email],
-            html_message=html_message,
-            fail_silently=False,
-        )
-        logger.info(f"[EMAIL] {mode} sent to {user_email}")
-        return True
-
-    except Exception as e:
-        logger.error(f"[EMAIL] SMTP failed for {mode} to {user_email}: {e}. Trying Resend fallback.")
-        try:
-            import os
-            import resend
-            resend.api_key = os.environ.get('RESEND_API_KEY', getattr(settings, 'RESEND_API_KEY', ''))
-            if resend.api_key:
+        import os
+        import resend
+        resend.api_key = os.environ.get('RESEND_API_KEY', getattr(settings, 'RESEND_API_KEY', ''))
+        if resend.api_key:
+            try:
                 from_addr = "MusB Research <onboarding@resend.dev>"
                 if hasattr(settings, 'DEFAULT_FROM_EMAIL') and '@resend.dev' not in settings.DEFAULT_FROM_EMAIL:
                     from_addr = settings.DEFAULT_FROM_EMAIL
@@ -398,10 +383,25 @@ def send_musb_system_email(
                     "html": html_message,
                 }
                 resend.Emails.send(params)
-                logger.info(f"[EMAIL] {mode} sent to {user_email} via Resend fallback.")
+                logger.info(f"[EMAIL] {mode} sent to {user_email} via Resend.")
                 return True
-        except Exception as resend_err:
-            logger.error(f"[EMAIL] Resend fallback also failed: {resend_err}")
-            
+            except Exception as resend_err:
+                logger.warning(f"[EMAIL] Resend primary delivery failed for {user_email}: {resend_err}. Trying SMTP fallback.")
+
+        from_email = f"MusB Research <{getattr(settings, 'SMTP_EMAIL', None) or getattr(settings, 'EMAIL_HOST_USER', 'noreplymusbresearch@gmail.com')}>"
+        
+        send_mail(
+            subject=subject,
+            message=plain_message,
+            from_email=from_email,
+            recipient_list=[user_email],
+            html_message=html_message,
+            fail_silently=False,
+        )
+        logger.info(f"[EMAIL] {mode} sent to {user_email} via SMTP fallback")
+        return True
+
+    except Exception as e:
+        logger.error(f"[EMAIL] Both Resend and SMTP failed for {mode} to {user_email}: {e}")
         return False
 
