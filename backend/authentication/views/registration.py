@@ -62,77 +62,94 @@ def register(request):
 @permission_classes([IsAuthenticated])
 def invite_team_member(request):
     """Invite for specific roles like Sponsor Manager, PI, Coordinator etc."""
-    admin = request.user
-    target_email = request.data.get('email')
-    role = request.data.get('role', 'sponsor')
-    # Prevent IntegrityError by ensuring organization is never None
-    organization = request.data.get('organization') or admin.organization or getattr(admin, 'affiliation', None) or 'MusB'
-    
-    if not target_email:
-        return Response({'error': 'Target email is required'}, status=status.HTTP_400_BAD_REQUEST)
-
-    # CHECK IF ALREADY INVITED (PENDING) - IF SO, REDIRECT TO RESEND LOGIC
-    existing_invite = Invitation.objects.filter(email=target_email, is_accepted=False).first()
-    if existing_invite:
-        # Update existing invite instead of creating new one (acts as a resend)
-        existing_invite.token = str(uuid.uuid4())
-        existing_invite.expires_at = now() + timedelta(days=7)
-        existing_invite.role = role
-        existing_invite.organization = organization
-        existing_invite.save()
+    try:
+        admin = request.user
+        target_email = request.data.get('email')
+        role = request.data.get('role', 'sponsor')
+        # Prevent IntegrityError by ensuring organization is never None
+        organization = request.data.get('organization') or admin.organization or getattr(admin, 'affiliation', None) or 'MusB'
         
-        setup_link = f"{os.getenv('FRONTEND_URL', 'http://localhost:5173')}/setup-credentials?token={existing_invite.token}"
+        if not target_email:
+            res = Response({'error': 'Target email is required'}, status=status.HTTP_400_BAD_REQUEST)
+            res["Access-Control-Allow-Origin"] = "*"
+            return res
+
+        # CHECK IF ALREADY INVITED (PENDING) - IF SO, REDIRECT TO RESEND LOGIC
+        existing_invite = Invitation.objects.filter(email=target_email, is_accepted=False).first()
+        if existing_invite:
+            # Update existing invite instead of creating new one (acts as a resend)
+            existing_invite.token = str(uuid.uuid4())
+            existing_invite.expires_at = now() + timedelta(days=7)
+            existing_invite.role = role
+            existing_invite.organization = organization
+            existing_invite.save()
+            
+            setup_link = f"{os.getenv('FRONTEND_URL', 'http://localhost:5173')}/setup-credentials?token={existing_invite.token}"
+            
+            from ..utils import send_mail_premium
+            success = send_mail_premium(
+                to_email=target_email,
+                subject=f"Invitation to join {organization} - MusB Research",
+                title="Team Invitation (Updated)",
+                body=f"You have been re-invited to join <strong>{organization}</strong> as a <strong>{role}</strong>. Click below to finalize your secure credentials and access your clinical research dashboard.",
+                button_text="Set Up Credentials",
+                button_url=setup_link,
+                qr_url=setup_link
+            )
+            
+            if success:
+                res = Response({'message': 'Existing invitation updated and resent successfully', 'token': existing_invite.token})
+                res["Access-Control-Allow-Origin"] = "*"
+                return res
+            res = Response({'message': 'Invitation updated but email failed', 'setup_link': setup_link})
+            res["Access-Control-Allow-Origin"] = "*"
+            return res
+
+        token = str(uuid.uuid4())
+        expires_at = now() + timedelta(days=7)
+        
+        scope = request.data.get('scope', 'ALL')
+        study_ids = request.data.get('study_ids', [])
+        
+        invitation = Invitation.objects.create(
+            email=target_email,
+            role=role,
+            invited_by=admin,
+            organization=organization,
+            token=token,
+            scope=scope,
+            study_ids=study_ids,
+            expires_at=expires_at
+        )
+        
+        setup_link = f"{os.getenv('FRONTEND_URL', 'http://localhost:5173')}/setup-credentials?token={token}"
         
         from ..utils import send_mail_premium
         success = send_mail_premium(
             to_email=target_email,
             subject=f"Invitation to join {organization} - MusB Research",
-            title="Team Invitation (Updated)",
-            body=f"You have been re-invited to join <strong>{organization}</strong> as a <strong>{role}</strong>. Click below to finalize your secure credentials and access your clinical research dashboard.",
-            button_text="Set Up Credentials",
+            title="Welcome to MusB Research",
+            body=f"You have been invited to join <strong>{organization}</strong> as a <strong>{role}</strong>. Secure your account and access your specialized dashboard by clicking the button below.",
+            button_text="Accept Invitation",
             button_url=setup_link,
             qr_url=setup_link
         )
         
         if success:
-            return Response({'message': 'Existing invitation updated and resent successfully', 'token': existing_invite.token})
-        return Response({'message': 'Invitation updated but email failed', 'setup_link': setup_link})
-
-    token = str(uuid.uuid4())
-    expires_at = now() + timedelta(days=7)
-    
-    scope = request.data.get('scope', 'ALL')
-    study_ids = request.data.get('study_ids', [])
-    
-    invitation = Invitation.objects.create(
-        email=target_email,
-        role=role,
-        invited_by=admin,
-        organization=organization,
-        token=token,
-        scope=scope,
-        study_ids=study_ids,
-        expires_at=expires_at
-    )
-    
-    setup_link = f"{os.getenv('FRONTEND_URL', 'http://localhost:5173')}/setup-credentials?token={token}"
-    
-    from ..utils import send_mail_premium
-    success = send_mail_premium(
-        to_email=target_email,
-        subject=f"Invitation to join {organization} - MusB Research",
-        title="Welcome to MusB Research",
-        body=f"You have been invited to join <strong>{organization}</strong> as a <strong>{role}</strong>. Secure your account and access your specialized dashboard by clicking the button below.",
-        button_text="Accept Invitation",
-        button_url=setup_link,
-        qr_url=setup_link
-    )
-    
-    if success:
-        return Response({'message': 'Invitation sent successfully', 'token': token})
-    else:
-        logger.warning(f"Failed to send invitation email to {target_email}. Link: {setup_link}")
-        return Response({'message': 'Invitation recorded but email failed to send', 'setup_link': setup_link}, status=status.HTTP_200_OK)
+            res = Response({'message': 'Invitation sent successfully', 'token': token})
+            res["Access-Control-Allow-Origin"] = "*"
+            return res
+        else:
+            logger.warning(f"Failed to send invitation email to {target_email}. Link: {setup_link}")
+            res = Response({'message': 'Invitation recorded but email failed to send', 'setup_link': setup_link}, status=status.HTTP_200_OK)
+            res["Access-Control-Allow-Origin"] = "*"
+            return res
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).exception("invite_team_member error")
+        res = Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        res["Access-Control-Allow-Origin"] = "*"
+        return res
 
 
 @api_view(['POST'])

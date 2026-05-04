@@ -3004,75 +3004,87 @@ class InvitationViewSet(viewsets.ModelViewSet):
             return Invitation.objects.all().order_by('-created_at')
         return Invitation.objects.filter(invited_by=user).order_by('-created_at')
 
-    def perform_create(self, serializer):
-        # Auto-set invited_by and handle expiry
-        expires = now() + datetime.timedelta(days=7)
-        import uuid
-        token = str(uuid.uuid4())
-        
-        # Fallback for organization if missing
-        org = self.request.data.get('organization') or getattr(self.request.user, 'organization', None) or getattr(self.request.user, 'affiliation', 'MusB')
-        
-        invitation = serializer.save(
-            invited_by=self.request.user,
-            organization=org,
-            expires_at=expires,
-            token=token
-        )
+    def create(self, request, *args, **kwargs):
+        try:
+            serializer = self.get_serializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
 
-        f_name = self.request.data.get('first_name', '')
-        l_name = self.request.data.get('last_name', '')
+            expires = now() + datetime.timedelta(days=7)
+            import uuid
+            token = str(uuid.uuid4())
 
-        # Send email in background thread — don't block the API response (was causing 4.5s delay)
-        def _send_invite_email():
-            try:
-                from django.conf import settings as django_settings
-                import urllib.parse
-                frontend_url = getattr(django_settings, 'FRONTEND_URL', 'http://localhost:5173')
-                invitee_email = invitation.email or ''
-                invitee_role = invitation.role or 'Staff'
-                invitee_org = invitation.organization or 'MusB Research'
-                
-                # Try to get name from cached request data
-                if f_name or l_name:
-                    invitee_name = f"{f_name} {l_name}".strip()
-                else:
-                    invitee_name = invitee_email.split('@')[0].replace('.', ' ').replace('_', ' ').title()
+            org = request.data.get('organization') or getattr(request.user, 'organization', None) or getattr(request.user, 'affiliation', 'MusB') or 'MusB'
 
-                qs = urllib.parse.urlencode({'token': token, 'email': invitee_email, 'role': invitee_role, 'org': invitee_org})
-                accept_link = f"{frontend_url}/auth/accept-invitation?{qs}"
-                
-                study_name = None
-                study_title = None
-                if invitation.study_ids and len(invitation.study_ids) > 0:
-                    try:
-                        from api.models import Study
-                        val = invitation.study_ids[0]
-                        std = Study.objects.filter(protocol_id=val).first()
-                        if not std:
-                            std = Study.objects.filter(id=val).first()
-                        if std:
-                            study_name = std.title
-                            study_title = std.full_title or std.description or ""
-                    except Exception:
-                        pass
+            invitation = serializer.save(
+                invited_by=request.user,
+                organization=org,
+                expires_at=expires,
+                token=token
+            )
 
-                from .utils.email_utils import send_musb_system_email
-                send_musb_system_email(
-                    user_email=invitee_email,
-                    user_name=invitee_name,
-                    mode='INVITE',
-                    secret_data=accept_link,
-                    study_name=study_name,
-                    study_title=study_title,
-                    role=invitee_role,
-                )
-            except Exception as exc:
-                import logging
-                logging.getLogger(__name__).error(f"Invitation email delivery failed for token {token}: {exc}")
+            invitee_email = invitation.email or ''
+            invitee_role = invitation.role or 'Staff'
+            invitee_org = invitation.organization or 'MusB Research'
 
-        import threading
-        threading.Thread(target=_send_invite_email, daemon=True).start()
+            f_name = request.data.get('first_name', '')
+            l_name = request.data.get('last_name', '')
+            if f_name or l_name:
+                invitee_name = f"{f_name} {l_name}".strip()
+            else:
+                invitee_name = invitee_email.split('@')[0].replace('.', ' ').replace('_', ' ').title()
+
+            study_name = None
+            study_title = None
+            if invitation.study_ids and len(invitation.study_ids) > 0:
+                try:
+                    from api.models import Study
+                    val = invitation.study_ids[0]
+                    std = Study.objects.filter(protocol_id=val).first()
+                    if not std:
+                        std = Study.objects.filter(id=val).first()
+                    if std:
+                        study_name = std.title
+                        study_title = std.full_title or std.description or ""
+                except Exception:
+                    pass
+
+            from django.conf import settings as django_settings
+            import urllib.parse
+            frontend_url = getattr(django_settings, 'FRONTEND_URL', 'http://localhost:5173')
+
+            qs = urllib.parse.urlencode({'token': token, 'email': invitee_email, 'role': invitee_role, 'org': invitee_org})
+            accept_link = f"{frontend_url}/auth/accept-invitation?{qs}"
+
+            def _send_invite_email():
+                try:
+                    from .utils.email_utils import send_musb_system_email
+                    send_musb_system_email(
+                        user_email=invitee_email,
+                        user_name=invitee_name,
+                        mode='INVITE',
+                        secret_data=accept_link,
+                        study_name=study_name,
+                        study_title=study_title,
+                        role=invitee_role,
+                    )
+                except Exception as exc:
+                    import logging
+                    logging.getLogger(__name__).error(f"Invitation email delivery failed for token {token}: {exc}")
+
+            import threading
+            threading.Thread(target=_send_invite_email, daemon=True).start()
+
+            headers = self.get_success_headers(serializer.data)
+            res = Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+            res["Access-Control-Allow-Origin"] = "*"
+            return res
+
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).exception("InvitationViewSet create exception")
+            res = Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+            res["Access-Control-Allow-Origin"] = "*"
+            return res
 
 
 
