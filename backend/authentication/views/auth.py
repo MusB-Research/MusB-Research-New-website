@@ -534,7 +534,7 @@ def check_email(request):
         return Response({
             'exists': True,
             'type': 'INVITATION',
-            'role': invitation.role.upper(),
+            'role': (getattr(invitation, 'role', '') or '').upper(),
             'message': f'You have a pending invitation as a {invitation.role}.',
             'options': [
                 {'id': 'ACCEPT_INVITATION', 'label': 'Accept your invitation'},

@@ -75,7 +75,7 @@ def admin_create_user(request):
     """
     try:
         admin_user = request.user
-        if not admin_user or not admin_user.is_authenticated or admin_user.role.upper() not in ['SUPER_ADMIN', 'ADMIN', 'PI', 'COORDINATOR', 'SPONSOR']:
+        if not admin_user or not admin_user.is_authenticated or (getattr(admin_user, 'role', '') or '').upper() not in ['SUPER_ADMIN', 'ADMIN', 'PI', 'COORDINATOR', 'SPONSOR']:
             res = Response({'error': 'Unauthorized access.'}, status=status.HTTP_403_FORBIDDEN)
             res["Access-Control-Allow-Origin"] = "*"
             return res
@@ -337,7 +337,7 @@ def admin_create_user(request):
 def admin_resend_credentials(request, user_id):
     """Endpoint to manual trigger credential resend/regeneration."""
     admin_user = request.user
-    if not admin_user or not admin_user.is_authenticated or admin_user.role.upper() not in ['SUPER_ADMIN', 'ADMIN', 'PI', 'COORDINATOR']:
+    if not admin_user or not admin_user.is_authenticated or (getattr(admin_user, 'role', '') or '').upper() not in ['SUPER_ADMIN', 'ADMIN', 'PI', 'COORDINATOR']:
         return Response({'error': 'Unauthorized.'}, status=status.HTTP_403_FORBIDDEN)
     
     try:
@@ -348,7 +348,7 @@ def admin_resend_credentials(request, user_id):
             return Response({'error': 'User has already secured their account. Password cannot be reset this way.'}, status=status.HTTP_400_BAD_REQUEST)
         
         # Permission Restriction: PI/Coordinator can ONLY resend for Sponsors
-        if admin_user.role.upper() in ['PI', 'COORDINATOR'] and target_user.role.lower() != 'sponsor':
+        if (getattr(admin_user, 'role', '') or '').upper() in ['PI', 'COORDINATOR'] and (getattr(target_user, 'role', '') or '').lower() != 'sponsor':
             return Response({'error': 'You only have the authority to manage Sponsor credentials.'}, status=status.HTTP_403_FORBIDDEN)
             
         new_temp_password = generate_secure_password(14)
@@ -400,7 +400,7 @@ def admin_resend_credentials(request, user_id):
 def admin_get_audit_logs(request):
     """Retrieves all platform audit logs for Super Admin dashboard."""
     admin_user = request.user
-    if not admin_user or not admin_user.is_authenticated or admin_user.role.upper() not in ['SUPER_ADMIN', 'ADMIN', 'COORDINATOR', 'PI']:
+    if not admin_user or not admin_user.is_authenticated or (getattr(admin_user, 'role', '') or '').upper() not in ['SUPER_ADMIN', 'ADMIN', 'COORDINATOR', 'PI']:
         return Response({'error': 'Unauthorized access.'}, status=status.HTTP_403_FORBIDDEN)
 
     # Cache for 60 seconds — audit logs are append-only so brief caching is safe

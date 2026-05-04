@@ -308,9 +308,9 @@ DEFAULT_AUTO_FIELD = 'django_mongodb_backend.fields.ObjectIdAutoField'
 #  Reads from .env: SMTP_EMAIL, SMTP_PASSWORD, SMTP_HOST, SMTP_PORT
 #  Falls back to console backend only when no credentials are configured.
 # ─────────────────────────────────────────────────────────────────────────────
-_smtp_email    = os.getenv('SMTP_EMAIL', '')
-_smtp_password = os.getenv('SMTP_PASSWORD', '')
-_smtp_host     = os.getenv('SMTP_HOST', 'smtp.gmail.com')
+_smtp_email    = os.getenv('SMTP_EMAIL', '').strip()
+_smtp_password = os.getenv('SMTP_PASSWORD', '').strip()
+_smtp_host     = os.getenv('SMTP_HOST', 'smtp.gmail.com').strip()
 _smtp_port     = int(os.getenv('SMTP_PORT', 587))
 
 if _smtp_email and _smtp_password:
