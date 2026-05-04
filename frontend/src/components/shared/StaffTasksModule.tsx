@@ -82,7 +82,20 @@ function ConsentReviewModal({
     const accent = primaryColor === 'indigo' ? 'indigo' : 'blue';
 
     const fetchRecord = useCallback(async () => {
-        if (!task.reference_id) { setLoading(false); return; }
+        if (!task.reference_id) {
+            if (task.task_type === 'AE_REVIEW') {
+                setRecord({
+                    id: task.id,
+                    study: '',
+                    participant_name: task.title.split('—')[1]?.trim() || 'Participant',
+                    side_effect_description: task.description,
+                    noticed_side_effects: true,
+                    status: 'PENDING'
+                });
+            }
+            setLoading(false);
+            return;
+        }
         try {
             // Senior Dev: Determine correct endpoint based on task type to avoid 404s
             let endpoint = `/api/consent/${task.reference_id}/`;
@@ -90,12 +103,26 @@ function ConsentReviewModal({
                 endpoint = `/api/assigned-forms/${task.reference_id}/`;
             } else if (task.task_type === 'LOG_REVIEW') {
                 endpoint = `/api/daily-medication-logs/${task.reference_id}/`;
+            } else if (task.task_type === 'AE_REVIEW') {
+                endpoint = `/api/ae-reports/${task.reference_id}/`;
             }
 
             const res = await authFetch(`${API}${endpoint}`);
             
             // Handle Orphaned Tasks Gracefully
             if (res.status === 404) {
+                if (task.task_type === 'AE_REVIEW') {
+                    setRecord({
+                        id: task.id,
+                        study: '',
+                        participant_name: task.title.split('—')[1]?.trim() || 'Participant',
+                        side_effect_description: task.description,
+                        noticed_side_effects: true,
+                        status: 'PENDING'
+                    });
+                    setLoading(false);
+                    return;
+                }
                 throw new Error('This record no longer exists or you do not have permission to view it.');
             }
             if (!res.ok) throw new Error('Could not load record details');
@@ -104,13 +131,21 @@ function ConsentReviewModal({
             setRecord(data);
             
             // Check if already signed
-            const isSigned = 
-                data.cc_verified || 
-                data.pi_verified || 
-                data.coordinator_signed_at || 
-                data.pi_signed_at ||
-                data.status === 'COMPLETED' || 
-                data.status === 'FULLY_SIGNED';
+            let isSigned = false;
+            if (task.task_type === 'CONSENT_COORDINATOR_SIGN') {
+                isSigned = !!(data.cc_verified || data.coordinator_signed_at || data.status === 'COMPLETED' || data.status === 'FULLY_SIGNED');
+            } else if (task.task_type === 'CONSENT_SIGNATURE') {
+                isSigned = !!(data.pi_verified || data.pi_signed_at || data.status === 'COMPLETED' || data.status === 'FULLY_SIGNED');
+            } else {
+                isSigned = !!(
+                    data.cc_verified || 
+                    data.pi_verified || 
+                    data.coordinator_signed_at || 
+                    data.pi_signed_at ||
+                    data.status === 'COMPLETED' || 
+                    data.status === 'FULLY_SIGNED'
+                );
+            }
                 
             setSigned(isSigned);
         } catch (e: any) {
@@ -377,6 +412,37 @@ function ConsentReviewModal({
                                          </div>
                                      </div>
                                  </div>
+                             ) : task.task_type === 'AE_REVIEW' ? (
+                                 <div className="flex-1 overflow-auto p-8 space-y-8 bg-[#060A14]/30">
+                                     <div className="max-w-2xl mx-auto space-y-6">
+                                         <div className="flex items-center gap-4 mb-8">
+                                             <div className="w-12 h-12 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center">
+                                                 <AlertTriangle className="w-6 h-6 text-red-400" />
+                                             </div>
+                                             <div>
+                                                 <h4 className="text-xl font-bold text-white uppercase tracking-tight">Adverse Event Alert</h4>
+                                                 <p className="text-[11px] text-slate-500 font-bold uppercase tracking-wider">Review required for {record?.participant_name || task.title}</p>
+                                             </div>
+                                         </div>
+
+                                         <div className="rounded-2xl p-6 border bg-red-500/10 border-red-500/20 space-y-4">
+                                             <div className="flex items-center gap-3 mb-2">
+                                                 <AlertTriangle className="w-5 h-5 text-red-400" />
+                                                 <h5 className="text-sm font-black uppercase tracking-widest text-red-400">
+                                                     Adverse Effects Details
+                                                 </h5>
+                                             </div>
+                                             <div>
+                                                 <p className="text-[10px] font-black text-red-500/50 uppercase tracking-widest mb-1">Alert Title</p>
+                                                 <p className="text-base font-bold text-white uppercase">{task.title}</p>
+                                             </div>
+                                             <div>
+                                                 <p className="text-[10px] font-black text-red-500/50 uppercase tracking-widest mb-1">Description</p>
+                                                 <p className="text-sm text-slate-300 leading-relaxed italic">"{task.description || record?.side_effect_description || 'No additional details provided.'}"</p>
+                                             </div>
+                                         </div>
+                                     </div>
+                                 </div>
                              ) : pdfUrl ? (
                                 <>
                                     {/* PDF Toolbar */}
@@ -513,13 +579,16 @@ function ConsentReviewModal({
                                             <ShieldCheck className="w-3.5 h-3.5" />
                                             {signing ? 'Finalizing...' : 'Sign & Verify Record'}
                                         </button>
-                                    ) : task.task_type === 'LOG_REVIEW' ? (
+                                    ) : (task.task_type === 'LOG_REVIEW' || task.task_type === 'AE_REVIEW') ? (
                                         <button
-                                            onClick={() => onMarkComplete?.(task.id)}
+                                            onClick={() => {
+                                                onMarkComplete?.(task.id);
+                                                onClose();
+                                            }}
                                             className="px-7 py-3 bg-teal-600 hover:bg-teal-500 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all shadow-lg flex items-center gap-2 active:scale-95"
                                         >
                                             <CheckCircle2 className="w-3.5 h-3.5" />
-                                            Mark as Reviewed
+                                            {task.task_type === 'AE_REVIEW' ? 'Mark as Acknowledged' : 'Mark as Reviewed'}
                                         </button>
                                     ) : (
                                         <button onClick={record?.template_details?.require_cc_verification === false ? handleCoSign : () => setSignatureStep(true)}
@@ -564,7 +633,8 @@ export default function StaffTasksModule({ primaryColor = 'indigo', onRefresh, p
         t.task_type === 'CONSENT_SIGNATURE' ||
         t.task_type === 'CONSENT_COORDINATOR_SIGN' ||
         t.task_type === 'FORM_SIGNATURE' ||
-        t.task_type === 'LOG_REVIEW';
+        t.task_type === 'LOG_REVIEW' ||
+        t.task_type === 'AE_REVIEW';
     
     const isScreenerReview = (t: StaffTask) => t.task_type === 'SCREENER_REVIEW' || t.task_type === 'SCREENING_REVIEW';
 
@@ -763,7 +833,7 @@ export default function StaffTasksModule({ primaryColor = 'indigo', onRefresh, p
                                                         className={`px-6 py-4 bg-${accent}-600 hover:bg-${accent}-500 text-white rounded-[1.25rem] text-[11px] font-bold flex items-center justify-center gap-2 transition-all active:scale-95 shadow-xl shadow-${accent}-900/20 uppercase tracking-widest ${(isMobile || isTablet) ? 'w-full' : ''}`}
                                                     >
                                                         <Eye className="w-3.5 h-3.5" />
-                                                        {task.task_type === 'LOG_REVIEW' ? 'Review Log' : 'Review Record'}
+                                                        {task.task_type === 'LOG_REVIEW' ? 'Review Log' : task.task_type === 'AE_REVIEW' ? 'Review Alert' : 'Review Record'}
                                                     </button>
                                                 ) : isScreenerReview(task) ? (
                                                     <button

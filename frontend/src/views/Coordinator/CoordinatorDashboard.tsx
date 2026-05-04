@@ -12,7 +12,9 @@ import SponsorsManagement from '../../components/coordinator/SponsorsManagement'
 import CCC_MessagesModule from '../../components/coordinator/CCMessagesModule';
 import CCC_SubjectReviewModule from '../../components/coordinator/subject-review/SubjectReviewModule';
 import CCC_TeamModule from '../../components/coordinator/team/TeamModule';
+import InviteForStudyModule from '../../components/coordinator/team/InviteForStudyModule';
 import CCC_VisitsAssessmentsModule from '../../components/coordinator/VisitsModule';
+
 
 
 // New Coordinator Panel Modules (Mirrored from PI)
@@ -59,6 +61,7 @@ type CCModule =
     | 'OVERSIGHT'
     | 'STUDIES'
     | 'TEAM'
+    | 'INVITE_FOR_STUDY'
     | 'PARTICIPANTS'
     | 'FORMS'
     | 'CONSENT'
@@ -106,6 +109,7 @@ export default function CoordinatorDashboard() {
         const route = parts[parts.length - 1];
         if (route === 'studies') return 'STUDIES';
         if (route === 'team') return 'TEAM';
+        if (route === 'invite-for-study') return 'INVITE_FOR_STUDY';
         if (route === 'participants') return 'PARTICIPANTS';
         if (route === 'forms') return 'FORMS';
         if (route === 'consent') return 'CONSENT';
@@ -142,6 +146,7 @@ export default function CoordinatorDashboard() {
             const routeMap: Record<string, CCModule> = {
                 'studies': 'STUDIES',
                 'team': 'TEAM',
+                'invite-for-study': 'INVITE_FOR_STUDY',
                 'participants': 'PARTICIPANTS',
                 'forms': 'FORMS',
                 'consent': 'CONSENT',
@@ -185,6 +190,7 @@ export default function CoordinatorDashboard() {
             'OVERSIGHT': '',
             'STUDIES': 'studies',
             'TEAM': 'team',
+            'INVITE_FOR_STUDY': 'invite-for-study',
             'PARTICIPANTS': 'participants',
             'FORMS': 'forms',
             'CONSENT': 'consent',
@@ -905,6 +911,7 @@ export default function CoordinatorDashboard() {
             items: [
                 { id: 'STUDIES', label: 'Studies', icon: Beaker },
                 { id: 'TEAM', label: 'Team', icon: Users },
+                { id: 'INVITE_FOR_STUDY', label: 'Invite for study', icon: UserPlus },
                 { id: 'PARTICIPANTS', label: 'Oversight', icon: UsersRound },
                 { id: 'VISITS', label: 'Visits', icon: Calendar },
                 { id: 'DAILY_LOGS', label: 'Patient Logs', icon: FileText },
@@ -1235,6 +1242,9 @@ export default function CoordinatorDashboard() {
                                 allStudies={studies}
                                 onRefresh={fetchCoordinatorContent}
                             />
+                        )}
+                        {activeModule === 'INVITE_FOR_STUDY' && (
+                            <InviteForStudyModule allStudies={studies} />
                         )}
                         {activeModule === 'INVITATIONS' && (
                             <InvitationsModule allStudies={studies} />

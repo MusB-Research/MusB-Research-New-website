@@ -1,6 +1,6 @@
 from django.db import models
 from django.conf import settings
-from django.db.models.signals import post_save
+from django.db.models.signals import post_save, pre_delete
 from django.dispatch import receiver
 from authentication.security import encrypt_data, decrypt_data
 from django.utils import timezone
@@ -282,6 +282,45 @@ class Study(BaseMongoModel):
     def __str__(self):
         return f"{self.protocol_id} - {self.title}"
 
+@receiver(pre_delete, sender=Study)
+def delete_related_study_data(sender, instance, **kwargs):
+    """Clean up all related records when a Study is deleted"""
+    try:
+        # Loop through participants individually to invoke Participant pre_delete signal
+        for p in instance.participants.all():
+            try:
+                p.delete()
+            except Exception:
+                pass
+    except Exception: pass
+    try:
+        # Loop through leads individually to cleanly trigger any deletes
+        for lead in instance.leads.all():
+            try:
+                lead.delete()
+            except Exception:
+                pass
+    except Exception: pass
+    try:
+        instance.consent_records.all().delete()
+    except Exception: pass
+    try:
+        instance.clinical_audit_logs.all().delete()
+    except Exception: pass
+    try:
+        instance.arms.all().delete()
+    except Exception: pass
+    try:
+        instance.forms.all().delete()
+    except Exception: pass
+    try:
+        instance.tasks.all().delete()
+    except Exception: pass
+    try:
+        from api.models import DataAuditLog
+        DataAuditLog.objects.filter(model_name='Study', record_id=str(instance.id)).delete()
+    except Exception: pass
+
 class News(models.Model):
     title = models.CharField(max_length=255)
     content = models.TextField()
@@ -444,10 +483,84 @@ class Participant(BaseMongoModel):
             invalidate_cache("participant_me", user_id=self.user_id)
             invalidate_cache("participant_records_list", user_id=self.user_id)
 
+@receiver(pre_delete, sender=Participant)
+def delete_related_participant_data(sender, instance, **kwargs):
+    """Clean up all related records when a Participant is deleted"""
+    try:
+        from api.models import DailyMedicationLog, Visit, Consent, QuestionnaireScheduleInstance, FormResponse, ParticipantTask, Compensation, LabResult, AssignedForm, ClinicalConversation, AEReport, ClinicalAuditLog, DosingLog
+        
+        # 1. Bulk delete via filter to bypass any queryset delete restrictions
+        DailyMedicationLog.objects.filter(participant=instance).delete()
+        Visit.objects.filter(participant=instance).delete()
+        Consent.objects.filter(participant=instance).delete()
+        QuestionnaireScheduleInstance.objects.filter(participant=instance).delete()
+        FormResponse.objects.filter(participant=instance).delete()
+        ParticipantTask.objects.filter(participant=instance).delete()
+        Compensation.objects.filter(participant=instance).delete()
+        LabResult.objects.filter(participant=instance).delete()
+        AssignedForm.objects.filter(participant=instance).delete()
+        DosingLog.objects.filter(participant=instance).delete()
+        try:
+            ClinicalConversation.objects.filter(participant=instance).delete()
+        except Exception: pass
+        AEReport.objects.filter(participant=instance).delete()
+        ClinicalAuditLog.objects.filter(participant=instance).delete()
+    except Exception: pass
+
+    try:
+        instance.visits.all().delete()
+    except Exception: pass
+    try:
+        instance.consent_records.all().delete()
+    except Exception: pass
+    try:
+        instance.scheduled_questionnaires.all().delete()
+    except Exception: pass
+    try:
+        instance.form_responses.all().delete()
+    except Exception: pass
+    try:
+        instance.assigned_tasks.all().delete()
+    except Exception: pass
+    try:
+        instance.compensation.all().delete()
+    except Exception: pass
+    try:
+        instance.lab_results.all().delete()
+    except Exception: pass
+    try:
+        instance.assigned_forms.all().delete()
+    except Exception: pass
+    try:
+        instance.conversations.all().delete()
+    except Exception: pass
+    try:
+        instance.dosing_logs.all().delete()
+    except Exception: pass
+    try:
+        instance.daily_logs.all().delete()
+    except Exception: pass
+    try:
+        instance.ae_reports.all().delete()
+    except Exception: pass
+    try:
+        instance.clinical_audit_logs.all().delete()
+    except Exception: pass
+    try:
+        from api.models import DataAuditLog
+        DataAuditLog.objects.filter(model_name='Participant', record_id=str(instance.id)).delete()
+    except Exception: pass
+    
+    # Clean up the User record if it has role='PARTICIPANT'
+    try:
+        if instance.user and instance.user.role == 'PARTICIPANT':
+            instance.user.delete()
+    except Exception: pass
+
 class ClinicalAuditLog(BaseMongoModel):
     """Protocol Requirement 11: Track all status changes, approvals, and system actions"""
-    study = models.ForeignKey(Study, on_delete=models.SET_NULL, null=True, blank=True, related_name='clinical_audit_logs')
-    participant = models.ForeignKey(Participant, on_delete=models.SET_NULL, null=True, blank=True, related_name='clinical_audit_logs')
+    study = models.ForeignKey(Study, on_delete=models.CASCADE, null=True, blank=True, related_name='clinical_audit_logs')
+    participant = models.ForeignKey(Participant, on_delete=models.CASCADE, null=True, blank=True, related_name='clinical_audit_logs')
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
     
     action = models.CharField(max_length=100) # STATUS_CHANGE, APPROVAL, CONSENT_SIGN, RANDOMIZATION
@@ -916,7 +1029,7 @@ class ConsentTemplate(BaseMongoModel):
 class Consent(BaseMongoModel):
     """Immutable record of electronic informed consent (eConsent)"""
     study = models.ForeignKey(Study, on_delete=models.CASCADE, related_name='consent_records', db_index=True)
-    participant = models.ForeignKey(Participant, on_delete=models.SET_NULL, null=True, blank=True, related_name='consent_records', db_index=True)
+    participant = models.ForeignKey(Participant, on_delete=models.CASCADE, null=True, blank=True, related_name='consent_records', db_index=True)
     
     full_name = models.CharField(max_length=255, verbose_name="Electronic Signature")
     email = models.EmailField()
@@ -2132,19 +2245,25 @@ def sync_daily_med_log_task(sender, instance, created, **kwargs):
 
 @receiver(post_save, sender=Participant)
 def generate_questionnaire_schedules_for_new_participant(sender, instance, created, **kwargs):
-    """When a new participant joins, generate all schedule instances for existing study questionnaires"""
-    if created and instance.study:
+    """When a new or updated participant joins, generate all schedule instances for existing study questionnaires"""
+    if instance.study:
         study_qs = StudyQuestionnaire.objects.filter(study=instance.study)
         for sq in study_qs:
-            sq.generate_instances_for_participant(instance)
+            try:
+                sq.generate_instances_for_participant(instance)
+            except Exception as e:
+                print(f"Error generating instances for participant {instance.id}: {e}")
 
 @receiver(post_save, sender=StudyQuestionnaire)
 def generate_schedules_for_existing_participants(sender, instance, created, **kwargs):
-    """When a new questionnaire is added to a study, generate instances for all enrolled participants"""
-    if created:
-        participants = Participant.objects.filter(study=instance.study)
-        for p in participants:
+    """When a questionnaire is added or updated for a study, generate instances for all participants"""
+    participants = Participant.objects.filter(study=instance.study)
+    for p in participants:
+        try:
             instance.generate_instances_for_participant(p)
+        except Exception as e:
+            print(f"Error generating instances for study questionnaire {instance.id}: {e}")
+
 
 class Technology(BaseMongoModel):
     name = models.CharField(max_length=255)

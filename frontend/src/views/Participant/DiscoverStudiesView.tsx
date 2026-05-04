@@ -196,7 +196,9 @@ export default function DiscoverStudiesView({ loading: externalLoading, userProf
                                                 </div>
                                                 <div className="flex items-center gap-2 text-[11px] font-bold text-[#5F6F89] uppercase tracking-widest">
                                                     <MapPin className="w-3.5 h-3.5 text-[#00ADEF]" />
-                                                    {study.visits || 'Hybrid'}
+                                                    {study.countries && Array.isArray(study.countries) && study.countries.length > 0 
+                                                        ? study.countries[0] 
+                                                        : (study.location || study.visits || 'Hybrid')}
                                                 </div>
                                             </div>
                                         </div>
@@ -279,7 +281,9 @@ export default function DiscoverStudiesView({ loading: externalLoading, userProf
                                         )}
                                         <div className="flex items-center gap-2 text-[10px] font-bold text-[#1A2B49] uppercase tracking-wide">
                                             <MapPin className="w-3.5 h-3.5 text-[#00ADEF]" />
-                                            {study.visits || 'Hybrid'} Protocol
+                                            {study.countries && Array.isArray(study.countries) && study.countries.length > 0 
+                                                ? study.countries[0] 
+                                                : (study.location || study.visits || 'Hybrid')}
                                         </div>
                                         {study.compensation && (
                                                 <div className="px-2.5 py-1 bg-[#F0FDF4] border border-[#DCFCE7] rounded-full flex items-center gap-1.5">

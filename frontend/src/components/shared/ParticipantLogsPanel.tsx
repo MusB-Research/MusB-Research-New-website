@@ -162,6 +162,15 @@ export default function ParticipantLogsPanel({
 
     const [filterStudy, setFilterStudy] = useState(selectedStudyId && selectedStudyId !== 'all' ? selectedStudyId : 'all');
     const [filterParticipant, setFilterParticipant] = useState('all');
+    const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1024);
+
+    useEffect(() => {
+        const handleResize = () => setWindowWidth(window.innerWidth);
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
+    const isMobile = windowWidth < 768;
 
     useEffect(() => {
         if (selectedStudyId) {
@@ -215,6 +224,23 @@ export default function ParticipantLogsPanel({
 
     const aeCount = logs.filter(l => l.noticed_side_effects).length;
     const todayCount = logs.filter(l => l.date === new Date().toISOString().split('T')[0]).length;
+
+    const handleDeleteLog = async (logId: string) => {
+        if (!window.confirm("⚠️ IRREVERSIBLE ACTION\n\nAre you sure you want to delete this medication log?")) return;
+        try {
+            const res = await authFetch(`${API}/api/daily-medication-logs/${logId}/`, {
+                method: 'DELETE'
+            });
+            if (res.ok) {
+                setLogs(prev => prev.filter(l => l.id !== logId));
+            } else {
+                alert("Failed to delete the medication log. Please try again.");
+            }
+        } catch (err) {
+            console.error("Delete error", err);
+            alert("Error deleting log.");
+        }
+    };
 
     const severityBadge = (s: string) => {
         if (s === 'SEVERE') return { bg: 'rgba(239,68,68,0.15)', color: '#ef4444', text: 'Severe' };
@@ -296,20 +322,92 @@ export default function ParticipantLogsPanel({
                 </button>
             </div>
 
-            {/* Table */}
-            <div style={{ ...G.card, overflow: 'hidden', flex: 1 }}>
+            {/* Table or Card View depending on screen size */}
+            <div style={isMobile ? { flex: 1 } : { ...G.card, overflow: 'hidden', flex: 1 }}>
                 {loading ? (
-                    <div style={{ padding: '4rem', textAlign: 'center', color: '#64748b' }}>
+                    <div style={{ padding: '4rem', textAlign: 'center', color: '#64748b', ...G.card }}>
                         <Activity size={32} style={{ opacity: 0.2, marginBottom: '1rem' }} />
                         <p style={{ fontSize: 12, fontWeight: 900, textTransform: 'uppercase' }}>Loading logs...</p>
                     </div>
                 ) : filtered.length === 0 ? (
-                    <div style={{ padding: '4rem', textAlign: 'center', color: '#64748b' }}>
+                    <div style={{ padding: '4rem', textAlign: 'center', color: '#64748b', ...G.card }}>
                         <FileText size={40} style={{ opacity: 0.1, marginBottom: '1rem' }} />
                         <p style={{ fontSize: 13, fontWeight: 900, textTransform: 'uppercase' }}>No logs found</p>
                         <p style={{ fontSize: 11, marginTop: '0.5rem' }}>Adjust your filters or wait for participants to submit logs</p>
                     </div>
+                ) : isMobile ? (
+                    /* Mobile & Tablet Card Layout */
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                        {filtered.map(log => {
+                            const badge = log.noticed_side_effects ? severityBadge(log.severity) : null;
+                            const feelingColor: Record<string, string> = { VERY_GOOD: '#10b981', GOOD: '#22d3ee', FAIR: '#f59e0b', POOR: '#ef4444' };
+                            return (
+                                <div key={log.id} style={{ ...G.card, padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <div style={{ fontSize: 13, fontWeight: 900, color: 'white' }}>{log.participant_sid}</div>
+                                        <div style={{ fontSize: 12, fontWeight: 700, color: '#94a3b8' }}>
+                                            {new Date(log.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                        </div>
+                                    </div>
+                                    <div style={{ fontSize: 11, color: '#64748b', fontWeight: 700 }}>{log.participant_name}</div>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', borderTop: '1px solid rgba(255,255,255,0.05)', borderBottom: '1px solid rgba(255,255,255,0.05)', padding: '0.6rem 0' }}>
+                                        <div>
+                                            <div style={G.label}>Medicine</div>
+                                            <div style={{ fontSize: 12, fontWeight: 700, color: log.took_medicine ? '#10b981' : '#ef4444', marginTop: 3 }}>
+                                                {log.took_medicine ? '✅ Yes' : '❌ No'}
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <div style={G.label}>Feeling</div>
+                                            <div style={{ fontSize: 12, fontWeight: 700, color: feelingColor[log.overall_feeling] || '#64748b', marginTop: 3 }}>
+                                                {log.overall_feeling?.replace('_', ' ') || '—'}
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <div style={G.label}>AE Status</div>
+                                            <div style={{ marginTop: 3 }}>
+                                                {log.noticed_side_effects ? (
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                                        <AlertCircle size={11} color="#ef4444" />
+                                                        <span style={{ fontSize: 11, fontWeight: 900, color: '#ef4444', textTransform: 'uppercase' }}>Reported</span>
+                                                    </div>
+                                                ) : (
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                                        <CheckCircle2 size={11} color="#10b981" />
+                                                        <span style={{ fontSize: 11, fontWeight: 900, color: '#10b981', textTransform: 'uppercase' }}>Clear</span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                        {log.noticed_side_effects && (
+                                            <div>
+                                                <div style={G.label}>Severity</div>
+                                                <div style={{ marginTop: 3 }}>
+                                                    {badge ? (
+                                                        <span style={{ backgroundColor: badge.bg, color: badge.color, padding: '0.15rem 0.5rem', borderRadius: 20, fontSize: 10, fontWeight: 900, textTransform: 'uppercase' }}>
+                                                            {badge.text}
+                                                        </span>
+                                                    ) : <span style={{ color: '#475569', fontSize: 11 }}>—</span>}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                    <button
+                                        onClick={() => setSelectedLog(log)}
+                                        style={{ backgroundColor: 'rgba(20,184,166,0.12)', color: '#14b8a6', border: '1px solid rgba(20,184,166,0.3)', borderRadius: 6, padding: '0.4rem 0.7rem', fontSize: 11, fontWeight: 900, textTransform: 'uppercase', cursor: 'pointer', textAlign: 'center', width: '100%', marginTop: '0.2rem' }}>
+                                        View Details
+                                    </button>
+                                    <button
+                                        onClick={() => handleDeleteLog(log.id)}
+                                        style={{ backgroundColor: 'rgba(239,68,68,0.12)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 6, padding: '0.4rem 0.7rem', fontSize: 11, fontWeight: 900, textTransform: 'uppercase', cursor: 'pointer', textAlign: 'center', width: '100%', marginTop: '0.3rem' }}>
+                                        Delete Log
+                                    </button>
+                                </div>
+                            );
+                        })}
+                    </div>
                 ) : (
+                    /* Desktop Layout */
                     <div style={{ overflowX: 'auto' }}>
                         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                             <thead>
@@ -364,11 +462,18 @@ export default function ParticipantLogsPanel({
                                                 ) : <span style={{ color: '#475569', fontSize: 11 }}>—</span>}
                                             </td>
                                             <td style={{ padding: '0.8rem 1rem' }}>
-                                                <button
-                                                    onClick={() => setSelectedLog(log)}
-                                                    style={{ backgroundColor: 'rgba(20,184,166,0.12)', color: '#14b8a6', border: '1px solid rgba(20,184,166,0.3)', borderRadius: 6, padding: '0.3rem 0.7rem', fontSize: 11, fontWeight: 900, textTransform: 'uppercase', cursor: 'pointer' }}>
-                                                    View Details
-                                                </button>
+                                                <div style={{ display: 'flex', gap: '0.4rem' }}>
+                                                    <button
+                                                        onClick={() => setSelectedLog(log)}
+                                                        style={{ backgroundColor: 'rgba(20,184,166,0.12)', color: '#14b8a6', border: '1px solid rgba(20,184,166,0.3)', borderRadius: 6, padding: '0.3rem 0.7rem', fontSize: 11, fontWeight: 900, textTransform: 'uppercase', cursor: 'pointer' }}>
+                                                        View Details
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleDeleteLog(log.id)}
+                                                        style={{ backgroundColor: 'rgba(239,68,68,0.12)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 6, padding: '0.3rem 0.7rem', fontSize: 11, fontWeight: 900, textTransform: 'uppercase', cursor: 'pointer' }}>
+                                                        Delete
+                                                    </button>
+                                                </div>
                                             </td>
                                         </tr>
                                     );

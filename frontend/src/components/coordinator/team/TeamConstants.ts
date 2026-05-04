@@ -20,6 +20,7 @@ export interface TeamDocument {
     uploadDate?: string;
     expiryDate?: string;
     isRequired: boolean;
+    fileName?: string;
 }
 
 export interface TeamMember {

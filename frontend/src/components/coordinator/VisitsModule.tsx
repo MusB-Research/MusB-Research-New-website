@@ -111,6 +111,7 @@ export default function VisitsModule({ selectedStudyId, preloadedParticipants, p
     const [openAccordion, setOpenAccordion] = useState<string | null>('Checklist');
     const [mobileView, setMobileView] = useState<'LIST' | 'TIMELINE' | 'DETAILS'>('LIST');
     const [tempVitals, setTempVitals] = useState({ weight: 78.5, height: 1.82 });
+    const [actionMenuOpen, setActionMenuOpen] = useState(false);
 
     const mapParticipants = useCallback((data: any[]): Participant[] => {
         return data.map((p: any) => ({
@@ -610,38 +611,41 @@ export default function VisitsModule({ selectedStudyId, preloadedParticipants, p
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-500" />
                         <input type="text" placeholder="Filter Subjects..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-xl pl-9 pr-4 py-1.5 text-[12px] text-white outline-none focus:border-indigo-500/50 transition-all placeholder:text-slate-600" />
                     </div>
-                    <button onClick={() => setIsScheduleOpen(true)} className="whitespace-nowrap px-4 py-1.5 bg-indigo-600/10 border border-indigo-600/20 text-indigo-400 rounded-xl text-[10px] font-black tracking-widest hover:bg-indigo-600 hover:text-white transition-all italic">
-                        + SCHEDULE
-                    </button>
-                    <button 
-                        onClick={() => {
-                            const client = window.google?.accounts?.oauth2?.initTokenClient({
-                                client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
-                                scope: 'https://www.googleapis.com/auth/calendar.events',
-                                callback: async (response: any) => {
-                                    if (response.access_token) {
-                                        await authFetch(`${API}/api/auth/save-google-token/`, {
-                                            method: 'POST',
-                                            body: JSON.stringify({
-                                                access_token: response.access_token,
-                                                expires_in: response.expires_in,
-                                                scope: response.scope
-                                            })
-                                        });
-                                        alert("Google Calendar Synchronized! Your appointments will now appear in your Google Calendar.");
-                                    }
-                                },
-                            });
-                            client?.requestAccessToken();
-                        }}
-                        className={`whitespace-nowrap px-4 py-1.5 border rounded-xl text-[10px] font-black tracking-widest transition-all italic flex items-center gap-2 ${getUser()?.google_calendar_linked ? 'bg-emerald-600/20 border-emerald-500/40 text-emerald-400' : 'bg-white/5 border-white/10 text-slate-400 hover:bg-emerald-600 hover:text-white'}`}
-                    >
-                        <Calendar className="w-3 h-3" /> 
-                        {getUser()?.google_calendar_linked ? 'CALENDAR LINKED' : 'SYNC GOOGLE'}
-                    </button>
-                    <button onClick={() => setIsProblemModalOpen(true)} className="whitespace-nowrap px-4 py-1.5 bg-rose-500/10 border border-rose-500/20 text-rose-400 rounded-xl text-[10px] font-black tracking-widest hover:bg-rose-500 hover:text-white transition-all italic">
-                        + REPORT
-                    </button>
+                    {/* Action buttons visible across all screens */}
+                    <div className="flex items-center gap-2 flex-wrap">
+                        <button onClick={() => setIsScheduleOpen(true)} className="whitespace-nowrap px-3 md:px-4 py-1.5 bg-indigo-600/10 border border-indigo-600/20 text-indigo-400 rounded-xl text-[10px] font-black tracking-widest hover:bg-indigo-600 hover:text-white transition-all italic">
+                            + SCHEDULE
+                        </button>
+                        <button 
+                            onClick={() => {
+                                const client = window.google?.accounts?.oauth2?.initTokenClient({
+                                    client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
+                                    scope: 'https://www.googleapis.com/auth/calendar.events',
+                                    callback: async (response: any) => {
+                                        if (response.access_token) {
+                                            await authFetch(`${API}/api/auth/save-google-token/`, {
+                                                method: 'POST',
+                                                body: JSON.stringify({
+                                                    access_token: response.access_token,
+                                                    expires_in: response.expires_in,
+                                                    scope: response.scope
+                                                })
+                                            });
+                                            alert("Google Calendar Synchronized! Your appointments will now appear in your Google Calendar.");
+                                        }
+                                    },
+                                });
+                                client?.requestAccessToken();
+                            }}
+                            className={`whitespace-nowrap px-3 md:px-4 py-1.5 border rounded-xl text-[10px] font-black tracking-widest transition-all italic flex items-center gap-2 ${getUser()?.google_calendar_linked ? 'bg-emerald-600/20 border-emerald-500/40 text-emerald-400' : 'bg-white/5 border-white/10 text-slate-400 hover:bg-emerald-600 hover:text-white'}`}
+                        >
+                            <Calendar className="w-3 h-3" /> 
+                            {getUser()?.google_calendar_linked ? 'CALENDAR LINKED' : 'SYNC GOOGLE'}
+                        </button>
+                        <button onClick={() => setIsProblemModalOpen(true)} className="whitespace-nowrap px-3 md:px-4 py-1.5 bg-rose-500/10 border border-rose-500/20 text-rose-400 rounded-xl text-[10px] font-black tracking-widest hover:bg-rose-500 hover:text-white transition-all italic">
+                            + REPORT
+                        </button>
+                    </div>
                 </div>
             </div>
 

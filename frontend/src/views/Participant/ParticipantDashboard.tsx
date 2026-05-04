@@ -566,18 +566,30 @@ export default function ParticipantDashboard() {
                             return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
                         });
                         setAllParticipants(filtered);
+
+                        // If any study is enrolled, select it automatically first
+                        const enrolledIdx = filtered.findIndex((p: any) => 
+                            ['ENROLLED', 'RANDOMIZED', 'ACTIVE'].includes((p.status || '').toUpperCase())
+                        );
+                        if (enrolledIdx !== -1 && selectedStudyIndex === 0) {
+                            setSelectedStudyIndex(enrolledIdx);
+                        }
                         
                         // Populate studies list from all participants to enable the switcher immediately
                         const studyMap = new Map();
                         filtered.forEach((p: any) => {
-                            if (p.study && !studyMap.has(getId(p.study))) {
+                            const sId = getId(p.study);
+                            if (sId && !studyMap.has(sId)) {
                                 // If study is a full object, use it; otherwise build a brief one
                                 const studyObj = typeof p.study === 'object' ? p.study : {
                                     id: p.study,
                                     title: p.study_name || p.protocol_id || 'Untitled Study',
                                     protocol_id: p.protocol_id || 'PO-XXXX'
                                 };
-                                studyMap.set(getId(p.study), studyObj);
+                                studyMap.set(sId, {
+                                    ...studyObj,
+                                    participantStatus: p.status
+                                });
                             }
                         });
                         setAllStudies(Array.from(studyMap.values()));
@@ -1657,6 +1669,13 @@ export default function ParticipantDashboard() {
                                     allStudies={allStudies}
                                     selectedStudyIndex={selectedStudyIndex}
                                     onStudySwitch={(idx: number) => {
+                                        const targetStudy = allStudies[idx];
+                                        const isPendingTarget = ['PENDING_APPROVAL', 'APPLIED', 'PENDING_REVIEW'].includes((targetStudy?.participantStatus || '').toUpperCase());
+                                        const hasEnrolledStudy = allStudies.some(s => !['PENDING_APPROVAL', 'APPLIED', 'PENDING_REVIEW'].includes((s?.participantStatus || '').toUpperCase()));
+                                        if (isPendingTarget && hasEnrolledStudy) {
+                                            alert('You are already enrolled in a study. This application is pending review.');
+                                            return;
+                                        }
                                         setSelectedStudyIndex(idx);
                                         setActiveStudy(allStudies[idx]);
                                         setActiveParticipant(allParticipants[idx]);

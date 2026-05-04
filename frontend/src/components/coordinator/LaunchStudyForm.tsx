@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Upload, X, Search, Building2, Calendar, Sparkles, Terminal, FileText, Database, Shield, Bold, Italic, Underline, Link, ChevronDown, DraftingCompass, Edit3, Users, Info, Layout, AlertTriangle, Download, ClipboardList, CheckCircle2, ShieldCheck, Globe, Plus } from 'lucide-react';
+import { Upload, X, Search, Building2, Calendar, Sparkles, Terminal, FileText, Database, Shield, Bold, Italic, Underline, Link, Link as LinkIcon, ChevronDown, DraftingCompass, Edit3, Users, Info, Layout, AlertTriangle, Download, ClipboardList, CheckCircle2, ShieldCheck, Globe, Plus } from 'lucide-react';
 import ScreenerBuilder from './ScreenerBuilder';
 import QuestionnaireBuilder from './QuestionnaireBuilder';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -164,6 +164,21 @@ const AddOrganizationModal = ({ isOpen, onClose, onSave }: any) => {
     const [email, setEmail] = useState('');
     const [type, setType] = useState('SPONSOR');
 
+    useEffect(() => {
+        if (isOpen) {
+            setName('');
+            setEmail('');
+            setType('SPONSOR');
+        }
+    }, [isOpen]);
+
+    const handleSave = () => {
+        onSave({ name, email, type });
+        setName('');
+        setEmail('');
+        setType('SPONSOR');
+    };
+
     if (!isOpen) return null;
 
     return (
@@ -185,7 +200,7 @@ const AddOrganizationModal = ({ isOpen, onClose, onSave }: any) => {
                 </div>
                 <div className="p-8 bg-[#0B101B] flex gap-4">
                     <button onClick={onClose} className="flex-1 py-4 rounded-xl font-black text-[11px] tracking-widest uppercase text-slate-400 hover:text-white transition-colors">Cancel</button>
-                    <button onClick={() => onSave({ name, email, type })} className="flex-1 py-4 rounded-xl font-black text-[11px] tracking-widest uppercase bg-blue-600 text-white hover:bg-blue-500 transition-colors">Create Org</button>
+                    <button onClick={handleSave} className="flex-1 py-4 rounded-xl font-black text-[11px] tracking-widest uppercase bg-blue-600 text-white hover:bg-blue-500 transition-colors">Create Org</button>
                 </div>
             </motion.div>
         </div>
@@ -196,6 +211,21 @@ const InviteDelegateModal = ({ isOpen, onClose, onInvite }: any) => {
     const [email, setEmail] = useState('');
     const [firstName, setFirstName] = useState('');
     const [lastName, setLastName] = useState('');
+
+    useEffect(() => {
+        if (isOpen) {
+            setEmail('');
+            setFirstName('');
+            setLastName('');
+        }
+    }, [isOpen]);
+
+    const handleInvite = () => {
+        onInvite({ email, first_name: firstName, last_name: lastName });
+        setEmail('');
+        setFirstName('');
+        setLastName('');
+    };
 
     if (!isOpen) return null;
 
@@ -224,7 +254,7 @@ const InviteDelegateModal = ({ isOpen, onClose, onInvite }: any) => {
                 </div>
                 <div className="p-8 bg-[#0B101B] flex gap-4">
                     <button onClick={onClose} className="flex-1 py-4 rounded-xl font-black text-[11px] tracking-widest uppercase text-slate-400 hover:text-white transition-colors">Cancel</button>
-                    <button onClick={() => onInvite({ email, first_name: firstName, last_name: lastName })} className="flex-1 py-4 rounded-xl font-black text-[11px] tracking-widest uppercase bg-emerald-600 text-white hover:bg-emerald-500 transition-colors">Send Invite</button>
+                    <button onClick={handleInvite} className="flex-1 py-4 rounded-xl font-black text-[11px] tracking-widest uppercase bg-emerald-600 text-white hover:bg-emerald-500 transition-colors">Send Invite</button>
                 </div>
             </motion.div>
         </div>
@@ -511,7 +541,7 @@ const CountrySelector = ({ selectedCountries, onChange }: { selectedCountries: s
 
     return (
         <div className="space-y-4 p-6 bg-white/5 border border-white/10 rounded-3xl relative" ref={containerRef}>
-            <div className="flex items-center justify-between mb-2">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-2">
                 <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center">
                         <Globe size={16} className="text-blue-400" />
@@ -519,6 +549,16 @@ const CountrySelector = ({ selectedCountries, onChange }: { selectedCountries: s
                     <div>
                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] block">Global Reach</label>
                         <h4 className="text-[11px] font-black text-white uppercase tracking-wider">Recruitment Coverage</h4>
+                        {/* Display country list inside the card */}
+                        {selectedCountries.length > 0 && (
+                            <div className="flex flex-wrap gap-1 mt-2">
+                                {selectedCountries.map(c => (
+                                    <span key={c} className="text-[10px] font-black text-blue-400 bg-blue-400/10 border border-blue-400/20 px-2 py-0.5 rounded-lg uppercase tracking-wider">
+                                        {c}
+                                    </span>
+                                ))}
+                            </div>
+                        )}
                     </div>
                 </div>
                 <div className="flex flex-col items-end">
@@ -656,7 +696,7 @@ const LaunchStudyForm: React.FC<LaunchStudyFormProps> = ({
     const [isAddOrgModalOpen, setIsAddOrgModalOpen] = useState(false);
     const [isInviteDelegateModalOpen, setIsInviteDelegateModalOpen] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [isEditMode, setIsEditMode] = useState(!initialData || initialData.status === 'DRAFT');
+    const [isEditMode, setIsEditMode] = useState(true);
     const [teamLoading, setTeamLoading] = useState(false);
     const [fetchedPIs, setFetchedPIs] = useState<any[]>([]);
     const [fetchedCoordinators, setFetchedCoordinators] = useState<any[]>([]);
@@ -944,6 +984,7 @@ const LaunchStudyForm: React.FC<LaunchStudyFormProps> = ({
         inviteSponsorLastName: '',
         screenerQuestions: [] as any[],
         screenerFile: null as File | null,
+        extractedScreenerText: '',
         selectedQuestionnaires: [] as string[],
         questionnaireDetails: [] as any[],
         questionnaireFrequencies: {} as Record<string, string>,
@@ -954,6 +995,7 @@ const LaunchStudyForm: React.FC<LaunchStudyFormProps> = ({
     });
 
     const [isExtracting, setIsExtracting] = useState(false);
+    const [isExtractingScreener, setIsExtractingScreener] = useState(false);
     const [showAIImportModal, setShowAIImportModal] = useState(false);
     const [smartImportText, setSmartImportText] = useState('');
     const [isQuestionnaireModalOpen, setIsQuestionnaireModalOpen] = useState(false);
@@ -971,16 +1013,101 @@ const LaunchStudyForm: React.FC<LaunchStudyFormProps> = ({
                 const data = await res.json();
                 setFormData(prev => ({ ...prev, extractedConsentText: data.text || '' }));
             } else {
-                // Fallback: let user know extraction failed but don't block
-                console.warn('PDF extraction returned non-OK status, text will be empty.');
+                console.warn('File extraction returned non-OK status, text will be empty.');
                 setFormData(prev => ({ ...prev, extractedConsentText: '' }));
             }
         } catch (err) {
-            console.error('PDF extraction failed:', err);
+            console.error('File extraction failed:', err);
             setFormData(prev => ({ ...prev, extractedConsentText: '' }));
         } finally {
             setIsExtracting(false);
         }
+    };
+
+    const handleScreenerAIExtraction = async (file: File) => {
+        setIsExtractingScreener(true);
+        try {
+            const body = new FormData();
+            body.append('file', file);
+            const res = await authFetch('/api/study-consent/extract/', {
+                method: 'POST',
+                body
+            });
+            if (res.ok) {
+                const data = await res.json();
+                setFormData(prev => ({ ...prev, extractedScreenerText: data.text || '' }));
+            } else {
+                console.warn('File extraction returned non-OK status.');
+                setFormData(prev => ({ ...prev, extractedScreenerText: '' }));
+            }
+        } catch (err) {
+            console.error('File extraction failed:', err);
+            setFormData(prev => ({ ...prev, extractedScreenerText: '' }));
+        } finally {
+            setIsExtractingScreener(false);
+        }
+    };
+
+    const handleFormatScreener = (type: 'bold' | 'italic' | 'underline' | 'link' | 'clear') => {
+        if (!screenerExtractedRef.current) return;
+        const textarea = screenerExtractedRef.current;
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        const text = formData.extractedScreenerText || '';
+        const selectedText = text.substring(start, end);
+
+        let formatted = '';
+        if (type === 'bold') {
+            formatted = `**${selectedText || 'bold text'}**`;
+        } else if (type === 'italic') {
+            formatted = `*${selectedText || 'italic text'}*`;
+        } else if (type === 'underline') {
+            formatted = `<u>${selectedText || 'underlined text'}</u>`;
+        } else if (type === 'link') {
+            formatted = `[${selectedText || 'link text'}](https://example.com)`;
+        } else if (type === 'clear') {
+            setFormData(prev => ({ ...prev, extractedScreenerText: '' }));
+            return;
+        }
+
+        const newText = text.substring(0, start) + formatted + text.substring(end);
+        setFormData(prev => ({ ...prev, extractedScreenerText: newText }));
+
+        setTimeout(() => {
+            textarea.focus();
+            textarea.setSelectionRange(start + formatted.length, start + formatted.length);
+        }, 0);
+    };
+
+    const handleFormatConsent = (type: 'bold' | 'italic' | 'underline' | 'link' | 'clear') => {
+        if (!consentExtractedRef.current) return;
+        const textarea = consentExtractedRef.current;
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        const text = formData.extractedConsentText || '';
+        const selectedText = text.substring(start, end);
+
+        let formatted = '';
+        if (type === 'bold') {
+            formatted = `**${selectedText || 'bold text'}**`;
+        } else if (type === 'italic') {
+            formatted = `*${selectedText || 'italic text'}*`;
+        } else if (type === 'underline') {
+            formatted = `<u>${selectedText || 'underlined text'}</u>`;
+        } else if (type === 'link') {
+            formatted = `[${selectedText || 'link text'}](https://example.com)`;
+        } else if (type === 'clear') {
+            setFormData(prev => ({ ...prev, extractedConsentText: '' }));
+            return;
+        }
+
+        const newText = text.substring(0, start) + formatted + text.substring(end);
+        setFormData(prev => ({ ...prev, extractedConsentText: newText }));
+
+        setTimeout(() => {
+            textarea.focus();
+            textarea.setSelectionRange(start + formatted.length, start + formatted.length);
+        }, 0);
     };
 
     const handleSmartImport = () => {
@@ -993,6 +1120,8 @@ const LaunchStudyForm: React.FC<LaunchStudyFormProps> = ({
     const consentFileInputRef = useRef<HTMLInputElement>(null);
     const screenerFileInputRef = useRef<HTMLInputElement>(null);
     const additionalFileInputRef = useRef<HTMLInputElement>(null);
+    const screenerExtractedRef = useRef<HTMLTextAreaElement>(null);
+    const consentExtractedRef = useRef<HTMLTextAreaElement>(null);
 
     const handleChange = (e: any) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -1032,6 +1161,7 @@ const LaunchStudyForm: React.FC<LaunchStudyFormProps> = ({
         if (e.target.files && e.target.files.length > 0) {
             const file = e.target.files[0];
             setFormData({ ...formData, screenerFile: file });
+            handleScreenerAIExtraction(file);
         }
     };
 
@@ -1066,18 +1196,132 @@ const LaunchStudyForm: React.FC<LaunchStudyFormProps> = ({
         window.location.reload();
     };
 
+    // Background auto-save to localStorage
+    useEffect(() => {
+        const serializableData = {
+            ...formData,
+            consentFormFile: null,
+            additionalDocuments: []
+        };
+        localStorage.setItem(`study_launch_draft_${formData.protocol_id || 'new'}`, JSON.stringify({ currentStep, formData: serializableData }));
+        localStorage.setItem('study_launch_draft', JSON.stringify({ currentStep, formData: serializableData }));
+    }, [formData, currentStep]);
+
+    // Background auto-save to backend for existing/launched studies
+    useEffect(() => {
+        if (initialData && isEditMode) {
+            const timeout = setTimeout(async () => {
+                try {
+                    const payload = {
+                        protocol_id: formData.protocol_id,
+                        title: formData.title,
+                        full_title: formData.full_title || formData.title,
+                        start_date: formData.startDate || null,
+                        end_date: formData.endDate || null,
+                        description: formData.briefSummary,
+                        overview: formData.overview,
+                        benefit: formData.benefit,
+                        participation_message: formData.participation_message,
+                        has_study_kit: Boolean(formData.requireStudyKit),
+                        kit_details: formData.studyKitDetails,
+                        target_subjects: Number(formData.targetEnrollment || 0),
+                        target_screened: Number(formData.targetEnrollment || 0),
+                        compensation_currency: formData.currency || 'USD',
+                        countries: formData.countries || [],
+                        
+                        // Team & Sponsor
+                        pi_ids: formData.selectedPIs,
+                        coordinator_ids: formData.selectedCoordinators,
+                        sponsor_ids: formData.selectedSponsorUsers,
+                        sponsor: formData.sponsor, // Handled by serializer (ID or Name)
+
+                        trial_model: formData.primaryModel === 'Randomized controlled trial' ? 'RCT' :
+                                     formData.primaryModel === 'Open label study' ? 'OPEN_LABEL' :
+                                     formData.primaryModel === 'In-home use test' ? 'IHUT' :
+                                     formData.primaryModel === 'Patient repository' ? 'REGISTRY' :
+                                     formData.primaryModel === 'Observational study' ? 'OBSERVATIONAL' :
+                                     formData.primaryModel === 'Bioequivalence study' ? 'BIOEQUIVALENCE' : formData.primaryModel,
+                        phase: formData.clinicalPhase === 'N/A' ? 'N/A' :
+                               formData.clinicalPhase === 'Phase 0' ? 'PHASE_0' :
+                               formData.clinicalPhase === 'Phase 1' ? 'PHASE_1' :
+                               formData.clinicalPhase === 'Phase 1/2' ? 'PHASE_1_2' :
+                               formData.clinicalPhase === 'Phase 2' ? 'PHASE_2' :
+                               formData.clinicalPhase === 'Phase 2/3' ? 'PHASE_2_3' :
+                               formData.clinicalPhase === 'Phase 3' ? 'PHASE_3' :
+                               formData.clinicalPhase === 'Phase 4' ? 'PHASE_4' :
+                               formData.clinicalPhase === 'Pilot' ? 'PILOT' :
+                               formData.clinicalPhase === 'Bioequivalence' ? 'BIOEQUIVALENCE' : formData.clinicalPhase,
+                        masking_strategy: formData.maskingStrategy === 'None (open label)' ? 'NONE' :
+                                          formData.maskingStrategy === 'Single blind' ? 'SINGLE_BLIND' :
+                                          formData.maskingStrategy === 'Double blind' ? 'DOUBLE_BLIND' :
+                                          formData.maskingStrategy === 'Triple blind' ? 'TRIPLE_BLIND' :
+                                          formData.maskingStrategy === 'Quadruple blind' ? 'QUADRUPLE_BLIND' : formData.maskingStrategy,
+                        study_type: formData.executionMode === 'In-person' ? 'IN_PERSON' :
+                                    formData.executionMode === 'Remote' ? 'VIRTUAL' :
+                                    formData.executionMode === 'Hybrid' ? 'DECENTRALIZED' : formData.executionMode,
+                        reward_type: formData.rewardType === 'Cash' ? 'CASH' :
+                                     formData.rewardType === 'Gift Card' ? 'VISA_CARD' :
+                                     formData.rewardType === 'Product' ? 'MIXED' : formData.rewardType,
+                        reward_logic: formData.incentiveLogic === 'Per study completion' ? 'FULL_STUDY' :
+                                      formData.incentiveLogic === 'Per visit' ? 'PER_VISIT' :
+                                      formData.incentiveLogic === 'Milestone based' ? 'PER_TASK' : formData.incentiveLogic,
+                        reward_config: {
+                            amount: Number(formData.stipendAmount || 0),
+                            currency: formData.currency || 'USD',
+                            logic_label: formData.incentiveLogic || '',
+                            reward_label: formData.rewardType || ''
+                        },
+                        
+                        // Content
+                        consent_content: formData.extractedConsentText,
+                        study_questionnaires: (formData.selectedQuestionnaires || []).map(id => ({
+                            template_id: id,
+                            frequency: formData.questionnaireFrequencies[id] || 'One time only'
+                        })),
+
+                        screener_config: {
+                            steps: [
+                                { id: 'STEP1', type: 'system', label: 'Basics' },
+                                {
+                                    id: 'STEP2',
+                                    type: 'user_input',
+                                    label: 'Eligibility',
+                                    questions: (formData.screenerQuestions || []).map((q: any, index: number) => ({
+                                        ...q,
+                                        id: q?.id || `launch_screener_${index + 1}`
+                                    }))
+                                },
+                                { id: 'STEP3', type: 'system', label: 'Contact' }
+                            ]
+                        }
+                    };
+                    const url = `/api/studies/${initialData.protocol_id || initialData.id}/`;
+                    const res = await authFetch(url, {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    if (res.ok) {
+                        console.log("Background save of launched study succeeded!");
+                    }
+                } catch (err) {
+                    console.error("Auto-save to backend failed:", err);
+                }
+            }, 1500);
+            return () => clearTimeout(timeout);
+        }
+    }, [formData, initialData, isEditMode]);
+
     useEffect(() => {
         if (!initialData) {
-                    const savedDraft = localStorage.getItem(`study_launch_draft_${initialData?.protocol_id || 'new'}`) || localStorage.getItem('study_launch_draft');
-                    if (savedDraft) {
-                        const parsed = JSON.parse(savedDraft);
-                        if (parsed.formData && window.confirm("We found an unsaved study draft. Would you like to resume where you left off?")) {
-                            setFormData(prev => ({ ...prev, ...parsed.formData }));
-                            if (parsed.currentStep) setCurrentStep(parsed.currentStep);
-                        } else {
-                            localStorage.removeItem(`study_launch_draft_${initialData?.protocol_id || 'new'}`);
-                        }
-                    }
+            const savedDraft = localStorage.getItem(`study_launch_draft_${initialData?.protocol_id || 'new'}`) || localStorage.getItem('study_launch_draft');
+            if (savedDraft) {
+                const parsed = JSON.parse(savedDraft);
+                if (parsed.formData) {
+                    setFormData(prev => ({ ...prev, ...parsed.formData }));
+                    if (parsed.currentStep) setCurrentStep(parsed.currentStep);
+                }
+            }
         } else {
             const existingQuestionnaires = Array.isArray(initialData.study_questionnaires)
                 ? initialData.study_questionnaires.map((q: any) => q.template || q.template_details?.id).filter(Boolean)
@@ -1098,13 +1342,13 @@ const LaunchStudyForm: React.FC<LaunchStudyFormProps> = ({
             setFormData(prev => ({
                 ...prev,
                 protocol_id: initialData.protocol_id || prev.protocol_id,
-                sponsor: initialData.sponsor_org_id || initialData.sponsor_org?.id || initialData.sponsor_name || '',
+                sponsor: initialData.sponsor_id || initialData.sponsor_org_id || initialData.sponsor_org?.id || initialData.sponsor_name || '',
                 startDate: initialData.start_date || '',
                 endDate: initialData.end_date || '',
                 full_title: initialData.full_title || initialData.title || '',
                 title: initialData.title || '',
                 category: initialData.condition || initialData.primary_indication || '',
-                briefSummary: initialData.description || '',
+                briefSummary: initialData.description || initialData.brief_summary || '',
                 overview: initialData.overview || '',
                 benefit: initialData.benefit || '',
                 participation_message: initialData.participation_message || '',
@@ -1114,14 +1358,14 @@ const LaunchStudyForm: React.FC<LaunchStudyFormProps> = ({
                 executionMode: studyTypeToLabel[initialData.study_type] || initialData.study_type || 'In-person',
                 rewardType: rewardTypeToLabel[initialData.reward_type] || initialData.reward_type || 'Cash',
                 incentiveLogic: rewardLogicToLabel[initialData.reward_logic] || initialData.reward_logic || 'Per study completion',
-                stipendAmount: (initialData.reward_config?.amount || '').toString(),
+                stipendAmount: (initialData.reward_config?.amount || initialData.reward_amount || '').toString(),
                 currency: initialData.compensation_currency || 'USD',
                 requireStudyKit: Boolean(initialData.has_study_kit),
                 studyKitDetails: initialData.kit_details || '',
                 targetEnrollment: String(initialData.target_subjects || ''),
                 selectedPIs: initialData.pi_ids || [],
                 selectedCoordinators: initialData.coordinator_ids || [],
-                selectedSponsorUsers: initialData.sponsor_ids || [],
+                selectedSponsorUsers: initialData.sponsor_ids || (initialData.sponsor_id ? [initialData.sponsor_id] : []),
                 screenerQuestions,
                 selectedQuestionnaires: existingQuestionnaires,
                 questionnaireDetails,
@@ -2172,35 +2416,113 @@ const LaunchStudyForm: React.FC<LaunchStudyFormProps> = ({
                             <div className="flex items-center justify-between">
                                 <h3 className="text-[10px] font-black text-white uppercase tracking-[0.2em]">ELIGIBILITY SCREENER PROTOCOL</h3>
                                 <div className="flex items-center gap-2 px-3 py-1.5 bg-blue-500/10 rounded-xl border border-blue-500/20">
-                                    <FileText className="w-3 h-3 text-blue-500" />
-                                    <span className="text-[10px] font-black text-blue-500 uppercase tracking-widest">SCREENING SOURCE</span>
+                                    <Terminal className="w-3 h-3 text-blue-500" />
+                                    <span className="text-[10px] font-black text-blue-500 uppercase tracking-widest">AI EXTRACT</span>
                                 </div>
                             </div>
 
-                            <div 
-                                onClick={() => screenerFileInputRef.current?.click()}
-                                className="h-[180px] border-2 border-dashed border-blue-500/20 bg-black/40 rounded-[2rem] flex flex-col items-center justify-center cursor-pointer hover:border-blue-500/40 transition-all group"
-                            >
-                                {formData.screenerFile ? (
-                                    <div className="flex flex-col items-center gap-4">
-                                        <div className="w-16 h-16 rounded-2xl bg-blue-500/10 flex items-center justify-center">
-                                            <CheckCircle2 className="w-8 h-8 text-blue-500" />
+                            {!formData.extractedScreenerText && (
+                                <div 
+                                    onClick={() => screenerFileInputRef.current?.click()}
+                                    className={`relative h-[240px] border-2 border-dashed ${isExtractingScreener ? 'border-blue-500 bg-blue-500/5' : 'border-blue-500/20 bg-black/40 hover:border-blue-500/40'} transition-all rounded-[2rem] flex flex-col items-center justify-center cursor-pointer text-center group`}
+                                >
+                                    {isExtractingScreener ? (
+                                        <>
+                                            <div className="w-12 h-12 border-4 border-blue-500/20 border-t-blue-500 rounded-full animate-spin mb-4" />
+                                            <p className="text-blue-400 font-black uppercase tracking-[0.3em] text-[10px] italic">NEURAL SYNCHRONIZATION...</p>
+                                        </>
+                                    ) : (
+                                        <div className="flex flex-col items-center gap-4">
+                                            <Upload className="w-10 h-10 text-blue-500 transition-transform group-hover:-translate-y-1" />
+                                            <div className="text-center">
+                                                <div className="text-2xl font-black text-white italic uppercase tracking-tighter leading-none mb-1">UPLOAD SCREENER</div>
+                                                <div className="text-[10px] font-bold text-blue-500 uppercase tracking-[0.3em] italic">AI EXTRACTION</div>
+                                            </div>
                                         </div>
-                                        <div className="text-center">
-                                            <div className="text-xl font-black text-white uppercase italic tracking-tighter mb-1">{formData.screenerFile.name}</div>
-                                            <div className="text-[10px] text-blue-500 uppercase font-black tracking-widest">PROTOCOL ATTACHED</div>
+                                    )}
+                                </div>
+                            )}
+
+                            {formData.extractedScreenerText && (
+                                <div className="space-y-6">
+                                    <div className="bg-black/40 border border-white/5 rounded-2xl p-4 flex items-center justify-between">
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center">
+                                                <FileText className="w-5 h-5 text-blue-400" />
+                                            </div>
+                                            <div>
+                                                <div className="text-sm font-bold text-white">{formData.screenerFile?.name || 'Screener.pdf'}</div>
+                                                <div className="text-[10px] text-slate-500 font-medium">
+                                                    {formData.screenerFile ? (formData.screenerFile.size / (1024 * 1024)).toFixed(2) + ' MB' : '0.00 MB'}
+                                                </div>
+                                            </div>
                                         </div>
+                                        <button onClick={() => setFormData({...formData, extractedScreenerText: ''})} className="p-2 hover:bg-white/5 rounded-lg text-slate-500 transition-colors">
+                                            <X size={18} />
+                                        </button>
                                     </div>
-                                ) : (
-                                    <div className="flex flex-col items-center gap-4">
-                                        <Upload className="w-10 h-10 text-blue-500 transition-transform group-hover:-translate-y-1" />
-                                        <div className="text-center">
-                                            <div className="text-2xl font-black text-white italic uppercase tracking-tighter leading-none mb-1">UPLOAD SCREENER</div>
-                                            <div className="text-[10px] font-bold text-blue-500 uppercase tracking-[0.3em] italic">ELIGIBILITY PROTOCOL</div>
+
+                                    <div className="space-y-4">
+                                        <div className="flex items-center justify-between gap-3 flex-wrap mb-4">
+                                            <div className="flex items-center gap-2">
+                                                <Sparkles className="w-4 h-4 text-blue-500" />
+                                                <h4 className="text-[10px] font-black text-blue-500 uppercase tracking-[0.2em]">ELIGIBILITY PROTOCOL EXTRACTED REVIEW</h4>
+                                            </div>
+                                            <div className="flex items-center gap-1 p-1 bg-black/40 border border-white/5 rounded-xl">
+                                                <button 
+                                                    type="button"
+                                                    onClick={() => handleFormatScreener('bold')} 
+                                                    className="w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold text-slate-400 hover:text-white hover:bg-white/5 transition-colors"
+                                                    title="Bold"
+                                                >
+                                                    B
+                                                </button>
+                                                <button 
+                                                    type="button"
+                                                    onClick={() => handleFormatScreener('italic')} 
+                                                    className="w-8 h-8 rounded-lg flex items-center justify-center text-sm italic font-serif text-slate-400 hover:text-white hover:bg-white/5 transition-colors"
+                                                    title="Italic"
+                                                >
+                                                    I
+                                                </button>
+                                                <button 
+                                                    type="button"
+                                                    onClick={() => handleFormatScreener('underline')} 
+                                                    className="w-8 h-8 rounded-lg flex items-center justify-center text-sm underline text-slate-400 hover:text-white hover:bg-white/5 transition-colors"
+                                                    title="Underline"
+                                                >
+                                                    U
+                                                </button>
+                                                <div className="w-px h-4 bg-white/10 mx-1" />
+                                                <button 
+                                                    type="button"
+                                                    onClick={() => handleFormatScreener('link')} 
+                                                    className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/5 transition-colors"
+                                                    title="Insert Link"
+                                                >
+                                                    <Link size={14} />
+                                                </button>
+                                                <div className="w-px h-4 bg-white/10 mx-1" />
+                                                <button 
+                                                    type="button"
+                                                    onClick={() => handleFormatScreener('clear')} 
+                                                    className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
+                                                    title="Clear Text"
+                                                >
+                                                    <X size={14} />
+                                                </button>
+                                            </div>
                                         </div>
+                                        <textarea
+                                            ref={screenerExtractedRef}
+                                            value={formData.extractedScreenerText}
+                                            onChange={e => setFormData({ ...formData, extractedScreenerText: e.target.value })}
+                                            className="w-full bg-black/20 rounded-[2rem] border border-white/5 p-8 h-[240px] font-mono text-[13px] leading-relaxed text-slate-300 outline-none focus:border-blue-500/30 transition-all custom-scrollbar resize-none"
+                                        />
                                     </div>
-                                )}
-                            </div>
+                                </div>
+                            )}
+
                             <input
                                 type="file"
                                 ref={screenerFileInputRef}
@@ -2272,17 +2594,66 @@ const LaunchStudyForm: React.FC<LaunchStudyFormProps> = ({
 
                                     {/* AI EXTRACTION REVIEW AREA */}
                                     <div className="space-y-4">
-                                        <div className="flex items-center gap-2 mb-4">
-                                            <Sparkles className="w-4 h-4 text-pink-500" />
-                                            <h4 className="text-[10px] font-black text-pink-500 uppercase tracking-[0.2em]">AI EXTRACTION DOCUMENT REVIEW</h4>
+                                        <div className="flex items-center justify-between gap-3 flex-wrap mb-4">
+                                            <div className="flex items-center gap-2">
+                                                <Sparkles className="w-4 h-4 text-pink-500" />
+                                                <h4 className="text-[10px] font-black text-pink-500 uppercase tracking-[0.2em]">AI EXTRACTION DOCUMENT REVIEW</h4>
+                                            </div>
+                                            <div className="flex items-center gap-1 p-1 bg-black/40 border border-white/5 rounded-xl">
+                                                <button 
+                                                    type="button"
+                                                    onClick={() => handleFormatConsent('bold')} 
+                                                    className="w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold text-slate-400 hover:text-white hover:bg-white/5 transition-colors"
+                                                    title="Bold"
+                                                >
+                                                    B
+                                                </button>
+                                                <button 
+                                                    type="button"
+                                                    onClick={() => handleFormatConsent('italic')} 
+                                                    className="w-8 h-8 rounded-lg flex items-center justify-center text-sm italic font-serif text-slate-400 hover:text-white hover:bg-white/5 transition-colors"
+                                                    title="Italic"
+                                                >
+                                                    I
+                                                </button>
+                                                <button 
+                                                    type="button"
+                                                    onClick={() => handleFormatConsent('underline')} 
+                                                    className="w-8 h-8 rounded-lg flex items-center justify-center text-sm underline text-slate-400 hover:text-white hover:bg-white/5 transition-colors"
+                                                    title="Underline"
+                                                >
+                                                    U
+                                                </button>
+                                                <div className="w-px h-4 bg-white/10 mx-1" />
+                                                <button 
+                                                    type="button"
+                                                    onClick={() => handleFormatConsent('link')} 
+                                                    className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/5 transition-colors"
+                                                    title="Insert Link"
+                                                >
+                                                    <Link size={14} />
+                                                </button>
+                                                <div className="w-px h-4 bg-white/10 mx-1" />
+                                                <button 
+                                                    type="button"
+                                                    onClick={() => handleFormatConsent('clear')} 
+                                                    className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
+                                                    title="Clear Text"
+                                                >
+                                                    <X size={14} />
+                                                </button>
+                                            </div>
                                         </div>
 
                                         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 bg-black/20 rounded-[2rem] border border-white/5 p-8 relative overflow-hidden">
                                             {/* LEFT: TEXT CONTENT */}
-                                            <div className="lg:col-span-8 space-y-8 max-h-[600px] overflow-y-auto pr-6 custom-scrollbar">
-                                                <div className="font-mono text-[13px] leading-relaxed text-slate-300 whitespace-pre-wrap">
-                                                    {formData.extractedConsentText}
-                                                </div>
+                                            <div className="lg:col-span-8 h-[600px] overflow-y-auto pr-6 custom-scrollbar flex flex-col">
+                                                <textarea
+                                                    ref={consentExtractedRef}
+                                                    value={formData.extractedConsentText}
+                                                    onChange={e => setFormData({ ...formData, extractedConsentText: e.target.value })}
+                                                    className="w-full bg-transparent font-mono text-[13px] leading-relaxed text-slate-300 flex-1 outline-none focus:border-pink-500/30 transition-all custom-scrollbar resize-none border-0"
+                                                />
                                             </div>
 
                                             {/* RIGHT: SIGNATURE OVERSIGHT PREVIEW */}
@@ -2334,10 +2705,54 @@ const LaunchStudyForm: React.FC<LaunchStudyFormProps> = ({
                         <div className="bg-[#0F172A]/40 border border-white/10 rounded-[2rem] p-8 space-y-8">
                             <h3 className="text-[10px] font-black text-white uppercase tracking-[0.2em]">ADDITIONAL STUDY DOCUMENTS</h3>
                             
-                            <div className="h-[180px] border-2 border-dashed border-white/5 bg-black/40 rounded-[2rem] flex flex-col items-center justify-center cursor-pointer hover:border-white/10 transition-all">
-                                <Upload className="w-6 h-6 text-slate-600 mb-4" />
+                            <div 
+                                onClick={() => additionalFileInputRef.current?.click()}
+                                className="h-[180px] border-2 border-dashed border-white/5 bg-black/40 rounded-[2rem] flex flex-col items-center justify-center cursor-pointer hover:border-white/10 transition-all group"
+                            >
+                                <Upload className="w-6 h-6 text-slate-400 mb-4 group-hover:-translate-y-1 transition-transform" />
                                 <p className="text-sm font-bold text-white tracking-tight">Upload protocol, IRB approval, or other documents</p>
+                                <p className="text-[10px] text-slate-500 uppercase tracking-widest mt-1">Word, PDF, or other documents</p>
                             </div>
+                            <input
+                                type="file"
+                                ref={additionalFileInputRef}
+                                multiple
+                                onChange={handleAdditionalFilesChange}
+                                className="hidden"
+                                accept=".pdf,.doc,.docx"
+                            />
+
+                            {formData.additionalDocuments.length > 0 && (
+                                <div className="space-y-2 mt-4">
+                                    {formData.additionalDocuments.map((file: File, index: number) => (
+                                        <div key={index} className="bg-black/40 border border-white/5 rounded-2xl p-4 flex items-center justify-between">
+                                            <div className="flex items-center gap-4">
+                                                <div className="w-8 h-8 rounded-xl bg-blue-500/10 flex items-center justify-center">
+                                                    <FileText className="w-4 h-4 text-blue-400" />
+                                                </div>
+                                                <div>
+                                                    <div className="text-sm font-bold text-white truncate max-w-[200px] sm:max-w-md">{file.name}</div>
+                                                    <div className="text-[10px] text-slate-500 font-medium">
+                                                        {(file.size / (1024 * 1024)).toFixed(2)} MB
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <button 
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setFormData({
+                                                        ...formData,
+                                                        additionalDocuments: formData.additionalDocuments.filter((_, i) => i !== index)
+                                                    });
+                                                }} 
+                                                className="p-2 hover:bg-white/5 rounded-lg text-slate-500 hover:text-red-400 transition-colors"
+                                            >
+                                                <X size={18} />
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                         </div>
 
                         {/* Footer Navigation for Step 7 (Documents) */}

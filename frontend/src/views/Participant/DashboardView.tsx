@@ -93,6 +93,43 @@ const DashboardView = ({
         );
     }
 
+    const studySwitcher = allStudies && allStudies.length > 1 && (
+        <div className="flex items-center gap-3 bg-white border border-[#E3ECF5] p-3 rounded-2xl shadow-sm">
+            <span className="text-[10px] font-bold text-[#5F6F89] uppercase tracking-widest shrink-0">Switch Study:</span>
+            <div className="flex gap-2 overflow-x-auto no-scrollbar">
+                {allStudies.map((st: any, idx: number) => {
+                    const isPendingStudy = ['PENDING_APPROVAL', 'APPLIED', 'PENDING_REVIEW'].includes((st?.participantStatus || '').toUpperCase());
+                    return (
+                        <button
+                            key={idx}
+                            onClick={() => {
+                                const isPendingTarget = ['PENDING_APPROVAL', 'APPLIED', 'PENDING_REVIEW'].includes((st?.participantStatus || '').toUpperCase());
+                                const hasEnrolledStudy = allStudies.some((s: any) => !['PENDING_APPROVAL', 'APPLIED', 'PENDING_REVIEW'].includes((s?.participantStatus || '').toUpperCase()));
+                                if (isPendingTarget && hasEnrolledStudy) {
+                                    alert('You are already enrolled in a study. This application is pending review.');
+                                    return;
+                                }
+                                onStudySwitch?.(idx);
+                            }}
+                            className={`px-4 py-2 rounded-xl text-[11px] font-bold uppercase tracking-widest whitespace-nowrap transition-all flex items-center gap-2 ${
+                                selectedStudyIndex === idx
+                                    ? 'bg-[#1E88E5] text-white shadow-lg shadow-blue-500/20'
+                                    : 'bg-[#F8FBFF] text-[#5F6F89] hover:bg-[#E3F2FD]'
+                            }`}
+                        >
+                            {st?.title || st?.protocol_id || `Study ${idx + 1}`}
+                            {isPendingStudy && (
+                                <span className={`text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded ${
+                                    selectedStudyIndex === idx ? 'bg-white/20 text-white' : 'bg-[#FFF3E0] text-[#E65100]'
+                                }`}>Pending Review</span>
+                            )}
+                        </button>
+                    );
+                })}
+            </div>
+        </div>
+    );
+
     const isEnrolled = ['ENROLLED', 'ACTIVE', 'PENDING_REVIEW', 'CONSENTED', 'RANDOMIZED', 'COMPLETED', 'REGISTERED', 'SCREENING'].includes((participant?.status || '').toUpperCase());
     const isPending = ['PENDING_APPROVAL', 'APPLIED', 'PENDING_REVIEW'].includes((participant?.status || '').toUpperCase());
 
@@ -100,45 +137,51 @@ const DashboardView = ({
     if (!study || !participant || participant?.status === 'INELIGIBLE' || participant?.status === 'WITHDRAWN' || isPending) {
         if (isPending) {
             return (
-                <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-6 animate-in fade-in zoom-in duration-500">
-                    <div className="w-24 h-24 bg-white border border-[#E3ECF5] rounded-[24px] flex items-center justify-center mb-8 shadow-sm">
-                        <Clock className="w-10 h-10 text-[#1E88E5]/50" />
-                    </div>
-                    <h2 className="text-3xl font-bold text-[#1A2B49] tracking-tight mb-4">Application under Review</h2>
-                    <p className="text-[#5F6F89] font-bold uppercase tracking-widest mb-10 max-w-lg leading-relaxed">
-                        Thank you for applying to <span className="text-[#1E88E5]">{study?.title || 'the study'}</span>. Our clinical team is currently reviewing your eligibility. You will be notified once a decision has been reached.
-                    </p>
-                    <Card className="p-8 border-[#1E88E5]/10 bg-[#E3F2FD]/20 max-w-md">
-                        <div className="flex items-start gap-4 text-left">
-                            <AlertCircle className="w-6 h-6 text-[#1E88E5] shrink-0 mt-0.5" />
-                            <div>
-                                <h4 className="text-[12px] font-bold text-[#1A2B49] uppercase tracking-widest mb-2">Next Steps</h4>
-                                <p className="text-[13px] text-[#5F6F89] font-bold leading-relaxed uppercase">
-                                    You don't need to do anything right now. Once approved, your tasks and study timeline will automatically appear here.
-                                </p>
-                            </div>
+                <div className="flex flex-col gap-4 w-full animate-in fade-in duration-500">
+                    {studySwitcher}
+                    <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-6 animate-in fade-in zoom-in duration-500">
+                        <div className="w-24 h-24 bg-white border border-[#E3ECF5] rounded-[24px] flex items-center justify-center mb-8 shadow-sm">
+                            <Clock className="w-10 h-10 text-[#1E88E5]/50" />
                         </div>
-                    </Card>
+                        <h2 className="text-3xl font-bold text-[#1A2B49] tracking-tight mb-4">Application under Review</h2>
+                        <p className="text-[#5F6F89] font-bold uppercase tracking-widest mb-10 max-w-lg leading-relaxed">
+                            Thank you for applying to <span className="text-[#1E88E5]">{study?.title || 'the study'}</span>. Our clinical team is currently reviewing your eligibility. You will be notified once a decision has been reached.
+                        </p>
+                        <Card className="p-8 border-[#1E88E5]/10 bg-[#E3F2FD]/20 max-w-md">
+                            <div className="flex items-start gap-4 text-left">
+                                <AlertCircle className="w-6 h-6 text-[#1E88E5] shrink-0 mt-0.5" />
+                                <div>
+                                    <h4 className="text-[12px] font-bold text-[#1A2B49] uppercase tracking-widest mb-2">Next Steps</h4>
+                                    <p className="text-[13px] text-[#5F6F89] font-bold leading-relaxed uppercase">
+                                        You don't need to do anything right now. Once approved, your tasks and study timeline will automatically appear here.
+                                    </p>
+                                </div>
+                            </div>
+                        </Card>
+                    </div>
                 </div>
             );
         }
 
         return (
-            <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-6 animate-in fade-in zoom-in duration-500">
-                <div className="w-24 h-24 bg-white border border-[#E3ECF5] rounded-[24px] flex items-center justify-center mb-8 shadow-sm">
-                    <Search className="w-10 h-10 text-[#1E88E5]/40" />
+            <div className="flex flex-col gap-4 w-full animate-in fade-in duration-500">
+                {studySwitcher}
+                <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-6 animate-in fade-in zoom-in duration-500">
+                    <div className="w-24 h-24 bg-white border border-[#E3ECF5] rounded-[24px] flex items-center justify-center mb-8 shadow-sm">
+                        <Search className="w-10 h-10 text-[#1E88E5]/40" />
+                    </div>
+                    <h2 className="text-3xl font-bold text-[#1A2B49] tracking-tight mb-4">No active study enrollment</h2>
+                    <p className="text-[#5F6F89] font-bold tracking-tight mb-10 max-w-lg leading-relaxed">
+                        Browse available studies and check your eligibility to get started with our clinical research programs.
+                    </p>
+                    <button
+                        onClick={() => onAction('Discover Studies')}
+                        className="flex items-center gap-3 px-10 py-5 bg-[#1E88E5] hover:bg-[#1565C0] text-white rounded-xl font-bold text-[14px] uppercase tracking-widest transition-all active:scale-95 shadow-lg shadow-blue-500/20"
+                    >
+                        <Search className="w-4 h-4" />
+                        Discover Studies
+                    </button>
                 </div>
-                <h2 className="text-3xl font-bold text-[#1A2B49] tracking-tight mb-4">No active study enrollment</h2>
-                <p className="text-[#5F6F89] font-bold tracking-tight mb-10 max-w-lg leading-relaxed">
-                    Browse available studies and check your eligibility to get started with our clinical research programs.
-                </p>
-                <button
-                    onClick={() => onAction('Discover Studies')}
-                    className="flex items-center gap-3 px-10 py-5 bg-[#1E88E5] hover:bg-[#1565C0] text-white rounded-xl font-bold text-[14px] uppercase tracking-widest transition-all active:scale-95 shadow-lg shadow-blue-500/20"
-                >
-                    <Search className="w-4 h-4" />
-                    Discover Studies
-                </button>
             </div>
         );
     }
@@ -148,26 +191,7 @@ const DashboardView = ({
         <div className="flex flex-col gap-4 animate-in fade-in duration-700 pb-6">
 
             {/* STUDY SWITCHER */}
-            {allStudies && allStudies.length > 1 && (
-                <div className="flex items-center gap-3 bg-white border border-[#E3ECF5] p-3 rounded-2xl shadow-sm">
-                    <span className="text-[10px] font-bold text-[#5F6F89] uppercase tracking-widest shrink-0">Switch Study:</span>
-                    <div className="flex gap-2 overflow-x-auto no-scrollbar">
-                        {allStudies.map((st: any, idx: number) => (
-                            <button
-                                key={idx}
-                                onClick={() => onStudySwitch?.(idx)}
-                                className={`px-4 py-2 rounded-xl text-[11px] font-bold uppercase tracking-widest whitespace-nowrap transition-all ${
-                                    selectedStudyIndex === idx
-                                        ? 'bg-[#1E88E5] text-white shadow-lg shadow-blue-500/20'
-                                        : 'bg-[#F8FBFF] text-[#5F6F89] hover:bg-[#E3F2FD]'
-                                }`}
-                            >
-                                {st?.title || st?.protocol_id || `Study ${idx + 1}`}
-                            </button>
-                        ))}
-                    </div>
-                </div>
-            )}
+            {studySwitcher}
 
             {/* WELCOME HEADER */}
             <div className="flex items-center gap-2.5">

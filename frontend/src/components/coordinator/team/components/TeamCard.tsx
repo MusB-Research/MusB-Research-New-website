@@ -38,7 +38,18 @@ export const TeamCard: React.FC<TeamCardProps> = ({
                 </div>
             </td>
             <td className="px-6 py-6">
-                <div className="text-sm font-black text-slate-300 uppercase tracking-widest leading-none">{member.role}</div>
+                <div className="flex items-center gap-2">
+                    <div className="text-sm font-black text-slate-300 uppercase tracking-widest leading-none">{member.role}</div>
+                    {isMusB ? (
+                        <span className="px-2 py-0.5 bg-blue-500/10 border border-blue-500/20 text-[9px] font-black uppercase tracking-widest text-blue-400 rounded-md">
+                            Internal
+                        </span>
+                    ) : (
+                        <span className="px-2 py-0.5 bg-amber-500/10 border border-amber-500/20 text-[9px] font-black uppercase tracking-widest text-amber-400 rounded-md">
+                            External
+                        </span>
+                    )}
+                </div>
                 {member.expertise && <div className="text-[11px] text-slate-500 mt-2 font-bold uppercase tracking-wider opacity-60 leading-none">{member.expertise}</div>}
             </td>
             <td className="px-6 py-6">

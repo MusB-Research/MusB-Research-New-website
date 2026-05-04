@@ -510,6 +510,13 @@ export default function ScreenerBuilder({
                     )}
 
                     <button
+                        onClick={() => setShowImportModal(true)}
+                        className="flex items-center justify-center gap-3 px-6 h-14 bg-white/5 border border-white/10 rounded-2xl text-[10px] font-black text-slate-400 uppercase tracking-widest hover:bg-white/10 hover:text-white transition-all active:scale-95 whitespace-nowrap"
+                    >
+                        <Database className="w-4 h-4" /> Import Existing
+                    </button>
+
+                    <button
                         onClick={() => setShowSmartImportModal(true)}
                         className="flex items-center justify-center gap-3 px-6 h-14 bg-pink-500/10 border border-pink-500/20 rounded-2xl text-[10px] font-black text-pink-400 uppercase tracking-widest hover:bg-pink-500 hover:text-white transition-all active:scale-95 whitespace-nowrap"
                     >
@@ -675,6 +682,45 @@ export default function ScreenerBuilder({
                         {statusMessage.type === 'success' ? <CheckCircle2 className="w-4 h-4" /> : <AlertTriangle className="w-4 h-4" />}
                         <span className="text-[10px] font-black uppercase tracking-widest">{statusMessage.text}</span>
                     </motion.div>
+                )}
+            </AnimatePresence>
+
+            <AnimatePresence>
+                {showImportModal && (
+                    <React.Fragment>
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowImportModal(false)} className="fixed inset-0 bg-black/80 backdrop-blur-md z-[1000]" />
+                        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="fixed inset-0 m-auto w-full max-w-lg h-fit bg-[#0f172a] border border-white/10 rounded-[2rem] p-8 z-[1001] shadow-2xl">
+                            <div className="flex items-center justify-between mb-6">
+                                <h3 className="text-xl font-black text-white italic uppercase">Import Screener</h3>
+                                <button onClick={() => setShowImportModal(false)} className="text-slate-500 hover:text-white"><X /></button>
+                            </div>
+                            <p className="text-sm text-slate-400 mb-6">Select a study to import its screener questions into the current design.</p>
+                            
+                            <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar mb-6">
+                                {studies.filter(s => s.id !== selectedStudyId).map(s => (
+                                    <button 
+                                        key={s.id} 
+                                        onClick={() => handleImport(s.id)}
+                                        className="w-full p-4 bg-white/5 border border-white/5 rounded-2xl flex items-center justify-between hover:bg-indigo-500/10 hover:border-indigo-500/30 transition-all group"
+                                    >
+                                        <div className="text-left">
+                                            <div className="text-sm font-bold text-white group-hover:text-indigo-400 transition-colors truncate max-w-[300px]">{s.title || s.protocol_id}</div>
+                                            <div className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">{s.protocol_id}</div>
+                                        </div>
+                                        <Plus className="text-slate-600 group-hover:text-indigo-400 transition-colors" />
+                                    </button>
+                                ))}
+                                {studies.filter(s => s.id !== selectedStudyId).length === 0 && (
+                                    <div className="text-center p-6 bg-white/5 rounded-2xl border border-white/5 text-slate-500 text-sm font-bold">
+                                        No other studies available to import from.
+                                    </div>
+                                )}
+                            </div>
+                            <div className="flex justify-end gap-3">
+                                <button onClick={() => setShowImportModal(false)} className="px-6 py-2 text-xs font-bold text-slate-400">Cancel</button>
+                            </div>
+                        </motion.div>
+                    </React.Fragment>
                 )}
             </AnimatePresence>
 

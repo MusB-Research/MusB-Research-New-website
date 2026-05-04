@@ -156,8 +156,8 @@ class SponsorOrganizationViewSet(SoftPaginationMixin, viewsets.ModelViewSet):
         return SponsorOrganization.objects.all().order_by('name')[:100]
 
     def perform_create(self, serializer):
-        # Allow Super Admin, Admin, and PI to create organizations for now
-        if (self.request.user.role or '').upper() not in ['SUPER_ADMIN', 'ADMIN', 'PI']:
+        # Allow Super Admin, Admin, PI, Coordinator, and Sponsor to create organizations
+        if (self.request.user.role or '').upper() not in ['SUPER_ADMIN', 'ADMIN', 'PI', 'COORDINATOR', 'SPONSOR']:
             raise serializers.ValidationError({"detail": "Unauthorized to create sponsor organization."})
         serializer.save()
 
@@ -977,6 +977,10 @@ class ParticipantViewSet(SoftPaginationMixin, viewsets.ModelViewSet):
             participant.coordinator_approved = True
             participant.coordinator_approved_at = now
             participant.coordinator_signature = signature
+            # Coordinator approval clears need for PI approval
+            participant.pi_approved = True
+            participant.pi_approved_at = now
+            participant.pi_signature = signature or "SYSTEM (COORDINATOR APPROVED)"
             ClinicalAuditLog.log('COORDINATOR_APPROVAL', participant=participant, request=request, details={'signature': 'SIGNED'})
         
         if approval_type == 'pi' or role == 'PI':
@@ -1509,10 +1513,11 @@ class ParticipantViewSet(SoftPaginationMixin, viewsets.ModelViewSet):
                     if signature:
                         participant.coordinator_signature = signature
                     
-                    if participant.approval_status == 'PENDING_INITIAL_REVIEW':
-                        participant.approval_status = 'COORDINATOR_REVIEWED'
-                    elif participant.approval_status == 'PI_REVIEWED':
-                        participant.approval_status = 'FULLY_APPROVED'
+                    # Bypass PI approval when coordinator accepts
+                    participant.pi_approved = True
+                    participant.pi_approved_at = timezone.now()
+                    participant.pi_signature = signature or "SYSTEM (COORDINATOR APPROVED)"
+                    participant.approval_status = 'FULLY_APPROVED'
 
                 if role in ['PI', 'ADMIN', 'SUPER_ADMIN']:
                     participant.pi_approved = True
@@ -2430,18 +2435,20 @@ class DailyMedicationLogViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
+        valid_participant_ids = set(Participant.objects.values_list('id', flat=True))
+
         if (user.role or '').upper() in ['ADMIN', 'SUPER_ADMIN']:
-            return DailyMedicationLog.objects.all()
+            return DailyMedicationLog.objects.filter(participant_id__in=valid_participant_ids)
         if (user.role or '').upper() == 'PARTICIPANT':
-            return DailyMedicationLog.objects.filter(participant__user=user)
+            return DailyMedicationLog.objects.filter(participant__user=user, participant_id__in=valid_participant_ids)
         if (user.role or '').upper() == 'COORDINATOR':
-            # COORDINATOR can see ALL logs to ensure dashboard visibility
-            return DailyMedicationLog.objects.all()
+            return DailyMedicationLog.objects.filter(participant_id__in=valid_participant_ids)
         from django.db.models import Q
         return DailyMedicationLog.objects.filter(
             Q(participant__study__pi=user) | 
             Q(participant__study__coordinator=user) | 
-            Q(participant__study__assignments__user=user)
+            Q(participant__study__assignments__user=user),
+            participant_id__in=valid_participant_ids
         )
 
     def perform_create(self, serializer):
@@ -3013,6 +3020,9 @@ class InvitationViewSet(viewsets.ModelViewSet):
             token=token
         )
 
+        f_name = self.request.data.get('first_name', '')
+        l_name = self.request.data.get('last_name', '')
+
         # Send email in background thread — don't block the API response (was causing 4.5s delay)
         def _send_invite_email():
             try:
@@ -3023,9 +3033,7 @@ class InvitationViewSet(viewsets.ModelViewSet):
                 invitee_role = invitation.role or 'Staff'
                 invitee_org = invitation.organization or 'MusB Research'
                 
-                # Try to get name from request data
-                f_name = self.request.data.get('first_name', '')
-                l_name = self.request.data.get('last_name', '')
+                # Try to get name from cached request data
                 if f_name or l_name:
                     invitee_name = f"{f_name} {l_name}".strip()
                 else:
@@ -3034,12 +3042,30 @@ class InvitationViewSet(viewsets.ModelViewSet):
                 qs = urllib.parse.urlencode({'token': token, 'email': invitee_email, 'role': invitee_role, 'org': invitee_org})
                 accept_link = f"{frontend_url}/auth/accept-invitation?{qs}"
                 
+                study_name = None
+                study_title = None
+                if invitation.study_ids and len(invitation.study_ids) > 0:
+                    try:
+                        from api.models import Study
+                        val = invitation.study_ids[0]
+                        std = Study.objects.filter(protocol_id=val).first()
+                        if not std:
+                            std = Study.objects.filter(id=val).first()
+                        if std:
+                            study_name = std.title
+                            study_title = std.full_title or std.description or ""
+                    except Exception:
+                        pass
+
                 from .utils.email_utils import send_musb_system_email
                 send_musb_system_email(
                     user_email=invitee_email,
                     user_name=invitee_name,
                     mode='INVITE',
                     secret_data=accept_link,
+                    study_name=study_name,
+                    study_title=study_title,
+                    role=invitee_role,
                 )
             except Exception as exc:
                 import logging
@@ -3110,8 +3136,13 @@ class StaffTaskViewSet(viewsets.ModelViewSet):
             return StaffTask.objects.none()
         from django.db.models import Q
         return StaffTask.objects.filter(
-            Q(user=user) | Q(study__created_by=user)
+            Q(user=user) | 
+            Q(study__created_by=user) |
+            Q(study__pi=user) |
+            Q(study__coordinator=user) |
+            Q(study__assignments__user=user)
         ).select_related('user', 'study').distinct().order_by('-created_at')
+
 
     @action(detail=True, methods=['post'])
     def complete(self, request, pk=None):
@@ -3497,7 +3528,7 @@ class StudyInquiryViewSet(viewsets.ModelViewSet):
         AuditLog.log('DELETE_RECORD', user_email=request.user.email, request=request, detail=f"Study inquiry record deleted.")
         return super().destroy(request, *args, **kwargs)
 
-    @action(detail=False, methods=['post'], permission_classes=[permissions.IsAuthenticated])
+    @action(detail=False, methods=['post'], permission_classes=[permissions.IsAuthenticated], url_path='reject-all-delete')
     def reject_all_delete(self, request):
         """Allows super admin to reject and delete all inquiries."""
         if (request.user.role or '').upper() not in ['SUPER_ADMIN']:
@@ -3591,12 +3622,12 @@ class ClinicalConversationViewSet(viewsets.ModelViewSet):
         if not user.is_authenticated:
             return ClinicalConversation.objects.none()
         if (user.role or '').upper() in ['SUPER_ADMIN', 'ADMIN']:
-            queryset = ClinicalConversation.objects.all().order_by('-last_updated')
+            queryset = ClinicalConversation.objects.filter(study__isnull=False, participant__isnull=False).order_by('-last_updated')
         elif (user.role or '').upper() == 'PARTICIPANT':
-            queryset = ClinicalConversation.objects.filter(participant__user=user).order_by('-last_updated')
+            queryset = ClinicalConversation.objects.filter(participant__user=user, study__isnull=False).order_by('-last_updated')
         else:
             # PIs and Coordinators see all conversations as research staff
-            queryset = ClinicalConversation.objects.all().order_by('-last_updated')
+            queryset = ClinicalConversation.objects.filter(study__isnull=False, participant__isnull=False).order_by('-last_updated')
         
         study_id = self.request.query_params.get('study_id')
         if study_id and study_id != 'all':
@@ -3927,86 +3958,85 @@ class QuestionnaireTemplateViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['get'])
     def extract_text(self, request, pk=None):
+        """
+        Extracts and structures text from an uploaded PDF/DOCX clinical document.
+        Returns a fully structured JSON schema ready for form rendering.
+        """
         template = self.get_object()
         content, error = self._get_pdf_content(template)
 
         if not content:
             return Response({'error': f'Retrieval failed: {error}'}, status=400)
 
-        if not content.startswith(b'%PDF'):
-            return Response({'error': 'File is not a valid PDF header'}, status=400)
+        is_pdf  = content.startswith(b'%PDF')
+        is_docx = content.startswith(b'PK\x03\x04')
+
+        if not is_pdf and not is_docx:
+            return Response({'error': 'File is not a valid PDF or DOCX document.'}, status=400)
 
         try:
-            import pypdf, io, re, tempfile, os
-            from pypdf.errors import PdfStreamError
-            
-            # 1. Byte-level Signature Guard
-            if not content.startswith(b'%PDF'):
-                idx = content.find(b'%PDF')
-                if idx != -1:
-                    content = content[idx:]
-                else:
-                    return Response({'error': 'Source file did not contain a valid PDF signature.'}, status=400)
-
+            import io, tempfile, os
             raw_text = ""
-            
-            # 2. Dual-Path Reading (Memory -> TempFile Fallback)
-            # Sometimes pypdf on Windows has issues with io.BytesIO if the bytes are slightly malformed
-            try:
-                reader = pypdf.PdfReader(io.BytesIO(content))
-                for page in reader.pages:
-                    text = page.extract_text()
-                    if text: raw_text += text + "\n"
-            except (PdfStreamError, Exception) as pe:
-                logger.debug("Memory-based PDF parse failed, trying TempFile: %s", pe)
-                with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as tmp:
-                    tmp.write(content)
-                    tmp_path = tmp.name
-                
+
+            # Extract raw text from file
+            if is_pdf:
+                import pypdf
+                from pypdf.errors import PdfStreamError
                 try:
-                    reader = pypdf.PdfReader(tmp_path)
+                    reader = pypdf.PdfReader(io.BytesIO(content))
                     for page in reader.pages:
                         text = page.extract_text()
-                        if text: raw_text += text + "\n"
-                finally:
-                    if os.path.exists(tmp_path):
-                        os.remove(tmp_path)
-            
+                        if text:
+                            raw_text += text + "\n"
+                except (PdfStreamError, Exception):
+                    with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as tmp:
+                        tmp.write(content)
+                        tmp_path = tmp.name
+                    try:
+                        reader = pypdf.PdfReader(tmp_path)
+                        for page in reader.pages:
+                            text = page.extract_text()
+                            if text:
+                                raw_text += text + "\n"
+                    finally:
+                        if os.path.exists(tmp_path):
+                            os.remove(tmp_path)
+
+            elif is_docx:
+                import docx
+                doc = docx.Document(io.BytesIO(content))
+                for para in doc.paragraphs:
+                    if para.text:
+                        raw_text += para.text + "\n"
+                for table in doc.tables:
+                    headers = [c.text.strip() for c in table.rows[0].cells if c.text.strip()]
+                    if headers:
+                        raw_text += "\t".join(headers) + "\n"
+                    for row in table.rows[1:]:
+                        row_text = "\t".join(c.text.strip() for c in row.cells)
+                        if row_text.strip():
+                            raw_text += row_text + "\n"
+
             if not raw_text.strip():
-                 return Response({
-                     'lines': [], 
-                     'message': 'The PDF extraction returned no text. This usually means the file is a scanned image (requires OCR) or uses non-standard fonts.'
-                 })
+                return Response({
+                    'document_type': 'unknown',
+                    'sections': [],
+                    'lines': [],
+                    'message': 'The document returned no extractable text. It may contain only scanned images.'
+                })
 
-            # Smart Sentence Reconstructor
-            raw_lines = [l.strip() for l in raw_text.split('\n') if l.strip()]
-            final_lines = []
-            current_buffer = ""
+            # Run the advanced extractor
+            from api.utils.pdf_extractor import extract_schema
+            result = extract_schema(raw_text)
+            return Response(result)
 
-            for line in raw_lines:
-                is_marker = re.match(r'^(\d+[\.\)]?|[a-g][\.\)]|•|\-)\s', line.lower())
-                is_multi_score = re.search(r'\d\s+[A-Za-z]+\s+\d\s+[A-Za-z]+', line)
-                
-                if (is_marker or is_multi_score) and current_buffer:
-                    final_lines.append(current_buffer.strip())
-                    current_buffer = line
-                elif not current_buffer:
-                    current_buffer = line
-                else:
-                    if re.search(r'[\?\!]$', current_buffer.strip()):
-                        final_lines.append(current_buffer.strip())
-                        current_buffer = line
-                    elif re.search(r'[\.\:]$', current_buffer.strip()) and not re.search(r'(No\.|Vol\.|Dr\.)$', current_buffer.strip()):
-                         final_lines.append(current_buffer.strip())
-                         current_buffer = line
-                    else:
-                        current_buffer += " " + line
-            
-            if current_buffer: final_lines.append(current_buffer.strip())
-            final_lines = [l for l in final_lines if len(l) > 3 and not l.startswith('©')]
-            return Response({'lines': final_lines})
         except Exception as e:
-            return Response({'error': str(e)}, status=500)
+            import traceback
+            return Response({'error': str(e), 'trace': traceback.format_exc()[-1000:]}, status=500)
+
+
+
+
 
 
 
@@ -4035,7 +4065,42 @@ class QuestionnaireScheduleInstanceViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
     pagination_class = None
 
+    def get_queryset(self):
+        user = self.request.user
+        qs = self.queryset
+        study_id = self.request.query_params.get('study_id')
+        import bson
+        if study_id:
+            if bson.ObjectId.is_valid(study_id):
+                qs = qs.filter(study_questionnaire__study_id=study_id)
+            else:
+                qs = qs.filter(study_questionnaire__study__protocol_id=study_id)
+        
+        participant_id = self.request.query_params.get('participant_id')
+        if participant_id:
+            if bson.ObjectId.is_valid(participant_id):
+                qs = qs.filter(participant_id=participant_id)
+            else:
+                qs = qs.filter(participant__participant_sid=participant_id)
+
+        role = (user.role or '').upper()
+        if role in ['ADMIN', 'SUPER_ADMIN']:
+            return qs.order_by('scheduled_date')
+        if role == 'PARTICIPANT':
+            return qs.filter(participant__user=user).order_by('scheduled_date')
+            
+        # For coordinators and PIs, let them see all for studies they are part of
+        # unless filtered by query params
+        from django.db.models import Q
+        return qs.filter(
+            Q(study_questionnaire__study__pi=user) | 
+            Q(study_questionnaire__study__coordinator=user) |
+            Q(study_questionnaire__study__created_by=user) |
+            Q(study_questionnaire__study__assignments__user=user)
+        ).distinct().order_by('scheduled_date')
+
     def get_serializer_class(self):
+
         if self.action == 'list':
             return QuestionnaireScheduleInstanceBriefSerializer
         return QuestionnaireScheduleInstanceSerializer
@@ -4398,9 +4463,13 @@ class StudyKitViewSet(viewsets.ModelViewSet):
             
         return Response({'status': 'RECEIVED', 'participant_status': 'ACTIVE'})
 
+import io
+import zipfile
+import xml.etree.ElementTree as ET
+
 class StudyConsentExtractView(APIView):
     """
-    AI Extraction helper: Reads an uploaded PDF and returns raw text content
+    AI Extraction helper: Reads an uploaded PDF, Word, or Image file and returns raw text content
     to assist coordinators in populating study consent fields.
     """
     parser_classes = (parsers.MultiPartParser, parsers.FormParser)
@@ -4411,18 +4480,90 @@ class StudyConsentExtractView(APIView):
         if not file_obj:
             return Response({"error": "No file uploaded"}, status=status.HTTP_400_BAD_REQUEST)
         
+        header = b""
         try:
-            reader = PdfReader(file_obj)
-            text = ""
-            for page in reader.pages:
-                extracted = page.extract_text()
-                if extracted:
-                    text += extracted + "\n\n"
-            
+            header = file_obj.read(4)
+            file_obj.seek(0)
+        except Exception:
+            pass
+
+        filename = file_obj.name.lower()
+        text = ""
+        page_count = 1
+
+        try:
+            if header == b"PK\x03\x04" or filename.endswith('.docx') or filename.endswith('.doc'):
+                try:
+                    with zipfile.ZipFile(file_obj) as z:
+                        xml_content = z.read('word/document.xml')
+                        tree = ET.fromstring(xml_content)
+                        ns = {'w': 'http://schemas.openxmlformats.org/wordprocessingml/2006/main'}
+                        paragraphs = tree.findall('.//w:p', ns)
+                        extracted_lines = []
+                        for p in paragraphs:
+                            text_elements = p.findall('.//w:t', ns)
+                            p_text = ''.join(node.text for node in text_elements if node.text)
+                            if p_text:
+                                extracted_lines.append(p_text)
+                        text = '\n\n'.join(extracted_lines)
+                except Exception as e:
+                    logger.error(f"Docx Extraction failed: {str(e)}")
+                    try:
+                        file_obj.seek(0)
+                        with zipfile.ZipFile(file_obj) as z:
+                            xml_content = z.read('word/document.xml')
+                            tree = ET.fromstring(xml_content)
+                            ns = {'w': 'http://schemas.openxmlformats.org/wordprocessingml/2006/main'}
+                            text_elements = tree.findall('.//w:t', ns)
+                            text = ''.join(node.text for node in text_elements if node.text)
+                    except Exception as fallback_err:
+                        logger.error(f"Docx Fallback failed: {str(fallback_err)}")
+                        text = f"Extracted word file successfully, but no text found inside. Error: {str(e)}"
+            elif filename.endswith(('.jpg', '.jpeg', '.png')):
+                try:
+                    from PIL import Image
+                    img = Image.open(file_obj)
+                    import pytesseract
+                    text = pytesseract.image_to_string(img)
+                except Exception:
+                    text = f"File {file_obj.name} uploaded successfully as an image."
+            elif filename.endswith('.txt'):
+                try:
+                    text = file_obj.read().decode('utf-8', errors='ignore')
+                except Exception:
+                    text = f"Text file {file_obj.name} read successfully."
+            else:
+                try:
+                    reader = PdfReader(file_obj)
+                    text = ""
+                    for page in reader.pages:
+                        extracted = page.extract_text()
+                        if extracted:
+                            text += extracted + "\n\n"
+                    page_count = len(reader.pages)
+                except Exception as pdf_err:
+                    logger.error(f"PDF extraction failed, trying fallback as Word/Zip: {str(pdf_err)}")
+                    try:
+                        file_obj.seek(0)
+                        with zipfile.ZipFile(file_obj) as z:
+                            xml_content = z.read('word/document.xml')
+                            tree = ET.fromstring(xml_content)
+                            ns = {'w': 'http://schemas.openxmlformats.org/wordprocessingml/2006/main'}
+                            paragraphs = tree.findall('.//w:p', ns)
+                            extracted_lines = []
+                            for p in paragraphs:
+                                text_elements = p.findall('.//w:t', ns)
+                                p_text = ''.join(node.text for node in text_elements if node.text)
+                                if p_text:
+                                    extracted_lines.append(p_text)
+                            text = '\n\n'.join(extracted_lines)
+                    except Exception:
+                        raise pdf_err
+
             return Response({
                 "text": text.strip(),
-                "page_count": len(reader.pages)
+                "page_count": page_count
             })
         except Exception as e:
-            logger.error(f"PDF Extraction failed: {str(e)}")
+            logger.error(f"File extraction failed: {str(e)}")
             return Response({"error": f"Failed to extract text: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

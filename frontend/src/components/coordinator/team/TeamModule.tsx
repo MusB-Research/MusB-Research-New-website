@@ -70,12 +70,15 @@ export default function TeamModule({
                     documents: []
                 }));
 
-                const staffOnly = formatted.filter(m => 
-                    m.role !== 'Participant' && 
-                    m.role !== 'PARTICIPANT' &&
-                    m.status !== 'Draft' &&
-                    m.status !== 'PENDING'
-                );
+                const staffOnly = formatted.filter(m => {
+                    const roleStr = String(m.role || '').toUpperCase().replace(/[\s_-]/g, '');
+                    const statusStr = String(m.status || '').toUpperCase();
+                    return roleStr !== 'SUPERADMIN' &&
+                           roleStr !== 'ADMIN' &&
+                           roleStr !== 'PARTICIPANT' &&
+                           statusStr !== 'DRAFT' &&
+                           statusStr !== 'PENDING';
+                });
 
                 setMusbTeam(staffOnly.filter(m => m.type === 'MusB'));
                 setOfficeTeam(staffOnly.filter(m => m.type === 'Office'));
@@ -113,12 +116,16 @@ export default function TeamModule({
                     documents: []
                 }));
 
-                const staffOnly = formatted.filter(m => 
-                    m.role !== 'Participant' && 
-                    m.role !== 'PARTICIPANT' &&
-                    m.status !== 'Draft' &&
-                    m.status !== 'PENDING'
-                );
+                const staffOnly = formatted.filter(m => {
+                    const roleStr = String(m.role || '').toUpperCase().replace(/[\s_-]/g, '');
+                    const statusStr = String(m.status || '').toUpperCase();
+                    return roleStr !== 'SUPERADMIN' &&
+                           roleStr !== 'ADMIN' &&
+                           roleStr !== 'PARTICIPANT' &&
+                           roleStr !== 'PARTICIPANT' &&
+                           statusStr !== 'DRAFT' &&
+                           statusStr !== 'PENDING';
+                });
 
                 setMusbTeam(staffOnly.filter(m => m.type === 'MusB'));
                 setOfficeTeam(staffOnly.filter(m => m.type === 'Office'));
@@ -274,13 +281,34 @@ export default function TeamModule({
     };
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (!e.target.files?.[0] || !activeDocId.current) return;
-        addToast(`Encrypted document verified: ${e.target.files[0].name}`);
+        const file = e.target.files?.[0];
+        if (!file || !activeDocId.current) return;
+
+        setEditedMember(prev => ({
+            ...prev,
+            documents: prev.documents?.map(doc => {
+                if (doc.id === activeDocId.current) {
+                    return {
+                        ...doc,
+                        status: 'Valid',
+                        uploadDate: new Date().toLocaleDateString(),
+                        fileName: file.name
+                    };
+                }
+                return doc;
+            })
+        }));
+
+        addToast(`Document uploaded successfully: ${file.name}`);
         activeDocId.current = null;
+        e.target.value = '';
     };
 
     const getVisibleTeam = useMemo(() => {
         const filterFn = (m: TeamMember) => {
+            const roleStr = String(m.role || '').toUpperCase().replace(/[\s_-]/g, '');
+            if (roleStr === 'SUPERADMIN' || roleStr === 'ADMIN') return false;
+
             const matchesSearch = (m.name || "").toLowerCase().includes(searchQuery.toLowerCase()) || (m.email || "").toLowerCase().includes(searchQuery.toLowerCase());
             const matchesFilter = filterStatus === 'All' || (filterStatus === 'Available' && m.assignedStudies.length === 0) || (filterStatus === 'Assigned' && m.assignedStudies.length > 0) || (filterStatus === 'Active' && m.status === 'Active');
             return matchesSearch && matchesFilter;
@@ -299,7 +327,7 @@ export default function TeamModule({
 
     return (
         <div className="flex flex-col min-h-full space-y-8 lg:space-y-10 pt-4 px-4 sm:px-6 lg:px-0">
-            <input type="file" ref={fileInputRef} hidden onChange={handleFileChange} />
+            <input type="file" ref={fileInputRef} hidden onChange={handleFileChange} accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" />
 
             {/* Header */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 pb-6 border-b border-white/5">
@@ -319,7 +347,7 @@ export default function TeamModule({
                     <button 
                         onClick={() => {
                             setPanelMode('add');
-                            setEditedMember({ name: '', email: '', phone: '', role: 'Clinical Coordinator', type: 'Office', assignedStudies: [], status: 'Active', documents: [] });
+                            setEditedMember({ name: '', email: '', phone: '', role: '', type: 'Office', assignedStudies: [], status: 'Active', documents: [] });
                             setPanelOpen(true);
                         }} 
                         className="flex-1 sm:flex-none px-4 sm:px-6 py-2.5 bg-white text-black rounded-xl font-black text-[10px] sm:text-xs flex items-center justify-center gap-2 hover:bg-slate-100 transition-all active:scale-95 shadow-lg shadow-white/10 uppercase tracking-widest"
@@ -351,8 +379,9 @@ export default function TeamModule({
 
             {/* Filters and Search */}
             <div className="flex flex-col gap-6">
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-                    <div className="flex items-center gap-1.5 bg-white/5 p-1.5 rounded-xl border border-white/5 w-full md:w-auto overflow-x-auto no-scrollbar">
+                <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6">
+                    {/* Desktop Tab Buttons */}
+                    <div className="hidden xl:flex items-center gap-1.5 bg-white/5 p-1.5 rounded-xl border border-white/5 w-full xl:w-auto overflow-x-auto no-scrollbar">
                         {[
                             { id: 'MusB', label: 'MusB net' },
                             { id: 'Office', label: 'My office' },
@@ -361,15 +390,32 @@ export default function TeamModule({
                             <button 
                                 key={t.id} 
                                 onClick={() => setActiveTab(t.id as any)} 
-                                className={`flex-1 md:flex-none whitespace-nowrap px-4 lg:px-8 py-2.5 rounded-lg text-[10px] sm:text-[11px] font-black uppercase tracking-[0.15em] transition-all ${activeTab === t.id ? 'bg-white/10 text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}
+                                className={`flex-1 xl:flex-none whitespace-nowrap px-4 lg:px-8 py-2.5 rounded-lg text-[10px] sm:text-[11px] font-black uppercase tracking-[0.15em] transition-all ${activeTab === t.id ? 'bg-white/10 text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}
                             >
                                 {t.label}
                             </button>
                         ))}
                     </div>
+
+                    {/* Mobile/Tablet Tab Dropdown */}
+                    <div className="xl:hidden w-full relative">
+                        <select 
+                            value={activeTab}
+                            onChange={(e) => setActiveTab(e.target.value as any)}
+                            className="w-full bg-[#0F172A] border border-white/10 rounded-xl px-4 py-3.5 text-xs font-black uppercase tracking-widest text-white outline-none focus:border-blue-500 transition-all appearance-none cursor-pointer"
+                        >
+                            <option value="MusB">MusB Net</option>
+                            <option value="Office">My Office</option>
+                            <option value="All">Global</option>
+                        </select>
+                        <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                            <ChevronRight size={16} className="rotate-90" />
+                        </div>
+                    </div>
                     
-                    <div className="flex flex-col sm:flex-row gap-4 w-full md:w-auto items-center">
-                        <div className="flex gap-1.5 w-full sm:w-auto overflow-x-auto no-scrollbar pb-1 sm:pb-0">
+                    <div className="flex flex-col sm:flex-row gap-4 w-full xl:w-auto items-center">
+                        {/* Desktop Filter Status Buttons */}
+                        <div className="hidden xl:flex gap-1.5 w-full sm:w-auto overflow-x-auto no-scrollbar pb-1 sm:pb-0">
                             {['All', 'Available', 'Assigned', 'Active'].map(f => (
                                 <button 
                                     key={f} 
@@ -384,6 +430,24 @@ export default function TeamModule({
                                 </button>
                             ))}
                         </div>
+
+                        {/* Mobile/Tablet Filter Dropdown */}
+                        <div className="xl:hidden w-full relative">
+                            <select 
+                                value={filterStatus}
+                                onChange={(e) => setFilterStatus(e.target.value)}
+                                className="w-full bg-[#0F172A] border border-white/10 rounded-xl px-4 py-3.5 text-xs font-black uppercase tracking-widest text-white outline-none focus:border-blue-500 transition-all appearance-none cursor-pointer"
+                            >
+                                <option value="All">All Statuses</option>
+                                <option value="Available">Available</option>
+                                <option value="Assigned">Assigned</option>
+                                <option value="Active">Active</option>
+                            </select>
+                            <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                                <ChevronRight size={16} className="rotate-90" />
+                            </div>
+                        </div>
+
                         <div className="relative w-full sm:w-[280px] lg:w-[320px]">
                             <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600" />
                             <input 
@@ -474,7 +538,18 @@ export default function TeamModule({
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t border-white/5">
                                         <div>
                                             <p className="text-[9px] font-black text-slate-600 uppercase tracking-widest mb-1">Functional Role</p>
-                                            <p className="text-[11px] font-black text-slate-300 uppercase tracking-widest italic">{m.role}</p>
+                                            <div className="flex items-center gap-2">
+                                                <p className="text-[11px] font-black text-slate-300 uppercase tracking-widest italic leading-none">{m.role}</p>
+                                                {m.type === 'MusB' ? (
+                                                    <span className="px-1.5 py-0.5 bg-blue-500/10 border border-blue-500/20 text-[8px] font-black uppercase tracking-widest text-blue-400 rounded-md">
+                                                        Internal
+                                                    </span>
+                                                ) : (
+                                                    <span className="px-1.5 py-0.5 bg-amber-500/10 border border-amber-500/20 text-[8px] font-black uppercase tracking-widest text-amber-400 rounded-md">
+                                                        External
+                                                    </span>
+                                                )}
+                                            </div>
                                             {m.expertise && <p className="text-[10px] text-slate-500 mt-1 font-bold uppercase tracking-wider opacity-60 leading-none italic">{m.expertise}</p>}
                                         </div>
                                         <div>

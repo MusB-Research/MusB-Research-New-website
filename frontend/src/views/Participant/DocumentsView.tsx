@@ -304,17 +304,28 @@ const DocumentsView = ({
     };
 
     const handleAction = async (doc: Document & { _raw?: any }, action: 'VIEW' | 'DOWNLOAD') => {
-        // If this is a real signed consent with a PDF, open it directly
-        const realPdfUrl = (doc as any)._raw?.signed_pdf_url || (doc as any)._raw?.signed_pdf;
-        if (realPdfUrl) {
-            window.open(realPdfUrl, '_blank');
-            return;
-        }
+        const realPdfUrl = (doc as any)._raw?.signed_pdf_url || (doc as any)._raw?.signed_pdf || (doc as any)._raw?.file;
 
         if (action === 'VIEW') {
             setSelectedDoc(doc);
             return;
         }
+
+        if (action === 'DOWNLOAD') {
+            if (realPdfUrl) {
+                const baseUrl = API || 'http://localhost:8000';
+                const fullUrl = realPdfUrl.startsWith('http') ? realPdfUrl : (realPdfUrl.startsWith('/') ? `${baseUrl}${realPdfUrl}` : `${baseUrl}/${realPdfUrl}`);
+                const link = document.createElement('a');
+                link.href = fullUrl;
+                link.download = doc.name;
+                link.target = '_blank';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                return;
+            }
+        }
+
         // DOWNLOAD fallback (jsPDF for mock docs)
         const pdf = new jsPDF();
         pdf.setFont('helvetica', 'bold');

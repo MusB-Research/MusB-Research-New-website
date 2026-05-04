@@ -82,7 +82,8 @@ export default function Trials() {
                     status: statusMap[s.status] || 'Paused',
                     duration: s.duration || s.time_commitment || "4-12 Weeks",
                     compensation: s.compensation || "Varies by study",
-                    countries: s.countries || [],
+                    location: s.location || "",
+                    countries: Array.isArray(s.countries) ? s.countries : (typeof s.countries === 'string' && s.countries ? s.countries.split(',').map((c: string) => c.trim()) : (s.location ? [s.location] : [])),
                     tags: [s.trial_model, mappedType].filter(Boolean)
                 };
             });
@@ -444,11 +445,19 @@ export default function Trials() {
                                                     </p>
                                                 </div>
                                                 <div className="flex flex-wrap gap-2 justify-end max-w-[120px]">
-                                                    {(study.tags || []).map((tag: string) => (
-                                                        <span key={tag} className="px-2 py-0.5 bg-white/5 border border-white/5 rounded text-[9px] font-black text-slate-600 uppercase tracking-widest">
-                                                            {tag}
-                                                        </span>
-                                                    ))}
+                                                    {(study.tags || []).map((tag: string) => {
+                                                        const isHybrid = (tag || '').toLowerCase() === 'hybrid';
+                                                        let displayTag = tag;
+                                                        if (isHybrid && study.countries && study.countries.length > 0) {
+                                                            const cStr = Array.isArray(study.countries) ? study.countries.join(', ') : study.countries;
+                                                            displayTag = `${cStr} - ${tag}`;
+                                                        }
+                                                        return (
+                                                            <span key={tag} className="px-2 py-0.5 bg-white/5 border border-white/5 rounded text-[9px] font-black text-slate-600 uppercase tracking-widest">
+                                                                {displayTag}
+                                                            </span>
+                                                        );
+                                                    })}
                                                 </div>
                                             </div>
 
@@ -484,7 +493,7 @@ export default function Trials() {
                                                         <div className="text-[11px] font-black text-white group-hover/item:text-cyan-400 transition-colors truncate px-1">
                                                             {study.countries && study.countries.length > 0 
                                                                 ? (study.countries.length === 1 ? study.countries[0] : `${study.countries.length} Regions`)
-                                                                : (study.type === 'Virtual' ? 'Virtual' : 'On-site')}
+                                                                : (study.location && study.location.trim() !== '' ? study.location : (study.type === 'Virtual' ? 'Virtual' : 'On-site'))}
                                                         </div>
                                                     </div>
                                                 </div>

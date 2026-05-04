@@ -5,7 +5,7 @@ import {
     Plus, Save, Layout, FileText, List, Calendar,
     X, AlertCircle, ChevronDown, Layers, MousePointer2,
     CheckSquare, GripVertical, Settings2, Trash2, Upload, Eye, FileUp, ExternalLink, Database,
-    Terminal, CheckCircle2, AlertTriangle, Wand2, DraftingCompass, ShieldCheck, Sparkles
+    Terminal, CheckCircle2, AlertTriangle, Wand2, DraftingCompass, ShieldCheck, Sparkles, Link as LinkIcon
 } from 'lucide-react';
 import { apiFetch } from '../../api';
 import { authFetch, API } from '../../utils/auth';
@@ -83,6 +83,36 @@ export default function QuestionnaireBuilder({
         el.style.height = `${el.scrollHeight}px`;
     }, []);
 
+    const handleFormat = (type: 'bold' | 'italic' | 'underline' | 'link' | 'clear') => {
+        if (!instructionsRef.current) return;
+        const textarea = instructionsRef.current;
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        const selectedText = instructions.substring(start, end);
+
+        let formatted = '';
+        if (type === 'bold') {
+            formatted = `**${selectedText || 'bold text'}**`;
+        } else if (type === 'italic') {
+            formatted = `*${selectedText || 'italic text'}*`;
+        } else if (type === 'underline') {
+            formatted = `<u>${selectedText || 'underlined text'}</u>`;
+        } else if (type === 'link') {
+            formatted = `[${selectedText || 'link text'}](https://example.com)`;
+        } else if (type === 'clear') {
+            setInstructions('');
+            return;
+        }
+
+        const newText = instructions.substring(0, start) + formatted + instructions.substring(end);
+        setInstructions(newText);
+
+        setTimeout(() => {
+            textarea.focus();
+            textarea.setSelectionRange(start + formatted.length, start + formatted.length);
+        }, 0);
+    };
+
     useEffect(() => {
         if (viewMode === 'BUILDER') {
             autoExpand(instructionsRef.current);
@@ -120,6 +150,48 @@ export default function QuestionnaireBuilder({
             setViewMode('BUILDER');
         }
     }, [initialTemplate, initialTab]);
+
+    // Auto-save logic
+    useEffect(() => {
+        if (viewMode !== 'BUILDER' || !name || questions.length === 0) return;
+
+        const timer = setTimeout(() => {
+            // Internal function for background saving
+            const autoSave = async () => {
+                try {
+                    const url = editingId
+                        ? `${API}/api/questionnaire-templates/${editingId}/`
+                        : `${API}/api/questionnaire-templates/`;
+
+                    const res = await authFetch(url, {
+                        method: editingId ? 'PATCH' : 'POST',
+                        body: JSON.stringify({
+                            name,
+                            json_structure: {
+                                questions,
+                                instructions,
+                                sections: [{ label: 'Main Section', fields: questions }]
+                            }
+                        })
+                    });
+
+                    if (res.ok) {
+                        const data = await res.json();
+                        if (!editingId && data.id) {
+                            setEditingId(data.id);
+                        }
+                        setStatusMessage({ text: "Progress Auto-saved", type: 'success' });
+                        fetchTemplates();
+                    }
+                } catch (err) {
+                    console.error("Auto-save failed", err);
+                }
+            };
+            autoSave();
+        }, 2000); // 2 second debounce
+
+        return () => clearTimeout(timer);
+    }, [name, instructions, questions, viewMode]);
 
     const handlePdfUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -160,174 +232,202 @@ export default function QuestionnaireBuilder({
     const runAIExtraction = async () => {
         if (!editingId) return alert("Upload / Select a PDF first.");
         setIsSaving(true);
+        setStatusMessage({ text: 'Running AI extraction engine...', type: 'success' });
         try {
             const res = await authFetch(`${API}/api/questionnaire-templates/${editingId}/extract_text/`);
-            if (res.ok) {
-                const data = await res.json();
-                const rawLines: string[] = data.lines || [];
+            if (!res.ok) {
+                const err = await res.json();
+                throw new Error(err.error || 'Extraction failed');
+            }
 
-                // 1. Group raw lines into logical blocks
-                const blocks: string[] = [];
-                let currentBlock = "";
+            const data = await res.json();
 
-                for (const line of rawLines) {
-                    const trimmed = line.trim();
-                    if (!trimmed || trimmed.startsWith('©') || trimmed.includes('All rights reserved') || /page\s+\d+/i.test(trimmed)) continue;
+            // ── Document type banner ────────────────────────────────────────
+            const docType: string = data.document_type || 'unknown';
 
-                    // Question Marker Detect (Numbering or Bullets)
-                    const isNewQuestion = /^(\d+[\.\)]|[A-G][\.\)]|[\u2022\u25cf\-\u25a1])\s+/.test(trimmed);
-                    // Section/Header Detect (Short, Uppercase)
-                    const isSectionHeader = /^(PART|SECTION|BLOCK)\s+\d+/i.test(trimmed) || 
-                        (trimmed.toUpperCase() === trimmed && trimmed.length < 50 && trimmed.length > 5) ||
-                        /^(OVERVIEW|INTRODUCTION|NOTES|INSTRUCTIONS|BACKGROUND|NOTE):?/i.test(trimmed);
+            // ── Flatten all sections into a Question[] list ─────────────────
+            const sections: any[] = data.sections || [];
+            const suggested: Question[] = [];
 
-                    if ((isNewQuestion || isSectionHeader) && currentBlock) {
-                        blocks.push(currentBlock.trim());
-                        currentBlock = trimmed;
-                    } else {
-                        currentBlock += (currentBlock ? " " : "") + trimmed;
-                    }
-                }
-                if (currentBlock) blocks.push(currentBlock.trim());
-
-                // 2. Extract Title and Instructions
-                let extractedTitle = "";
-                let introText = "";
-                let startIndex = 0;
-
-                if (blocks.length > 0) {
-                    const first = blocks[0];
-                    if (!/^(\d+[\.\)]|[A-G][\.\)]|[\u2022\u25cf\-\u25a1])/.test(first) && first.length < 100) {
-                        extractedTitle = first;
-                        setName(extractedTitle);
-                        startIndex = 1;
-                    }
-                }
-
-                for (let i = startIndex; i < blocks.length; i++) {
-                    const block = blocks[i];
-                    const isIntroBlock = /^(OVERVIEW|INTRODUCTION|NOTES|INSTRUCTIONS|BACKGROUND|NOTE)/i.test(block) ||
-                        (!/^(\d+[\.\)]|[A-G][\.\)]|[\u2022\u25cf\-\u25a1])/.test(block));
-                    
-                    if (isIntroBlock) {
-                        introText += (introText ? "\n\n" : "") + block;
-                        startIndex = i + 1;
-                    } else {
-                        break;
-                    }
-                }
-
-                if (introText.length > 0) {
-                    setInstructions(introText);
-                } else {
-                    setInstructions('');
-                }
-
-                // 3. Identify Global Scoring Scale (e.g., 0=None, 1=Mild...)
-                let globalScale: string[] = [];
-                const scaleDetectPattern = /(\d)\s*[=\-:]\s*([A-Z][A-Z\s]+?)(?=\s+\d|\s*$)/g;
-
-                for (const b of blocks.slice(startIndex, startIndex + 5)) {
-                    let match;
-                    while ((match = scaleDetectPattern.exec(b)) !== null) {
-                        globalScale.push(`${match[1]} ${match[2].trim()}`);
-                    }
-                    if (globalScale.length > 0) break;
-                }
-
-                // 4. Transform remaining blocks into Questions
-                const suggested: Question[] = [];
-
-                for (let i = startIndex; i < blocks.length; i++) {
-                    const block = blocks[i];
-                    let options: string[] = [];
-                    let label = block;
-
-                    // Option Detection Logic
-                    // Path A: Binary Clinical Pattern (e.g. "0 for NO, 1 for YES")
-                    if (/\(0 for NO, 1 for YES\)/i.test(block) || /\(0 for NO, 1 for YES\)/i.test(block)) {
-                        label = block.replace(/\(0 for NO, 1 for YES\)/i, '').replace(/\b(NO|YES)\s+(NO|YES)\s?$/i, '').trim();
-                        options = ["0 - NO", "1 - YES"];
-                    }
-                    // Path B: Has scale buttons in the line (e.g. "Question Text 0 1 2 3")
-                    else if (block.match(/\s(\d\s*){2,}\d\s?$/) && globalScale.length > 0) {
-                        label = block.replace(/\s(\d\s*)+$/, '').trim();
-                        options = [...globalScale];
-                    } 
-                    // Path C: Inline Key-Value Pairs (e.g. "0 None 1 Some")
-                    else if (/(\d)\s+[A-Za-z]+\s+(\d)\s+[A-Za-z]+/.test(block)) {
-                        const localScale: string[] = [];
-                        const matches = block.matchAll(/(\d)\s*([A-Za-z][A-Za-z\s]+?)(?=\s+\d|\s*$)/g);
-                        for (const m of matches) {
-                            localScale.push(`${m[1]} ${m[2].trim()}`);
-                        }
-                        if (localScale.length > 1) {
-                            options = localScale;
-                            // Clean label from the trailing scale definitions
-                            label = block.split(/\s\d\s[A-Za-z]/)[0].trim();
-                        }
-                    }
-                    else {
-                        const inlineScorePattern = /(\d)\s*[=\-:]?\s*([A-Za-z][A-Za-z\s\/\\,\(\)-]+?)(?=\s+\d|\s*$)/g;
-                        const inlineMatches = [...block.matchAll(inlineScorePattern)];
-                        if (inlineMatches.length > 1) {
-                            options = inlineMatches.map(m => `${m[1]} ${m[2].trim()}`);
-                            const firstMatchIdx = block.search(/\d\s*[=\-:]?\s*[A-Za-z]/);
-                            if (firstMatchIdx > 5) label = block.substring(0, firstMatchIdx).trim();
-                        }
-                    }
-
-                    // Cleaning
-                    // Advanced Cleaning: Strip leaked table headers and response keywords
-                    let cleanLabel = label.replace(/^\d+[\.\)]\s+/, '').replace(/^[A-G][\.\)]\s+/, '').trim();
-                    
-                    const responseKeywords = [
-                        'No problem', 'Mild', 'Moderate', 'Severe', 'Very severe',
-                        'None', 'Some', 'A lot', 'Extreme',
-                        'Yes', 'No', 'N/A', 'Not at all', 'Somewhat', 'Very much',
-                        'Rarely', 'Occasionally', 'Frequently', 'Always'
-                    ];
-                    
-                    // Pattern: Strip anything after a pipe or multiple spaces if it matches a keyword
-                    const cleanupPattern = new RegExp(`\\s*(\\||\\s{2,})\\s*(${responseKeywords.join('|')}).*$`, 'i');
-                    cleanLabel = cleanLabel.replace(cleanupPattern, '').trim();
-                    
-                    // Specific check for the user's PDF table headers leaking
-                    if (cleanLabel.includes('|')) {
-                        const parts = cleanLabel.split('|');
-                        if (parts[0].trim().length > 5) {
-                            cleanLabel = parts[0].trim();
-                        }
-                    }
-
-                    if (cleanLabel.length < 3) continue;
-
+            for (const section of sections) {
+                // Add section header as a visual separator (instruction type)
+                if (section.title && section.title !== 'General') {
                     suggested.push({
-                        id: `ai_${suggested.length}_${Date.now()}`,
-                        type: options.length > 0 ? 'choice' : 'short_text',
-                        label: cleanLabel,
-                        placeholder: options.length > 0 ? 'Select an option...' : 'Enter your response...',
-                        required: true,
-                        options: options.length > 0 ? options : [],
-                        allow_multiple: /select all that apply/i.test(cleanLabel)
+                        id: `section_${Date.now()}_${Math.random()}`,
+                        type: 'short_text',
+                        label: `── ${section.title} ──`,
+                        placeholder: '',
+                        required: false,
                     });
                 }
 
-                const final = suggested.filter(q => q.label.length > 3);
-                setQuestions(final);
+                for (const field of (section.fields || [])) {
+                    const base = {
+                        id: `ai_${Date.now()}_${Math.random().toString(36).substr(2,6)}`,
+                        required: field.required ?? true,
+                        placeholder: field.placeholder || '',
+                        allow_multiple: field.allow_multiple ?? false,
+                    };
 
-                const msg = final.length > 0
-                    ? `Clinical Logic Restored: ${final.length} instruments synchronized with automated scale mapping.`
-                    : "Extraction completed, but no clear questions found. Please check PDF quality.";
-                alert(msg);;
+                    switch (field.type) {
+                        // ── Scales ───────────────────────────────────────────
+                        case 'scale':
+                        case 'emoji_scale': {
+                            const min = field.min ?? 0;
+                            const max = field.max ?? 10;
+                            const opts: string[] = [];
+                            for (let n = min; n <= max; n++) opts.push(String(n));
+                            suggested.push({
+                                ...base,
+                                type: 'choice',
+                                label: field.label || `Rate on a scale of ${min}–${max}`,
+                                options: opts,
+                            });
+                            break;
+                        }
+
+                        // ── Likert ───────────────────────────────────────────
+                        case 'likert': {
+                            suggested.push({
+                                ...base,
+                                type: 'choice',
+                                label: field.label || 'Rate the following',
+                                options: field.options || [],
+                            });
+                            break;
+                        }
+
+                        // ── Percentage scale ─────────────────────────────────
+                        case 'percentage_scale': {
+                            suggested.push({
+                                ...base,
+                                type: 'choice',
+                                label: field.label || 'Select a percentage',
+                                options: (field.values || []).map((v: number) => `${v}%`),
+                            });
+                            break;
+                        }
+
+                        // ── Matrix → multiple choice questions ───────────────
+                        case 'matrix': {
+                            for (const row of (field.rows || [])) {
+                                suggested.push({
+                                    ...base,
+                                    id: `ai_${Date.now()}_${Math.random().toString(36).substr(2,6)}`,
+                                    type: 'choice',
+                                    label: row,
+                                    options: field.columns || [],
+                                });
+                            }
+                            break;
+                        }
+
+                        // ── Table ────────────────────────────────────────────
+                        case 'table': {
+                            const colLabel = (field.columns || []).join(' | ');
+                            suggested.push({
+                                ...base,
+                                type: 'short_text',
+                                label: `[TABLE] ${field.label || colLabel}`,
+                                placeholder: field.columns?.join(', ') || '',
+                            });
+                            break;
+                        }
+
+                        // ── Checkbox / radio ─────────────────────────────────
+                        case 'checkbox':
+                        case 'radio': {
+                            suggested.push({
+                                ...base,
+                                type: 'choice',
+                                label: field.label || 'Select option(s)',
+                                options: field.options || [],
+                                allow_multiple: field.type === 'checkbox',
+                            });
+                            break;
+                        }
+
+                        // ── Choice (inline-options question) ─────────────────
+                        case 'choice': {
+                            suggested.push({
+                                ...base,
+                                type: 'choice',
+                                label: field.label || '',
+                                options: field.options || [],
+                            });
+                            break;
+                        }
+
+                        // ── Date / Number / Textarea ─────────────────────────
+                        case 'date':
+                            suggested.push({ ...base, type: 'date', label: field.label || '', options: [] });
+                            break;
+                        case 'number':
+                            suggested.push({ ...base, type: 'short_text', label: field.label || '', placeholder: 'Enter a number', options: [] });
+                            break;
+                        case 'textarea':
+                            suggested.push({ ...base, type: 'short_text', label: field.label || '', placeholder: 'Enter details...', options: [] });
+                            break;
+
+                        // ── Eligibility ──────────────────────────────────────
+                        case 'eligibility': {
+                            suggested.push({
+                                ...base,
+                                type: 'choice',
+                                label: field.text || 'Eligibility Criteria',
+                                options: ['Eligible', 'Not Eligible'],
+                            });
+                            break;
+                        }
+
+                        // ── Instruction / plain text ─────────────────────────
+                        case 'instruction': {
+                            suggested.push({
+                                ...base,
+                                type: 'short_text',
+                                label: `ℹ️ ${field.text || ''}`,
+                                placeholder: '',
+                                required: false,
+                            });
+                            break;
+                        }
+
+                        // ── Default: text / email / phone / signature ─────────
+                        default: {
+                            if (field.label && field.label.length > 2) {
+                                suggested.push({
+                                    ...base,
+                                    type: 'short_text',
+                                    label: field.label,
+                                    options: [],
+                                });
+                            }
+                        }
+                    }
+                }
             }
-        } catch (err) {
+
+            // Filter empty / separator-only results
+            const final = suggested.filter(q => q.label.trim().length > 2);
+            setQuestions(final);
+
+            const sectionCount = sections.length;
+            const msg = final.length > 0
+                ? `✅ Extracted ${final.length} fields across ${sectionCount} section(s). Document type: ${docType.toUpperCase()}.`
+                : `⚠️ Extraction completed but no structured fields found. Check PDF quality.`;
+            setStatusMessage({ text: msg, type: final.length > 0 ? 'success' : 'error' });
+            setTimeout(() => setStatusMessage(null), 6000);
+        } catch (err: any) {
             console.error(err);
-            alert("AI Extraction failed. Checking PDF stream...");
+            setStatusMessage({ text: `Extraction failed: ${err.message}`, type: 'error' });
         } finally {
             setIsSaving(false);
         }
     };
+
+
+
+
 
     const fetchSourceLines = async () => {
         if (!editingId) return;
@@ -563,6 +663,10 @@ export default function QuestionnaireBuilder({
                             </div>
                         ) : (
                             <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-2 px-3 py-1 bg-blue-500/10 rounded-full border border-blue-500/20 mr-2">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
+                                    <span className="text-[9px] font-black text-blue-400 uppercase tracking-widest">Live Architect</span>
+                                </div>
                                 <Database size={14} className="text-slate-500" />
                                 Return to Library
                             </div>
@@ -669,21 +773,39 @@ export default function QuestionnaireBuilder({
                                         <Eye size={14} /> Preview
                                     </button>
                                 </div>
-                                <button
-                                    onClick={() => {
-                                        setEditingId(t.id);
-                                        setEditingPdfUrl(getFullUrl(t.pdf_file));
-                                        setEditingPdfName(t.pdf_file ? (t.pdf_file.split('/').pop() || 'Protocol.pdf') : 'Protocol.pdf');
-                                        setName(t.name);
-                                        const js = t.json_structure || {};
-                                        setInstructions(js.instructions || '');
-                                        setQuestions(js.questions || (Array.isArray(js) ? js : []));
-                                        setViewMode('BUILDER');
-                                    }}
-                                    className="w-full py-3 bg-white/5 border border-white/10 rounded-xl text-[10px] font-bold text-slate-500 uppercase tracking-widest hover:text-blue-400 hover:border-blue-500/30 transition-all"
-                                >
-                                    Edit Specifications
-                                </button>
+                                <div className="flex gap-2">
+                                    <button
+                                        onClick={() => {
+                                            setEditingId(t.id);
+                                            setEditingPdfUrl(getFullUrl(t.pdf_file));
+                                            setEditingPdfName(t.pdf_file ? (t.pdf_file.split('/').pop() || 'Protocol.pdf') : 'Protocol.pdf');
+                                            setName(t.name);
+                                            const js = t.json_structure || {};
+                                            setInstructions(js.instructions || '');
+                                            setQuestions(js.questions || (Array.isArray(js) ? js : []));
+                                            setViewMode('BUILDER');
+                                        }}
+                                        className="flex-1 py-3 bg-white/5 border border-white/10 rounded-xl text-[10px] font-bold text-slate-500 uppercase tracking-widest hover:text-blue-400 hover:border-blue-500/30 transition-all"
+                                    >
+                                        Edit
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            setEditingId(null); // Clear ID to force new save
+                                            setEditingPdfUrl(getFullUrl(t.pdf_file));
+                                            setEditingPdfName(t.pdf_file ? (t.pdf_file.split('/').pop() || 'Protocol.pdf') : 'Protocol.pdf');
+                                            setName(`${t.name} (Copy)`);
+                                            const js = t.json_structure || {};
+                                            setInstructions(js.instructions || '');
+                                            setQuestions(js.questions || (Array.isArray(js) ? js : []));
+                                            setViewMode('BUILDER');
+                                            setStatusMessage({ text: "Cloned for new study", type: 'success' });
+                                        }}
+                                        className="flex-1 py-3 bg-white/5 border border-white/10 rounded-xl text-[10px] font-bold text-slate-500 uppercase tracking-widest hover:text-indigo-400 hover:border-indigo-500/30 transition-all"
+                                    >
+                                        Clone
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     ))}
@@ -718,9 +840,52 @@ export default function QuestionnaireBuilder({
                             />
 
                             <div className="mb-6">
-                                <div className="flex items-center justify-between mb-2">
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
                                     <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] ml-1">Global Instructions & Logic Overview</label>
-                                    <div className="text-[9px] font-black text-slate-600 uppercase tracking-widest bg-white/5 px-2 py-1 rounded-md border border-white/5">Markdown Supported</div>
+                                    <div className="flex items-center gap-1 p-1 bg-black/40 border border-white/5 rounded-xl self-start sm:self-center">
+                                        <button 
+                                            type="button"
+                                            onClick={() => handleFormat('bold')} 
+                                            className="w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold text-slate-400 hover:text-white hover:bg-white/5 transition-colors"
+                                            title="Bold"
+                                        >
+                                            B
+                                        </button>
+                                        <button 
+                                            type="button"
+                                            onClick={() => handleFormat('italic')} 
+                                            className="w-8 h-8 rounded-lg flex items-center justify-center text-sm italic font-serif text-slate-400 hover:text-white hover:bg-white/5 transition-colors"
+                                            title="Italic"
+                                        >
+                                            I
+                                        </button>
+                                        <button 
+                                            type="button"
+                                            onClick={() => handleFormat('underline')} 
+                                            className="w-8 h-8 rounded-lg flex items-center justify-center text-sm underline text-slate-400 hover:text-white hover:bg-white/5 transition-colors"
+                                            title="Underline"
+                                        >
+                                            U
+                                        </button>
+                                        <div className="w-px h-4 bg-white/10 mx-1" />
+                                        <button 
+                                            type="button"
+                                            onClick={() => handleFormat('link')} 
+                                            className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/5 transition-colors"
+                                            title="Insert Link"
+                                        >
+                                            <LinkIcon size={14} />
+                                        </button>
+                                        <div className="w-px h-4 bg-white/10 mx-1" />
+                                        <button 
+                                            type="button"
+                                            onClick={() => handleFormat('clear')} 
+                                            className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
+                                            title="Clear Text"
+                                        >
+                                            <X size={14} />
+                                        </button>
+                                    </div>
                                 </div>
                                 <textarea
                                     ref={instructionsRef}
@@ -730,7 +895,7 @@ export default function QuestionnaireBuilder({
                                         autoExpand(e.target);
                                     }}
                                     placeholder="Enter instructions for the participant (e.g. Please read this first...)"
-                                    className="w-full bg-black/20 border border-white/5 rounded-2xl p-4 text-slate-300 font-bold outline-none focus:border-indigo-500/30 transition-all min-h-[80px] overflow-hidden leading-relaxed"
+                                    className="w-full bg-black/20 border border-white/5 rounded-2xl p-4 text-slate-300 font-bold outline-none focus:border-indigo-500/30 transition-all min-h-[100px] leading-relaxed"
                                 />
                             </div>
 

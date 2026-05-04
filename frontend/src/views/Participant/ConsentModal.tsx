@@ -29,25 +29,22 @@ const ReadDocumentStep = ({
     fileUrl, hasFileUrl, termsContent, study,
     docAcknowledged, setDocAcknowledged,
     docTimerDone, setDocTimerDone,
-    docSecondsLeft, setDocSecondsLeft,
-    timerRef, onBack, onNext
+    onBack, onNext
 }: any) => {
-    // Start reading timer on mount
+    const divRef = useRef<HTMLDivElement>(null);
+
     useEffect(() => {
-        setDocTimerDone(false);
-        setDocSecondsLeft(15);
-        timerRef.current = setInterval(() => {
-            setDocSecondsLeft((s: number) => {
-                if (s <= 1) {
-                    clearInterval(timerRef.current!);
-                    setDocTimerDone(true);
-                    return 0;
-                }
-                return s - 1;
-            });
-        }, 1000);
-        return () => { if (timerRef.current) clearInterval(timerRef.current); };
-    }, []);
+        if (hasFileUrl && fileUrl) {
+            setDocTimerDone(true);
+        } else if (divRef.current) {
+            const { scrollHeight, clientHeight } = divRef.current;
+            if (scrollHeight <= clientHeight + 10) {
+                setDocTimerDone(true);
+            } else {
+                setDocTimerDone(false);
+            }
+        }
+    }, [hasFileUrl, fileUrl, termsContent]);
 
     const canProceed = docTimerDone && docAcknowledged;
 
@@ -64,7 +61,7 @@ const ReadDocumentStep = ({
                 <div className="flex items-center gap-2">
                     {!docTimerDone && (
                         <span className="px-3 py-1 bg-[#FFF3E0] border border-[#FFE0B2] text-[#E65100] text-[10px] font-bold rounded-full uppercase tracking-widest">
-                            Reading: {docSecondsLeft}s
+                            Please Scroll to Bottom
                         </span>
                     )}
                     {fileUrl && (
@@ -87,9 +84,12 @@ const ReadDocumentStep = ({
                     />
                 ) : (
                     <div
+                        ref={divRef}
                         onScroll={(e) => {
                             const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
-                            if (scrollHeight - scrollTop <= clientHeight + 60) setDocTimerDone(true);
+                            if (scrollHeight - scrollTop <= clientHeight + 10) {
+                                setDocTimerDone(true);
+                            }
                         }}
                         className="h-full overflow-y-auto p-6"
                     >
@@ -116,7 +116,7 @@ const ReadDocumentStep = ({
                             I confirm that I have read and understood the complete informed consent document and voluntarily agree to participate in this clinical research study.
                         </p>
                         {!docTimerDone && (
-                            <p className="text-[10px] text-[#B0BCCF] font-bold mt-0.5">Available after reading timer completes ({docSecondsLeft}s remaining)</p>
+                            <p className="text-[10px] text-amber-600 font-bold mt-0.5">Please scroll to the bottom of the document to enable checkbox</p>
                         )}
                     </div>
                 </label>
@@ -149,7 +149,6 @@ const ConsentModal = ({ isOpen, onClose, onComplete, study, template, userProfil
     const [docViewed, setDocViewed] = useState(false);
     const [docAcknowledged, setDocAcknowledged] = useState(false);
     const [docTimerDone, setDocTimerDone] = useState(false);
-    const [docSecondsLeft, setDocSecondsLeft] = useState(15);
     const contentRef = useRef<HTMLDivElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -170,7 +169,6 @@ const ConsentModal = ({ isOpen, onClose, onComplete, study, template, userProfil
             setDocViewed(false);
             setDocAcknowledged(false);
             setDocTimerDone(false);
-            setDocSecondsLeft(15);
             setHasSigned(false);
             setTypedName('');
             setTypedSignature('');
@@ -455,9 +453,6 @@ const ConsentModal = ({ isOpen, onClose, onComplete, study, template, userProfil
                                 setDocAcknowledged={setDocAcknowledged}
                                 docTimerDone={docTimerDone}
                                 setDocTimerDone={setDocTimerDone}
-                                docSecondsLeft={docSecondsLeft}
-                                setDocSecondsLeft={setDocSecondsLeft}
-                                timerRef={timerRef}
                                 onBack={() => setStep(1)}
                                 onNext={() => { setDocViewed(true); setStep(3); }}
                             />

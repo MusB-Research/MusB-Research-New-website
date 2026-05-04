@@ -111,6 +111,8 @@ class SanitizedModelSerializer(serializers.ModelSerializer):
 
     def to_internal_value(self, data):
         # Sanitize all incoming string data.
+        # IMPORTANT: Only sanitize plain strings — do NOT touch lists/dicts/objects
+        # which may already be correctly parsed by a subclass's to_internal_value.
         try:
             mutable_data = data.dict() if hasattr(data, 'dict') else dict(data)
         except Exception:
@@ -118,8 +120,15 @@ class SanitizedModelSerializer(serializers.ModelSerializer):
 
         if isinstance(mutable_data, dict):
             for key, value in list(mutable_data.items()):
+                # Only sanitize plain strings — never mutate lists, dicts, or other types
                 if isinstance(value, str):
                     mutable_data[key] = sanitize_html(value)
+                # If a value is a list of strings (e.g. tags), sanitize each string element
+                elif isinstance(value, list):
+                    mutable_data[key] = [
+                        sanitize_html(v) if isinstance(v, str) else v
+                        for v in value
+                    ]
 
         return super().to_internal_value(mutable_data)
 
@@ -442,16 +451,13 @@ class StudySerializer(SanitizedModelSerializer):
         else:
             data = data.copy()
 
-        # Strip unknown/extra frontend-only fields that the serializer doesn't know about
-        KNOWN_FIELDS = set(self.fields.keys()) | {
-            'pi_ids', 'coordinator_ids', 'sponsor_ids', 'pi_id', 'coordinator_id', 'sponsor_id', 'sponsor_org_id'
-        }
+        # Strip unknown/extra frontend-only fields
         FRONTEND_ONLY_FIELDS = {
             'reward_amount', 'masking', 'indication', 'execution_type',
             'startDate', 'endDate',
-            # Also strip these if frontend accidentally sends them (they are read-only relations)
             'documents', 'assigned_pis', 'assigned_coordinators', 'assigned_sponsors', 'consent_templates'
         }
+        
         if isinstance(data, dict):
             # Map frontend keys to backend fields
             if 'consent_pdf_file' in data:
@@ -469,6 +475,7 @@ class StudySerializer(SanitizedModelSerializer):
                     except (ValueError, TypeError):
                         pass
                 
+                import datetime
                 data['screener_config'] = {
                     'questions': screener_qs if isinstance(screener_qs, (list, dict)) else [],
                     'last_updated': str(datetime.datetime.now())
@@ -478,38 +485,143 @@ class StudySerializer(SanitizedModelSerializer):
             if 'extractedConsentText' in data:
                 data['consent_content'] = data.pop('extractedConsentText')
 
-            # Map Indication/Type if provided in frontend format
-            if 'indication' in data and not data.get('primary_indication'):
-                data['primary_indication'] = data.get('indication')
-            if 'execution_type' in data and not data.get('study_type'):
-                data['study_type'] = data.get('execution_type')
-
-            # Parse JSON strings for JSONFields if they come as strings (Multipart/FormData)
+            # Parse JSON strings for JSONFields
             json_fields = [
                 'screener_config', 'reward_config', 'timeline', 'tags', 'privacy_standards', 
                 'consent_collection', 'study_questionnaires',
-                'pi_ids', 'coordinator_ids', 'sponsor_ids'
             ]
             for field in json_fields:
                 val = data.get(field)
                 if val and isinstance(val, str):
-                    # Basic check for JSON-like string (array or object)
                     if (val.strip().startswith('{') and val.strip().endswith('}')) or (val.strip().startswith('[') and val.strip().endswith(']')):
                         try:
                             data[field] = json.loads(val)
                         except (ValueError, TypeError):
                             pass
-                    elif field in ['pi_ids', 'coordinator_ids', 'sponsor_ids'] and ',' in val:
-                        # Fallback for comma-separated values
-                        data[field] = [v.strip() for v in val.split(',') if v.strip()]
 
-            # Strip frontend helper fields but preserve critical ones
-            data = {k: v for k, v in data.items() if k not in FRONTEND_ONLY_FIELDS or k in ['study_questionnaires', 'consent_pdf_template', 'screener_config', 'consent_content']}
+            # --- Resolve pi_ids / coordinator_ids / sponsor_ids ---
+            # PrimaryKeyRelatedField(many=True) expects a list of PKs (or User instances).
+            # We accept: list of IDs, comma-string, or JSON string of IDs.
+            for id_field in ['pi_ids', 'coordinator_ids', 'sponsor_ids']:
+                val = data.get(id_field)
+                if val is None:
+                    continue
+                # Parse JSON string → list
+                if isinstance(val, str):
+                    val = val.strip()
+                    if val.startswith('['):
+                        try: val = json.loads(val)
+                        except: val = []
+                    elif ',' in val:
+                        val = [v.strip() for v in val.split(',') if v.strip()]
+                    elif val:
+                        val = [val]
+                    else:
+                        val = []
+                # Ensure it's a clean list of strings (PKs)
+                if isinstance(val, list):
+                    data[id_field] = [str(v) for v in val if v]
+                else:
+                    data.pop(id_field, None)
+
+            # Strip frontend helper fields
+            data = {k: v for k, v in data.items() if k not in FRONTEND_ONLY_FIELDS}
+
+            # Handle FileField string URLs (don't try to save a string URL to a FileField)
+            if 'consent_pdf_template' in data and isinstance(data.get('consent_pdf_template'), str):
+                data.pop('consent_pdf_template')
+            if 'screener_pdf_template' in data and isinstance(data.get('screener_pdf_template'), str):
+                data.pop('screener_pdf_template')
 
         try:
             return super().to_internal_value(data)
+        except serializers.ValidationError:
+            raise
         except Exception as e:
-            raise serializers.ValidationError({"detail": str(e)})
+            import traceback
+            raise serializers.ValidationError({"detail": str(e), "trace": traceback.format_exc()[-500:]})
+
+    def update(self, instance, validated_data):
+        # Extract relationship data before popping.
+        # NOTE: pi_ids/coordinator_ids/sponsor_ids come as lists of User objects
+        # after PrimaryKeyRelatedField validation, so we convert them to PKs.
+        def _extract_ids(field_name):
+            val = validated_data.pop(field_name, None)
+            if val is None: return None
+            # PrimaryKeyRelatedField(many=True) returns a list of model instances
+            result = []
+            for item in val:
+                if hasattr(item, 'pk'):
+                    result.append(item.pk)
+                else:
+                    result.append(item)
+            return result
+
+        pi_ids = _extract_ids('pi_ids')
+        coordinator_ids = _extract_ids('coordinator_ids')
+        sponsor_ids = _extract_ids('sponsor_ids')
+        study_questionnaires = validated_data.pop('study_questionnaires', None)
+
+        # Handle Many-to-Many Personnel Assignments
+        from .models import StudyAssignment
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        
+        def update_assignments(user_ids, role):
+            if user_ids is None: return
+            # 1. Remove existing assignments for this role not in the new list
+            instance.assignments.filter(role=role).exclude(user_id__in=user_ids).delete()
+            # 2. Add new assignments
+            for uid in user_ids:
+                if uid:
+                    StudyAssignment.objects.get_or_create(study=instance, user_id=uid, role=role)
+            # 3. Sync primary direct field for the first user
+            if user_ids and len(user_ids) > 0:
+                field_map = {'PI': 'pi', 'COORDINATOR': 'coordinator', 'SPONSOR_ADMIN': 'sponsor'}
+                field_name = field_map.get(role)
+                if field_name:
+                    setattr(instance, field_name + '_id', user_ids[0])
+                    # If it's a sponsor, try to sync sponsor_name
+                    if role == 'SPONSOR_ADMIN':
+                        try:
+                            user = User.objects.get(id=user_ids[0])
+                            instance.sponsor_name = user.get_full_name() or user.username
+                        except: pass
+
+        update_assignments(pi_ids, 'PI')
+        update_assignments(coordinator_ids, 'COORDINATOR')
+        update_assignments(sponsor_ids, 'SPONSOR_ADMIN')
+
+        # Update the study instance
+        instance = super().update(instance, validated_data)
+        
+        # Handle Clinical Instruments (StudyQuestionnaire)
+        if study_questionnaires is not None:
+            from .models import StudyQuestionnaire
+            existing_q_ids = set()
+            for q_data in study_questionnaires:
+                t_id = q_data.get('template_id') or q_data.get('template') or q_data.get('id')
+                if not t_id: continue
+                
+                existing_q_ids.add(str(t_id))
+                StudyQuestionnaire.objects.update_or_create(
+                    study=instance,
+                    template_id=t_id,
+                    defaults={
+                        'frequency': q_data.get('frequency', 'One time only'),
+                        'is_active': q_data.get('is_active', True)
+                    }
+                )
+            # Remove instruments no longer selected
+            instance.study_questionnaires.exclude(template_id__in=existing_q_ids).delete()
+
+        # Final safety sync: ensure direct fields (pi, coordinator, sponsor) are in StudyAssignments
+        for role, field in [('PI', 'pi'), ('COORDINATOR', 'coordinator'), ('SPONSOR_ADMIN', 'sponsor')]:
+            val = getattr(instance, field, None)
+            if val:
+                StudyAssignment.objects.get_or_create(study=instance, user=val, role=role)
+
+        return instance
 
 class StudyBriefSerializer(SanitizedModelSerializer):
     """High-Performance serializer for study lists/grids."""
@@ -531,7 +643,7 @@ class PublicStudySerializer(SanitizedModelSerializer):
             'tags', 'created_at', 'screener_config',
             'overview', 'benefit', 'participation_message',
             'require_participant_sig', 'require_cc_verification', 
-            'require_pi_signoff', 'require_lar', 'consent_content'
+            'require_pi_signoff', 'require_lar', 'consent_content', 'countries'
         ]
         ordering = ['created_at']
 
