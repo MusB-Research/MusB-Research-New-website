@@ -115,24 +115,8 @@ def send_mail_premium(to_email, subject, title, body, button_text=None, button_u
     """
 
     try:
-        if resend.api_key:
-            try:
-                from_addr = "MusB Research <onboarding@resend.dev>"
-                if hasattr(settings, 'DEFAULT_FROM_EMAIL') and '@resend.dev' not in settings.DEFAULT_FROM_EMAIL:
-                    from_addr = settings.DEFAULT_FROM_EMAIL
-                params = {
-                    "from": from_addr,
-                    "to": [to_email],
-                    "subject": subject,
-                    "html": html_content,
-                }
-                resend.Emails.send(params)
-                logger.info(f"Delivered premium email to {to_email} via Resend")
-                return True
-            except Exception as resend_err:
-                logger.warning(f"Resend delivery failed for {to_email}: {resend_err}. Trying fallback.")
-
         from django.core.mail import EmailMultiAlternatives
+        from django.conf import settings
         msg = EmailMultiAlternatives(subject, strip_tags(html_content), settings.DEFAULT_FROM_EMAIL, [to_email])
         msg.attach_alternative(html_content, "text/html")
         msg.send(fail_silently=False)
