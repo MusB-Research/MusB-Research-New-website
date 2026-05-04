@@ -3978,6 +3978,52 @@ class QuestionnaireTemplateViewSet(viewsets.ModelViewSet):
         content, error = self._get_pdf_content(template)
 
         if not content:
+            if template.json_structure:
+                js = template.json_structure
+                sections = js.get('sections', [])
+                formatted_sections = []
+                for s in sections:
+                    title = s.get('name', s.get('title', 'General'))
+                    fields = []
+                    for q in s.get('questions', []):
+                        options = []
+                        scale = js.get('response_format', {}).get('scale', [])
+                        if scale and isinstance(scale, list):
+                            options = [f"{opt['value']} = {opt['label']}" for opt in scale if 'value' in opt and 'label' in opt]
+                        
+                        fields.append({
+                            'type': 'choice' if options else 'short_text',
+                            'label': q.get('text', ''),
+                            'required': True,
+                            'placeholder': 'Select an option...' if options else 'Enter your answer...',
+                            'options': options
+                        })
+                    formatted_sections.append({
+                        'title': title,
+                        'fields': fields
+                    })
+                
+                if not formatted_sections:
+                    root_questions = js.get('questions', [])
+                    if root_questions:
+                        fields = []
+                        for q in root_questions:
+                            fields.append({
+                                'type': 'short_text',
+                                'label': q.get('text', ''),
+                                'required': True,
+                                'placeholder': 'Enter your answer...'
+                            })
+                        formatted_sections.append({
+                            'title': 'General',
+                            'fields': fields
+                        })
+
+                return Response({
+                    'document_type': 'questionnaire',
+                    'sections': formatted_sections,
+                    'lines': [js.get('description', ''), js.get('instructions', '')]
+                })
             return Response({'error': f'Retrieval failed: {error}'}, status=400)
 
         is_pdf  = content.startswith(b'%PDF')
