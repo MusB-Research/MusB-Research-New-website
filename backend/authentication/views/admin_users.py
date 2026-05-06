@@ -1,3 +1,4 @@
+from django.db import models, transaction
 from django.db.models import Q
 from bson import ObjectId
 from rest_framework.decorators import api_view, permission_classes
@@ -81,11 +82,11 @@ def admin_create_user(request):
             return res
 
         # 1. Extraction
-        email       = request.data.get('email', '').strip().lower()
-        first_name  = request.data.get('first_name', '').strip()
-        middle_name = request.data.get('middle_name', '').strip() or None
-        last_name   = request.data.get('last_name', '').strip()
-        role_input  = request.data.get('role', '').strip()
+        email       = (request.data.get('email') or '').strip().lower()
+        first_name  = (request.data.get('first_name') or '').strip()
+        middle_name = (request.data.get('middle_name') or '').strip() or None
+        last_name   = (request.data.get('last_name') or '').strip()
+        role_input  = (request.data.get('role') or '').strip()
         lat         = request.data.get('lat')
         lng         = request.data.get('lng')
         # Safely convert lat/lng to float
@@ -103,7 +104,15 @@ def admin_create_user(request):
         
         # 2. Validation
         if not all([email, first_name, last_name, role_input]):
-            logger.warning(f"Validation failed for user creation by {admin_user.email}. Missing fields: {[f for f in ['email', 'first_name', 'last_name', 'role'] if not request.data.get(f)]}")
+            missing = [f for f in ['email', 'first_name', 'last_name', 'role'] if not (request.data.get(f) or '').strip()]
+            err_msg = f"Missing mandatory fields: {', '.join(missing)}"
+            logger.warning(f"Validation failed for user creation by {admin_user.email}. {err_msg}")
+            AuditLog.log(
+                action='USER_CREATION_FAILED',
+                user_email=admin_user.email,
+                request=request,
+                detail=f"Validation failed. {err_msg}"
+            )
             res = Response({'error': 'First Name, Last Name, Email, and Role are mandatory.'}, status=status.HTTP_400_BAD_REQUEST)
             res["Access-Control-Allow-Origin"] = "*"
             return res
@@ -115,7 +124,14 @@ def admin_create_user(request):
             role = [r[0] for r in User.ROLE_CHOICES if r[0].lower() == role_input.lower()][0]
         
         if not role:
-            logger.warning(f"Invalid role requested: {role_input} by {admin_user.email}")
+            err_msg = f"Invalid role requested: {role_input}"
+            logger.warning(f"{err_msg} by {admin_user.email}")
+            AuditLog.log(
+                action='USER_CREATION_FAILED',
+                user_email=admin_user.email,
+                request=request,
+                detail=err_msg
+            )
             res = Response({'error': f'Invalid role. Allowed: {", ".join([r[1] for r in User.ROLE_CHOICES])}'}, status=status.HTTP_400_BAD_REQUEST)
             res["Access-Control-Allow-Origin"] = "*"
             return res
@@ -128,6 +144,27 @@ def admin_create_user(request):
 
         existing_user = User.objects.filter(email=email).first()
         if existing_user:
+            # If user is already registered, check if we can just re-invite them
+            if (existing_user.status or '').upper() == 'PENDING':
+                res = Response({
+                    'message': 'This user already has a pending invitation. You can resend their credentials from the dashboard.',
+                    'username': existing_user.username,
+                    'user_id': str(existing_user.id),
+                    'id': str(existing_user.id),
+                    'email': existing_user.email,
+                    'status': 'PENDING'
+                }, status=status.HTTP_200_OK)
+                res["Access-Control-Allow-Origin"] = "*"
+                return res
+
+            err_msg = f"Registration attempt for existing email: {email}"
+            logger.warning(f"{err_msg} by {admin_user.email}")
+            AuditLog.log(
+                action='USER_CREATION_FAILED',
+                user_email=admin_user.email,
+                request=request,
+                detail=err_msg
+            )
             res = Response({
                 'error': 'This email is already registered on the platform.',
                 'existing_user': {
@@ -141,80 +178,81 @@ def admin_create_user(request):
             res["Access-Control-Allow-Origin"] = "*"
             return res
 
-        # Generation
-        username = generate_unique_username(first_name, last_name)
-        temp_password = generate_secure_password(14)
-        study_id = request.data.get('study_id')
-        
-        # 5. Create Magic Link for Seamless First Login
-        from ..utils import generate_token
-        from ..models import MagicLink
-        invite_token = generate_token()
-        MagicLink.objects.create(email=email, token=invite_token)
-        
-        # Determine correct login URL based on role
-        frontend_base = getattr(settings, 'FRONTEND_URL', 'https://musbhealth.com')
-        if role.lower() == 'super_admin':
-            login_url = f"{frontend_base.rstrip('/')}/mainframe/restricted-auth?token={invite_token}"
-        else:
-            login_url = f"{frontend_base.rstrip('/')}/signin?token={invite_token}"
-
-        # 4. Atomic Creation
         # Rule 1.1: HOW AFFILIATION IS DETERMINED
         affiliation = 'MUSB' # Default
-        status_val = 'PENDING' # Default for MusB invited users
+        status_val = 'PENDING' # Default for invited users
         
         # Onsite PI adds team members -> inherit onsite, set pending
-        if admin_user.role == 'pi' and admin_user.affiliation.upper() == 'ONSITE':
+        # FIX: Case-insensitive role check
+        if (admin_user.role or '').upper() == 'PI' and (admin_user.affiliation or '').upper() == 'ONSITE':
             affiliation = 'ONSITE'
             # Rule 6: Onsite PI team member requests ALWAYS go through Super Admin approval
             if role == 'team_member':
                 status_val = 'PENDING'
             
-        # Explicit override for onsite PIs if flag provided (e.g., from study assignment flow)
+        # Explicit override for onsite hires if flag provided
         elif request.data.get('is_onsite_hire'):
              affiliation = 'ONSITE'
              if role == 'team_member':
                  status_val = 'PENDING'
 
-        # New user creation
-        new_user = User.objects.create_user(
-            email=email,
-            password=temp_password,
-            first_name=first_name,
-            middle_name=middle_name,
-            last_name=last_name,
-            full_name=f"{first_name} {last_name}".strip(),
-            role=role,
-            affiliation=affiliation,
-            status=status_val,
-            username=username,
-            must_change_password=True,
-            profile_completed=False,
-            created_by=admin_user,
-            invited_by=admin_user,
-            invited_in_study=study_id,
-            is_active=True,
-            # Consortium Data
-            lat=lat,
-            lng=lng,
-            is_mellow_member=is_mellow,
-            organization=org,
-            bio=bio,
-            zip_code=request.data.get('zip_code') or None,
-            country=request.data.get('country') or None,
-            state=request.data.get('state') or None
-        )
+        # Generation
+        username = generate_unique_username(first_name, last_name)
+        temp_password = generate_secure_password(14)
+        study_id = request.data.get('study_id')
         
-        # 4.1 Approval Request for Onsite Team Members
-        if status_val == 'PENDING':
-            from ..models import ApprovalRequest
-            ApprovalRequest.objects.create(
-                requested_by=admin_user,
-                target_user=new_user,
-                status='pending'
+        with transaction.atomic():
+            # 5. Create Magic Link for Seamless First Login
+            from ..utils import generate_token
+            from ..models import MagicLink
+            invite_token = generate_token()
+            MagicLink.objects.create(email=email, token=invite_token)
+            
+            # New user creation
+            new_user = User.objects.create_user(
+                email=email,
+                password=temp_password,
+                first_name=first_name,
+                middle_name=middle_name,
+                last_name=last_name,
+                full_name=f"{first_name} {last_name}".strip(),
+                role=role,
+                affiliation=affiliation,
+                status=status_val,
+                username=username,
+                must_change_password=True,
+                profile_completed=False,
+                created_by=admin_user,
+                invited_by=admin_user,
+                invited_in_study=study_id,
+                is_active=True,
+                # Consortium Data
+                lat=lat,
+                lng=lng,
+                is_mellow_member=is_mellow,
+                organization=org,
+                bio=bio,
+                zip_code=request.data.get('zip_code') or None,
+                country=request.data.get('country') or None,
+                state=request.data.get('state') or None
             )
+            
+            # 4.1 Approval Request for Onsite Team Members
+            if status_val == 'PENDING' and affiliation == 'ONSITE':
+                from ..models import ApprovalRequest
+                ApprovalRequest.objects.create(
+                    requested_by=admin_user,
+                    target_user=new_user,
+                    status='pending'
+                )
         
+        # Determine correct login URL based on role
+        setup_link = f"{getattr(settings, 'FRONTEND_URL', 'https://musbhealth.com').rstrip('/')}/auth/accept-invitation?token={invite_token}"
+        frontend_base = getattr(settings, 'FRONTEND_URL', 'https://musbhealth.com')
+        if role.lower() == 'super_admin':
+            login_url = f"{frontend_base.rstrip('/')}/mainframe/restricted-auth?token={invite_token}"
+        else:
+            login_url = f"{frontend_base.rstrip('/')}/auth/accept-invitation?token={invite_token}"
         # 4.2 TRIGGER NOTIFICATIONS
         try:
             from django.apps import apps

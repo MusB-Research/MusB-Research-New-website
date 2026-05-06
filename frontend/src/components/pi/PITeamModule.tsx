@@ -194,7 +194,7 @@ export default function PITeamModule({
                     setPanelOpen(false);
                 } else {
                     const err = await res.json();
-                    addToast(err.detail || 'Could not register member', 'error');
+                    addToast(err.error || err.detail || 'Could not register member', 'error');
                 }
             } else {
                 const res = await authFetch(`${API}/api/users/${editedMember.id}/`, {

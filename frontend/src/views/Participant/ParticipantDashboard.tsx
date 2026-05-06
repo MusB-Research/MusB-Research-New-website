@@ -474,11 +474,12 @@ export default function ParticipantDashboard() {
 
         // 4. Questionnaire Injection
         fetchedQues.forEach((q: any) => {
+            const qName = q.questionnaire_details?.schedule_name || q.questionnaire_details?.template_details?.name || q.schedule_name || 'Questionnaire';
             fetchedTasks.push({
                 id: `qs-${q.id}`,
                 study: sId,
                 participant: pId,
-                title: q.schedule_name || q.template_details?.name || 'Questionnaire',
+                title: qName,
                 status: q.status || 'PENDING',
                 due_date: q.scheduled_date || q.created_at,
                 visit_name: 'Instrumentation',
@@ -486,7 +487,7 @@ export default function ParticipantDashboard() {
                 estimated_time: '10 min',
                 task_type: 'QUESTIONNAIRE',
                 q_data: q,
-                task_details: { task_type: 'QUESTIONNAIRE', description: `Please complete the ${q.schedule_name} instrument.` }
+                task_details: { task_type: 'QUESTIONNAIRE', description: `Please complete the ${qName} instrument.` }
             });
         });
 

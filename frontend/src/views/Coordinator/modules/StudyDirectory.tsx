@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, ChevronRight, CheckCircle2, Clock, PlayCircle, Activity, Building, Layout, ExternalLink, Trash2, AlertTriangle, Globe } from 'lucide-react';
+import { Plus, ChevronRight, CheckCircle2, Clock, PlayCircle, Activity, Building, Layout, ExternalLink, Trash2, AlertTriangle, Globe, Users, Download, FileText } from 'lucide-react';
 import { SkeletonLoader } from '../../../components/shared/SkeletonLoader';
 
 interface Study {
@@ -11,12 +11,15 @@ interface Study {
     sponsor_name?: string;
     status: string;
     countries?: string[];
+    enrollment_count?: number;
+    compliance_rate?: number;
 }
 
 interface StudyDirectoryProps {
     studies: Study[];
     onAdd: () => void;
     onEdit: (s: Study) => void;
+    onExport?: (s: Study, format: 'csv' | 'pdf') => void;
     onDelete?: (s: Study) => Promise<void> | void;
     onUpdateStatus?: (id: string, status: string) => void;
     isLoading?: boolean;
@@ -46,6 +49,7 @@ export const StudyDirectory: React.FC<StudyDirectoryProps> = ({
     studies,
     onAdd,
     onEdit,
+    onExport,
     onDelete,
     onUpdateStatus,
     isLoading = false
@@ -90,16 +94,16 @@ export const StudyDirectory: React.FC<StudyDirectoryProps> = ({
     };
 
     return (
-        <div className="space-y-10 pt-4">
+        <div className="space-y-4 pt-2">
             {/* Minimal Header */}
-            <div className={`flex ${isMobile ? 'flex-col gap-6' : 'justify-between items-center'} pb-6 border-b border-white/5`}>
+            <div className={`flex ${isMobile ? 'flex-col gap-4' : 'justify-between items-center'} pb-4 border-b border-white/5`}>
                 <div>
                     <h1 className={`${isMobile ? 'text-xl' : 'text-2xl'} font-black text-white tracking-tighter uppercase italic leading-none`}>Study <span className="text-blue-400">Directory</span></h1>
                     <p className="text-[10px] text-slate-500 mt-2 font-bold uppercase tracking-[0.3em] opacity-80">Managing {studies.length} active research protocols</p>
                 </div>
                 <button 
                     onClick={onAdd} 
-                    className={`${isMobile ? 'w-full' : ''} px-8 py-4 bg-white text-black rounded-2xl font-black text-[11px] flex items-center justify-center gap-2 hover:bg-slate-100 transition-all active:scale-95 shadow-xl shadow-white/5 uppercase tracking-widest`}
+                    className={`${isMobile ? 'w-full' : ''} px-6 py-3 bg-white text-black rounded-xl font-black text-[11px] flex items-center justify-center gap-2 hover:bg-slate-100 transition-all active:scale-95 shadow-xl shadow-white/5 uppercase tracking-widest`}
                 >
                     <Plus className="w-4 h-4" /> New Protocol
                 </button>
@@ -137,7 +141,7 @@ export const StudyDirectory: React.FC<StudyDirectoryProps> = ({
                                     key={s.id}
                                     initial={{ opacity: 0, y: 10 }}
                                     animate={{ opacity: 1, y: 0 }}
-                                    className="bg-[#0B101B]/60 backdrop-blur-xl border border-white/5 p-5 md:p-8 rounded-[2rem] md:rounded-[2.5rem] space-y-6 relative overflow-hidden group active:scale-[0.98] transition-all"
+                                    className="bg-[#0B101B]/60 backdrop-blur-xl border border-white/5 p-4 md:p-5 rounded-[1.5rem] md:rounded-[2rem] space-y-4 relative overflow-hidden group active:scale-[0.98] transition-all"
                                     onClick={() => onEdit(s)}
                                 >
                                     <div className="flex justify-between items-start gap-4">
@@ -150,7 +154,7 @@ export const StudyDirectory: React.FC<StudyDirectoryProps> = ({
                                         </div>
                                     </div>
 
-                                    <div className="grid grid-cols-2 gap-4 md:gap-6 py-6 border-y border-white/5">
+                                    <div className="grid grid-cols-2 gap-4 md:gap-6 py-4 border-y border-white/5">
                                         <div className="space-y-2 min-w-0">
                                             <div className="flex items-center gap-2">
                                                 <Building className="w-3 h-3 text-slate-500" />
@@ -160,16 +164,12 @@ export const StudyDirectory: React.FC<StudyDirectoryProps> = ({
                                         </div>
                                         <div className="space-y-2 min-w-0">
                                             <div className="flex items-center gap-2">
-                                                <Globe className="w-3 h-3 text-slate-500" />
-                                                <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest italic">Type & Region</p>
+                                                <Users className="w-3 h-3 text-slate-500" />
+                                                <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest italic">Metrics</p>
                                             </div>
-                                            <div className="flex flex-wrap gap-2 mt-1">
-                                                <p className="text-[10px] md:text-[11px] font-bold text-slate-300 uppercase truncate">{s.study_type.replace('_', ' ')}</p>
-                                                {s.countries && s.countries.length > 0 && (
-                                                    <span className="text-[9px] px-2 py-0.5 bg-blue-500/10 border border-blue-500/20 rounded text-blue-400 font-black uppercase tracking-tighter">
-                                                        {s.countries.length === 1 ? s.countries[0] : `${s.countries.length} COUNTRIES`}
-                                                    </span>
-                                                )}
+                                            <div className="flex items-center gap-3">
+                                                <p className="text-[10px] md:text-[11px] font-bold text-white uppercase">{s.enrollment_count || 0} ENROLLED</p>
+                                                <p className="text-[10px] md:text-[11px] font-bold text-emerald-400 uppercase">{s.compliance_rate || 0}% COMPLIANCE</p>
                                             </div>
                                         </div>
                                     </div>
@@ -208,21 +208,21 @@ export const StudyDirectory: React.FC<StudyDirectoryProps> = ({
                             <div className="overflow-x-auto custom-scrollbar-horizontal">
                                 <table className="w-full text-left min-w-[1000px]">
                                     <thead>
-                                        <tr className="border-b border-white/5 text-[11px] font-black text-slate-500 uppercase tracking-[0.25em] italic bg-white/[0.02]">
-                                            <th className="px-8 py-6 border-r border-white/5">Protocol ID</th>
-                                            <th className="px-8 py-6 border-r border-white/5">Research Objective & Metadata</th>
-                                            <th className="px-8 py-6 border-r border-white/5">Sponsor Entity</th>
-                                            <th className="px-8 py-6 border-r border-white/5">Operational Status</th>
-                                            <th className="sticky right-0 px-8 py-6 text-right bg-[#0B101B] z-10 shadow-[-10px_0_15px_-10px_rgba(0,0,0,0.5)] border-l border-white/5">Actions</th>
+                                        <tr className="border-b border-white/5 text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] italic bg-white/[0.02]">
+                                            <th className="px-6 py-4 border-r border-white/5">Protocol ID</th>
+                                            <th className="px-6 py-4 border-r border-white/5">Research Objective & Metadata</th>
+                                            <th className="px-6 py-4 border-r border-white/5">Enrollment & Compliance</th>
+                                            <th className="px-6 py-4 border-r border-white/5">Operational Status</th>
+                                            <th className="sticky right-0 px-6 py-4 text-right bg-[#0B101B] z-10 shadow-[-10px_0_15px_-10px_rgba(0,0,0,0.5)] border-l border-white/5">Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-white/[0.03]">
                                         {studies.map((s) => (
                                             <tr key={s.id} className="hover:bg-white/[0.02] cursor-pointer group transition-colors" onClick={() => onEdit(s)}>
-                                                <td className="px-8 py-10 border-r border-white/5">
+                                                <td className="px-6 py-5 border-r border-white/5">
                                                     <span className="text-[13px] font-mono font-black text-blue-500/60 group-hover:text-blue-400 transition-colors uppercase italic tracking-widest">{s.protocol_id}</span>
                                                 </td>
-                                                <td className="px-8 py-10 max-w-md border-r border-white/5">
+                                                <td className="px-6 py-5 max-w-md border-r border-white/5">
                                                     <p className="text-base font-black text-white group-hover:text-blue-400 transition-colors uppercase italic tracking-tighter leading-none">{s.title}</p>
                                                     <div className="flex items-center gap-3 mt-4">
                                                         <span className="text-[10px] px-2 py-0.5 bg-white/5 border border-white/10 rounded text-slate-500 font-black uppercase tracking-widest italic">{s.study_type.replace('_', ' ')}</span>
@@ -234,15 +234,27 @@ export const StudyDirectory: React.FC<StudyDirectoryProps> = ({
                                                         )}
                                                     </div>
                                                 </td>
-                                                <td className="px-8 py-10 border-r border-white/5">
-                                                    <div className="flex items-center gap-3">
-                                                        <div className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-slate-500">
-                                                            <Building className="w-4 h-4" />
+                                                <td className="px-6 py-5 border-r border-white/5">
+                                                    <div className="flex flex-col gap-2">
+                                                        <div className="flex items-center justify-between">
+                                                            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest italic">Enrolled</span>
+                                                            <span className="text-[12px] font-black text-white">{s.enrollment_count || 0}</span>
                                                         </div>
-                                                        <p className="text-[12px] font-black text-slate-400 uppercase tracking-widest italic opacity-80">{s.sponsor_name || 'Internal Research'}</p>
+                                                        <div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden mt-1">
+                                                            <div 
+                                                                className="h-full bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.3)]" 
+                                                                style={{ width: `${Math.min((s.enrollment_count || 0) / 100 * 100, 100)}%` }} 
+                                                            />
+                                                        </div>
+                                                        <div className="flex items-center justify-between mt-2">
+                                                            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest italic">Compliance</span>
+                                                            <span className={`text-[12px] font-black ${Number(s.compliance_rate || 0) > 80 ? 'text-emerald-400' : 'text-amber-400'}`}>
+                                                                {s.compliance_rate || 0}%
+                                                            </span>
+                                                        </div>
                                                     </div>
                                                 </td>
-                                                <td className="px-8 py-10 border-r border-white/5">
+                                                <td className="px-6 py-5 border-r border-white/5">
                                                     <div className="relative group/select w-fit" onClick={(e) => e.stopPropagation()}>
                                                         <select
                                                             value={s.status}
@@ -260,8 +272,26 @@ export const StudyDirectory: React.FC<StudyDirectoryProps> = ({
                                                         </div>
                                                     </div>
                                                 </td>
-                                                <td className="sticky right-0 px-8 py-10 text-right bg-[#0B101B] group-hover:bg-[#0E131E] z-10 shadow-[-10px_0_15px_-10px_rgba(0,0,0,0.5)] border-l border-white/5">
+                                                <td className="sticky right-0 px-6 py-5 text-right bg-[#0B101B] group-hover:bg-[#0E131E] z-10 shadow-[-10px_0_15px_-10px_rgba(0,0,0,0.5)] border-l border-white/5">
                                                     <div className="flex items-center justify-end gap-2">
+                                                        {onExport && (
+                                                            <div className="flex gap-1">
+                                                                <button
+                                                                    onClick={(e) => { e.stopPropagation(); onExport(s, 'csv'); }}
+                                                                    className="p-3.5 bg-white/5 border border-white/10 rounded-2xl text-slate-500 hover:text-white hover:bg-white/10 transition-all"
+                                                                    title="Export CSV"
+                                                                >
+                                                                    <Download className="w-4 h-4" />
+                                                                </button>
+                                                                <button
+                                                                    onClick={(e) => { e.stopPropagation(); onExport(s, 'pdf'); }}
+                                                                    className="p-3.5 bg-white/5 border border-white/10 rounded-2xl text-slate-500 hover:text-white hover:bg-white/10 transition-all"
+                                                                    title="Export PDF"
+                                                                >
+                                                                    <FileText className="w-4 h-4" />
+                                                                </button>
+                                                            </div>
+                                                        )}
                                                         {onDelete && (
                                                             <button
                                                                 onClick={(e) => { e.stopPropagation(); setConfirmDelete(s); }}

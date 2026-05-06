@@ -155,10 +155,10 @@ export default function InviteForStudyModule({ allStudies = [] }: InviteForStudy
         <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="flex flex-col h-full space-y-6"
+            className="flex flex-col h-full space-y-4"
         >
             {/* Header */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center bg-[#0B101B]/50 backdrop-blur-xl border border-white/5 rounded-3xl p-6 shadow-2xl gap-4">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center bg-[#0B101B]/50 backdrop-blur-xl border border-white/5 rounded-3xl p-4 shadow-2xl gap-4">
                 <div>
                     <h1 className="text-2xl font-black text-white italic uppercase tracking-tighter flex items-center gap-3">
                         Invite <span className="text-blue-400">For Study</span>
@@ -170,7 +170,7 @@ export default function InviteForStudyModule({ allStudies = [] }: InviteForStudy
                 </div>
                 <button
                     onClick={() => setShowInviteModal(true)}
-                    className="flex items-center justify-center gap-2 px-6 py-3.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-black uppercase tracking-wider text-[11px] transition-all hover:scale-105 active:scale-95 shadow-xl shadow-blue-500/20"
+                    className="flex items-center justify-center gap-2 px-6 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-black uppercase tracking-wider text-[11px] transition-all hover:scale-105 active:scale-95 shadow-xl shadow-blue-500/20"
                 >
                     <UserPlus className="w-4 h-4" />
                     Invite To Study
@@ -180,7 +180,7 @@ export default function InviteForStudyModule({ allStudies = [] }: InviteForStudy
             {/* Main Listing View */}
             <div className="flex-1 bg-[#0B101B]/30 backdrop-blur-2xl border border-white/5 rounded-3xl overflow-hidden flex flex-col shadow-2xl">
                 {/* Search & Actions Header */}
-                <div className="p-5 border-b border-white/5 flex flex-col md:flex-row items-center justify-between gap-4">
+                <div className="p-4 border-b border-white/5 flex flex-col md:flex-row items-center justify-between gap-4">
                     <div className="relative flex-1 w-full">
                         <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
                         <input
@@ -194,7 +194,7 @@ export default function InviteForStudyModule({ allStudies = [] }: InviteForStudy
                     <div className="flex items-center gap-2 self-end md:self-auto">
                         <button
                             onClick={fetchInvitations}
-                            className="p-3.5 bg-white/5 border border-white/10 rounded-xl text-slate-400 hover:text-white hover:bg-white/10 transition-all active:scale-95 flex items-center justify-center h-12 w-12"
+                            className="p-2.5 bg-white/5 border border-white/10 rounded-xl text-slate-400 hover:text-white hover:bg-white/10 transition-all active:scale-95 flex items-center justify-center h-10 w-10"
                             title="Refresh Invitations"
                         >
                             <RefreshCcw className={`w-4 h-4 ${loading ? 'animate-spin text-blue-400' : ''}`} />
@@ -219,18 +219,18 @@ export default function InviteForStudyModule({ allStudies = [] }: InviteForStudy
                         <table className="w-full text-left border-collapse">
                             <thead className="sticky top-0 bg-[#0B1120] z-10">
                                 <tr className="border-b border-white/5">
-                                    <th className="px-6 py-4.5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Invited Person</th>
-                                    <th className="px-6 py-4.5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Study Allocation</th>
-                                    <th className="px-6 py-4.5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Role</th>
-                                    <th className="px-6 py-4.5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Date Sent</th>
-                                    <th className="px-6 py-4.5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Status</th>
-                                    <th className="px-6 py-4.5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Action</th>
+                                    <th className="px-5 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">Invited Person</th>
+                                    <th className="px-5 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">Study Allocation</th>
+                                    <th className="px-5 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">Role</th>
+                                    <th className="px-5 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">Date Sent</th>
+                                    <th className="px-5 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">Status</th>
+                                    <th className="px-5 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Action</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-white/5">
                                 {filteredInvitations.map((inv) => (
                                     <tr key={inv.id} className="hover:bg-white/[0.02] transition-colors group">
-                                        <td className="px-6 py-5">
+                                        <td className="px-5 py-3.5">
                                             <div className="flex items-center gap-3">
                                                 <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center">
                                                     <Mail className="w-4.5 h-4.5 text-blue-400 opacity-80" />
@@ -241,7 +241,7 @@ export default function InviteForStudyModule({ allStudies = [] }: InviteForStudy
                                                 </div>
                                             </div>
                                         </td>
-                                        <td className="px-6 py-5">
+                                        <td className="px-5 py-3.5">
                                             <div className="flex items-center gap-2">
                                                 <Building className="w-3.5 h-3.5 text-blue-500/60" />
                                                 <p className="text-xs font-bold text-white/90 tracking-tight">
@@ -249,18 +249,18 @@ export default function InviteForStudyModule({ allStudies = [] }: InviteForStudy
                                                 </p>
                                             </div>
                                         </td>
-                                        <td className="px-6 py-5">
+                                        <td className="px-5 py-3.5">
                                             <span className="flex items-center gap-2 text-[11px] font-bold text-white/70 uppercase tracking-wider">
                                                 <Shield className="w-3.5 h-3.5 text-blue-500" />
                                                 {inv.role}
                                             </span>
                                         </td>
-                                        <td className="px-6 py-5">
+                                        <td className="px-5 py-3.5">
                                             <p className="text-xs font-bold text-slate-400 tabular-nums">
                                                 {new Date(inv.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                                             </p>
                                         </td>
-                                        <td className="px-6 py-5">
+                                        <td className="px-5 py-3.5">
                                             <div className={`flex items-center gap-2 px-3 py-1.5 border rounded-full w-fit ${new Date(inv.expires_at) < new Date() ? 'bg-red-500/10 border-red-500/20' : 'bg-amber-500/10 border-amber-500/20'}`}>
                                                 <Clock className={`w-3 h-3 ${new Date(inv.expires_at) < new Date() ? 'text-red-500' : 'text-amber-500'}`} />
                                                 <span className={`text-[9px] font-black uppercase tracking-wider ${new Date(inv.expires_at) < new Date() ? 'text-red-400' : 'text-amber-400'}`}>

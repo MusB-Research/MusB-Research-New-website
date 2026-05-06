@@ -266,7 +266,7 @@ export default function AdminDashboard() {
                 <div className="h-20 lg:h-24 flex items-center justify-center mb-6">
                     <Link to="/" target="_blank" rel="noopener noreferrer" className="group transition-all">
                         <div className="bg-white p-2 rounded-2xl group-hover:scale-110 transition-transform shadow-[0_0_20px_rgba(255,255,255,0.1)]">
-                            <img src="/logo.jpg" alt="Logo" className="h-10 lg:h-12 w-auto object-contain rounded-xl" />
+                            <img src="/logo.jpg" alt="Logo" className="h-10 lg:h-12 w-auto object-contain rounded-xl" width="474" height="164" />
                         </div>
                     </Link>
                 </div>

@@ -161,6 +161,7 @@ function AppContent() {
                         <Route path="/reset-password" element={<ResetPassword />} />
                         <Route path="/auth/profile-setup" element={<ProfileSetup />} />
                         <Route path="/auth/accept-invitation" element={<AcceptInvitation />} />
+                        <Route path="/setup-credentials" element={<AcceptInvitation />} />
                     </Routes>
                 </Suspense>
             </Layout>

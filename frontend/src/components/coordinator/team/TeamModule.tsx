@@ -326,11 +326,11 @@ export default function TeamModule({
     };
 
     return (
-        <div className="flex flex-col min-h-full space-y-8 lg:space-y-10 pt-4 px-4 sm:px-6 lg:px-0">
+        <div className="flex flex-col min-h-full space-y-4 pt-2 px-4 sm:px-6 lg:px-0">
             <input type="file" ref={fileInputRef} hidden onChange={handleFileChange} accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" />
 
             {/* Header */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 pb-6 border-b border-white/5">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-4 border-b border-white/5">
                 <div>
                     <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight uppercase italic leading-none">Staffing and personnel</h2>
                     <p className="text-[10px] sm:text-sm text-slate-400 mt-2 font-bold uppercase tracking-widest opacity-80">Clinical network and personnel records</p>
@@ -365,7 +365,7 @@ export default function TeamModule({
                     { label: 'MusB Network', val: stats.musb, icon: Building2, color: 'text-slate-400', bg: 'bg-slate-400/10' },
                     { label: 'Inactive / Alerts', val: stats.alerts, icon: AlertTriangle, color: 'text-rose-400', bg: 'bg-rose-400/10' },
                 ].map((k, idx) => (
-                    <div key={idx} className="p-4 sm:p-5 bg-[#0B101B]/50 backdrop-blur-xl border border-white/5 rounded-2xl flex items-center gap-4 sm:gap-5 shadow-2xl">
+                    <div key={idx} className="p-3 sm:p-4 bg-[#0B101B]/50 backdrop-blur-xl border border-white/5 rounded-2xl flex items-center gap-3 sm:gap-4 shadow-2xl">
                         <div className={`p-3 rounded-xl ${k.bg} shrink-0 border border-white/5`}>
                             <k.icon className={`w-5 h-5 ${k.color}`} />
                         </div>
@@ -480,11 +480,11 @@ export default function TeamModule({
                             <table className="w-full text-left">
                                 <thead>
                                     <tr className="border-b border-white/5 text-[11px] font-black text-slate-500 uppercase tracking-[0.2em]">
-                                        <th className="px-6 py-5 w-1/4">Personnel node</th>
-                                        <th className="px-6 py-5 w-1/6">Functional role</th>
-                                        <th className="px-6 py-5">Study assignments</th>
-                                        <th className="px-6 py-5 w-24">Status</th>
-                                        <th className="px-6 py-5 text-right w-32">Actions</th>
+                                        <th className="px-6 py-3.5 w-1/4">Personnel node</th>
+                                        <th className="px-6 py-3.5 w-1/6">Functional role</th>
+                                        <th className="px-6 py-3.5">Study assignments</th>
+                                        <th className="px-6 py-3.5 w-24">Status</th>
+                                        <th className="px-6 py-3.5 text-right w-32">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-white/[0.03]">
@@ -506,7 +506,7 @@ export default function TeamModule({
 
                         <div className="xl:hidden grid grid-cols-1 md:grid-cols-2 gap-4">
                             {getVisibleTeam.map(m => (
-                                <div key={m.id} className="p-5 bg-[#0B101B]/40 backdrop-blur-xl border border-white/5 rounded-2xl space-y-5 shadow-2xl overflow-hidden">
+                                <div key={m.id} className="p-4 bg-[#0B101B]/40 backdrop-blur-xl border border-white/5 rounded-2xl space-y-4 shadow-2xl overflow-hidden">
                                     <div className="flex flex-col xs:flex-row justify-between items-start gap-4 w-full min-w-0">
                                         <div className="flex items-center gap-4 min-w-0 flex-1 w-full">
                                             <div className="w-12 h-12 rounded-xl bg-white/5 border border-white/5 flex items-center justify-center shrink-0">

@@ -30,29 +30,29 @@ const ApprovalStatus: React.FC<ApprovalStatusProps> = ({ participant, onApprove,
                     ? 'bg-emerald-500/5 border-emerald-500/20' 
                     : 'bg-white/5 border-white/10'
             }`}>
-                <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-3">
-                        <div className={`p-2 rounded-lg ${
-                            participant.coordinator_approved ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-800 text-slate-400'
-                        }`}>
-                            <UserCheck className="w-5 h-5" />
-                        </div>
-                        <div>
-                            <h4 className="font-semibold text-white">Coordinator Approval</h4>
-                            <p className="text-xs text-slate-400">Technical Eligibility Verification</p>
-                        </div>
+                <div className="flex items-start gap-3 mb-4">
+                    <div className={`p-2 rounded-lg shrink-0 mt-0.5 ${
+                        participant.coordinator_approved ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-800 text-slate-400'
+                    }`}>
+                        <UserCheck className="w-5 h-5" />
                     </div>
-                    {participant.coordinator_approved ? (
-                        <span className="text-xs font-bold text-emerald-400 uppercase tracking-widest bg-emerald-500/10 px-2 py-1 rounded">Verified</span>
-                    ) : (
-                        <button 
-                            onClick={() => setShowSignModal('coordinator')}
-                            disabled={isProcessing}
-                            className="text-xs font-bold text-blue-400 hover:text-blue-300 uppercase tracking-widest flex items-center gap-1"
-                        >
-                            <Edit3 className="w-3 h-3" /> Sign Now
-                        </button>
-                    )}
+                    <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap mb-0.5">
+                            <h4 className="font-semibold text-white text-sm leading-tight">Coordinator Approval</h4>
+                            {participant.coordinator_approved ? (
+                                <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-md whitespace-nowrap">✓ Verified</span>
+                            ) : (
+                                <button
+                                    onClick={() => setShowSignModal('coordinator')}
+                                    disabled={isProcessing}
+                                    className="text-[10px] font-bold text-blue-400 hover:text-blue-300 uppercase tracking-widest flex items-center gap-1 whitespace-nowrap"
+                                >
+                                    <Edit3 className="w-3 h-3" /> Sign Now
+                                </button>
+                            )}
+                        </div>
+                        <p className="text-xs text-slate-400">Technical Eligibility Verification</p>
+                    </div>
                 </div>
 
                 {participant.coordinator_approved ? (
@@ -72,31 +72,31 @@ const ApprovalStatus: React.FC<ApprovalStatusProps> = ({ participant, onApprove,
                     ? 'bg-blue-500/5 border-blue-500/20' 
                     : !isReadyForPI ? 'bg-slate-900/20 border-white/5 grayscale opacity-50' : 'bg-white/5 border-white/10'
             }`}>
-                <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-3">
-                        <div className={`p-2 rounded-lg ${
-                            participant.pi_approved ? 'bg-blue-500/20 text-blue-400' : 'bg-slate-800 text-slate-400'
-                        }`}>
-                            <ShieldCheck className="w-5 h-5" />
-                        </div>
-                        <div>
-                            <h4 className="font-semibold text-white">Principal Investigator</h4>
-                            <p className="text-xs text-slate-400">Final Medical & Protocol Review</p>
-                        </div>
+                <div className="flex items-start gap-3 mb-4">
+                    <div className={`p-2 rounded-lg shrink-0 mt-0.5 ${
+                        participant.pi_approved ? 'bg-blue-500/20 text-blue-400' : 'bg-slate-800 text-slate-400'
+                    }`}>
+                        <ShieldCheck className="w-5 h-5" />
                     </div>
-                    {participant.pi_approved ? (
-                        <span className="text-xs font-bold text-blue-400 uppercase tracking-widest bg-blue-500/10 px-2 py-1 rounded">Authorized</span>
-                    ) : isReadyForPI ? (
-                        <button 
-                            onClick={() => setShowSignModal('pi')}
-                            disabled={isProcessing}
-                            className="text-xs font-bold text-blue-400 hover:text-blue-300 uppercase tracking-widest flex items-center gap-1"
-                        >
-                            <Edit3 className="w-3 h-3" /> Authorize
-                        </button>
-                    ) : (
-                        <span className="text-[10px] text-slate-600 uppercase">Awaiting CC</span>
-                    )}
+                    <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap mb-0.5">
+                            <h4 className="font-semibold text-white text-sm leading-tight">Principal Investigator</h4>
+                            {participant.pi_approved ? (
+                                <span className="text-[10px] font-bold text-blue-400 uppercase tracking-widest bg-blue-500/10 border border-blue-500/20 px-2 py-0.5 rounded-md whitespace-nowrap">✓ Authorized</span>
+                            ) : isReadyForPI ? (
+                                <button
+                                    onClick={() => setShowSignModal('pi')}
+                                    disabled={isProcessing}
+                                    className="text-[10px] font-bold text-blue-400 hover:text-blue-300 uppercase tracking-widest flex items-center gap-1 whitespace-nowrap"
+                                >
+                                    <Edit3 className="w-3 h-3" /> Authorize
+                                </button>
+                            ) : (
+                                <span className="text-[10px] text-slate-500 uppercase tracking-widest">Awaiting CC</span>
+                            )}
+                        </div>
+                        <p className="text-xs text-slate-400">Final Medical &amp; Protocol Review</p>
+                    </div>
                 </div>
 
                 {participant.pi_approved ? (

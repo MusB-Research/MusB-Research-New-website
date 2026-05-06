@@ -38,9 +38,16 @@ export default function ConsortiumNavBar({ activeTab, setActiveTab }: Consortium
         <nav className="sticky top-0 z-40 w-full bg-[#020617]/80 backdrop-blur-md border-b border-white/5 py-4">
             <div className="max-w-[1700px] mx-auto px-6 flex items-center justify-between">
                 {/* Brand Logo */}
-                <Link to="/" className="flex items-center gap-3 group">
+                <Link to="/" className="flex items-center gap-3 group" aria-label="MusB Research Home">
                     <div className="h-12 bg-black rounded-xl overflow-hidden border border-white/10 group-hover:border-cyan-500/50 transition-all">
-                        <img src="/logo.jpg" alt="MusB" className="h-full w-auto object-contain" />
+                        <img 
+                            src="/logo.jpg" 
+                            alt="MusB™ Research Logo" 
+                            className="h-full w-auto object-contain" 
+                            width="474"
+                            height="164"
+                            fetchPriority="high"
+                        />
                     </div>
                     <div className="flex flex-col">
                         <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white">MusB™ Research</span>

@@ -757,7 +757,9 @@ const LaunchStudyForm: React.FC<LaunchStudyFormProps> = ({
                     first_name: formData.invitePIFirstName,
                     last_name: formData.invitePILastName,
                     role: 'PI',
-                    organization: formData.sponsor || 'MusB Research' 
+                    organization: formData.sponsor || 'MusB Research',
+                    scope: 'SPECIFIC',
+                    study_ids: [formData.protocol_id]
                 })
             });
             if (res.ok) {
@@ -788,7 +790,9 @@ const LaunchStudyForm: React.FC<LaunchStudyFormProps> = ({
                     first_name: formData.inviteCoordinatorFirstName,
                     last_name: formData.inviteCoordinatorLastName,
                     role: 'COORDINATOR',
-                    organization: formData.sponsor || 'MusB Research'
+                    organization: formData.sponsor || 'MusB Research',
+                    scope: 'SPECIFIC',
+                    study_ids: [formData.protocol_id]
                 })
             });
             if (res.ok) {
@@ -819,7 +823,9 @@ const LaunchStudyForm: React.FC<LaunchStudyFormProps> = ({
                     first_name: formData.inviteSponsorFirstName,
                     last_name: formData.inviteSponsorLastName,
                     role: 'SPONSOR',
-                    organization: formData.sponsor || 'MusB Research'
+                    organization: formData.sponsor || 'MusB Research',
+                    scope: 'SPECIFIC',
+                    study_ids: [formData.protocol_id]
                 })
             });
             if (res.ok) {
@@ -1124,28 +1130,32 @@ const LaunchStudyForm: React.FC<LaunchStudyFormProps> = ({
     const consentExtractedRef = useRef<HTMLTextAreaElement>(null);
 
     const handleChange = (e: any) => {
-        setFormData({ ...formData, [e.target.name]: e.target.value });
+        const { name, value } = e.target;
+        setFormData(prev => ({ ...prev, [name]: value }));
     };
 
     const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setFormData({ ...formData, [e.target.name]: e.target.checked });
+        const { name, checked } = e.target;
+        setFormData(prev => ({ ...prev, [name]: checked }));
     };
 
     const handleNestedCheckboxChange = (group: string, field: string, checked: boolean) => {
-        setFormData({
-            ...formData,
+        setFormData(prev => ({
+            ...prev,
             [group]: {
-                ...(formData as any)[group],
+                ...(prev as any)[group],
                 [field]: checked
             }
-        });
+        }));
     };
 
     const handleArrayToggle = (group: keyof typeof formData, value: string) => {
-        const arr = formData[group] as string[];
-        setFormData({
-            ...formData,
-            [group]: arr.includes(value) ? arr.filter(id => id !== value) : [...arr, value]
+        setFormData(prev => {
+            const arr = prev[group] as string[];
+            return {
+                ...prev,
+                [group]: arr.includes(value) ? arr.filter(id => id !== value) : [...arr, value]
+            };
         });
     };
 
@@ -1312,17 +1322,29 @@ const LaunchStudyForm: React.FC<LaunchStudyFormProps> = ({
         }
     }, [formData, initialData, isEditMode]);
 
+    const initialLoadRef = useRef(false);
     useEffect(() => {
+        if (initialLoadRef.current) return;
+        
         if (!initialData) {
-            const savedDraft = localStorage.getItem(`study_launch_draft_${initialData?.protocol_id || 'new'}`) || localStorage.getItem('study_launch_draft');
+            // Case 1: NEW STUDY - Load draft from localStorage if it exists
+            const savedDraft = localStorage.getItem('study_launch_draft_new') || localStorage.getItem('study_launch_draft');
             if (savedDraft) {
-                const parsed = JSON.parse(savedDraft);
-                if (parsed.formData) {
-                    setFormData(prev => ({ ...prev, ...parsed.formData }));
-                    if (parsed.currentStep) setCurrentStep(parsed.currentStep);
+                try {
+                    const parsed = JSON.parse(savedDraft);
+                    if (parsed.formData) {
+                        setFormData(prev => ({ ...prev, ...parsed.formData }));
+                        if (parsed.currentStep) setCurrentStep(parsed.currentStep);
+                        initialLoadRef.current = true;
+                    }
+                } catch (e) {
+                    console.warn("Failed to parse draft from localStorage", e);
                 }
             }
         } else {
+            // Case 2: EXISTING STUDY - Load from database EXACTLY ONCE
+            initialLoadRef.current = true;
+            
             const existingQuestionnaires = Array.isArray(initialData.study_questionnaires)
                 ? initialData.study_questionnaires.map((q: any) => q.template || q.template_details?.id).filter(Boolean)
                 : [];
@@ -1342,36 +1364,36 @@ const LaunchStudyForm: React.FC<LaunchStudyFormProps> = ({
             setFormData(prev => ({
                 ...prev,
                 protocol_id: initialData.protocol_id || prev.protocol_id,
-                sponsor: initialData.sponsor_id || initialData.sponsor_org_id || initialData.sponsor_org?.id || initialData.sponsor_name || '',
-                startDate: initialData.start_date || '',
-                endDate: initialData.end_date || '',
-                full_title: initialData.full_title || initialData.title || '',
-                title: initialData.title || '',
-                category: initialData.condition || initialData.primary_indication || '',
-                briefSummary: initialData.description || initialData.brief_summary || '',
-                overview: initialData.overview || '',
-                benefit: initialData.benefit || '',
-                participation_message: initialData.participation_message || '',
-                primaryModel: trialModelToLabel[initialData.trial_model] || initialData.trial_model || '',
-                clinicalPhase: phaseToLabel[initialData.phase] || initialData.phase || 'N/A',
-                maskingStrategy: maskingToLabel[initialData.masking_strategy] || initialData.masking_strategy || 'None (open label)',
-                executionMode: studyTypeToLabel[initialData.study_type] || initialData.study_type || 'In-person',
-                rewardType: rewardTypeToLabel[initialData.reward_type] || initialData.reward_type || 'Cash',
-                incentiveLogic: rewardLogicToLabel[initialData.reward_logic] || initialData.reward_logic || 'Per study completion',
-                stipendAmount: (initialData.reward_config?.amount || initialData.reward_amount || '').toString(),
-                currency: initialData.compensation_currency || 'USD',
-                requireStudyKit: Boolean(initialData.has_study_kit),
-                studyKitDetails: initialData.kit_details || '',
-                targetEnrollment: String(initialData.target_subjects || ''),
-                selectedPIs: initialData.pi_ids || [],
-                selectedCoordinators: initialData.coordinator_ids || [],
-                selectedSponsorUsers: initialData.sponsor_ids || (initialData.sponsor_id ? [initialData.sponsor_id] : []),
-                screenerQuestions,
-                selectedQuestionnaires: existingQuestionnaires,
-                questionnaireDetails,
-                questionnaireFrequencies,
-                extractedConsentText: initialData.consent_content || initialData.consent_template || initialData.extracted_consent_text || '',
-                countries: initialData.countries || []
+                sponsor: initialData.sponsor_id || initialData.sponsor_org_id || initialData.sponsor_org?.id || initialData.sponsor_name || prev.sponsor,
+                startDate: initialData.start_date || prev.startDate || '',
+                endDate: initialData.end_date || prev.endDate || '',
+                full_title: initialData.full_title || initialData.title || prev.full_title || '',
+                title: initialData.title || prev.title || '',
+                category: initialData.condition || initialData.primary_indication || prev.category || '',
+                briefSummary: initialData.description || initialData.brief_summary || prev.briefSummary || '',
+                overview: initialData.overview || prev.overview || '',
+                benefit: initialData.benefit || prev.benefit || '',
+                participation_message: initialData.participation_message || prev.participation_message || '',
+                primaryModel: trialModelToLabel[initialData.trial_model] || initialData.trial_model || prev.primaryModel || '',
+                clinicalPhase: phaseToLabel[initialData.phase] || initialData.phase || prev.clinicalPhase || 'N/A',
+                maskingStrategy: maskingToLabel[initialData.masking_strategy] || initialData.masking_strategy || prev.maskingStrategy || 'None (open label)',
+                executionMode: studyTypeToLabel[initialData.study_type] || initialData.study_type || prev.executionMode || 'In-person',
+                rewardType: rewardTypeToLabel[initialData.reward_type] || initialData.reward_type || prev.rewardType || 'Cash',
+                incentiveLogic: rewardLogicToLabel[initialData.reward_logic] || initialData.reward_logic || prev.incentiveLogic || 'Per study completion',
+                stipendAmount: (initialData.reward_config?.amount || initialData.reward_amount || prev.stipendAmount || '').toString(),
+                currency: initialData.compensation_currency || prev.currency || 'USD',
+                requireStudyKit: initialData.has_study_kit !== undefined ? Boolean(initialData.has_study_kit) : prev.requireStudyKit,
+                studyKitDetails: initialData.kit_details || prev.studyKitDetails || '',
+                targetEnrollment: initialData.target_subjects ? String(initialData.target_subjects) : prev.targetEnrollment,
+                selectedPIs: (initialData.pi_ids && initialData.pi_ids.length > 0) ? initialData.pi_ids : prev.selectedPIs,
+                selectedCoordinators: (initialData.coordinator_ids && initialData.coordinator_ids.length > 0) ? initialData.coordinator_ids : prev.selectedCoordinators,
+                selectedSponsorUsers: (initialData.sponsor_ids && initialData.sponsor_ids.length > 0) ? initialData.sponsor_ids : (initialData.sponsor_id ? [initialData.sponsor_id] : prev.selectedSponsorUsers),
+                screenerQuestions: (screenerQuestions && screenerQuestions.length > 0) ? screenerQuestions : prev.screenerQuestions,
+                selectedQuestionnaires: existingQuestionnaires && existingQuestionnaires.length > 0 ? existingQuestionnaires : prev.selectedQuestionnaires,
+                questionnaireDetails: questionnaireDetails && questionnaireDetails.length > 0 ? questionnaireDetails : prev.questionnaireDetails,
+                questionnaireFrequencies: Object.keys(questionnaireFrequencies).length > 0 ? questionnaireFrequencies : prev.questionnaireFrequencies,
+                extractedConsentText: initialData.consent_content || initialData.consent_template || initialData.extracted_consent_text || prev.extractedConsentText,
+                countries: (initialData.countries && initialData.countries.length > 0) ? initialData.countries : prev.countries
             }));
         }
     }, [initialData]);
@@ -2030,9 +2052,13 @@ const LaunchStudyForm: React.FC<LaunchStudyFormProps> = ({
                                 
                                 <div className="space-y-2">
                                     {resolvedPIs.map((pi: any) => (
-                                        <div key={pi.id} className="flex items-center justify-between pb-1.5 border-b border-white/5 last:border-0 last:pb-0">
-                                            <div className="flex items-center gap-2.5 min-w-0">
-                                                <div className="w-7 h-7 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center text-[9px] font-bold shrink-0">
+                                        <div 
+                                            key={pi.id} 
+                                            onClick={() => handleArrayToggle('selectedPIs', pi.id)}
+                                            className={`flex items-center justify-between pb-4 border-b border-white/5 last:border-0 last:pb-0 p-3 rounded-xl transition-all cursor-pointer group ${formData.selectedPIs.includes(pi.id) ? 'bg-blue-500/10 border-blue-500/20' : 'hover:bg-white/5'}`}
+                                        >
+                                            <div className="flex items-center gap-4 min-w-0">
+                                                <div className="w-10 h-10 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center text-xs font-bold shrink-0">
                                                     {(pi.first_name?.[0] || '') + (pi.last_name?.[0] || pi.email?.[0] || 'P')}
                                                 </div>
                                                 <div className="flex flex-col min-w-0">
@@ -2046,7 +2072,7 @@ const LaunchStudyForm: React.FC<LaunchStudyFormProps> = ({
                                             <input
                                                 type="checkbox"
                                                 checked={(formData.selectedPIs as string[]).includes(pi.id)}
-                                                onChange={() => handleArrayToggle('selectedPIs', pi.id)}
+                                                readOnly
                                                 className="w-5 h-5 rounded border-white/20 bg-transparent text-blue-500 focus:ring-blue-500/50 transition-all cursor-pointer shrink-0 ml-4"
                                             />
                                         </div>
@@ -2109,7 +2135,11 @@ const LaunchStudyForm: React.FC<LaunchStudyFormProps> = ({
                                 
                                 <div className="space-y-4">
                                     {resolvedCoordinators.map((c: any) => (
-                                        <div key={c.id} className="flex items-center justify-between pb-4 border-b border-white/5 last:border-0 last:pb-0">
+                                        <div 
+                                            key={c.id} 
+                                            onClick={() => handleArrayToggle('selectedCoordinators', c.id)}
+                                            className={`flex items-center justify-between pb-4 border-b border-white/5 last:border-0 last:pb-0 p-3 rounded-xl transition-all cursor-pointer group ${formData.selectedCoordinators.includes(c.id) ? 'bg-emerald-500/10 border-emerald-500/20' : 'hover:bg-white/5'}`}
+                                        >
                                             <div className="flex items-center gap-4 min-w-0">
                                                 <div className="w-10 h-10 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-xs font-bold shrink-0">
                                                     {(c.first_name?.[0] || '') + (c.last_name?.[0] || c.email?.[0] || 'C')}
@@ -2125,7 +2155,7 @@ const LaunchStudyForm: React.FC<LaunchStudyFormProps> = ({
                                             <input
                                                 type="checkbox"
                                                 checked={(formData.selectedCoordinators as string[]).includes(c.id)}
-                                                onChange={() => handleArrayToggle('selectedCoordinators', c.id)}
+                                                readOnly
                                                 className="w-5 h-5 rounded border-white/20 bg-transparent text-emerald-500 focus:ring-emerald-500/50 transition-all cursor-pointer shrink-0 ml-4"
                                             />
                                         </div>
@@ -2188,7 +2218,11 @@ const LaunchStudyForm: React.FC<LaunchStudyFormProps> = ({
                                 
                                 <div className="space-y-4">
                                     {resolvedSponsorUsers.map((s: any) => (
-                                        <div key={s.id} className="flex items-center justify-between pb-4 border-b border-white/5 last:border-0 last:pb-0">
+                                        <div 
+                                            key={s.id} 
+                                            onClick={() => handleArrayToggle('selectedSponsorUsers', s.id)}
+                                            className={`flex items-center justify-between pb-4 border-b border-white/5 last:border-0 last:pb-0 p-3 rounded-xl transition-all cursor-pointer group ${formData.selectedSponsorUsers.includes(s.id) ? 'bg-amber-500/10 border-amber-500/20' : 'hover:bg-white/5'}`}
+                                        >
                                             <div className="flex items-center gap-4 min-w-0">
                                                 <div className="w-10 h-10 rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center text-xs font-bold shrink-0">
                                                     {(s.first_name?.[0] || '') + (s.last_name?.[0] || s.email?.[0] || 'S')}
@@ -2204,7 +2238,7 @@ const LaunchStudyForm: React.FC<LaunchStudyFormProps> = ({
                                             <input
                                                 type="checkbox"
                                                 checked={(formData.selectedSponsorUsers as string[]).includes(s.id)}
-                                                onChange={() => handleArrayToggle('selectedSponsorUsers', s.id)}
+                                                readOnly
                                                 className="w-5 h-5 rounded border-white/20 bg-transparent text-amber-500 focus:ring-amber-500/50 transition-all cursor-pointer shrink-0 ml-4"
                                             />
                                         </div>
@@ -2847,18 +2881,18 @@ const LaunchStudyForm: React.FC<LaunchStudyFormProps> = ({
                                     <ReviewRow 
                                         label="PI assigned" 
                                         value={[
-                                            ...resolvedPIs.filter((pi: any) => formData.selectedPIs.includes(pi.id) || formData.selectedPIs.includes(pi.email)).map((pi: any) => `${pi.first_name} ${pi.last_name}`),
-                                            ...formData.selectedPIs.filter((idOrEmail: string) => !resolvedPIs.some(p => p.id === idOrEmail || p.email === idOrEmail))
-                                        ].join(', ')} 
+                                            ...resolvedPIs.filter((pi: any) => formData.selectedPIs.some(id => String(id) === String(pi.id) || String(id) === String(pi.email))).map((pi: any) => `${pi.first_name} ${pi.last_name}`),
+                                            ...formData.selectedPIs.filter((idOrEmail: string) => !resolvedPIs.some(p => String(p.id) === String(idOrEmail) || String(p.email) === String(idOrEmail)))
+                                        ].filter(Boolean).join(', ')} 
                                         placeholder="No PI selected" 
                                         isCritical={formData.selectedPIs.length === 0}
                                     />
                                     <ReviewRow 
                                         label="Coordinator assigned" 
                                         value={[
-                                            ...resolvedCoordinators.filter((c: any) => formData.selectedCoordinators.includes(c.id) || formData.selectedCoordinators.includes(c.email)).map((c: any) => `${c.first_name} ${c.last_name}`),
-                                            ...formData.selectedCoordinators.filter((idOrEmail: string) => !resolvedCoordinators.some(p => p.id === idOrEmail || p.email === idOrEmail))
-                                        ].join(', ')} 
+                                            ...resolvedCoordinators.filter((c: any) => formData.selectedCoordinators.some(id => String(id) === String(c.id) || String(id) === String(c.email))).map((c: any) => `${c.first_name} ${c.last_name}`),
+                                            ...formData.selectedCoordinators.filter((idOrEmail: string) => !resolvedCoordinators.some(p => String(p.id) === String(idOrEmail) || String(p.email) === String(idOrEmail)))
+                                        ].filter(Boolean).join(', ')} 
                                         placeholder="No Coordinator selected" 
                                         isCritical={formData.selectedCoordinators.length === 0}
                                     />

@@ -47,6 +47,7 @@ from .serializers import (
 TeamMemberSerializer, ClinicalAuditLogSerializer, PIIRevealLogSerializer,
     StaffMemberSerializer, AdvisorSerializer, ClinicalCollaboratorSerializer
 )
+from .utils.pdf_utils import generate_signed_consent_pdf
 
 from authentication.models import User, AuditLog, Invitation
 from django.db.models import Q, Count, Case, When, IntegerField, FloatField, Avg
@@ -55,6 +56,7 @@ from django.utils.timezone import now
 import pytz
 from .utils.reward_logic import trigger_reward_logic
 import datetime
+from datetime import timedelta
 import bson
 from .utils.cache_utils import cache_api_response, invalidate_cache
 
@@ -481,6 +483,237 @@ class StudyViewSet(WorkflowContentMixin, viewsets.ModelViewSet):
             'participant_tracking': tracking_response.data,
             'server_iso': timezone.now().isoformat() # Fully serializable
         })
+
+    @action(detail=True, methods=['get'], permission_classes=[IsAdminOrCoordinator])
+    def export_data(self, request, protocol_id=None):
+        """Export study data to CSV (XLSX compatible) or PDF"""
+        study = self.get_object()
+        format_type = request.query_params.get('format', 'csv').lower()
+        
+        from .models import Participant, QuestionnaireScheduleInstance
+        participants = Participant.objects.filter(study=study)
+        
+        if format_type == 'pdf':
+            from reportlab.lib.pagesizes import letter, landscape
+            from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+            from reportlab.lib.styles import getSampleStyleSheet
+            from reportlab.lib import colors
+            import io
+            
+            buffer = io.BytesIO()
+            doc = SimpleDocTemplate(buffer, pagesize=landscape(letter))
+            elements = []
+            styles = getSampleStyleSheet()
+            
+            elements.append(Paragraph(f"Study Export: {study.title}", styles['Title']))
+            elements.append(Paragraph(f"Protocol ID: {study.protocol_id}", styles['Normal']))
+            elements.append(Paragraph(f"Date: {timezone.now().strftime('%Y-%m-%d %H:%M')}", styles['Normal']))
+            elements.append(Spacer(1, 20))
+            
+            # Participant Table
+            data = [['Subject ID', 'Status', 'Enrolled At', 'Compliance %']]
+            for p in participants:
+                # Calculate compliance
+                q_stats = QuestionnaireScheduleInstance.objects.filter(participant=p).aggregate(
+                    total=Count('id'),
+                    done=Count(Case(When(status__in=['COMPLETED', 'LATE'], then=1), output_field=IntegerField()))
+                )
+                total = q_stats['total'] or 0
+                done = q_stats['done'] or 0
+                comp = f"{round(done/total*100, 1)}%" if total > 0 else "0%"
+                
+                data.append([
+                    p.participant_sid,
+                    p.status,
+                    p.created_at.strftime('%Y-%m-%d') if p.created_at else 'N/A',
+                    comp
+                ])
+                
+            t = Table(data)
+            t.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, 0), 12),
+                ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+                ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+                ('GRID', (0, 0), (-1, -1), 1, colors.black)
+            ]))
+            elements.append(t)
+            
+            doc.build(elements)
+            buffer.seek(0)
+            
+            response = HttpResponse(buffer, content_type='application/pdf')
+            response['Content-Disposition'] = f'attachment; filename="Study_{study.protocol_id}_Export.pdf"'
+            return response
+            
+        else: # Default CSV
+            import csv
+            from django.http import HttpResponse
+            
+            response = HttpResponse(content_type='text/csv')
+            response['Content-Disposition'] = f'attachment; filename="Study_{study.protocol_id}_Data.csv"'
+            
+            writer = csv.writer(response)
+            writer.writerow(['Subject ID', 'Status', 'Enrollment Date', 'Compliance Rate', 'Total Tasks', 'Completed Tasks'])
+            
+            for p in participants:
+                q_stats = QuestionnaireScheduleInstance.objects.filter(participant=p).aggregate(
+                    total=Count('id'),
+                    done=Count(Case(When(status__in=['COMPLETED', 'LATE'], then=1), output_field=IntegerField()))
+                )
+                total = q_stats['total'] or 0
+                done = q_stats['done'] or 0
+                comp = round(done/total*100, 1) if total > 0 else 0
+                
+                writer.writerow([
+                    p.participant_sid,
+                    p.status,
+                    p.created_at.isoformat() if p.created_at else '',
+                    f"{comp}%",
+                    total,
+                    done
+                ])
+                
+            return response
+
+    @action(detail=True, methods=['get'], permission_classes=[IsAdminOrCoordinator])
+    def aggregation_data(self, request, protocol_id=None):
+        """Fetch aggregated participant response data for the 'Data & Exports' view."""
+        study = self.get_object()
+        from .models import QuestionnaireScheduleInstance
+        
+        # Fetch all completed questionnaire instances for this study
+        instances = QuestionnaireScheduleInstance.objects.filter(
+            participant__study=study,
+            status__in=['COMPLETED', 'LATE']
+        ).select_related('participant', 'participant__user', 'study_questionnaire__template')
+        
+        results = []
+        for instance in instances:
+            data = instance.response_data or {}
+            if isinstance(data, dict) and 'answers' in data:
+                answers = data.get('answers', {})
+            else:
+                answers = data
+            
+            # Extract questions and metadata dynamically from the template
+            template = instance.study_questionnaire.template if instance.study_questionnaire else None
+            questions_list = []
+            
+            if template and template.json_structure:
+                sections = template.json_structure.get('sections', [])
+                if sections:
+                    for sec in sections:
+                        for field in sec.get('fields', []):
+                            questions_list.append({
+                                'id': field.get('id'),
+                                'label': field.get('label') or field.get('text') or field.get('id'),
+                                'type': field.get('type', 'text'),
+                                'options': field.get('options', [])
+                            })
+                else:
+                    questions = template.json_structure.get('questions', [])
+                    for q in questions:
+                        questions_list.append({
+                            'id': q.get('id'),
+                            'label': q.get('label') or q.get('text') or q.get('id'),
+                            'type': q.get('type', 'text'),
+                            'options': q.get('options', [])
+                        })
+            
+            # If no questions found in the template structure, fall back to answer keys
+            if not questions_list:
+                for k in sorted(answers.keys()):
+                    questions_list.append({
+                        'id': k,
+                        'label': k.replace('_', ' ').title(),
+                        'type': 'text',
+                        'options': []
+                    })
+            
+            def get_score_value(val):
+                if val is None:
+                    return 0
+                if isinstance(val, (int, float)):
+                    return int(val)
+                if isinstance(val, bool):
+                    return 1 if val else 0
+                
+                try:
+                    return int(val)
+                except ValueError:
+                    pass
+                
+                val_str = str(val).strip().lower()
+                mapping = {
+                    'not at all': 0, 'none': 0, 'no': 0, '0 times': 0, 'never': 0, 'rarely': 0,
+                    'mild': 1, 'a little': 1, 'yes': 1, '1-2 times': 1, 'sometimes': 1,
+                    'moderate': 2, 'moderately': 2, '3-5 times': 2, 'often': 2,
+                    'severe': 3, 'a lot': 3, 'more than 5 times': 3, 'always': 3
+                }
+                return mapping.get(val_str, 0)
+
+            def get_score(q_key):
+                val = answers.get(q_key)
+                return get_score_value(val)
+
+            somatic = sum(get_score(k) for k in ['q1', 'q2', 'q3', 'q11'])
+            psych = sum(get_score(k) for k in ['q4', 'q5', 'q6', 'q7'])
+            urogen = sum(get_score(k) for k in ['q8', 'q9', 'q10'])
+            
+            total = somatic + psych + urogen
+            if total == 0 and answers:
+                total = sum(get_score_value(v) for v in answers.values())
+            
+            results.append({
+                'id': str(instance.id),
+                'participant_id': instance.participant.participant_sid,
+                'participant_name': instance.participant.user.decrypted_name if instance.participant.user else "N/A",
+                'study_protocol': study.protocol_id,
+                'template_id': str(template.id) if template else 'default',
+                'template_name': template.name if template else (instance.schedule_name or 'Questionnaire'),
+                'questions': questions_list,
+                'date': instance.completed_at.strftime('%Y-%m-%d') if instance.completed_at else instance.scheduled_date.strftime('%Y-%m-%d'),
+                'answers': answers,
+                'scores': {
+                    'somatic': somatic,
+                    'psych': psych,
+                    'urogen': urogen,
+                    'total': total
+                },
+                'pdf_url': request.build_absolute_uri(instance.signed_pdf.url) if instance.signed_pdf else request.build_absolute_uri(f'/api/questionnaire-schedules/{instance.id}/export_data/?format=pdf')
+            })
+            
+        return Response(results)
+
+    @action(detail=True, methods=['post'], permission_classes=[IsAdminOrCoordinator])
+    def bulk_export_pdfs(self, request, protocol_id=None):
+        """
+        🚀 High-Performance Bulk Export Engine.
+        Triggers an asynchronous background task to bundle multiple assessment PDFs into a single ZIP archive.
+        Accepts a JSON payload with 'instance_ids'.
+        """
+        study = self.get_object()
+        instance_ids = request.data.get('instance_ids', [])
+        
+        if not instance_ids:
+            return Response(
+                {"error": "No assessment instances selected for archival."}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+            
+        from .tasks import generate_bulk_zip_task
+        # Dispatch to Celery worker to offload processing from the request loop
+        task = generate_bulk_zip_task.delay(str(study.id), instance_ids, str(request.user.id))
+        
+        return Response({
+            "status": "Archival process initiated",
+            "task_id": task.id,
+            "message": f"We are preparing an archive of {len(instance_ids)} assessments. You will receive a notification with the download link shortly."
+        }, status=status.HTTP_202_ACCEPTED)
 
     def perform_update(self, serializer):
         user = self.request.user
@@ -1486,7 +1719,8 @@ class ParticipantViewSet(SoftPaginationMixin, viewsets.ModelViewSet):
                 
                 # Update any pending review tasks
                 StaffTask.objects.filter(reference_id=str(participant.id), task_type="SCREENER_REVIEW").update(
-                    status='COMPLETED', 
+                    is_completed=True,
+                    status='ADDRESSED', 
                     completed_at=timezone.now()
                 )
 
@@ -1621,7 +1855,8 @@ class ParticipantViewSet(SoftPaginationMixin, viewsets.ModelViewSet):
 
                 # Update any pending review tasks
                 StaffTask.objects.filter(reference_id=str(participant.id), task_type="SCREENER_REVIEW").update(
-                    status='COMPLETED', 
+                    is_completed=True,
+                    status='ADDRESSED', 
                     completed_at=timezone.now()
                 )
 
@@ -1810,15 +2045,21 @@ class VisitViewSet(SoftPaginationMixin, viewsets.ModelViewSet):
     def check_missed(self, request):
         from .tasks import check_missed_visits
         from django.conf import settings
+        import logging
+        logger = logging.getLogger(__name__)
         
         # Trigger background task. If Redis is missing locally, Celery EAGER blocks the entire thread for 10s!
-        if getattr(settings, 'CELERY_TASK_ALWAYS_EAGER', False):
-            import threading
-            threading.Thread(target=check_missed_visits, daemon=True).start()
-        else:
-            check_missed_visits.delay()
-            
-        return Response({'status': 'Background check initiated', 'message': 'Missed visits are being processed in the background.'})
+        try:
+            if getattr(settings, 'CELERY_TASK_ALWAYS_EAGER', False):
+                import threading
+                threading.Thread(target=check_missed_visits, daemon=True).start()
+            else:
+                check_missed_visits.delay()
+                
+            return Response({'status': 'Background check initiated', 'message': 'Missed visits are being processed in the background.'})
+        except Exception as e:
+            logger.error(f"Failed to initiate missed visit check: {str(e)}")
+            return Response({'error': 'Failed to initiate background task', 'detail': str(e)}, status=500)
 
     def perform_update(self, serializer):
         visit = serializer.save(updated_by=self.request.user)
@@ -2132,13 +2373,19 @@ class ConsentViewSet(viewsets.ModelViewSet):
         consent.cc_name = cc_name
         consent.cc_user = user
         consent.cc_verified = True
+        
+        # Senior Dev: Generate official PDF after coordinator co-signs
+        try:
+            generate_signed_consent_pdf(consent)
+        except Exception as e:
+            print(f"Error generating PDF: {e}")
+            
         consent.save() # Triggers transition to FULLY_SIGNED in model.save
         
-        # Mark task as completed
+        # Mark task as completed for all staff since it's addressed
         StaffTask.objects.filter(
             reference_id=str(consent.pk),
-            task_type='CONSENT_COORDINATOR_SIGN',
-            user=user
+            task_type='CONSENT_COORDINATOR_SIGN'
         ).update(is_completed=True, status='ADDRESSED', completed_at=now())
         
         return Response({'status': 'SUCCESS', 'detail': 'Consent record co-signed by coordinator.'})
@@ -2165,13 +2412,19 @@ class ConsentViewSet(viewsets.ModelViewSet):
         consent.pi_name = pi_name
         consent.pi_user = user
         consent.pi_verified = True
+        
+        # Update PDF with PI signature
+        try:
+            generate_signed_consent_pdf(consent)
+        except Exception as e:
+            print(f"Error generating PDF: {e}")
+            
         consent.save()
         
-        # Mark task as completed
+        # Mark task as completed for all PIs since it's addressed
         StaffTask.objects.filter(
             reference_id=str(consent.pk),
-            task_type='CONSENT_SIGNATURE',
-            user=user
+            task_type='CONSENT_SIGNATURE'
         ).update(is_completed=True, status='ADDRESSED', completed_at=now())
         
         return Response({'status': 'SUCCESS', 'detail': 'Consent record verified by PI.'})
@@ -2254,9 +2507,14 @@ class ConsentViewSet(viewsets.ModelViewSet):
             except Exception:
                 auto_full_name = user.email
 
+        template = None
+        if study_obj:
+            template = ConsentTemplate.objects.filter(study=study_obj).order_by('-created_at').first()
+
         consent = serializer.save(
-            participant=participant,
             study=study_obj,
+            participant=participant,
+            content_snapshot=template.terms_content if template else "Consent terms provided electronically.",
             email=auto_email,
             full_name=auto_full_name,
             agreed_at=now(),
@@ -3037,7 +3295,7 @@ class InvitationViewSet(viewsets.ModelViewSet):
             study_title = None
             if invitation.study_ids and len(invitation.study_ids) > 0:
                 try:
-                    from api.models import Study
+                    from .models import Study
                     val = invitation.study_ids[0]
                     std = Study.objects.filter(protocol_id=val).first()
                     if not std:
@@ -3146,15 +3404,32 @@ class StaffTaskViewSet(viewsets.ModelViewSet):
         user = self.request.user
         if not user.is_authenticated:
             return StaffTask.objects.none()
+            
+        role = (getattr(user, 'role', '') or '').upper()
+        if role in ['ADMIN', 'SUPER_ADMIN']:
+            return StaffTask.objects.all().select_related('user', 'study').order_by('-created_at')
+            
         from django.db.models import Q
+        
+        # User sees tasks assigned explicitly to them, OR tasks with NO user assigned but belonging to their studies
+        # Any PI assigned to a study can see CONSENT_SIGNATURE tasks for that study
         return StaffTask.objects.filter(
             Q(user=user) | 
-            Q(study__created_by=user) |
-            Q(study__pi=user) |
-            Q(study__coordinator=user) |
-            Q(study__assignments__user=user)
+            (Q(user__isnull=True) & (
+                Q(study__created_by=user) |
+                Q(study__pi=user) |
+                Q(study__coordinator=user) |
+                Q(study__assignments__user=user)
+            )) |
+            (Q(task_type='CONSENT_SIGNATURE') & (
+                Q(study__pi=user) | 
+                (Q(study__assignments__user=user) & Q(study__assignments__role__icontains='PI'))
+            )) |
+            (Q(task_type='CONSENT_COORDINATOR_SIGN') & (
+                Q(study__coordinator=user) | 
+                (Q(study__assignments__user=user) & Q(study__assignments__role__icontains='COORDINATOR'))
+            ))
         ).select_related('user', 'study').distinct().order_by('-created_at')
-
 
     @action(detail=True, methods=['post'])
     def complete(self, request, pk=None):
@@ -4075,16 +4350,9 @@ class QuestionnaireTemplateViewSet(viewsets.ModelViewSet):
                         if row_text.strip():
                             raw_text += row_text + "\n"
 
-            if not raw_text.strip():
-                return Response({
-                    'document_type': 'unknown',
-                    'sections': [],
-                    'lines': [],
-                    'message': 'The document returned no extractable text. It may contain only scanned images.'
-                })
-
+            
             # Run the advanced extractor
-            from api.utils.pdf_extractor import extract_schema
+            from .utils.pdf_extractor import extract_schema
             result = extract_schema(raw_text)
             return Response(result)
 
@@ -4172,27 +4440,147 @@ class QuestionnaireScheduleInstanceViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
     def submit_responses(self, request, pk=None):
         instance = self.get_object()
+        
+        # Enforce lock on already completed or late submissions
+        if instance.status in ['COMPLETED', 'LATE']:
+            return Response({'error': 'This clinical instrument is locked and cannot be edited.'}, status=status.HTTP_400_BAD_REQUEST)
+            
         responses = request.data.get('responses', {})
         signature = request.data.get('signature')
+        clinical_score = request.data.get('clinical_score')
         
         # If it's a PDF mode, signature is mandatory
         if instance.study_questionnaire.mode == 'PDF' and not signature:
             return Response({'error': 'Signature required for this instrument.'}, status=status.HTTP_400_BAD_REQUEST)
         
         instance.response_data = responses
+        if clinical_score is not None:
+            instance.clinical_score = clinical_score
+            
         if signature:
             instance.participant_signature = signature
             instance.participant_signed_at = timezone.now()
             
-        instance.status = 'COMPLETED'
-        instance.completed_at = timezone.now()
+        # Determine status (COMPLETED or LATE)
+        now = timezone.now()
+        if instance.window_close_at and now > instance.window_close_at:
+            instance.status = 'LATE'
+            diff = now - instance.window_close_at
+            instance.lateness_minutes = int(diff.total_seconds() / 60)
+        else:
+            instance.status = 'COMPLETED'
+            
+        instance.completed_at = now
         instance.save()
+        
+        # Clear participant dashboard cache so submitted task transitions to Completed immediately
+        from .utils.cache_utils import invalidate_cache
+        invalidate_cache("participant_dashboard", user_id=str(instance.participant.user_id))
         
         # Log to Audit
         schedule_name = getattr(instance.study_questionnaire, 'schedule_name', '') or instance.study_questionnaire.template.name
         AuditLog.log('SUBMIT_INSTRUMENT', user_email=request.user.email, request=request, detail=f"Submitted {schedule_name} for Study {instance.participant.study.protocol_id}")
         
         return Response({'status': 'submitted', 'completed_at': instance.completed_at})
+
+    @action(detail=True, methods=['get'], permission_classes=[permissions.IsAuthenticated])
+    def export_data(self, request, pk=None):
+        """Export the response data as CSV or PDF."""
+        instance = self.get_object()
+        format_type = request.query_params.get('format', 'csv').lower()
+        
+        responses = instance.response_data or {}
+        template = instance.study_questionnaire.template
+        name = template.name
+        participant_id = instance.participant.participant_sid
+        
+        if format_type == 'pdf':
+            from reportlab.lib.pagesizes import letter
+            from reportlab.pdfgen import canvas
+            from io import BytesIO
+            from django.http import HttpResponse
+
+            buffer = BytesIO()
+            p = canvas.Canvas(buffer, pagesize=letter)
+            width, height = letter
+            
+            # Header
+            p.setFont("Helvetica-Bold", 16)
+            p.drawString(50, height - 50, f"Instrument: {name}")
+            p.setFont("Helvetica", 12)
+            p.drawString(50, height - 70, f"Participant: {participant_id}")
+            p.drawString(50, height - 85, f"Completed At: {instance.completed_at}")
+            
+            p.line(50, height - 95, width - 50, height - 95)
+            
+            y = height - 120
+            p.setFont("Helvetica-Bold", 10)
+            p.drawString(50, y, "Question")
+            p.drawString(400, y, "Response")
+            p.line(50, y - 5, width - 50, y - 5)
+            y -= 25
+            
+            p.setFont("Helvetica", 10)
+            for key, val in responses.items():
+                if y < 50:
+                    p.showPage()
+                    y = height - 50
+                    p.setFont("Helvetica", 10)
+                
+                # Attempt to find the question label from JSON structure
+                label = key
+                if template.json_structure and 'questions' in template.json_structure:
+                    for q in template.json_structure['questions']:
+                        if q.get('id') == key:
+                            label = q.get('label', key)
+                            break
+                        # Handle matrix row keys
+                        if '_r' in key and key.split('_r')[0] == q.get('id'):
+                            ri = int(key.split('_r')[1])
+                            if q.get('rows') and len(q.get('rows')) > ri:
+                                label = f"{q.get('label')} - {q['rows'][ri]}"
+                                break
+                                
+                p.drawString(50, y, str(label)[:70])
+                p.drawString(400, y, str(val))
+                y -= 20
+                
+            p.showPage()
+            p.save()
+            
+            buffer.seek(0)
+            response = HttpResponse(buffer, content_type='application/pdf')
+            filename = f"Results_{participant_id}_{name.replace(' ', '_')}.pdf"
+            response['Content-Disposition'] = f'attachment; filename="{filename}"'
+            return response
+            
+        else:
+            # Default to CSV
+            import csv
+            from django.http import HttpResponse
+            
+            response = HttpResponse(content_type='text/csv')
+            filename = f"Results_{participant_id}_{name.replace(' ', '_')}.csv"
+            response['Content-Disposition'] = f'attachment; filename="{filename}"'
+            
+            writer = csv.writer(response)
+            writer.writerow(['Question ID', 'Question Label', 'Response'])
+            
+            for key, val in responses.items():
+                label = key
+                if template.json_structure and 'questions' in template.json_structure:
+                    for q in template.json_structure['questions']:
+                        if q.get('id') == key:
+                            label = q.get('label', key)
+                            break
+                        if '_r' in key and key.split('_r')[0] == q.get('id'):
+                            ri = int(key.split('_r')[1])
+                            if q.get('rows') and len(q.get('rows')) > ri:
+                                label = f"{q.get('label')} - {q['rows'][ri]}"
+                                break
+                writer.writerow([key, label, val])
+                
+            return response
 
     @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
     def sign_staff(self, request, pk=None):
@@ -4219,8 +4607,18 @@ class QuestionnaireScheduleInstanceViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
     def save_draft(self, request, pk=None):
         instance = self.get_object()
+        
+        # Enforce lock on already completed or late submissions
+        if instance.status in ['COMPLETED', 'LATE']:
+            return Response({'error': 'This clinical instrument is locked and cannot be edited.'}, status=status.HTTP_400_BAD_REQUEST)
+            
         responses = request.data.get('responses')
         instance.response_data = responses
+        
+        # Transition status from PENDING to IN_PROGRESS
+        if instance.status == 'PENDING':
+            instance.status = 'IN_PROGRESS'
+            
         instance.save()
         return Response({'status': 'draft_saved'})
 

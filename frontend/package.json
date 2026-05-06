@@ -9,6 +9,7 @@
     "start": "vite"
   },
   "dependencies": {
+    "@tanstack/react-query": "^5.100.9",
     "@types/d3": "^7.4.3",
     "@types/react-google-recaptcha": "^2.1.9",
     "d3": "^7.9.0",

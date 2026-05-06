@@ -14,16 +14,10 @@ export const SummaryPanel: React.FC<SummaryPanelProps> = ({ participant, setActi
             <div>
                 <label className="text-[10px] font-black text-slate-600 uppercase tracking-[0.2em] italic mb-6 block">Clinical Triage</label>
                 <div className="flex flex-col gap-5 mt-4">
-                    <div className="flex justify-between items-center group cursor-pointer" onClick={() => setActiveTab('Eligibility')}>
+                    <div className="flex justify-between items-center group cursor-pointer" onClick={() => setActiveTab('Screening Review')}>
                         <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest group-hover:text-slate-300 transition-colors">Triage Status</span>
                         <span className={`text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded border ${participant.status === 'ENROLLED' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' : 'bg-amber-500/10 text-amber-500 border-amber-500/20'}`}>
                             {participant.status || 'PENDING'}
-                        </span>
-                    </div>
-                    <div className="flex justify-between items-center group cursor-pointer" onClick={() => setActiveTab('Consent')}>
-                        <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest group-hover:text-slate-300 transition-colors">Consent</span>
-                        <span className={`text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded border ${participant.consent?.status === 'Signed' || participant.consent?.status === 'SIGNED' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' : 'bg-slate-500/10 text-slate-500 border-slate-500/20'}`}>
-                            {participant.consent?.status || 'AWAITING'}
                         </span>
                     </div>
                     <div className="flex justify-between items-center">
@@ -60,7 +54,7 @@ export const SummaryPanel: React.FC<SummaryPanelProps> = ({ participant, setActi
 
             {/* Navigation Shortcuts */}
             <div className="mt-auto pt-10 border-t border-white/5 flex flex-col gap-2">
-                {['Overview', 'Eligibility', 'Safety'].map((tab) => (
+                {['Overview', 'Screening Review', 'Safety'].map((tab) => (
                     <button 
                         key={tab}
                         onClick={() => setActiveTab(tab)}

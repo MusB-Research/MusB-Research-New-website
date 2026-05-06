@@ -210,7 +210,7 @@ export default function ConsentModule({ selectedStudyId, preloadedStudies }: { s
                 addToast('Protocol record initialized in secure vault', 'success');
             } else {
                 const err = await res.json();
-                addToast(err.detail || 'Failed to initialize registry record', 'error');
+                addToast(err.error || err.detail || 'Failed to initialize registry record', 'error');
             }
         } catch (err) {
             console.error("Upload failed:", err);
@@ -282,7 +282,7 @@ export default function ConsentModule({ selectedStudyId, preloadedStudies }: { s
                 }
             } else {
                 const err = await res.json();
-                addToast(err.detail || 'Verification sync failed', 'error');
+                addToast(err.error || err.detail || 'Verification sync failed', 'error');
             }
         } catch (err) {
             console.error("Verification failed:", err);

@@ -2550,7 +2550,7 @@ export default function SuperAdminDashboard() {
         <div className="h-24 flex items-center justify-center border-b border-white/5 bg-[#0a0b1a]/40 shrink-0">
           <Link to="/" target="_blank" rel="noopener noreferrer" className="group">
             <div className="bg-white p-1 rounded-xl group-hover:scale-105 transition-transform overflow-hidden shadow-xl shadow-white/5">
-              <img src="/logo.jpg" alt="Logo" className="h-15 w-auto object-contain" />
+              <img src="/logo.jpg" alt="Logo" className="h-15 w-auto object-contain" width="474" height="164" />
             </div>
           </Link>
           <button onClick={() => setIsSidebarOpen(false)} className="lg:hidden absolute top-6 right-6 p-2 text-slate-500 hover:text-white">

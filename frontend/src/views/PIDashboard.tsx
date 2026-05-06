@@ -51,8 +51,9 @@ import {
     HelpCircle, Stethoscope, UsersRound, ArrowUpRight, LogOut,
     Globe, Rocket, Menu, FlaskConical, FileSearch, Layers,
     ListFilter, CheckSquare, ScrollText, Settings2, Database,
-    AlertTriangle, FileCheck, Building2, Truck, UserPlus, User, DollarSign
+    AlertTriangle, FileCheck, Building2, Truck, UserPlus, User, DollarSign, FileSignature
 } from 'lucide-react';
+
 
 type PIModule =
     | 'WEBSITE'
@@ -81,7 +82,8 @@ type PIModule =
     | 'DAILY_LOGS'
     | 'REPORTS'
     | 'SUBJECT_REVIEW'
-    | 'PAYMENTS';
+    | 'PAYMENTS'
+    | 'CONSENT_TRACKER';
 
 interface SidebarItem {
     id: PIModule | 'WEBSITE';
@@ -132,6 +134,7 @@ export default function PIDashboard() {
         if (route === 'analytics') return 'ANALYTICS';
         if (route === 'tasks') return 'TASKS';
         if (route === 'logistics') return 'LOGISTICS';
+        if (route === 'consent-tracker') return 'CONSENT_TRACKER';
         if (route === 'participant-tasks') return 'PARTICIPANT_TASKS';
         return 'OVERVIEW';
     });
@@ -166,10 +169,10 @@ export default function PIDashboard() {
         else if (route === 'tasks') setActiveModule('TASKS');
         else if (route === 'logistics') setActiveModule('LOGISTICS');
         else if (route === 'daily-logs') setActiveModule('DAILY_LOGS');
+        else if (route === 'consent-tracker') setActiveModule('CONSENT_TRACKER');
         else if (route === 'payments') setActiveModule('PAYMENTS');
         else if (route === 'participant-tasks') setActiveModule('PARTICIPANT_TASKS');
         else if (route === 'sponsors') setActiveModule('SPONSORS');
-        else if (route === 'participant-tasks') setActiveModule('PARTICIPANT_TASKS');
         else setActiveModule('OVERVIEW');
     }, [location.pathname]);
 
@@ -203,7 +206,8 @@ export default function PIDashboard() {
             'CONSENT_NEW': 'consent-new',
             'PARTICIPANT_TASKS': 'participant-tasks',
             'DAILY_LOGS': 'daily-logs',
-            'PAYMENTS': 'payments'
+            'PAYMENTS': 'payments',
+            'CONSENT_TRACKER': 'consent-tracker'
         };
         const slug = slugs[mod];
         setActiveModule(mod);
@@ -478,6 +482,7 @@ export default function PIDashboard() {
                 { id: 'PARTICIPANTS', label: 'Oversight', icon: Microscope },
                 { id: 'VISITS', label: 'Visits', icon: Calendar },
                 { id: 'DAILY_LOGS', label: 'Patient Logs', icon: ScrollText },
+                { id: 'CONSENT_TRACKER', label: 'Consent Tracker', icon: FileSignature },
             ]
         },
         {
@@ -647,7 +652,7 @@ export default function PIDashboard() {
                 <div className="h-20 px-6 flex justify-between items-center border-b border-white/[0.05]">
                     <Link to="/" target="_blank" rel="noopener noreferrer" className="group transition-all">
                         <div className="bg-white p-2 rounded-2xl group-hover:scale-110 transition-transform shadow-[0_0_20px_rgba(255,255,255,0.1)]">
-                            <img src="/logo.jpg" alt="Logo" className="h-12 w-auto object-contain rounded-xl" />
+                            <img src="/logo.jpg" alt="Logo" className="h-12 w-auto object-contain rounded-xl" width="474" height="164" />
                         </div>
                     </Link>
                 </div>
@@ -818,6 +823,11 @@ export default function PIDashboard() {
                         </div>
                     )}
 
+                    {activeModule === 'CONSENT_TRACKER' && (
+                        <div className="p-6">
+                            <ConsentOversight selectedStudyId={globalSelectedStudyId} />
+                        </div>
+                    )}
 
                     {activeModule === 'VISITS' && (
                         <VisitsModule 
@@ -1111,26 +1121,80 @@ function OverviewModule({ loading, studyCount, participantCount, stats, visits, 
                 </div>
             </div>
 
-            {/* Row 4 — Quick Access Bottom Grid */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 pt-6">
-                {[
-                    { label: 'Alert Center', sub: `${stats.unreadAlerts.toString().padStart(2, '0')} New Findings`, icon: Bell, id: 'ALERTS' },
-                    { label: 'Message Center', sub: '05 Real-time Channels', icon: MessageSquare, id: 'MESSAGES' },
-                    { label: 'Study Archive', sub: '12 Study Records', icon: FileText, id: 'STUDY_DOCS' },
-                    { label: 'Verified Docs', sub: '01 Compliance Flag', icon: ShieldCheck, id: 'MY_DOCS' }
-                ].map((card, i) => (
-                    <button 
-                        key={i} 
-                        onClick={() => onNavigate(card.id)} 
-                        className="group bg-white/[0.02] border border-white/5 rounded-2xl p-6 text-left hover:bg-white/[0.04] hover:border-teal-500/30 transition-all shadow-lg"
-                    >
-                        <div className="w-10 h-10 rounded-xl bg-teal-500/10 border border-teal-500/20 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                            <card.icon className="w-5 h-5 text-teal-400" />
+            {/* Row 4 — Task Oversight & Quick Access Bottom Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 pt-6">
+                {/* Pending Tasks Section */}
+                <div className="lg:col-span-8 bg-[#0B101B]/50 border border-white/5 rounded-3xl overflow-hidden shadow-2xl">
+                    <div className="p-6 border-b border-white/5 flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <ClipboardList className="w-5 h-5 text-teal-400" />
+                            <h3 className="text-xs font-bold text-white uppercase tracking-[0.2em]">Pending Protocol Tasks</h3>
                         </div>
-                        <h4 className="text-sm font-bold text-white uppercase tracking-tight leading-none group-hover:text-teal-400 transition-colors uppercase">{card.label}</h4>
-                        <p className="text-xs text-slate-500 font-bold uppercase tracking-widest mt-2 whitespace-nowrap">{card.sub}</p>
-                    </button>
-                ))}
+                        <button onClick={() => onNavigate('TASKS')} className="text-[10px] font-black text-teal-400 hover:text-white uppercase tracking-widest transition-colors flex items-center gap-2">
+                            View Manager <ArrowUpRight className="w-3 h-3" />
+                        </button>
+                    </div>
+                    <div className="p-6 divide-y divide-white/5">
+                        {loading ? (
+                            Array.from({ length: 3 }).map((_, i) => <PISkeleton key={i} className="h-20 mb-4" />)
+                        ) : (stats.pendingTasksData || []).filter((t: any) => t.status === 'NEW' || t.status === 'PENDING').slice(0, 3).map((task: any, idx: number) => (
+                            <div key={idx} className="py-5 flex items-center justify-between group cursor-pointer hover:bg-white/[0.02] transition-all px-4 rounded-xl -mx-4" onClick={() => onNavigate('TASKS')}>
+                                <div className="flex items-center gap-5">
+                                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center border ${
+                                        task.task_type === 'CONSENT_SIGNATURE' ? 'bg-indigo-500/10 border-indigo-500/20 text-indigo-400' :
+                                        task.task_type === 'AE_REVIEW' ? 'bg-rose-500/10 border-rose-500/20 text-rose-400' :
+                                        'bg-teal-500/10 border-teal-500/20 text-teal-400'
+                                    }`}>
+                                        <FileText className="w-5 h-5" />
+                                    </div>
+                                    <div>
+                                        <p className="text-sm font-bold text-white uppercase tracking-tight group-hover:text-teal-400 transition-colors">{task.title}</p>
+                                        <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">
+                                            {task.study_details?.protocol_id || 'System Task'} • {new Date(task.created_at).toLocaleDateString()}
+                                        </p>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-4">
+                                    <div className="text-right hidden md:block">
+                                        <p className="text-[9px] font-black text-slate-600 uppercase tracking-widest">Priority</p>
+                                        <p className={`text-[10px] font-black uppercase ${task.priority === 'HIGH' ? 'text-rose-500' : 'text-teal-400'}`}>{task.priority || 'Normal'}</p>
+                                    </div>
+                                    <ChevronRight className="w-5 h-5 text-white/10 group-hover:text-teal-400 transition-all" />
+                                </div>
+                            </div>
+                        ))}
+                        {(!stats.pendingTasksData || stats.pendingTasksData.filter((t: any) => t.status === 'NEW' || t.status === 'PENDING').length === 0) && (
+                            <div className="py-12 text-center">
+                                <ShieldCheck className="w-10 h-10 text-teal-500/20 mx-auto mb-4" />
+                                <p className="text-[11px] text-slate-600 font-bold uppercase tracking-widest">Protocol is clear. No pending tasks.</p>
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {/* Quick Access Side */}
+                <div className="lg:col-span-4 grid grid-cols-2 gap-6">
+                    {[
+                        { label: 'Alert Center', sub: `${stats.unreadAlerts.toString().padStart(2, '0')} New Findings`, icon: Bell, id: 'ALERTS' },
+                        { label: 'Message Center', sub: '05 Real-time Channels', icon: MessageSquare, id: 'MESSAGES' },
+                        { label: 'Study Archive', sub: '12 Study Records', icon: FileText, id: 'STUDY_DOCS' },
+                        { label: 'Verified Docs', sub: '01 Compliance Flag', icon: ShieldCheck, id: 'MY_DOCS' }
+                    ].map((card, i) => (
+                        <button 
+                            key={i} 
+                            onClick={() => onNavigate(card.id)} 
+                            className="group bg-white/[0.02] border border-white/5 rounded-[2rem] p-6 text-left hover:bg-white/[0.04] hover:border-teal-500/30 transition-all shadow-lg flex flex-col justify-between"
+                        >
+                            <div className="w-10 h-10 rounded-xl bg-teal-500/10 border border-teal-500/20 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                                <card.icon className="w-5 h-5 text-teal-400" />
+                            </div>
+                            <div>
+                                <h4 className="text-sm font-bold text-white uppercase tracking-tight leading-none group-hover:text-teal-400 transition-colors">{card.label}</h4>
+                                <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest mt-2">{card.sub}</p>
+                            </div>
+                        </button>
+                    ))}
+                </div>
             </div>
         </motion.div>
     );

@@ -30,6 +30,9 @@ const AnimatedBackground = () => {
         const connectionDistance = 180;
         const mouseRadius = 250;
 
+        const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        if (prefersReducedMotion) return;
+
         const resizeCanvas = () => {
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
@@ -51,22 +54,19 @@ const AnimatedBackground = () => {
                     x: Math.random() * canvas.width,
                     y: Math.random() * canvas.height,
                     size: size,
-                    speedX: (Math.random() - 0.5) * 0.2,
-                    speedY: (Math.random() - 0.5) * 0.2,
+                    speedX: (Math.random() - 0.5) * 0.1, // Slower speed for better performance
+                    speedY: (Math.random() - 0.5) * 0.1,
                     color: colorBase,
-                    glow: Math.random() * 25 + 15
+                    glow: Math.random() * 15 + 10 // Reduced glow size
                 });
             }
         };
 
         const drawParticles = () => {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-            const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
-            gradient.addColorStop(0, '#020617');
-            gradient.addColorStop(1, '#0b1121');
-            ctx.fillStyle = gradient;
+            // Draw background with a simple fill first
+            ctx.fillStyle = '#020617';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
+
             const time = Date.now() * 0.001;
 
             particles.forEach((particle, index) => {
@@ -79,8 +79,8 @@ const AnimatedBackground = () => {
 
                 if (distance < mouseRadius) {
                     const force = (mouseRadius - distance) / mouseRadius;
-                    particle.x += dx / 50 * force;
-                    particle.y += dy / 50 * force;
+                    particle.x += dx / 100 * force;
+                    particle.y += dy / 100 * force;
                 }
 
                 if (particle.x < 0) particle.x = canvas.width;
@@ -90,31 +90,30 @@ const AnimatedBackground = () => {
 
                 const pulse = Math.sin(time + index) * 0.3 + 0.7;
                 const currentGlow = particle.glow * pulse;
-                const currentOpacity = (Math.sin(time * 0.5 + index) * 0.2 + 0.5);
+                const currentOpacity = (Math.sin(time * 0.5 + index) * 0.2 + 0.4);
 
-                const particleGradient = ctx.createRadialGradient(
-                    particle.x, particle.y, 0,
-                    particle.x, particle.y, currentGlow
-                );
-                particleGradient.addColorStop(0, particle.color + `${currentOpacity})`);
-                particleGradient.addColorStop(1, particle.color + '0)');
-
-                ctx.fillStyle = particleGradient;
-                ctx.beginPath();
-                ctx.arc(particle.x, particle.y, currentGlow, 0, Math.PI * 2);
-                ctx.fill();
-
+                // Use globalAlpha instead of complex radial gradients for every particle
+                ctx.save();
+                ctx.globalAlpha = currentOpacity;
+                ctx.shadowBlur = currentGlow;
+                ctx.shadowColor = particle.color + '0.5)';
+                
                 ctx.fillStyle = particle.color + '0.8)';
                 ctx.beginPath();
                 ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
                 ctx.fill();
+                ctx.restore();
 
+                // Optimized connections
                 for (let j = index + 1; j < particles.length; j++) {
                     const p2 = particles[j];
-                    const dist = Math.sqrt(Math.pow(particle.x - p2.x, 2) + Math.pow(particle.y - p2.y, 2));
+                    const distX = particle.x - p2.x;
+                    const distY = particle.y - p2.y;
+                    const distSq = distX * distX + distY * distY;
 
-                    if (dist < connectionDistance) {
-                        const lineOpacity = (1 - dist / connectionDistance) * 0.08;
+                    if (distSq < connectionDistance * connectionDistance) {
+                        const dist = Math.sqrt(distSq);
+                        const lineOpacity = (1 - dist / connectionDistance) * 0.05;
                         ctx.strokeStyle = `rgba(255, 255, 255, ${lineOpacity})`;
                         ctx.lineWidth = 0.5;
                         ctx.beginPath();
@@ -125,22 +124,21 @@ const AnimatedBackground = () => {
                 }
             });
 
+            // Draw fixed ambient spots only once or at lower frequency if needed
+            // But here we keep them simple
+            ctx.globalCompositeOperation = 'screen';
             const spots = [
-                { x: 0.2, y: 0.2, c: 'rgba(6, 182, 212, 0.03)', r: 0.6 },
-                { x: 0.8, y: 0.8, c: 'rgba(99, 102, 241, 0.03)', r: 0.6 },
-                { x: 0.5, y: 0.5, c: 'rgba(255, 255, 255, 0.01)', r: 0.4 }
+                { x: 0.2, y: 0.2, c: 'rgba(6, 182, 212, 0.02)', r: 0.6 },
+                { x: 0.8, y: 0.8, c: 'rgba(99, 102, 241, 0.02)', r: 0.6 }
             ];
 
             spots.forEach(spot => {
-                const sG = ctx.createRadialGradient(
-                    canvas.width * spot.x, canvas.height * spot.y, 0,
-                    canvas.width * spot.x, canvas.height * spot.y, canvas.width * spot.r
-                );
-                sG.addColorStop(0, spot.c);
-                sG.addColorStop(1, 'transparent');
-                ctx.fillStyle = sG;
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = spot.c;
+                ctx.beginPath();
+                ctx.arc(canvas.width * spot.x, canvas.height * spot.y, canvas.width * spot.r, 0, Math.PI * 2);
+                ctx.fill();
             });
+            ctx.globalCompositeOperation = 'source-over';
 
             animationFrameId = requestAnimationFrame(drawParticles);
         };

@@ -38,10 +38,15 @@ import ConsentOversight from '../../components/coordinator/panels/ConsentOversig
 // Modular Page Components
 import { OperationsOversight } from './modules/OperationsOversight';
 import { StudyDirectory } from './modules/StudyDirectory';
+import { DataExportsModule } from './modules/DataExportsModule';
 import InvitationsModule from '../../components/shared/InvitationsModule';
 import ParticipantLogsPanel from '../../components/shared/ParticipantLogsPanel';
 import { usePolling } from '@/hooks/usePolling';
-
+import { useQueryClient } from '@tanstack/react-query';
+import { 
+    useStudies, useParticipants, useTasks, useNotifications,
+    useUsers, useSponsorOrganizations, useVisits, useQuestionnaireSchedules 
+} from '../../hooks/useApiQueries';
 
 import {
     Calendar, Clock, ArrowRight, ChevronRight, ChevronLeft, Sparkles, Trophy,
@@ -53,8 +58,9 @@ import {
     HelpCircle, Stethoscope, UsersRound, ArrowUpRight, LogOut,
     Globe, Rocket, Menu, FlaskConical, FileSearch, Layers,
     ListFilter, CheckSquare, ScrollText, Settings2, Database,
-    AlertTriangle, FileCheck, Briefcase, DollarSign, Truck, UserPlus, User
+    AlertTriangle, FileCheck, Briefcase, DollarSign, Truck, UserPlus, User, FileSignature
 } from 'lucide-react';
+
 
 type CCModule =
     | 'WEBSITE'
@@ -82,7 +88,9 @@ type CCModule =
     | 'LOGISTICS'
     | 'PARTICIPANT_TASKS'
     | 'PAYMENTS'
-    | 'CONSENT_NEW';
+    | 'CONSENT_NEW'
+    | 'CONSENT_TRACKER'
+    | 'DATA_EXPORTS';
 
 export default function CoordinatorDashboard() {
     const navigate = useNavigate();
@@ -127,7 +135,9 @@ export default function CoordinatorDashboard() {
         if (route === 'tasks') return 'TASKS';
         if (route === 'logistics') return 'LOGISTICS';
 
+        if (route === 'consent-tracker') return 'CONSENT_TRACKER';
         if (route === 'participant-tasks') return 'PARTICIPANT_TASKS';
+        if (route === 'data-exports') return 'DATA_EXPORTS';
         return 'OVERSIGHT';
     });
 
@@ -167,7 +177,9 @@ export default function CoordinatorDashboard() {
                 'daily-logs': 'DAILY_LOGS',
                 'compensation': 'COMPENSATION',
                 'payments': 'PAYMENTS',
-                'consent-new': 'CONSENT_NEW'
+                'consent-new': 'CONSENT_NEW',
+                'consent-tracker': 'CONSENT_TRACKER',
+                'data-exports': 'DATA_EXPORTS'
             };
             
             if (routeMap[route]) {
@@ -212,7 +224,9 @@ export default function CoordinatorDashboard() {
             'PARTICIPANT_TASKS': 'participant-tasks',
             'DAILY_LOGS': 'daily-logs',
             'CONSENT_NEW': 'consent-new',
-            'PAYMENTS': 'payments'
+            'CONSENT_TRACKER': 'consent-tracker',
+            'PAYMENTS': 'payments',
+            'DATA_EXPORTS': 'data-exports'
         };
         const slug = slugs[mod];
         setActiveModule(mod);
@@ -276,29 +290,25 @@ export default function CoordinatorDashboard() {
         window.addEventListener('scroll', handleScroll, false);
         return () => window.removeEventListener('scroll', handleScroll, false);
     }, [isNotificationOpen, isProfileOpen]);
+    const { data: queryNotifications } = useNotifications();
 
-    const fetchNotifications = async () => {
-        try {
-            const data = await apiFetch<any[]>('/api/notifications/');
-            const newNotifications = Array.isArray(data) ? data : [];
-            
-            // Trigger toast for any NEW unread DANGER notifications
+    useEffect(() => {
+        if (queryNotifications) {
+            const newNotifications = Array.isArray(queryNotifications) ? queryNotifications : [];
             newNotifications.forEach(n => {
                 if (!n.is_read && n.type === 'DANGER' && !notifications.find(prev => prev.id === n.id)) {
                     addToast(n.message, 'danger');
                 }
             });
-            
             setNotifications(newNotifications);
-        } catch (err) {
-            console.error("Failed to fetch notifications:", err);
         }
-    };
+    }, [queryNotifications]);
 
     const markAsRead = async (id: string, link?: string) => {
         try {
             await authFetch(`${API}/api/notifications/${id}/read/`, { method: 'POST' });
             setNotifications(notifications.map(n => n.id === id ? { ...n, is_read: true } : n));
+            queryClient.invalidateQueries({ queryKey: ['notifications'] });
             if (link) {
                 if (link.startsWith('http')) window.open(link, '_blank');
                 else navigate(link);
@@ -310,6 +320,7 @@ export default function CoordinatorDashboard() {
         try {
             await authFetch(`${API}/api/notifications/read_all/`, { method: 'POST' });
             setNotifications(notifications.map(n => ({ ...n, is_read: true })));
+            queryClient.invalidateQueries({ queryKey: ['notifications'] });
         } catch (err) { }
     };
 
@@ -360,12 +371,24 @@ export default function CoordinatorDashboard() {
         awaitingCallback: 0,
         pendingForms: 0,
         activeSubjects: 0,
-        hasCriticalAlert: false
+        complianceRate: 0,
+        hasCriticalAlert: false,
+        completedLast30Days: 0
     });
     const [participantsByStudy, setParticipantsByStudy] = useState<Record<string, number>>({});
     const [globalSelectedStudyId, setGlobalSelectedStudyId] = useState<string>('all');
     const [summaryData, setSummaryData] = useState<any>(null);
     const [summaryLoading, setSummaryLoading] = useState(false);
+
+    const queryClient = useQueryClient();
+
+    const { data: studiesData, isLoading: studiesLoading } = useStudies();
+    const { data: participantsData, isLoading: participantsLoading } = useParticipants();
+    const { data: staffTasksData, isLoading: tasksLoading } = useTasks();
+    const { data: usersData, isLoading: usersLoading } = useUsers();
+    const { data: sponsorsData, isLoading: sponsorsLoading } = useSponsorOrganizations();
+    const { data: visitsData, isLoading: visitsLoading } = useVisits();
+    const { data: questionnairesData, isLoading: questionnairesLoading } = useQuestionnaireSchedules();
 
     // Fetch Aggregated Summary when Study Changes
     useEffect(() => {
@@ -392,107 +415,84 @@ export default function CoordinatorDashboard() {
         fetchSummary();
     }, [globalSelectedStudyId]);
 
-    const fetchCoordinatorContent = useCallback(async (showLoading = true, skipCache = false) => {
-        if (showLoading) setLoading(true);
-        try {
-            const fetchOpts = { skipCache };
-            const [
-                studiesData,
-                usersData,
-                sponsorsData,
-                visitsData,
-                participantsData,
-                questionnairesData,
-                staffTasksData
-            ] = await Promise.all([
-                apiFetch<any[]>('/api/studies/?limit=50', fetchOpts),
-                apiFetch<any[]>('/api/users/?limit=100', fetchOpts),
-                apiFetch<any[]>('/api/sponsor-organizations/?limit=50', fetchOpts),
-                apiFetch<any[]>('/api/visits/?limit=50', fetchOpts),
-                apiFetch<any[]>('/api/participants/?limit=50', fetchOpts),
-                apiFetch<any[]>('/api/questionnaire-schedules/?limit=50', fetchOpts),
-                apiFetch<any[]>('/api/staff-tasks/?limit=50', fetchOpts)
-            ]);
+    useEffect(() => {
+        if (studiesLoading || participantsLoading || tasksLoading || usersLoading || sponsorsLoading || visitsLoading || questionnairesLoading) {
+            setLoading(true);
+        } else {
+            setLoading(false);
+        }
+    }, [studiesLoading, participantsLoading, tasksLoading, usersLoading, sponsorsLoading, visitsLoading, questionnairesLoading]);
 
-            setStudies(studiesData || []);
+    const refreshAllData = () => {
+        queryClient.invalidateQueries({ queryKey: ['studies'] });
+        queryClient.invalidateQueries({ queryKey: ['participants'] });
+        queryClient.invalidateQueries({ queryKey: ['users'] });
+        queryClient.invalidateQueries({ queryKey: ['tasks'] });
+        queryClient.invalidateQueries({ queryKey: ['visits'] });
+        queryClient.invalidateQueries({ queryKey: ['sponsor-organizations'] });
+        queryClient.invalidateQueries({ queryKey: ['questionnaire-schedules'] });
+    };
 
-            setUsers((usersData || []).map((u: any) => ({
-                ...u,
-                role: u.role ? u.role.toString().toUpperCase() : 'PARTICIPANT'
-            })));
-
-            setSponsorOrganizations(Array.isArray(sponsorsData) ? sponsorsData : (sponsorsData as any)?.results || []);
-            setVisits(visitsData || []);
-            setParticipants(participantsData || []);
-            setGlobalTasks(staffTasksData || []);
-
-            const activeParticipants = participantsData || [];
-
-            // Build participant count map per study
+    useEffect(() => {
+        if (studiesData) setStudies(Array.isArray(studiesData) ? studiesData : (studiesData as any)?.results || []);
+        const rawUsers = Array.isArray(usersData) ? usersData : (usersData as any)?.results || [];
+        if (usersData) setUsers(rawUsers.map((u: any) => ({ ...u, role: u.role ? u.role.toString().toUpperCase() : 'PARTICIPANT' })));
+        if (sponsorsData) setSponsorOrganizations(Array.isArray(sponsorsData) ? sponsorsData : (sponsorsData as any)?.results || []);
+        if (visitsData) setVisits(visitsData);
+        if (participantsData) {
+            setParticipants(participantsData);
             const pCountMap: Record<string, number> = {};
-            activeParticipants.forEach((p: any) => {
+            participantsData.forEach((p: any) => {
                 const sid = String(p.study?.id || p.study || '');
                 if (sid) pCountMap[sid] = (pCountMap[sid] || 0) + 1;
             });
             setParticipantsByStudy(pCountMap);
+        }
+        if (staffTasksData) setGlobalTasks(staffTasksData);
 
+        if (visitsData && questionnairesData && participantsData) {
             const now = new Date();
             const upcoming = (visitsData || []).filter((v: any) => v.status === 'SCHEDULED' && new Date(v.scheduled_date) > now).length;
             const overdue = (visitsData || []).filter((v: any) => v.status === 'SCHEDULED' && new Date(v.scheduled_date) < now).length;
 
             const pendingFormsCount = (questionnairesData || []).filter((q: any) => q.status === 'PENDING').length;
 
+            const totalTasks = (questionnairesData || []).length;
+            const completedTasks = (questionnairesData || []).filter((q: any) => q.status === 'COMPLETED' || q.status === 'LATE').length;
+            const globalCompliance = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
+
+            const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+            const completed30d = (questionnairesData || []).filter((q: any) => 
+                (q.status === 'COMPLETED' || q.status === 'LATE') && 
+                new Date(q.updated_at || q.completed_at || now) > thirtyDaysAgo
+            ).length;
+
             setOversightStats({
                 upcomingVisits: upcoming,
                 overdueFollowUps: overdue,
                 awaitingCallback: 0,
                 pendingForms: pendingFormsCount,
-                activeSubjects: activeParticipants.length,
-                hasCriticalAlert: overdue > 0
+                activeSubjects: participantsData.length,
+                complianceRate: Math.round(globalCompliance * 10) / 10,
+                hasCriticalAlert: false,
+                completedLast30Days: completed30d
             });
-        } catch (e) {
-            console.error("Coordinator Data Fetch Failed", e);
-        } finally {
-            if (showLoading) setLoading(false);
         }
-    }, []);
+    }, [studiesData, usersData, sponsorsData, visitsData, participantsData, questionnairesData, staffTasksData]);
 
-    // [PERFORMANCE] Consolidated Dashboard Initialization
     const dashboardInitRef = useRef(false);
     useEffect(() => {
         if (dashboardInitRef.current) return;
         dashboardInitRef.current = true;
 
-        const initializeAll = async () => {
-            setLoading(true);
-            try {
-                // 1. Mark missed visits (POST)
-                authFetch(`${API}/api/visits/check_missed/`, { method: 'POST' })
-                    .then(res => res.json())
-                    .then(data => {
-                        if (data.missed_marked > 0) {
-                            addToast(`DEVIATION ALERT: ${data.missed_marked} participants missed scheduled visits. Marking as MISSED.`, 'danger');
-                        }
-                    }).catch(() => {});
-
-                // 2. Fetch all required content in parallel
-                await Promise.all([
-                    fetchNotifications(),
-                    fetchCoordinatorContent(false, false)
-                ]);
-            } catch (err) {
-                console.error("Dashboard Initialization Error:", err);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        initializeAll();
-    }, [fetchCoordinatorContent]);
-
-    // Removed background polling per user request to reduce redundant network requests.
-    // Data is refreshed on mount and upon specific mutations (launch/update).
-    // usePolling(() => fetchCoordinatorContent(false, true), 10000);
+        authFetch(`${API}/api/visits/check_missed/`, { method: 'POST' })
+            .then(res => res.json())
+            .then(data => {
+                if (data.missed_marked > 0) {
+                    addToast(`DEVIATION ALERT: ${data.missed_marked} participants missed scheduled visits. Marking as MISSED.`, 'danger');
+                }
+            }).catch(() => {});
+    }, []);
 
     const toStudyAssignmentIds = (value: any) => {
         const list = Array.isArray(value) ? value : value ? [value] : [];
@@ -855,7 +855,7 @@ export default function CoordinatorDashboard() {
                 localStorage.removeItem('study_launch_draft');
                 handleModuleChange('STUDIES');
                 setSelectedStudy(null);
-                fetchCoordinatorContent(true, true);
+                refreshAllData();
                 return true;
             }
 
@@ -869,13 +869,43 @@ export default function CoordinatorDashboard() {
     };
 
 
+    const handleExportStudyData = async (study: any, format: 'csv' | 'pdf') => {
+        try {
+            const token = localStorage.getItem('access_token');
+            const url = `${API}/api/studies/${study.protocol_id}/export_data/?format=${format}`;
+            
+            const response = await fetch(url, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            
+            if (!response.ok) throw new Error('Export failed');
+            
+            const blob = await response.blob();
+            const downloadUrl = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = downloadUrl;
+            a.download = `Study_Export_${study.protocol_id}_${new Date().toISOString().split('T')[0]}.${format === 'csv' ? 'csv' : 'pdf'}`;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(downloadUrl);
+            document.body.removeChild(a);
+            
+            addToast(`${format.toUpperCase()} export started successfully.`, 'success');
+        } catch (err) {
+            console.error("Export Error:", err);
+            addToast("Failed to export study data. Please try again.", 'danger');
+        }
+    };
+
     const handleDeleteStudy = async (study: any) => {
         const studyId = study?.id || study?.protocol_id;
         const res = await authFetch(`${API}/api/studies/${studyId}/`, { method: 'DELETE' });
         if (res.ok || res.status === 204) {
             addToast(`Study ${study.protocol_id || 'Untitled'} deleted successfully`, 'success');
             // Force skip cache to ensure deleted study disappears
-            fetchCoordinatorContent(true, true);
+            refreshAllData();
         } else {
             const err = await res.json().catch(() => null);
             addToast(`Failed to delete study: ${err?.detail || res.statusText}`, 'danger');
@@ -891,7 +921,7 @@ export default function CoordinatorDashboard() {
             if (res.ok) {
                 setStudies(studies.map(s => s.id === studyId ? { ...s, status: newStatus, stage: newStatus } : s));
                 // Also fetch fresh data to sync other stats
-                fetchCoordinatorContent(false, true);
+                queryClient.invalidateQueries({ queryKey: ['studies'] });
             }
         } catch (e) {
             console.error("Failed to update status", e);
@@ -915,6 +945,7 @@ export default function CoordinatorDashboard() {
                 { id: 'PARTICIPANTS', label: 'Oversight', icon: UsersRound },
                 { id: 'VISITS', label: 'Visits', icon: Calendar },
                 { id: 'DAILY_LOGS', label: 'Patient Logs', icon: FileText },
+                { id: 'DATA_EXPORTS', label: 'Data & Exports', icon: FileCheck },
             ]
         },
         {
@@ -924,7 +955,7 @@ export default function CoordinatorDashboard() {
                 { id: 'LABS', label: 'Labs', icon: Beaker },
                 { id: 'LOGISTICS', label: 'Supply Kit', icon: Truck },
                 { id: 'FORMS', label: 'Questionnaires', icon: ClipboardList },
-                { id: 'CONSENT', label: 'Consent', icon: ShieldCheck },
+                { id: 'CONSENT_TRACKER', label: 'Consent Tracker', icon: FileSignature },
             ]
         },
         {
@@ -1012,13 +1043,24 @@ export default function CoordinatorDashboard() {
                                     <motion.div initial={{ opacity: 0, scale: 0.95, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 10 }} className="absolute right-0 mt-6 w-80 md:w-96 bg-[#0F172A]/95 backdrop-blur-3xl border border-white/10 rounded-2xl shadow-2xl z-[120] overflow-hidden">
                                         <div className="p-5 border-b border-white/5 flex items-center justify-between bg-white/[0.02]">
                                             <h3 className="text-xs font-bold text-white uppercase tracking-wider">Alerts</h3>
-                                            <button 
-                                                onClick={() => setIsNotificationOpen(false)}
-                                                className="p-1.5 hover:bg-white/5 rounded-lg text-slate-500 hover:text-white transition-all"
-                                            >
-                                                <X className="w-3.5 h-3.5" />
-                                            </button>
+                                            <div className="flex items-center gap-2">
+                                                {unreadCount > 0 && (
+                                                    <button
+                                                        onClick={markAllAsRead}
+                                                        className="px-3 py-1.5 bg-blue-600/10 hover:bg-blue-600 border border-blue-500/20 rounded-lg text-[9px] font-black text-blue-400 hover:text-white uppercase tracking-widest transition-all active:scale-95 flex items-center gap-1.5"
+                                                    >
+                                                        <CheckCircle2 className="w-3 h-3" /> Mark All Read
+                                                    </button>
+                                                )}
+                                                <button
+                                                    onClick={() => setIsNotificationOpen(false)}
+                                                    className="p-1.5 hover:bg-white/5 rounded-lg text-slate-500 hover:text-white transition-all"
+                                                >
+                                                    <X className="w-3.5 h-3.5" />
+                                                </button>
+                                            </div>
                                         </div>
+
                                         <div className="max-h-[60vh] overflow-y-auto custom-scrollbar p-0">
                                              {notifications.length === 0 ? (
                                                 <div className="p-12 text-center">
@@ -1153,7 +1195,7 @@ export default function CoordinatorDashboard() {
                 <div className="h-16 md:h-20 px-6 md:px-8 flex justify-between items-center border-b border-white/[0.05] shrink-0">
                     <Link to="/" target="_blank" rel="noopener noreferrer" className="group transition-all">
                         <div className="bg-white p-1.5 md:p-2 rounded-xl md:rounded-2xl group-hover:scale-110 transition-transform shadow-[0_0_20px_rgba(255,255,255,0.1)]">
-                            <img src="/logo.jpg" alt="Logo" className="h-8 md:h-12 w-auto object-contain rounded-lg md:rounded-xl" />
+                            <img src="/logo.jpg" alt="Logo" className="h-8 md:h-12 w-auto object-contain rounded-lg md:rounded-xl" width="474" height="164" />
                         </div>
                     </Link>
                     <button
@@ -1218,6 +1260,7 @@ export default function CoordinatorDashboard() {
                                 studies={studies}
                                 onAdd={startNewStudyLaunch}
                                 onEdit={(s) => { setSelectedStudy(s); handleModuleChange('LAUNCH_STUDY'); }}
+                                onExport={handleExportStudyData}
                                 onDelete={handleDeleteStudy}
                                 onUpdateStatus={handleUpdateStudyStatus}
                                 isLoading={loading}
@@ -1240,7 +1283,7 @@ export default function CoordinatorDashboard() {
                                 selectedStudyId={globalSelectedStudyId} 
                                 initialUsers={users}
                                 allStudies={studies}
-                                onRefresh={fetchCoordinatorContent}
+                                onRefresh={refreshAllData}
                             />
                         )}
                         {activeModule === 'INVITE_FOR_STUDY' && (
@@ -1272,7 +1315,7 @@ export default function CoordinatorDashboard() {
                                     }} 
                                     onMessage={() => setActiveModule('MESSAGES')}
                                     initialParticipants={participants}
-                                    onRefresh={fetchCoordinatorContent}
+                                    onRefresh={refreshAllData}
                                 />
                             )
                         )}
@@ -1283,13 +1326,19 @@ export default function CoordinatorDashboard() {
                             </div>
                         )}
 
+                        {activeModule === 'CONSENT_TRACKER' && (
+                            <div className="p-6">
+                                <ConsentOversight selectedStudyId={globalSelectedStudyId} />
+                            </div>
+                        )}
+
                         {activeModule === 'VISITS' && (
                             <CCC_VisitsAssessmentsModule 
                                 selectedStudyId={globalSelectedStudyId} 
                                 preloadedParticipants={participants}
                                 preloadedStudies={studies}
                                 preloadedTasks={globalTasks}
-                                onRefresh={fetchCoordinatorContent}
+                                onRefresh={refreshAllData}
                                 isLoading={loading}
                             />
                         )}
@@ -1364,13 +1413,19 @@ export default function CoordinatorDashboard() {
                                 selectedStudyId={globalSelectedStudyId} 
                                 allUsers={users} 
                                 preloadedStudies={studies} 
-                                onRefresh={fetchCoordinatorContent}
+                                onRefresh={refreshAllData}
                                 isLoading={loading}
                             />
                         )}
                         {activeModule === 'COMPENSATION' && (
                             <CompensationManagement 
                                 selectedStudyId={globalSelectedStudyId} 
+                            />
+                        )}
+                        {activeModule === 'DATA_EXPORTS' && (
+                            <DataExportsModule 
+                                selectedStudyId={globalSelectedStudyId}
+                                allStudies={studies}
                             />
                         )}
                     </AnimatePresence>
