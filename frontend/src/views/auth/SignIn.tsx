@@ -116,7 +116,8 @@ export default function SignIn() {
             const checkRes = await fetch(`${API}/api/auth/check-email/`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email })
+                body: JSON.stringify({ email }),
+                credentials: 'include'
             });
             
             if (checkRes.ok) {
@@ -262,7 +263,8 @@ export default function SignIn() {
             const response = await fetch(`${API}/api/auth/forgot-password/`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email })
+                body: JSON.stringify({ email }),
+                credentials: 'include'
             });
             const data = await response.json();
             if (!response.ok) throw new Error(data.error || 'Failed to send reset link');

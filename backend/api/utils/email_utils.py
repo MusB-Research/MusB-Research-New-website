@@ -418,18 +418,48 @@ def send_musb_system_email(
 
         from_email = f"MusB Research <{getattr(settings, 'SMTP_EMAIL', None) or getattr(settings, 'EMAIL_HOST_USER', 'noreplymusbresearch@gmail.com')}>"
         
-        send_mail(
-            subject=subject,
-            message=plain_message,
-            from_email=from_email,
-            recipient_list=[user_email],
-            html_message=html_message,
-            fail_silently=False,
-        )
-        logger.info(f"[EMAIL] {mode} sent to {user_email}")
-        return True
+        # ─────────────────────────────────────────────────────────
+        # PRODUCTION DELIVERY OPTIMIZATION
+        # ─────────────────────────────────────────────────────────
+        resend_key = getattr(settings, 'RESEND_API_KEY', None)
+        if resend_key:
+            try:
+                import resend
+                resend.api_key = resend_key
+                resend.Emails.send({
+                    "from": from_email,
+                    "to": [user_email],
+                    "subject": subject,
+                    "html": html_message
+                })
+                logger.info(f"[EMAIL-RESEND] {mode} sent to {user_email}")
+                return True
+            except Exception as res_err:
+                logger.error(f"[EMAIL-RESEND] Failed, falling back to SMTP: {res_err}")
+
+        # Fallback to standard SMTP
+        try:
+            logger.info(f"[EMAIL-SMTP] Attempting delivery to {user_email} via {settings.EMAIL_HOST}")
+            send_mail(
+                subject=subject,
+                message=plain_message,
+                from_email=from_email,
+                recipient_list=[user_email],
+                html_message=html_message,
+                fail_silently=False,
+            )
+            logger.info(f"[EMAIL-SMTP] SUCCESS: {mode} sent to {user_email}")
+            return True
+        except Exception as smtp_err:
+            logger.error(f"[EMAIL-SMTP] CRITICAL FAILURE: Could not deliver {mode} to {user_email}.")
+            logger.error(f"SMTP Error Details: {str(smtp_err)}")
+            # Log specific hints for Gmail SMTP
+            if "AuthenticationFailed" in str(smtp_err) or "535" in str(smtp_err):
+                logger.error("HINT: Gmail SMTP Authentication failed. Verify SMTP_EMAIL and SMTP_PASSWORD (App Password required).")
+            elif "ConnectionRefused" in str(smtp_err):
+                logger.error(f"HINT: Could not connect to SMTP host {settings.EMAIL_HOST}:{settings.EMAIL_PORT}. Check network/firewall.")
+            return False
 
     except Exception as e:
-        logger.error(f"[EMAIL] Failed to send {mode} to {user_email}: {e}")
+        logger.error(f"send_musb_system_email: Unexpected error: {str(e)}", exc_info=True)
         return False
-
