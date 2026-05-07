@@ -25,6 +25,7 @@ const WhyChooseUs = lazy(() => import('./views/WhyChooseUs'));
 const Capabilities = lazy(() => import('./views/Capabilities'));
 const MellowConsortium = lazy(() => import('./views/MellowConsortium'));
 const SignIn = lazy(() => import('./views/auth/SignIn'));
+const GoogleCallback = lazy(() => import('./views/auth/GoogleCallback'));
 const SuperAdminSignIn = lazy(() => import('./views/auth/SuperAdminSignIn'));
 const StudyDetail = lazy(() => import('./views/StudyDetail'));
 const StudyScreener = lazy(() => import('./views/StudyScreener'));
@@ -137,6 +138,7 @@ function AppContent() {
                         <Route path="/mellow-consortium" element={<MellowConsortium />} />
                         <Route path="/support" element={<Support />} />
                         <Route path="/signin" element={<SignIn />} />
+                        <Route path="/auth/google-callback" element={<GoogleCallback />} />
                         <Route path="/mainframe/restricted-auth" element={<SuperAdminSignIn />} />
                         <Route path="/studies/:id" element={<StudyDetail />} />
                         <Route path="/studies/:id/screener" element={<StudyScreener />} />

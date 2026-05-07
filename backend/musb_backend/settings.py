@@ -342,6 +342,8 @@ if not DEBUG:
     SECURE_HSTS_SECONDS = 31536000
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
+    # Allow Google Identity Services popups to communicate with the parent window
+    SECURE_CROSS_ORIGIN_OPENER_POLICY = 'same-origin-allow-popups'
     # Crucial for cross-domain auth (musbhealth.com -> onrender.com)
     CSRF_COOKIE_SAMESITE = 'None'
     SESSION_COOKIE_SAMESITE = 'None'
