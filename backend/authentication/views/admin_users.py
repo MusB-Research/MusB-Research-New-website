@@ -86,9 +86,7 @@ def admin_create_user(request):
     try:
         admin_user = request.user
         if not admin_user or not admin_user.is_authenticated or (getattr(admin_user, 'role', '') or '').upper() not in ['SUPER_ADMIN', 'ADMIN', 'PI', 'COORDINATOR', 'SPONSOR']:
-            res = Response({'error': 'Unauthorized access.'}, status=status.HTTP_403_FORBIDDEN)
-            res["Access-Control-Allow-Origin"] = "*"
-            return res
+            return Response({'error': 'Unauthorized access.'}, status=status.HTTP_403_FORBIDDEN)
 
         # 1. Extraction
         email       = (request.data.get('email') or '').strip().lower()
@@ -126,9 +124,7 @@ def admin_create_user(request):
             missing = [f for f in ['email', 'first_name', 'last_name', 'role'] if not (request.data.get(f) or '').strip()]
             err_msg = f"Missing mandatory fields: {', '.join(missing)}"
             logger.warning(f"Validation failed for user creation by {admin_user.email}. {err_msg}")
-            res = Response({'error': 'First Name, Last Name, Email, and Role are mandatory.'}, status=status.HTTP_400_BAD_REQUEST)
-            res["Access-Control-Allow-Origin"] = "*"
-            return res
+            return Response({'error': 'First Name, Last Name, Email, and Role are mandatory.'}, status=status.HTTP_400_BAD_REQUEST)
         
         # Find matching role in choices regardless of case
         role = None
@@ -138,21 +134,17 @@ def admin_create_user(request):
         
         if not role:
             logger.warning(f"Invalid role requested: {role_input} by {admin_user.email}")
-            res = Response({'error': f'Invalid role. Allowed: {", ".join([r[1] for r in User.ROLE_CHOICES])}'}, status=status.HTTP_400_BAD_REQUEST)
-            res["Access-Control-Allow-Origin"] = "*"
-            return res
+            return Response({'error': f'Invalid role. Allowed: {", ".join([r[1] for r in User.ROLE_CHOICES])}'}, status=status.HTTP_400_BAD_REQUEST)
 
         # 3. RBAC Permission Check
         if not check_permission(admin_user, role):
-            res = Response({'error': 'You do not have permission to create this type of account.'}, status=status.HTTP_403_FORBIDDEN)
-            res["Access-Control-Allow-Origin"] = "*"
-            return res
+            return Response({'error': 'You do not have permission to create this type of account.'}, status=status.HTTP_403_FORBIDDEN)
 
         existing_user = User.objects.filter(email=email).first()
         if existing_user:
             # If user is already registered, check if we can just re-invite them
             if (existing_user.status or '').upper() == 'PENDING':
-                res = Response({
+                return Response({
                     'message': 'This user already has a pending invitation. You can resend their credentials from the dashboard.',
                     'username': existing_user.username,
                     'user_id': str(existing_user.id),
@@ -160,10 +152,8 @@ def admin_create_user(request):
                     'email': existing_user.email,
                     'status': 'PENDING'
                 }, status=status.HTTP_200_OK)
-                res["Access-Control-Allow-Origin"] = "*"
-                return res
 
-            res = Response({
+            return Response({
                 'error': 'This email is already registered on the platform.',
                 'existing_user': {
                     'name': f"{existing_user.first_name} {existing_user.last_name}",
@@ -173,8 +163,6 @@ def admin_create_user(request):
                     'status': existing_user.status
                 }
             }, status=status.HTTP_400_BAD_REQUEST)
-            res["Access-Control-Allow-Origin"] = "*"
-            return res
 
         # 4. Affiliation logic
         affiliation = 'MUSB' # Default
@@ -342,7 +330,7 @@ def admin_create_user(request):
             detail=f'Created {role} account for {email}. Email sent: {email_sent}'
         )
         
-        res = Response({
+        return Response({
             'message': 'User created successfully.',
             'username': username,
             'email_sent': email_sent,
@@ -355,14 +343,15 @@ def admin_create_user(request):
             'status': (new_user.status or 'PENDING').upper(),
             'invitation_status': 'Accepted' if (new_user.status or '').upper() == 'ACTIVE' else 'Pending',
         }, status=status.HTTP_201_CREATED)
-        res["Access-Control-Allow-Origin"] = "*"
-        return res
 
     except Exception as e:
+        import traceback
+        error_trace = traceback.format_exc()
         logger.exception(f"admin_create_user critical failure: {str(e)}")
-        res = Response({'error': f'Finalization failed: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        res["Access-Control-Allow-Origin"] = "*"
-        return res
+        return Response({
+            'error': f'Finalization failed: {str(e)}',
+            'details': error_trace if settings.DEBUG else 'Please check server logs for details.'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['POST'])
 def admin_resend_credentials(request, user_id):

@@ -3338,16 +3338,12 @@ class InvitationViewSet(viewsets.ModelViewSet):
             threading.Thread(target=_send_invite_email, daemon=True).start()
 
             headers = self.get_success_headers(serializer.data)
-            res = Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
-            res["Access-Control-Allow-Origin"] = "*"
-            return res
+            return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
         except Exception as e:
             import logging
             logging.getLogger(__name__).exception("InvitationViewSet create exception")
-            res = Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
-            res["Access-Control-Allow-Origin"] = "*"
-            return res
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 
 

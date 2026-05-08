@@ -107,9 +107,7 @@ def invite_team_member(request):
         organization = request.data.get('organization') or admin.organization or getattr(admin, 'affiliation', None) or 'MusB'
         
         if not target_email:
-            res = Response({'error': 'Target email is required'}, status=status.HTTP_400_BAD_REQUEST)
-            res["Access-Control-Allow-Origin"] = "*"
-            return res
+            return Response({'error': 'Target email is required'}, status=status.HTTP_400_BAD_REQUEST)
 
         # CHECK IF ALREADY INVITED (PENDING) - IF SO, REDIRECT TO RESEND LOGIC
         existing_invite = Invitation.objects.filter(email=target_email, is_accepted=False).first()
@@ -135,12 +133,8 @@ def invite_team_member(request):
             )
             
             if success:
-                res = Response({'message': 'Existing invitation updated and resent successfully', 'token': existing_invite.token})
-                res["Access-Control-Allow-Origin"] = "*"
-                return res
-            res = Response({'message': 'Invitation updated but email failed', 'setup_link': setup_link})
-            res["Access-Control-Allow-Origin"] = "*"
-            return res
+                return Response({'message': 'Existing invitation updated and resent successfully', 'token': existing_invite.token})
+            return Response({'message': 'Invitation updated but email failed', 'setup_link': setup_link})
 
         token = str(uuid.uuid4())
         expires_at = now() + timedelta(days=7)
@@ -173,20 +167,14 @@ def invite_team_member(request):
         )
         
         if success:
-            res = Response({'message': 'Invitation sent successfully', 'token': token})
-            res["Access-Control-Allow-Origin"] = "*"
-            return res
+            return Response({'message': 'Invitation sent successfully', 'token': token})
         else:
             logger.warning(f"Failed to send invitation email to {target_email}. Link: {setup_link}")
-            res = Response({'message': 'Invitation recorded but email failed to send', 'setup_link': setup_link}, status=status.HTTP_200_OK)
-            res["Access-Control-Allow-Origin"] = "*"
-            return res
+            return Response({'message': 'Invitation recorded but email failed to send', 'setup_link': setup_link}, status=status.HTTP_200_OK)
     except Exception as e:
         import logging
         logging.getLogger(__name__).exception("invite_team_member error")
-        res = Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
-        res["Access-Control-Allow-Origin"] = "*"
-        return res
+        return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 
 @api_view(['POST'])

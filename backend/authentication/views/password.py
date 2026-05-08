@@ -63,15 +63,11 @@ def forgot_password(request):
             return Response({'message': 'Reset link sent successfully'})
         else:
             logger.error(f"Failed to send reset email to {email}")
-            res = Response({'error': 'Failed to deliver reset link. Please check your email or contact support.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-            res["Access-Control-Allow-Origin"] = "*"
-            return res
+            return Response({'error': 'Failed to deliver reset link. Please check your email or contact support.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
             
     except Exception as e:
         logger.error(f"Critical error in forgot_password view: {e}", exc_info=True)
-        res = Response({'error': 'Internal server error occurred.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        res["Access-Control-Allow-Origin"] = "*"
-        return res
+        return Response({'error': 'Internal server error occurred.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 @api_view(['POST'])

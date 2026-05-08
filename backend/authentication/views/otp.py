@@ -63,12 +63,9 @@ def send_otp(request):
         )
 
     if success:
-        res = Response({'message': 'OTP sent successfully'})
+        return Response({'message': 'OTP sent successfully'})
     else:
-        res = Response({'error': 'Failed to deliver OTP. Please check your email address.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    
-    res["Access-Control-Allow-Origin"] = "*"
-    return res
+        return Response({'error': 'Failed to deliver OTP. Please check your email address.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 @api_view(['POST'])
