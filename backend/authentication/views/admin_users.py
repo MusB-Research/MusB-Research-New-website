@@ -623,7 +623,13 @@ def get_mellow_investigators(request):
     Public view to fetch investigators for the Mellow Consortium map.
     Returns only users flagged with is_mellow_member=True.
     """
-    investigators = User.objects.filter(is_mellow_member=True, role='PI', is_active=True)
+    investigators = User.objects.filter(
+        is_mellow_member=True, 
+        role='PI', 
+        is_active=True,
+        lat__isnull=False,
+        lng__isnull=False
+    )
     
     # One pin per investigator - no grouping
     # If two share exact coordinates, offset slightly so pins don't stack

@@ -92,9 +92,12 @@ export default function InvestigatorsMap() {
         // ── LAYER 3: Pins (appended LAST = always on top) ──
         svg.append('g').attr('class', 'pins-layer');
 
-        // Load world GeoJSON into the map layer
-        d3.json<any>('https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson').then((data) => {
-            if (!data || !data.features) return;
+        // Load world GeoJSON into the map layer (HOSTED LOCALLY for production reliability)
+        d3.json<any>('/data/world.geojson').then((data) => {
+            if (!data || !data.features) {
+                console.error("Map data loaded but features missing");
+                return;
+            }
             mapLayer.selectAll('path')
                 .data(data.features)
                 .enter()
@@ -104,7 +107,19 @@ export default function InvestigatorsMap() {
                 .attr('stroke', '#334155')
                 .attr('stroke-width', 0.5);
         }).catch(err => {
-            console.error("Error loading map data:", err);
+            console.error("Error loading local map data:", err);
+            // Fallback to CDN if local fails (extra safety)
+            d3.json<any>('https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson').then((data) => {
+                if (!data || !data.features) return;
+                mapLayer.selectAll('path')
+                    .data(data.features)
+                    .enter()
+                    .append('path')
+                    .attr('d', (d: any) => path(d) || '')
+                    .attr('fill', '#1e293b')
+                    .attr('stroke', '#334155')
+                    .attr('stroke-width', 0.5);
+            });
         });
 
         // Fetch investigator data
@@ -113,7 +128,11 @@ export default function InvestigatorsMap() {
                 const res = await fetch(`${API}/api/auth/mellow/investigators/?t=${Date.now()}`);
                 if (res.ok) {
                     const data = await res.json();
-                    setSites(data);
+                    // Filter out sites with invalid/empty coordinates [0,0] to prevent "mystery dots"
+                    const validSites = (data || []).filter((s: Site) => 
+                        s.lat !== 0 || s.lng !== 0
+                    );
+                    setSites(validSites);
                 }
             } catch (err) {
                 console.error("Error fetching consortium investigators:", err);
