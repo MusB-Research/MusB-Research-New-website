@@ -180,12 +180,19 @@ def admin_create_user(request):
         if study_id and not str(study_id).strip():
             study_id = None
         
+        logger.info(f"Starting atomic transaction for user creation: {email}")
         with transaction.atomic():
             # Create Magic Link for Seamless First Login
             invite_token = generate_token()
             MagicLink.objects.create(email=email, token=invite_token)
+            logger.info(f"Magic link created for {email}")
+            
+            # Resolve admin user to ensure it's not a lazy object
+            if hasattr(admin_user, '_wrapped') if hasattr(admin_user, '_wrapped') else False:
+                admin_user = admin_user._wrapped
             
             # Atomic Creation
+            logger.info(f"Executing create_user for {email}")
             new_user = User.objects.create_user(
                 email=email,
                 password=temp_password,
@@ -219,6 +226,7 @@ def admin_create_user(request):
                 country=request.data.get('country') or None,
                 state=request.data.get('state') or None
             )
+            logger.info(f"User object created in DB: {new_user.email} (ID: {new_user.id})")
             
             # Approval Request for Onsite Team Members
             if status_val == 'PENDING' and affiliation == 'ONSITE':
@@ -237,6 +245,7 @@ def admin_create_user(request):
             login_url = f"{frontend_base.rstrip('/')}/auth/accept-invitation?token={invite_token}"
 
         # 6. TRIGGER NOTIFICATIONS
+        logger.info(f"Triggering notifications for {email}")
         try:
             from django.apps import apps
             Notification = apps.get_model('api', 'Notification')
@@ -284,6 +293,7 @@ def admin_create_user(request):
             logger.error(f"Notification trigger failed: {str(notify_err)}")
 
         # 7. Email Delivery Logic
+        logger.info(f"Preparing email for {email} (Role: {role})")
         subject_map = {
             'pi': 'Your PI Coordinator Account Has Been Created',
             'coordinator': 'Your PI Coordinator Account Has Been Created',
@@ -348,9 +358,10 @@ def admin_create_user(request):
         import traceback
         error_trace = traceback.format_exc()
         logger.exception(f"admin_create_user critical failure: {str(e)}")
+        # PROD DIAGNOSTIC: Temporarily expose trace to user to identify Render crash point
         return Response({
             'error': f'Finalization failed: {str(e)}',
-            'details': error_trace if settings.DEBUG else 'Please check server logs for details.'
+            'details': error_trace
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['POST'])
