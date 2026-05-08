@@ -7,7 +7,7 @@ export default function ApprovalModule() {
     const [requests, setRequests] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState<'pending' | 'approved' | 'rejected'>('pending');
-    const apiUrl = API || 'http://localhost:8000';
+    const apiUrl = API || 'http://localhost:8003';
 
     const fetchRequests = async () => {
         setLoading(true);

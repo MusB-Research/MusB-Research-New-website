@@ -20,7 +20,7 @@ export default function DiscoverStudiesView({ loading: externalLoading, userProf
         const fetchData = async () => {
             setInternalLoading(true);
             try {
-                const apiUrl = API || 'http://localhost:8000';
+                const apiUrl = API || 'http://localhost:8003';
                 const [studiesRes, recordsRes] = await Promise.all([
                     authFetch(`${apiUrl}/api/public-studies/`),
                     authFetch(`${apiUrl}/api/participants/`)

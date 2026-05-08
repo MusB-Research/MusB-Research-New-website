@@ -100,6 +100,7 @@ class Submission(models.Model):
     # Inquiry Details
     inquiry_type = models.ForeignKey(InquiryType, on_delete=models.SET_NULL, null=True)
     message = models.TextField(blank=True, null=True)
+    profile_image = models.ImageField(upload_to='inquiry_photos/', null=True, blank=True)
     
     # Config Snapshot (in case settings change later, we know what was required at the time? 
     # identifying metadata is usually enough)

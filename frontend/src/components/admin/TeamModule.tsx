@@ -31,7 +31,7 @@ export default function TeamModule() {
         setLoading(true);
         setError(null);
         try {
-            const apiUrl = API || 'http://localhost:8000';
+            const apiUrl = API || 'http://localhost:8003';
             const [usersRes, studiesRes, participantsRes] = await Promise.all([
                 authFetch(`${apiUrl}/api/users/`),
                 authFetch(`${apiUrl}/api/studies/`),

@@ -33,7 +33,7 @@ export function getMediaUrl(url: string | null | undefined): string {
     }
 
     // 3. Construct the final URL using the API base
-    const baseUrl = (API || 'http://localhost:8000').replace(/\/$/, '');
+    const baseUrl = (API || 'http://localhost:8003').replace(/\/$/, '');
     
     // Ensure we don't have multiple slashes
     const finalPath = cleanPath.replace(/^\/+/, '');

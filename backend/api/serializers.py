@@ -172,7 +172,7 @@ class UserSerializer(SanitizedModelSerializer):
             'id', 'email', 'full_name', 'decrypted_name', 'decrypted_phone', 'decrypted_address',
             'decrypted_npi', 'decrypted_qualifications',
             'role', 'phone_number', 'mobile_number',
-            'profile_picture', 'password', 'last_login_formatted', 'date_joined_formatted',
+            'profile_picture', 'profile_image', 'password', 'last_login_formatted', 'date_joined_formatted',
             'full_address', 'city', 'state', 'zip_code', 'country', 'place_of_origin',
             'date_of_birth', 'age', 'has_active_enrollment',
             'medical_licence', 'medical_licence_expiry', 'insurance_certificate', 'insurance_expiry',
@@ -181,7 +181,7 @@ class UserSerializer(SanitizedModelSerializer):
             'must_change_password', 'profile_completed', 'is_screener_completed', 'is_active', 'timezone',
             'status', 'affiliation', 'assigned_studies', 'created_by',
             'first_name', 'last_name', 'google_auth',
-            'is_mellow_member', 'lat', 'lng', 'organization'
+            'is_mellow_member', 'lat', 'lng', 'organization', 'bio'
         ]
 
     def validate_status(self, value):
@@ -468,6 +468,8 @@ class StudyBriefSerializer(SanitizedModelSerializer):
 
 class PublicStudySerializer(SanitizedModelSerializer):
     """Lighter version for discovery page to boost performance"""
+    pi_details = serializers.SerializerMethodField()
+
     class Meta:
         model = Study
         fields = [
@@ -476,9 +478,22 @@ class PublicStudySerializer(SanitizedModelSerializer):
             'tags', 'created_at', 'screener_config',
             'overview', 'benefit', 'participation_message',
             'require_participant_sig', 'require_cc_verification', 
-            'require_pi_signoff', 'require_lar', 'consent_content'
+            'require_pi_signoff', 'require_lar', 'consent_content',
+            'pi_details'
         ]
         ordering = ['created_at']
+
+    def get_pi_details(self, obj):
+        pi = obj.pi
+        if pi:
+            request = self.context.get('request')
+            return {
+                'name': pi.full_name or f"{pi.first_name} {pi.last_name}",
+                'profile_picture': request.build_absolute_uri(pi.profile_image.url) if request and pi.profile_image else (pi.profile_picture or None),
+                'qualifications': pi.qualifications or "MD, PhD",
+                'bio': pi.bio or "Principal Investigator"
+            }
+        return None
 
 class InterventionArmSerializer(SanitizedModelSerializer):
     class Meta:

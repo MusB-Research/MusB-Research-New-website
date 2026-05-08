@@ -198,7 +198,7 @@ export default function VisitsModule({ selectedStudyId, preloadedParticipants, p
         action_taken: ''
     });
 
-    const apiUrl = API || 'http://localhost:8000';
+    const apiUrl = API || 'http://localhost:8003';
 
     // ─── DATA LOADING ────────────────────────────────────────────────────────
     const loadData = useCallback(async () => {

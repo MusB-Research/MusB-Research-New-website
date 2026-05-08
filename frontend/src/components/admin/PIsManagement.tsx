@@ -45,7 +45,7 @@ export default function PIsManagement({ allUsers = [], allStudies = [], onRefres
     const isCurrentlyActive = pi.status === 'Active';
     const newStatus = isCurrentlyActive ? 'Suspended' : 'Verified';
     setUpdatingId(pi.id);
-    const apiUrl = API || 'http://localhost:8000';
+    const apiUrl = API || 'http://localhost:8003';
     
     try {
       const res = await authFetch(`${apiUrl}/api/users/${pi.id}/`, {
@@ -71,7 +71,7 @@ export default function PIsManagement({ allUsers = [], allStudies = [], onRefres
     if (!window.confirm('Are you sure you want to permanently delete this investigator?')) return;
     
     setUpdatingId(piId);
-    const apiUrl = API || 'http://localhost:8000';
+    const apiUrl = API || 'http://localhost:8003';
     
     try {
       const res = await authFetch(`${apiUrl}/api/users/${piId}/`, {

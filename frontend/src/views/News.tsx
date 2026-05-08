@@ -112,7 +112,7 @@ export default function News() {
     const fetchData = async (showLoading: boolean = true, skipCache = false) => {
         if (showLoading) setIsLoading(true);
         try {
-            const apiUrl = API || 'http://localhost:8000';
+            const apiUrl = API || 'http://localhost:8003';
             const fetchOpts = { skipCache };
             
             // Fetch All Content Types from our API

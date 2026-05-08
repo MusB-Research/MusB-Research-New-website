@@ -49,7 +49,7 @@ export default function CompensationManagement({ selectedStudyId }: { selectedSt
         return () => window.removeEventListener('resize', handleResize);
     }, []);
 
-    const apiUrl = API || 'http://localhost:8000';
+    const apiUrl = API || 'http://localhost:8003';
 
     const fetchCompensations = async () => {
         setIsLoading(true);

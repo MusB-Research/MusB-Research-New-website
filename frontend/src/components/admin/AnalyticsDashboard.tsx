@@ -10,7 +10,7 @@ export default function AnalyticsDashboard() {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const apiUrl = API || 'http://localhost:8000';
+        const apiUrl = API || 'http://localhost:8003';
         const response = await authFetch(`${apiUrl}/api/auth/admin/analytics-stats/`);
         if (response.ok) {
           const data = await response.json();

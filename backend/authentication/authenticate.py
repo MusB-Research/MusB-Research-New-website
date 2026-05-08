@@ -46,7 +46,9 @@ class CookieJWTAuthentication(authentication.BaseAuthentication):
 
         except jwt.ExpiredSignatureError:
             logger.debug("Token expired for request to %s", request.path)
-            raise exceptions.AuthenticationFailed("Your session has expired. Please login again.")
+            # Return None to let DRF treat the user as Anonymous. 
+            # This allows public endpoints (AllowAny) to succeed without 401 errors.
+            return None
         except Exception as e:
             logger.error(f"Auth error decoding token: {str(e)}")
             import traceback

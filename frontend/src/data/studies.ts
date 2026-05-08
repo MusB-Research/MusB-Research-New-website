@@ -24,11 +24,17 @@ export interface Study {
     compensation_range?: string;
     is_paid?: boolean;
     is_free_testing?: boolean;
+    pi_details?: {
+        name: string;
+        profile_picture: string | null;
+        qualifications: string;
+        bio: string;
+    };
 }
 
 export const fetchStudies = async (): Promise<Study[]> => {
     try {
-        const url = `${API || 'http://localhost:8000'}/api/public-studies/`;
+        const url = `${API || 'http://localhost:8003'}/api/public-studies/`;
         const response = await fetch(url);
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
@@ -67,7 +73,8 @@ export const fetchStudies = async (): Promise<Study[]> => {
             remoteParticipation: d.remote_participation || (d.study_type === 'VIRTUAL'),
             compensation_range: d.compensation || 'Varies by study',
             is_paid: true,
-            is_free_testing: false
+            is_free_testing: false,
+            pi_details: d.pi_details
         }));
 
         // Sort Chronologically: Oldest First based on Database ID (MongoDB ObjectIds are naturally chronological)

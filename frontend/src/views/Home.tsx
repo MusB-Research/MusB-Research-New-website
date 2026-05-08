@@ -16,6 +16,7 @@ const decodeHTML = (html: string) => {
 const slides = [
     {
         id: 1,
+        bgImage: "/home_page_hero section.webp",
         headline: "Your Trusted Partner in R&D Excellence",
         subtext: [
             "Comprehensive solutions from early screening to clinical studies",
@@ -27,6 +28,7 @@ const slides = [
     },
     {
         id: 2,
+        bgImage: "/home_page_hero section.webp",
         headline: "Advancing Global Health Through Innovation",
         subtext: [
             "Pioneering breakthrough discoveries in musculoskeletal biology",
@@ -1501,6 +1503,18 @@ export default function Home() {
                                     className={`absolute inset-0 transition-all duration-1000 ease-in-out ${isActive ? 'opacity-100 z-10' : 'opacity-0 z-0'
                                         }`}
                                 >
+                                    {/* Background Image Layer */}
+                                    <div className="absolute inset-0 z-0 overflow-hidden">
+                                        <img 
+                                            src={slide.bgImage} 
+                                            alt="" 
+                                            className={`w-full h-full object-cover transition-transform duration-[10000ms] ease-linear ${isActive ? 'scale-110' : 'scale-100'}`}
+                                        />
+                                        <div className="absolute inset-0 bg-slate-950/40"></div>
+                                        <div className="absolute inset-0 bg-gradient-to-b from-slate-950/80 via-transparent to-slate-950/90"></div>
+                                        <div className="absolute inset-0 bg-gradient-to-r from-slate-950/60 via-transparent to-slate-950/60"></div>
+                                    </div>
+
                                     <div className={`relative z-10 h-full max-w-[1800px] mx-auto px-6 md:px-12 w-full flex flex-col items-center justify-start lg:justify-center pt-36 pb-48 md:pt-48 lg:pt-32 md:pb-12 transform transition-all duration-1000 ${isActive ? 'scale-100 -translate-y-6 md:-translate-y-8 lg:-translate-y-12' : 'scale-95 translate-y-12'}`}>
 
 

@@ -8,8 +8,20 @@ export default function AboutMellow() {
     const [formType, setFormType] = React.useState<string | null>(null);
     const [isSponsorExpanded, setIsSponsorExpanded] = React.useState(false);
     const [isInvestigatorExpanded, setIsInvestigatorExpanded] = React.useState(false);
+    const sponsorCardRef = React.useRef<HTMLDivElement>(null);
 
     const closeForm = () => setFormType(null);
+
+    const handleBecomePartner = () => {
+        setIsSponsorExpanded(true);
+        // Small delay to allow the layout change to start
+        setTimeout(() => {
+            sponsorCardRef.current?.scrollIntoView({ 
+                behavior: 'smooth', 
+                block: 'center' 
+            });
+        }, 100);
+    };
 
     const sponsorBenefits = [
         { title: 'Multi-continental clinical evidence', desc: 'Generate global evidence for your product across diverse populations' },
@@ -62,7 +74,7 @@ export default function AboutMellow() {
 
                     <div className="flex flex-col sm:flex-row gap-5">
                         <button 
-                            onClick={() => setFormType('sponsor')}
+                            onClick={handleBecomePartner}
                             className="bg-cyan-500 text-slate-900 px-8 py-4 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-white transition-all flex items-center justify-center gap-2"
                         >
                             Become a Partner
@@ -96,159 +108,184 @@ export default function AboutMellow() {
             <div className="grid md:grid-cols-3 gap-8 items-start">
                 <motion.div 
                     layout
-                    className={`p-10 rounded-[3rem] border border-white/10 bg-white/5 backdrop-blur-3xl flex flex-col h-full hover:border-cyan-500/30 transition-all group ${isSponsorExpanded ? 'md:col-span-2' : ''}`}
+                    ref={sponsorCardRef}
+                    id="partner-to-grow-card"
+                    className={`p-10 rounded-[3rem] border border-white/10 bg-white/5 backdrop-blur-3xl flex flex-col h-full hover:border-cyan-500/30 transition-all group ${isSponsorExpanded ? 'md:col-span-3' : ''}`}
                 >
-                    <div className="flex-grow space-y-6">
-                        <div className="flex items-start justify-between">
-                            <div className="w-14 h-14 rounded-2xl bg-cyan-500/10 flex items-center justify-center text-cyan-400 group-hover:bg-cyan-500 group-hover:text-slate-900 transition-all">
-                                <Briefcase className="w-7 h-7" />
-                            </div>
-                            {isSponsorExpanded && (
-                                <button 
-                                    onClick={() => setIsSponsorExpanded(false)}
-                                    className="text-slate-500 hover:text-white transition-colors text-[10px] font-black uppercase tracking-widest"
-                                >
-                                    Close Details
-                                </button>
-                            )}
+                    <div className="flex items-start justify-between mb-6">
+                        <div className="w-14 h-14 rounded-2xl bg-cyan-500/10 flex items-center justify-center text-cyan-400 group-hover:bg-cyan-500 group-hover:text-slate-900 transition-all">
+                            <Briefcase className="w-7 h-7" />
                         </div>
-
-                        <div className="space-y-4">
-                            <h3 className="text-2xl font-serif text-white">Become Partner To <span className="text-cyan-400 italic">GROW</span> in Longevity Market</h3>
-                            <p className="text-slate-400 text-sm leading-relaxed max-w-2xl">
-                                Join the MELLOW Consortium, if you are looking to dominate in longevity market, reach out to explore how MELLOW can serve your goals.
-                            </p>
-                        </div>
+                        {isSponsorExpanded && (
+                            <button 
+                                onClick={() => setIsSponsorExpanded(false)}
+                                className="text-slate-500 hover:text-white transition-colors text-[10px] font-black uppercase tracking-widest"
+                            >
+                                Close Details
+                            </button>
+                        )}
                     </div>
 
-                    <AnimatePresence>
-                        {isSponsorExpanded ? (
+                    <div className={isSponsorExpanded ? "grid lg:grid-cols-2 gap-12 flex-grow" : "flex-grow flex flex-col"}>
+                        <div className="flex flex-col h-full">
+                            <div className="space-y-4">
+                                <h3 className="text-2xl font-serif text-white">Become Partner To <span className="text-cyan-400 italic">GROW</span> in Longevity Market</h3>
+                                <p className="text-slate-400 text-sm leading-relaxed max-w-2xl">
+                                    Join the MELLOW Consortium, if you are looking to dominate in longevity market, reach out to explore how MELLOW can serve your goals.
+                                </p>
+                            </div>
+
+                            <AnimatePresence>
+                                {isSponsorExpanded ? (
+                                    <motion.div
+                                        initial={{ opacity: 0, height: 0 }}
+                                        animate={{ opacity: 1, height: 'auto' }}
+                                        exit={{ opacity: 0, height: 0 }}
+                                        transition={{ duration: 0.4, ease: "circOut" }}
+                                        className="overflow-hidden pt-6"
+                                    >
+                                        <div className="space-y-12">
+                                            {/* Benefits Grid */}
+                                            <div className="grid sm:grid-cols-2 gap-8">
+                                                {sponsorBenefits.map((benefit, i) => (
+                                                    <div key={i} className="space-y-2">
+                                                        <div className="flex items-center gap-2 text-cyan-400">
+                                                            <CheckCircle2 className="w-4 h-4" />
+                                                            <h4 className="text-sm font-bold uppercase tracking-wider">{benefit.title}</h4>
+                                                        </div>
+                                                        <p className="text-slate-500 text-xs leading-relaxed pl-6">{benefit.desc}</p>
+                                                    </div>
+                                                ))}
+                                            </div>
+
+                                            {/* Membership Options */}
+                                            <div className="p-8 rounded-[2rem] bg-white/5 border border-white/10 space-y-6">
+                                                <h4 className="text-lg font-serif text-white">Membership Tiers</h4>
+                                                <div className="grid grid-cols-2 gap-4">
+                                                    {membershipOptions.map((option, i) => (
+                                                        <div key={i} className="px-4 py-3 rounded-xl bg-slate-900/50 border border-white/5 text-center">
+                                                            <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{option}</div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                                <p className="text-[10px] text-slate-500 italic text-center">Reach out to our team for tailored membership structures and collaboration models.</p>
+                                            </div>
+                                        </div>
+                                    </motion.div>
+                                ) : (
+                                    <button 
+                                        onClick={() => setIsSponsorExpanded(true)}
+                                        className="text-cyan-400 text-xs font-bold uppercase tracking-widest flex items-center gap-2 group/btn mt-auto pt-6"
+                                    >
+                                        Learn Benefits <ArrowRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
+                                    </button>
+                                )}
+                            </AnimatePresence>
+                        </div>
+                        
+                        {isSponsorExpanded && (
                             <motion.div
                                 initial={{ opacity: 0, height: 0 }}
                                 animate={{ opacity: 1, height: 'auto' }}
                                 exit={{ opacity: 0, height: 0 }}
                                 transition={{ duration: 0.4, ease: "circOut" }}
-                                className="overflow-hidden space-y-12 pt-6"
                             >
-                                {/* Benefits Grid */}
-                                <div className="grid sm:grid-cols-2 gap-8">
-                                    {sponsorBenefits.map((benefit, i) => (
-                                        <div key={i} className="space-y-2">
-                                            <div className="flex items-center gap-2 text-cyan-400">
-                                                <CheckCircle2 className="w-4 h-4" />
-                                                <h4 className="text-sm font-bold uppercase tracking-wider">{benefit.title}</h4>
-                                            </div>
-                                            <p className="text-slate-500 text-xs leading-relaxed pl-6">{benefit.desc}</p>
-                                        </div>
-                                    ))}
-                                </div>
-
-                                {/* Membership Options */}
-                                <div className="p-8 rounded-[2rem] bg-white/5 border border-white/10 space-y-6">
-                                    <h4 className="text-lg font-serif text-white">Membership Tiers</h4>
-                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                        {membershipOptions.map((option, i) => (
-                                            <div key={i} className="px-4 py-3 rounded-xl bg-slate-900/50 border border-white/5 text-center">
-                                                <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{option}</div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                    <p className="text-[10px] text-slate-500 italic text-center">Reach out to our team for tailored membership structures and collaboration models.</p>
-                                </div>
-
-                                <div className="flex flex-col sm:flex-row gap-4 pt-4">
-                                    <button 
-                                        onClick={() => setFormType('sponsor')}
-                                        className="bg-white text-slate-950 px-8 py-4 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-cyan-400 transition-all flex items-center justify-center gap-2"
-                                    >
-                                        Inquire Now <ArrowRight className="w-4 h-4" />
-                                    </button>
-                                </div>
+                                <ConsortiumForm 
+                                    isInline 
+                                    isOpen={true} 
+                                    onClose={() => setIsSponsorExpanded(false)}
+                                    title="Express Your Interest"
+                                    subtitle="MusB™ Research Partnership Inquiry"
+                                    onSubmitSuccess={() => setIsSponsorExpanded(false)}
+                                />
                             </motion.div>
-                        ) : (
-                            <button 
-                                onClick={() => setIsSponsorExpanded(true)}
-                                className="text-cyan-400 text-xs font-bold uppercase tracking-widest flex items-center gap-2 group/btn mt-auto pt-6"
-                            >
-                                Learn Benefits <ArrowRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
-                            </button>
                         )}
-                    </AnimatePresence>
+                    </div>
                 </motion.div>
 
                 <motion.div 
                     layout
-                    className={`p-10 rounded-[3rem] border border-white/10 bg-white/5 backdrop-blur-3xl flex flex-col h-full hover:border-cyan-500/30 transition-all cursor-pointer group ${isInvestigatorExpanded ? 'lg:col-span-2' : ''}`}
+                    className={`p-10 rounded-[3rem] border border-white/10 bg-white/5 backdrop-blur-3xl flex flex-col h-full hover:border-cyan-500/30 transition-all cursor-pointer group ${isInvestigatorExpanded ? 'md:col-span-3' : ''}`}
                     onClick={() => !isInvestigatorExpanded && setIsInvestigatorExpanded(true)}
                 >
-                    <div className="flex-grow space-y-6">
-                        <div className="flex justify-between items-start">
-                            <div className="w-14 h-14 rounded-2xl bg-cyan-500/10 flex items-center justify-center text-cyan-400 group-hover:bg-cyan-500 group-hover:text-slate-900 transition-all">
-                                <UserPlus className="w-7 h-7" />
+                    <div className="flex justify-between items-start mb-6">
+                        <div className="w-14 h-14 rounded-2xl bg-cyan-500/10 flex items-center justify-center text-cyan-400 group-hover:bg-cyan-500 group-hover:text-slate-900 transition-all">
+                            <UserPlus className="w-7 h-7" />
+                        </div>
+                        {isInvestigatorExpanded && (
+                            <button 
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setIsInvestigatorExpanded(false);
+                                }}
+                                className="text-slate-500 hover:text-white transition-colors text-[10px] font-black uppercase tracking-widest flex items-center gap-2"
+                            >
+                                Close Details
+                            </button>
+                        )}
+                    </div>
+                    
+                    <div className={isInvestigatorExpanded ? "grid lg:grid-cols-2 gap-12 flex-grow" : "flex-grow flex flex-col"}>
+                        <div className="flex flex-col h-full">
+                            <div className="space-y-4">
+                                <h3 className="text-2xl font-serif text-white">Join as an Investigator or KOL</h3>
+                                <p className="text-slate-400 text-sm leading-relaxed max-w-xl">
+                                    Shape the future of longevity science while advancing your career on a global stage.
+                                </p>
                             </div>
-                            {isInvestigatorExpanded && (
-                                <button 
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        setIsInvestigatorExpanded(false);
-                                    }}
-                                    className="text-slate-500 hover:text-white"
-                                >
-                                    <ArrowRight className="w-4 h-4 rotate-180" />
-                                </button>
-                            )}
+
+                            <AnimatePresence>
+                                {isInvestigatorExpanded ? (
+                                    <motion.div 
+                                        initial={{ opacity: 0, height: 0 }}
+                                        animate={{ opacity: 1, height: 'auto' }}
+                                        exit={{ opacity: 0, height: 0 }}
+                                        className="pt-4 overflow-hidden"
+                                    >
+                                        <div className="space-y-8">
+                                            <div className="grid md:grid-cols-2 gap-6">
+                                                {investigatorBenefits.map((benefit, idx) => (
+                                                    <div key={idx} className="p-6 rounded-2xl bg-white/5 border border-white/5 space-y-2">
+                                                        <h4 className="text-emerald-400 font-bold text-sm tracking-tight">{benefit.title}</h4>
+                                                        <p className="text-slate-400 text-xs leading-relaxed">{benefit.desc}</p>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                            
+                                            <p className="text-slate-500 text-[11px] font-medium italic border-t border-white/5 pt-6">
+                                                ...and many more benefits including grant co-authorship, exclusive MELLOW research previews, and an international peer network.
+                                            </p>
+                                        </div>
+                                    </motion.div>
+                                ) : (
+                                    <button 
+                                        onClick={() => setIsInvestigatorExpanded(true)}
+                                        className="text-cyan-400 text-xs font-bold uppercase tracking-widest flex items-center gap-2 group/btn mt-auto pt-6"
+                                    >
+                                        View Advantages <ArrowRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
+                                    </button>
+                                )}
+                            </AnimatePresence>
                         </div>
                         
-                        <div className="space-y-4">
-                            <h3 className="text-2xl font-serif text-white">Join as an Investigator or KOL</h3>
-                            <p className="text-slate-400 text-sm leading-relaxed max-w-xl">
-                                Shape the future of longevity science while advancing your career on a global stage.
-                            </p>
-                        </div>
-                    </div>
-
-                    <AnimatePresence>
-                        {isInvestigatorExpanded ? (
-                            <motion.div 
+                        {isInvestigatorExpanded && (
+                            <motion.div
                                 initial={{ opacity: 0, height: 0 }}
                                 animate={{ opacity: 1, height: 'auto' }}
                                 exit={{ opacity: 0, height: 0 }}
-                                className="space-y-8 pt-4 overflow-hidden"
+                                transition={{ duration: 0.4, ease: "circOut" }}
                             >
-                                <div className="grid md:grid-cols-2 gap-6">
-                                    {investigatorBenefits.map((benefit, idx) => (
-                                        <div key={idx} className="p-6 rounded-2xl bg-white/5 border border-white/5 space-y-2">
-                                            <h4 className="text-emerald-400 font-bold text-sm tracking-tight">{benefit.title}</h4>
-                                            <p className="text-slate-400 text-xs leading-relaxed">{benefit.desc}</p>
-                                        </div>
-                                    ))}
-                                </div>
-                                
-                                <p className="text-slate-500 text-[11px] font-medium italic border-t border-white/5 pt-6">
-                                    ...and many more benefits including grant co-authorship, exclusive MELLOW research previews, and an international peer network.
-                                </p>
-
-                                <div className="pt-4 flex justify-start">
-                                    <button 
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            setFormType('investigator');
-                                        }}
-                                        className="bg-white text-slate-950 px-8 py-4 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-cyan-400 transition-all flex items-center justify-center gap-2"
-                                    >
-                                        Apply to Join <ArrowRight className="w-4 h-4" />
-                                    </button>
-                                </div>
+                                <ConsortiumForm 
+                                    isInline 
+                                    isOpen={true} 
+                                    onClose={() => setIsInvestigatorExpanded(false)}
+                                    title="Express Your Interest"
+                                    subtitle="Join Our Network of Clinical Investigators"
+                                    onSubmitSuccess={() => setIsInvestigatorExpanded(false)}
+                                />
                             </motion.div>
-                        ) : (
-                            <button 
-                                onClick={() => setIsInvestigatorExpanded(true)}
-                                className="text-cyan-400 text-xs font-bold uppercase tracking-widest flex items-center gap-2 group/btn mt-auto pt-6"
-                            >
-                                View Advantages <ArrowRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
-                            </button>
                         )}
-                    </AnimatePresence>
+                    </div>
                 </motion.div>
 
                 <div 
@@ -275,7 +312,7 @@ export default function AboutMellow() {
                 <div className="flex items-center gap-6">
                     <div className="h-10 w-px bg-cyan-500/30 hidden md:block"></div>
                     <div className="text-xl md:text-2xl font-serif text-cyan-400">
-                        Dr. Jain <span className="text-slate-500 mx-2">&</span> Dr. Yadav
+                        Dr. Hariom Yadav <span className="text-slate-500 mx-2">and</span> Dr. Shalini Jain
                     </div>
                 </div>
                 <div className="text-slate-400 font-medium text-base md:pl-6 text-center md:text-left border-white/10 md:border-l">

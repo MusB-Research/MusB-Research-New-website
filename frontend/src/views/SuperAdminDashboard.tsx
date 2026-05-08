@@ -11,7 +11,7 @@ import {
   LayoutDashboard, Server, Network, Terminal, CheckCircle2, MoreVertical,
   MapPin, Clock, MousePointer2, User as UserIcon, Menu, RefreshCw,
   UserPlus, ShieldAlert, Rocket, ClipboardList, Archive, BookOpen,
-  Power, PowerOff
+  Power, PowerOff, Upload
 } from 'lucide-react';
 import NotificationBell from '../components/NotificationBell';
 import LogoutConfirmationModal from '../components/LogoutConfirmationModal';
@@ -128,7 +128,7 @@ const MultiAssignCell = ({
   }, []);
 
   const toggleAssign = async (role: 'pi' | 'coordinator', userId: string, currentIds: string[]) => {
-    const apiUrl = API || 'http://localhost:8000';
+    const apiUrl = API || 'http://localhost:8003';
     const newIds = currentIds.includes(userId)
       ? currentIds.filter(id => id !== userId)
       : [...currentIds, userId];
@@ -263,7 +263,7 @@ const SponsorAssignCell = ({
   }, []);
 
   const toggleSponsor = async (userId: string) => {
-    const apiUrl = API || 'http://localhost:8000';
+    const apiUrl = API || 'http://localhost:8003';
     const newIds = sponsorIds.includes(userId)
       ? sponsorIds.filter(id => id !== userId)
       : [...sponsorIds, userId];
@@ -400,7 +400,7 @@ const StudiesPage = ({
                         value={study.study_type}
                         onChange={async (e) => {
                           const newType = e.target.value;
-                          const apiUrl = API || 'http://localhost:8000';
+                          const apiUrl = API || 'http://localhost:8003';
                           try {
                             const res = await authFetch(`${apiUrl}/api/studies/${getStudyIdentifier(study) || study.id}/`, {
                               method: 'PATCH',
@@ -427,7 +427,7 @@ const StudiesPage = ({
                               value={study.target_screened}
                               onChange={async (e) => {
                                 const newTarget = parseInt(e.target.value) || 0;
-                                const apiUrl = API || 'http://localhost:8000';
+                                const apiUrl = API || 'http://localhost:8003';
                                 try {
                                   await authFetch(`${apiUrl}/api/studies/${getStudyIdentifier(study) || study.id}/`, {
                                     method: 'PATCH',
@@ -452,7 +452,7 @@ const StudiesPage = ({
                         value={study.status}
                         onChange={async (e) => {
                           const newStatus = e.target.value;
-                          const apiUrl = API || 'http://localhost:8000';
+                          const apiUrl = API || 'http://localhost:8003';
                           const sid = getStudyIdentifier(study);
                           if (!sid) return;
                           try {
@@ -509,7 +509,7 @@ const StudiesPage = ({
                         <button
                           onClick={async () => {
                             const newStatus = study.status === 'CLOSED_ARCHIVED' ? 'RECRUITING' : 'CLOSED_ARCHIVED';
-                            const apiUrl = API || 'http://localhost:8000';
+                            const apiUrl = API || 'http://localhost:8003';
                             const sid = getStudyIdentifier(study);
                             if (!sid) return;
                             try {
@@ -721,8 +721,7 @@ export default function SuperAdminDashboard() {
     expanded_bio: '',
     expertise_tags: '',
     affiliations: '',
-    publications: '',
-    image: null
+    publications: ''
   });
   const [activities, setActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
@@ -801,7 +800,7 @@ export default function SuperAdminDashboard() {
   const fetchData = useCallback(async (isInitial = false, isSilent = false) => {
     if (isInitial) setLoading(true);
     try {
-      const apiUrl = API || 'http://localhost:8000';
+      const apiUrl = API || 'http://localhost:8003';
       const fetchOpts = { skipCache: isSilent };
       const [uRes, sRes, pRes, iRes, lRes, fRes, nRes, tmRes] = await Promise.all([
         authFetch(`${apiUrl}/api/users/?limit=100`, fetchOpts),
@@ -970,7 +969,7 @@ export default function SuperAdminDashboard() {
       return;
     }
     try {
-      const apiUrl = API || 'http://localhost:8000';
+      const apiUrl = API || 'http://localhost:8003';
       const res = await authFetch(`${apiUrl}/api/team-members/${staffToRemove.id}/`, { method: 'DELETE' });
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
@@ -1023,12 +1022,9 @@ export default function SuperAdminDashboard() {
     formData.append('affiliations', JSON.stringify(affs));
     formData.append('publications', JSON.stringify(pubs));
     
-    if (newStaffData.image) {
-      formData.append('image', newStaffData.image);
-    }
 
     try {
-      const apiUrl = API || 'http://localhost:8000';
+      const apiUrl = API || 'http://localhost:8003';
       const res = await authFetch(`${apiUrl}/api/team-members/`, {
         method: 'POST',
         body: formData
@@ -1064,7 +1060,7 @@ export default function SuperAdminDashboard() {
 
   const handleCreateStudy = async (formData: any, uploadedDocs: any[] = []) => {
     try {
-      const apiUrl = API || 'http://localhost:8000';
+      const apiUrl = API || 'http://localhost:8003';
       const method = selectedStudy ? 'PATCH' : 'POST';
       const studyId = getStudyIdentifier(selectedStudy);
       if (selectedStudy && !studyId) {
@@ -1123,7 +1119,7 @@ export default function SuperAdminDashboard() {
   };
 
   const handleRoleUpdate = async (userId: string, newRole: string) => {
-    const apiUrl = API || 'http://localhost:8000';
+    const apiUrl = API || 'http://localhost:8003';
     try {
       // Optimistic Update
       setUsers(prev => prev.map(u => u.id === userId ? { ...u, role: newRole.toUpperCase() } : u));
@@ -1143,7 +1139,7 @@ export default function SuperAdminDashboard() {
       const category = user.category;
       const newStatus = user.status === 'Active' ? 'Inactive' : 'Active';
       try {
-        const apiUrl = API || 'http://localhost:8000';
+        const apiUrl = API || 'http://localhost:8003';
         const res = await authFetch(`${apiUrl}/api/team-members/${user.id}/`, {
           method: 'PATCH',
           body: JSON.stringify({ status: newStatus })
@@ -1161,7 +1157,7 @@ export default function SuperAdminDashboard() {
       return;
     }
 
-    const apiUrl = API || 'http://localhost:8000';
+    const apiUrl = API || 'http://localhost:8003';
     const newStatus = user.status === 'Active' ? false : true;
     try {
       const res = await authFetch(`${apiUrl}/api/users/${user.id}/`, {
@@ -1773,7 +1769,7 @@ export default function SuperAdminDashboard() {
                   onClick={async () => {
                     if (!window.confirm("Purge announcement from global history?")) return;
                     try {
-                      const apiUrl = API || 'http://localhost:8000';
+                      const apiUrl = API || 'http://localhost:8003';
                       const res = await authFetch(`${apiUrl}/api/news/${a.id}/`, { method: 'DELETE' });
                       if (res.ok) fetchData();
                     } catch (err) { }
@@ -2163,7 +2159,7 @@ export default function SuperAdminDashboard() {
       if (!title || !content) return alert("Header and Content payload required for transmission.");
       setIsTransmitting(true);
       try {
-        const apiUrl = API || 'http://localhost:8000';
+        const apiUrl = API || 'http://localhost:8003';
         const res = await authFetch(`${apiUrl}/api/news/`, {
           method: 'POST',
           body: JSON.stringify({ title, content, type })
@@ -2184,7 +2180,7 @@ export default function SuperAdminDashboard() {
 
     return (
       <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 backdrop-blur-3xl bg-black/60">
-        <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="bg-[#0f1133] border border-white/10 w-full max-w-xl rounded-[3rem] p-12 shadow-2xl relative overflow-hidden text-left">
+        <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="bg-[#0f1133] border border-white/10 w-full max-w-xl rounded-[3rem] p-12 shadow-2xl relative overflow-y-auto max-h-[95vh] custom-scrollbar text-left">
           <div className="absolute -top-24 -right-24 w-64 h-64 bg-emerald-500/5 blur-3xl rounded-full"></div>
           <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter mb-8 relative z-10 text-left">Broadcast <span className="text-emerald-500">Signal</span></h2>
           <div className="space-y-6 relative z-10 flex flex-col items-start w-full">
@@ -2219,8 +2215,14 @@ export default function SuperAdminDashboard() {
       zipCode: '',
       country: '',
       state: '',
-      isMellowMember: currentPage === 'MELLOW_INVESTIGATORS'
+      isMellowMember: currentPage === 'MELLOW_INVESTIGATORS',
+      pronouns: '',
+      linkedinUrl: '',
+      websiteUrl: '',
+      qualifications: '',
     });
+    const [profileImageFile, setProfileImageFile] = useState<File | null>(null);
+    const [cvFile, setCvFile] = useState<File | null>(null);
 
     const [locationOptions, setLocationOptions] = useState<any[]>([]);
     const [isLookingUp, setIsLookingUp] = useState(false);
@@ -2327,30 +2329,40 @@ export default function SuperAdminDashboard() {
 
       setIsCreating(true);
       try {
-        const apiUrl = API || 'http://localhost:8000';
+        const apiUrl = API || 'http://localhost:8003';
+        const formData = new FormData();
+        formData.append('email', newUser.email);
+        formData.append('first_name', newUser.firstName);
+        formData.append('middle_name', newUser.middleName || '');
+        formData.append('last_name', newUser.lastName);
+        formData.append('role', newUser.role);
+        formData.append('is_mellow_member', String(newUser.isMellowMember));
+        
+        if (newUser.lat) formData.append('lat', String(newUser.lat));
+        if (newUser.lng) formData.append('lng', String(newUser.lng));
+        if (newUser.organization && newUser.organization.trim()) formData.append('organization', newUser.organization);
+        if (newUser.bio && newUser.bio.trim()) formData.append('bio', newUser.bio);
+        if (newUser.zipCode && newUser.zipCode.trim()) formData.append('zip_code', newUser.zipCode);
+        if (newUser.country && newUser.country.trim()) formData.append('country', newUser.country);
+        if (newUser.state && newUser.state.trim()) formData.append('state', newUser.state);
+        if (newUser.pronouns && newUser.pronouns.trim()) formData.append('pronouns', newUser.pronouns);
+        if (newUser.linkedinUrl && newUser.linkedinUrl.trim()) formData.append('linkedin_url', newUser.linkedinUrl);
+        if (newUser.websiteUrl && newUser.websiteUrl.trim()) formData.append('institute_url', newUser.websiteUrl);
+        if (newUser.qualifications && newUser.qualifications.trim()) formData.append('qualifications', newUser.qualifications);
+        if (profileImageFile) formData.append('profile_image', profileImageFile);
+        if (cvFile) formData.append('cv_file', cvFile);
+
         const res = await authFetch(`${apiUrl}/api/auth/admin/create-user/`, {
           method: 'POST',
-          body: JSON.stringify({
-            email: newUser.email,
-            first_name: newUser.firstName,
-            middle_name: newUser.middleName,
-            last_name: newUser.lastName,
-            role: newUser.role,
-            lat: newUser.lat ? Number(newUser.lat) : null,
-            lng: newUser.lng ? Number(newUser.lng) : null,
-            is_mellow_member: newUser.isMellowMember,
-            organization: newUser.organization || null,
-            bio: newUser.bio || null,
-            zip_code: newUser.zipCode || null,
-            country: newUser.country || null,
-            state: newUser.state || null
-          })
+          body: formData
         });
         if (res.ok) {
           const data = await res.json();
           addToast(`Initialization complete. Credentials dispatched to ${newUser.email}`, "success");
           setModals({ ...modals, createUser: false });
-          setNewUser({ firstName: '', middleName: '', lastName: '', email: '', role: creationRole ? creationRole.toUpperCase() : 'PI', lat: '', lng: '', organization: '', bio: '', zipCode: '', country: '', state: '', isMellowMember: false });
+          setNewUser({ firstName: '', middleName: '', lastName: '', email: '', role: creationRole ? creationRole.toUpperCase() : 'PI', lat: '', lng: '', organization: '', bio: '', zipCode: '', country: '', state: '', isMellowMember: false, pronouns: '', linkedinUrl: '', websiteUrl: '', qualifications: '' });
+          setProfileImageFile(null);
+          setCvFile(null);
           // Pass true as second argument to fetchData to skip cache and get the new user immediately
           fetchData(false, true);
         } else {
@@ -2367,7 +2379,7 @@ export default function SuperAdminDashboard() {
 
     return (
       <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 backdrop-blur-3xl bg-black/60">
-        <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} className="bg-[#0f1133] border border-white/10 w-full max-w-xl rounded-[2.5rem] p-8 shadow-2xl relative overflow-hidden">
+        <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} className="bg-[#0f1133] border border-white/10 w-full max-w-xl rounded-[2.5rem] p-8 shadow-2xl relative overflow-y-auto max-h-[95vh] custom-scrollbar">
           <div className="absolute top-0 right-0 p-8 opacity-5 pointer-events-none">
             <Users className="w-32 h-32 text-white" />
           </div>
@@ -2384,7 +2396,19 @@ export default function SuperAdminDashboard() {
             </button>
           </div>
           <form onSubmit={handleCreateUser} className="space-y-4 relative z-10">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Pronouns + First Name + Middle Name */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-1.5 text-left w-full">
+                <label className="block text-[10px] font-black text-[#555a7a] uppercase tracking-widest italic text-left">Pronouns</label>
+                <select value={newUser.pronouns} onChange={e => setNewUser({ ...newUser, pronouns: e.target.value })} className="w-full bg-[#0a0b1a] border border-white/5 rounded-xl px-4 py-3 text-sm text-white font-bold outline-none focus:border-purple-500/40 transition-all font-mono text-left">
+                  <option value="" className="bg-[#0a0b1a]">Select</option>
+                  <option value="Mr." className="bg-[#0a0b1a]">Mr.</option>
+                  <option value="Mrs." className="bg-[#0a0b1a]">Mrs.</option>
+                  <option value="Ms." className="bg-[#0a0b1a]">Ms.</option>
+                  <option value="Dr." className="bg-[#0a0b1a]">Dr.</option>
+                  <option value="Prof." className="bg-[#0a0b1a]">Prof.</option>
+                </select>
+              </div>
               <div className="space-y-1.5 text-left w-full">
                 <label className="block text-[10px] font-black text-[#555a7a] uppercase tracking-widest italic text-left">First Name <span className="text-red-500">*</span></label>
                 <input type="text" placeholder="John" required value={newUser.firstName} onChange={e => setNewUser({ ...newUser, firstName: e.target.value })} className="w-full bg-[#0a0b1a] border border-white/5 rounded-xl px-4 py-3 text-sm text-white font-bold outline-none focus:border-purple-500/40 transition-all font-mono text-left" />
@@ -2510,6 +2534,73 @@ export default function SuperAdminDashboard() {
                       autoComplete="off"
                     />
                   </div>
+
+                  {/* Qualifications */}
+                  <div className="col-span-full space-y-1 text-left">
+                    <label className="block text-[9px] font-black text-cyan-400 uppercase tracking-widest italic">Qualifications / Credentials</label>
+                    <input 
+                      type="text" 
+                      placeholder="MD, PhD, FACP" 
+                      value={newUser.qualifications} 
+                      onChange={e => setNewUser({ ...newUser, qualifications: e.target.value })} 
+                      className="w-full bg-black/40 border border-white/5 rounded-xl px-4 py-2.5 text-xs text-white font-mono outline-none focus:border-cyan-500/50" 
+                    />
+                  </div>
+
+                  {/* Profile Image Upload */}
+                  <div className="col-span-full space-y-1 text-left">
+                    <label className="block text-[9px] font-black text-cyan-400 uppercase tracking-widest italic">Profile Image</label>
+                    <div className="flex items-center gap-4">
+                      <label className="cursor-pointer flex items-center gap-3 px-5 py-3 bg-black/40 border border-white/5 rounded-xl hover:border-cyan-500/30 transition-all">
+                        <Upload className="w-4 h-4 text-cyan-400" />
+                        <span className="text-xs text-slate-400 font-bold">{profileImageFile ? profileImageFile.name : 'Choose Image...'}</span>
+                        <input type="file" accept="image/*" className="hidden" onChange={e => { if (e.target.files?.[0]) setProfileImageFile(e.target.files[0]); }} />
+                      </label>
+                      {profileImageFile && (
+                        <button type="button" onClick={() => setProfileImageFile(null)} className="text-red-400 hover:text-red-300 text-xs font-bold">Remove</button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* LinkedIn URL */}
+                  <div className="col-span-full space-y-1 text-left">
+                    <label className="block text-[9px] font-black text-cyan-400 uppercase tracking-widest italic">LinkedIn Profile URL</label>
+                    <input 
+                      type="url" 
+                      placeholder="https://linkedin.com/in/username" 
+                      value={newUser.linkedinUrl} 
+                      onChange={e => setNewUser({ ...newUser, linkedinUrl: e.target.value })} 
+                      className="w-full bg-black/40 border border-white/5 rounded-xl px-4 py-2.5 text-xs text-white font-mono outline-none focus:border-cyan-500/50" 
+                    />
+                  </div>
+
+                  {/* Website URL */}
+                  <div className="col-span-full space-y-1 text-left">
+                    <label className="block text-[9px] font-black text-cyan-400 uppercase tracking-widest italic">Website / Institute Page URL</label>
+                    <input 
+                      type="url" 
+                      placeholder="https://university.edu/profile/username" 
+                      value={newUser.websiteUrl} 
+                      onChange={e => setNewUser({ ...newUser, websiteUrl: e.target.value })} 
+                      className="w-full bg-black/40 border border-white/5 rounded-xl px-4 py-2.5 text-xs text-white font-mono outline-none focus:border-cyan-500/50" 
+                    />
+                  </div>
+
+                  {/* CV Upload */}
+                  <div className="col-span-full space-y-1 text-left">
+                    <label className="block text-[9px] font-black text-cyan-400 uppercase tracking-widest italic">Upload CV (PDF)</label>
+                    <div className="flex items-center gap-4">
+                      <label className="cursor-pointer flex items-center gap-3 px-5 py-3 bg-black/40 border border-white/5 rounded-xl hover:border-cyan-500/30 transition-all">
+                        <Upload className="w-4 h-4 text-amber-400" />
+                        <span className="text-xs text-slate-400 font-bold">{cvFile ? cvFile.name : 'Choose CV File...'}</span>
+                        <input type="file" accept=".pdf,.doc,.docx" className="hidden" onChange={e => { if (e.target.files?.[0]) setCvFile(e.target.files[0]); }} />
+                      </label>
+                      {cvFile && (
+                        <button type="button" onClick={() => setCvFile(null)} className="text-red-400 hover:text-red-300 text-xs font-bold">Remove</button>
+                      )}
+                    </div>
+                  </div>
+                  
                 </div>
               )}
             </div>
@@ -3204,32 +3295,6 @@ export default function SuperAdminDashboard() {
                     </div>
                   </div>
 
-                  {/* IMAGE UPLOAD SECTION */}
-                  {editingStaff.category !== 'collaborators' && editingStaff.category !== 'staff' && (
-                    <div className="space-y-3">
-                      <label className="text-[11px] font-black text-[#555a7a] uppercase tracking-widest px-1 italic">Update Profile Image</label>
-                      <div className="flex items-center gap-6 p-6 bg-white/5 rounded-3xl border border-dashed border-white/10">
-                        <div className="w-20 h-20 rounded-2xl bg-white/5 flex items-center justify-center overflow-hidden border border-white/10 shrink-0">
-                          {editingStaff.newImage ? (
-                            <img src={URL.createObjectURL(editingStaff.newImage)} alt="Preview" className="w-full h-full object-cover" />
-                          ) : editingStaff.image ? (
-                            <img src={getMediaUrl(editingStaff.image)} alt="Current" className="w-full h-full object-cover" />
-                          ) : (
-                            <Users className="w-8 h-8 text-slate-700" />
-                          )}
-                        </div>
-                        <div className="space-y-2">
-                          <input 
-                            type="file" 
-                            accept="image/*"
-                            onChange={(e) => setEditingStaff({ ...editingStaff, newImage: e.target.files?.[0] })}
-                            className="text-xs text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-[10px] file:font-black file:uppercase file:bg-cyan-500/10 file:text-cyan-400 hover:file:bg-cyan-500/20 cursor-pointer"
-                          />
-                          <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Select a new photo to replace the current one.</p>
-                        </div>
-                      </div>
-                    </div>
-                  )}
 
                   {/* SCIENTIFIC PROFILE EXTENSIONS */}
                     <div className="space-y-8 pt-10 border-t border-white/5">
@@ -3359,9 +3424,6 @@ export default function SuperAdminDashboard() {
                         formData.append('publications', JSON.stringify(updatedPublications));
                         formData.append('system_role', updatedRole);
                         
-                        if (editingStaff.newImage) {
-                          formData.append('image', editingStaff.newImage);
-                        }
 
                         const response = await authFetch(`${API}/api/team-members/${directoryId}/`, {
                           method: 'PATCH',
@@ -3452,7 +3514,7 @@ export default function SuperAdminDashboard() {
                 <button
                   onClick={async () => {
                     try {
-                      const apiUrl = API || 'http://localhost:8000';
+                      const apiUrl = API || 'http://localhost:8003';
                       const res = await authFetch(`${apiUrl}/api/users/${selectedUser.id}/`, { method: 'DELETE' });
                       if (res.ok) {
                         addToast(`User ${selectedUser.name} removed from system`, 'success');
@@ -3541,30 +3603,6 @@ export default function SuperAdminDashboard() {
                   />
                 </div>
 
-                {/* IMAGE UPLOAD SECTION */}
-                {addingStaffCategory !== 'collaborators' && addingStaffCategory !== 'staff' && (
-                  <div className="space-y-4">
-                    <label className="block text-[11px] font-black text-[#555a7a] uppercase tracking-widest italic">Profile Image</label>
-                    <div className="flex items-center gap-6 p-6 bg-white/5 rounded-3xl border border-dashed border-white/10">
-                      <div className="w-20 h-20 rounded-2xl bg-white/5 flex items-center justify-center overflow-hidden border border-white/10 shrink-0">
-                        {newStaffData.image ? (
-                          <img src={URL.createObjectURL(newStaffData.image)} alt="Preview" className="w-full h-full object-cover" />
-                        ) : (
-                          <Users className="w-8 h-8 text-slate-700" />
-                        )}
-                      </div>
-                      <div className="space-y-2">
-                        <input 
-                          type="file" 
-                          accept="image/*"
-                          onChange={(e) => setNewStaffData({...newStaffData, image: e.target.files?.[0]})}
-                          className="text-xs text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-[10px] file:font-black file:uppercase file:bg-cyan-500/10 file:text-cyan-400 hover:file:bg-cyan-500/20 cursor-pointer"
-                        />
-                        <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">JPG, PNG or WEBP. Max 2MB recommended.</p>
-                      </div>
-                    </div>
-                  </div>
-                )}
 
                 <div className="space-y-6">
                   {addingStaffCategory !== 'collaborators' && (

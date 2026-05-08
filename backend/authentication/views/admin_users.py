@@ -1,8 +1,9 @@
 from django.db.models import Q
 from bson import ObjectId
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, permission_classes, parser_classes
 from rest_framework.response import Response
-from rest_framework import status, permissions
+from rest_framework import status, permissions, parsers
+from rest_framework.parsers import MultiPartParser, FormParser
 from django.utils.timezone import now
 from django.utils.crypto import get_random_string
 from django.conf import settings
@@ -10,9 +11,16 @@ import random
 import string
 import secrets
 import logging
-from ..models import User, AuditLog
-from ..utils import send_mail_premium
+from ..models import User, AuditLog, MagicLink
+from ..utils import send_mail_premium, generate_token
 from api.views import IsAdminOrCoordinator
+
+def to_bool(val):
+    """Converts truthy strings/values to boolean."""
+    if isinstance(val, bool): return val
+    if isinstance(val, str):
+        return val.lower() in ('true', '1', 'yes', 'on')
+    return bool(val)
 
 logger = logging.getLogger(__name__)
 
@@ -72,107 +80,117 @@ def generate_unique_username(first_name, last_name):
     return f"{base}.{get_random_string(6)}"
 
 @api_view(['POST'])
+@parser_classes([MultiPartParser, FormParser])
 def admin_create_user(request):
     """
     Enhanced Super Admin onboarding flow.
     Role-specific credentials delivery and mandatory reset flags.
     """
-    admin_user = request.user
-    if not admin_user or not admin_user.is_authenticated or admin_user.role.upper() not in ['SUPER_ADMIN', 'ADMIN', 'PI', 'COORDINATOR', 'SPONSOR']:
-        return Response({'error': 'Unauthorized access.'}, status=status.HTTP_403_FORBIDDEN)
-
-    # 1. Extraction
-    email       = request.data.get('email', '').strip().lower()
-    first_name  = request.data.get('first_name', '').strip()
-    middle_name = request.data.get('middle_name', '').strip() or None
-    last_name   = request.data.get('last_name', '').strip()
-    role_input  = request.data.get('role', '').strip()
-    lat         = request.data.get('lat')
-    lng         = request.data.get('lng')
-    # Safely convert lat/lng to float
     try:
-        lat = float(lat) if lat is not None else None
-    except (ValueError, TypeError):
-        lat = None
-    try:
-        lng = float(lng) if lng is not None else None
-    except (ValueError, TypeError):
-        lng = None
-    is_mellow   = request.data.get('is_mellow_member', False)
-    org         = (request.data.get('organization') or '').strip() or None
-    bio         = (request.data.get('bio') or '').strip() or None
-    
-    # 2. Validation
-    if not all([email, first_name, last_name, role_input]):
-        logger.warning(f"Validation failed for user creation by {admin_user.email}. Missing fields: {[f for f in ['email', 'first_name', 'last_name', 'role'] if not request.data.get(f)]}")
-        return Response({'error': 'First Name, Last Name, Email, and Role are mandatory.'}, status=status.HTTP_400_BAD_REQUEST)
-    
-    # Find matching role in choices regardless of case
-    role = None
-    role_choices_keys = [r[0].lower() for r in User.ROLE_CHOICES]
-    if role_input.lower() in role_choices_keys:
-        role = [r[0] for r in User.ROLE_CHOICES if r[0].lower() == role_input.lower()][0]
-    
-    if not role:
-        logger.warning(f"Invalid role requested: {role_input} by {admin_user.email}")
-        return Response({'error': f'Invalid role. Allowed: {", ".join([r[1] for r in User.ROLE_CHOICES])}'}, status=status.HTTP_400_BAD_REQUEST)
+        admin_user = request.user
+        if not admin_user or not admin_user.is_authenticated or admin_user.role.upper() not in ['SUPER_ADMIN', 'ADMIN', 'PI', 'COORDINATOR', 'SPONSOR']:
+            return Response({'error': 'Unauthorized access.'}, status=status.HTTP_403_FORBIDDEN)
 
-    # 3. RBAC Permission Check
-    if not check_permission(admin_user, role):
-        return Response({'error': 'You do not have permission to create this type of account.'}, status=status.HTTP_403_FORBIDDEN)
+        # 1. Extraction
+        email       = request.data.get('email', '').strip().lower()
+        first_name  = request.data.get('first_name', '').strip()
+        middle_name = request.data.get('middle_name', '').strip() or None
+        last_name   = request.data.get('last_name', '').strip()
+        role_input  = request.data.get('role', '').strip()
+        lat         = request.data.get('lat')
+        lng         = request.data.get('lng')
+        
+        # Safely convert lat/lng to float
+        try:
+            lat = float(lat) if lat and str(lat).strip() else None
+        except (ValueError, TypeError):
+            lat = None
+        try:
+            lng = float(lng) if lng and str(lng).strip() else None
+        except (ValueError, TypeError):
+            lng = None
+            
+        is_mellow   = to_bool(request.data.get('is_mellow_member', False))
+        org         = (request.data.get('organization') or '').strip() or None
+        bio         = (request.data.get('bio') or '').strip() or None
+        pronouns    = (request.data.get('pronouns') or '').strip() or None
+        linkedin_url = (request.data.get('linkedin_url') or '').strip() or None
+        institute_url = (request.data.get('institute_url') or '').strip() or None
+        qualifications = (request.data.get('qualifications') or '').strip() or None
+        profile_image = request.FILES.get('profile_image')
+        cv_file     = request.FILES.get('cv_file')
+        
+        logger.info(f"Onboarding request for {email} (Role: {role_input}) by {admin_user.email}")
 
-    existing_user = User.objects.filter(email=email).first()
-    if existing_user:
-        # User requested: show them alert and who invited him and in which study
-        return Response({
-            'error': 'This email is already registered on the platform.',
-            'existing_user': {
-                'name': f"{existing_user.first_name} {existing_user.last_name}",
-                'email': existing_user.email,
-                'invited_by': existing_user.invited_by.full_name if existing_user.invited_by else "System/Super Admin",
-                'invited_in_study': existing_user.invited_in_study or "General Platform",
-                'status': existing_user.status
-            }
-        }, status=status.HTTP_400_BAD_REQUEST)
+        # 2. Validation
+        if not all([email, first_name, last_name, role_input]):
+            logger.warning(f"Validation failed for user creation by {admin_user.email}. Missing fields.")
+            return Response({'error': 'First Name, Last Name, Email, and Role are mandatory.'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Find matching role in choices regardless of case
+        role = None
+        role_choices_keys = [r[0].lower() for r in User.ROLE_CHOICES]
+        if role_input.lower() in role_choices_keys:
+            role = [r[0] for r in User.ROLE_CHOICES if r[0].lower() == role_input.lower()][0]
+        
+        if not role:
+            logger.warning(f"Invalid role requested: {role_input} by {admin_user.email}")
+            return Response({'error': f'Invalid role. Allowed: {", ".join([r[1] for r in User.ROLE_CHOICES])}'}, status=status.HTTP_400_BAD_REQUEST)
 
-    # Generation
-    username = generate_unique_username(first_name, last_name)
-    temp_password = generate_secure_password(14)
-    study_id = request.data.get('study_id')
-    
-    # 5. Create Magic Link for Seamless First Login
-    from ..utils import generate_token
-    from ..models import MagicLink
-    invite_token = generate_token()
-    MagicLink.objects.create(email=email, token=invite_token)
-    
-    # Determine correct login URL based on role
-    frontend_base = getattr(settings, 'FRONTEND_URL', 'https://musbhealth.com')
-    if role.lower() == 'super_admin':
-        login_url = f"{frontend_base.rstrip('/')}/mainframe/restricted-auth?token={invite_token}"
-    else:
-        login_url = f"{frontend_base.rstrip('/')}/signin?token={invite_token}"
+        # 3. RBAC Permission Check
+        if not check_permission(admin_user, role):
+            return Response({'error': 'You do not have permission to create this type of account.'}, status=status.HTTP_403_FORBIDDEN)
 
-    # 4. Atomic Creation
-    try:
-        # Rule 1.1: HOW AFFILIATION IS DETERMINED
+        existing_user = User.objects.filter(email=email).first()
+        if existing_user:
+            return Response({
+                'error': 'This email is already registered on the platform.',
+                'existing_user': {
+                    'name': f"{existing_user.first_name} {existing_user.last_name}",
+                    'email': existing_user.email,
+                    'invited_by': existing_user.invited_by.full_name if existing_user.invited_by else "System/Super Admin",
+                    'invited_in_study': existing_user.invited_in_study or "General Platform",
+                    'status': existing_user.status
+                }
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # 4. Generation
+        username = generate_unique_username(first_name, last_name)
+        temp_password = generate_secure_password(14)
+        study_id = request.data.get('study_id')
+        if study_id and not str(study_id).strip():
+            study_id = None
+        
+        # 5. Create Magic Link for Seamless First Login
+        invite_token = generate_token()
+        MagicLink.objects.create(email=email, token=invite_token)
+        
+        # Determine correct login URL based on role
+        frontend_base = getattr(settings, 'FRONTEND_URL', 'https://musbhealth.com')
+        if role.lower() == 'super_admin':
+            login_url = f"{frontend_base.rstrip('/')}/mainframe/restricted-auth?token={invite_token}"
+        else:
+            login_url = f"{frontend_base.rstrip('/')}/signin?token={invite_token}"
+
+        # 6. Atomic Creation
         affiliation = 'MUSB' # Default
         status_val = 'PENDING' # Default for MusB invited users
         
         # Onsite PI adds team members -> inherit onsite, set pending
-        if admin_user.role == 'pi' and admin_user.affiliation.upper() == 'ONSITE':
+        admin_role_upper = admin_user.role.upper()
+        admin_aff_upper = (admin_user.affiliation or '').upper()
+        
+        if admin_role_upper == 'PI' and admin_aff_upper == 'ONSITE':
             affiliation = 'ONSITE'
-            # Rule 6: Onsite PI team member requests ALWAYS go through Super Admin approval
-            if role == 'team_member':
+            if role.upper() == 'TEAM_MEMBER':
                 status_val = 'PENDING'
             
-        # Explicit override for onsite PIs if flag provided (e.g., from study assignment flow)
-        elif request.data.get('is_onsite_hire'):
+        elif to_bool(request.data.get('is_onsite_hire')):
              affiliation = 'ONSITE'
-             if role == 'team_member':
+             if role.upper() == 'TEAM_MEMBER':
                  status_val = 'PENDING'
 
-        # New user creation
+        # Create user record
         new_user = User.objects.create_user(
             email=email,
             password=temp_password,
@@ -196,12 +214,18 @@ def admin_create_user(request):
             is_mellow_member=is_mellow,
             organization=org,
             bio=bio,
+            pronouns=pronouns,
+            linkedin_url=linkedin_url,
+            institute_url=institute_url,
+            qualifications=qualifications,
+            profile_image=profile_image,
+            cv_file=cv_file,
             zip_code=request.data.get('zip_code') or None,
             country=request.data.get('country') or None,
             state=request.data.get('state') or None
         )
         
-        # 4.1 Approval Request for Onsite Team Members
+        # 7. Approval Request for Onsite Team Members
         if status_val == 'PENDING':
             from ..models import ApprovalRequest
             ApprovalRequest.objects.create(
@@ -210,7 +234,7 @@ def admin_create_user(request):
                 status='pending'
             )
         
-        # 4.2 TRIGGER NOTIFICATIONS
+        # 8. TRIGGER NOTIFICATIONS
         try:
             from django.apps import apps
             Notification = apps.get_model('api', 'Notification')
@@ -229,21 +253,25 @@ def admin_create_user(request):
 
             # If study context provided, notify PIs and Coordinators of that study
             if study_id:
-                target_study = Study.objects.filter(Q(protocol_id=study_id) | Q(id=study_id)).first()
+                # Use filter and first() to avoid InvalidId if study_id is malformed
+                target_study = None
+                try:
+                    target_study = Study.objects.filter(Q(protocol_id=study_id) | Q(id=study_id)).first()
+                except Exception as study_err:
+                    logger.warning(f"Study lookup failed for ID {study_id}: {study_err}")
+                
                 if target_study:
-                    # Collect all staff associated with this study
                     recipients = set()
                     if target_study.pi: recipients.add(target_study.pi)
                     if target_study.coordinator: recipients.add(target_study.coordinator)
                     
-                    # Also check for multiple PIs/Coordinators if the model supports it
                     if hasattr(target_study, 'assigned_pis'):
-                        for pi in target_study.assigned_pis.all(): recipients.add(pi)
+                        for p in target_study.assigned_pis.all(): recipients.add(p)
                     if hasattr(target_study, 'assigned_coordinators'):
-                        for coord in target_study.assigned_coordinators.all(): recipients.add(coord)
+                        for c in target_study.assigned_coordinators.all(): recipients.add(c)
                     
                     for r in recipients:
-                        if r.id != admin_user.id: # Don't notify the inviter themselves
+                        if r.id != admin_user.id:
                             Notification.objects.create(
                                 user=r,
                                 title="Study Team Update",
@@ -254,7 +282,7 @@ def admin_create_user(request):
         except Exception as notify_err:
             logger.error(f"Notification trigger failed: {str(notify_err)}")
 
-        # 5. Email Delivery Logic
+        # 9. Email Delivery Logic
         subject_map = {
             'pi': 'Your PI Coordinator Account Has Been Created',
             'coordinator': 'Your PI Coordinator Account Has Been Created',
@@ -265,9 +293,6 @@ def admin_create_user(request):
         
         subject = subject_map.get(role.lower(), 'Account Created — MusB Research')
         
-        from ..utils import send_mail_premium
-        
-        # Personalized body based on role
         body_content = f"""
         Hello <strong>{first_name}</strong>,<br><br>
         You have been invited by {admin_user.full_name} to join the MusB Research platform as a <strong>{role.upper()}</strong>. 
@@ -296,8 +321,6 @@ def admin_create_user(request):
             logger.info(f"Onboarding email sent to {email}")
         else:
             logger.warning(f"Email delivery failed for {email} (User ID: {new_user.id})")
-            # We keep the account as per rule 1 (rollback is secondary option), 
-            # so the admin can "Resend" from dashboard.
             
         AuditLog.log(
             action='ACCOUNT_CREATED',
@@ -321,7 +344,7 @@ def admin_create_user(request):
         }, status=status.HTTP_201_CREATED)
 
     except Exception as e:
-        logger.error(f"Failed to onboarding user {email}: {str(e)}")
+        logger.error(f"Critical failure in onboarding user: {str(e)}", exc_info=True)
         return Response({'error': f'Finalization failed: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['POST'])
@@ -608,8 +631,12 @@ def get_mellow_investigators(request):
             'name': u.full_name or f"{u.first_name} {u.last_name}",
             'email': u.email,
             'bio': u.bio or "Clinical Investigator specializing in multi-center research protocols.",
-            'profile_picture': u.profile_picture or None,
+            'profile_picture': u.profile_image.url if u.profile_image else (u.profile_picture or None),
             'qualifications': u.qualifications or "MD, PhD",
+            'pronouns': u.pronouns or None,
+            'linkedin': u.linkedin_url or None,
+            'website': u.institute_url or None,
+            'cv_url': u.cv_file.url if u.cv_file else None,
             'is_active': u.is_active
         }
         

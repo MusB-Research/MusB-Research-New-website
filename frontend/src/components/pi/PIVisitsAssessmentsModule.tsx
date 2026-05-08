@@ -90,7 +90,7 @@ export default function PIVisitsAssessmentsModule() {
     const [confirmModal, setConfirmModal] = useState<{ message: string, onConfirm: () => void, type?: string } | null>(null);
     const [auditLog, setAuditLog] = useState<{ time: string, action: string }[]>([]);
 
-    const apiUrl = API || 'http://localhost:8000';
+    const apiUrl = API || 'http://localhost:8003';
 
     // Fetch Participants from API
     useEffect(() => {

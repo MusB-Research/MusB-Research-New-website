@@ -84,7 +84,8 @@ export default function Trials() {
                     status: statusMap[s.status] || 'Paused',
                     duration: s.duration || s.time_commitment || "4-12 Weeks",
                     compensation: s.compensation || "Varies by study",
-                    tags: [s.trial_model, mappedType].filter(Boolean)
+                    tags: [s.trial_model, mappedType].filter(Boolean),
+                    pi_details: s.pi_details
                 };
             });
 
@@ -508,6 +509,37 @@ export default function Trials() {
                                             <p className="text-xl font-black text-white italic">{selectedStudy.type}</p>
                                         </div>
                                     </div>
+
+                                    {/* Investigator Section */}
+                                    {selectedStudy.pi_details && (
+                                        <div className="pt-4 space-y-8">
+                                            <h3 className="text-[11px] font-black text-cyan-400 uppercase tracking-[0.3em]">Principal Investigator</h3>
+                                            <div className="flex flex-col md:flex-row items-center gap-8 p-8 rounded-[2.5rem] bg-white/[0.02] border border-white/5 group/pi hover:bg-white/[0.04] transition-all">
+                                                <div className="w-32 h-32 rounded-[2rem] bg-slate-950 border border-white/10 overflow-hidden shrink-0 shadow-2xl relative group-hover/pi:scale-105 transition-transform duration-500">
+                                                    {selectedStudy.pi_details.profile_picture ? (
+                                                        <img 
+                                                            src={selectedStudy.pi_details.profile_picture} 
+                                                            alt={selectedStudy.pi_details.name} 
+                                                            className="w-full h-full object-cover" 
+                                                        />
+                                                    ) : (
+                                                        <div className="w-full h-full flex items-center justify-center text-slate-800">
+                                                            <Users className="w-12 h-12" />
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <div className="space-y-4 text-center md:text-left flex-1">
+                                                    <div className="space-y-1">
+                                                        <h4 className="text-2xl font-black text-white uppercase italic tracking-tight">{selectedStudy.pi_details.name}</h4>
+                                                        <div className="text-cyan-400 text-[10px] font-black uppercase tracking-[0.2em]">{selectedStudy.pi_details.qualifications}</div>
+                                                    </div>
+                                                    <p className="text-slate-400 text-sm font-medium leading-relaxed max-w-xl">
+                                                        {selectedStudy.pi_details.bio}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
 
                                     <div className="pt-8 flex flex-col md:flex-row gap-6">
                                         <Link

@@ -27,7 +27,7 @@ interface JobPosting {
   expiry_date: string;
 }
 
-const API_ROOT = API || 'http://localhost:8000';
+const API_ROOT = API || 'http://localhost:8003';
 
 export default function CareerManagement() {
   const [jobs, setJobs] = useState<JobPosting[]>([]);

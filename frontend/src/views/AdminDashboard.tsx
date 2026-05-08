@@ -108,7 +108,7 @@ export default function AdminDashboard() {
         return () => clearInterval(timer);
     }, []);
 
-    const apiUrl = API || 'http://localhost:8000';
+    const apiUrl = API || 'http://localhost:8003';
 
     const fetchStudies = async (skipCache = false) => {
         try {

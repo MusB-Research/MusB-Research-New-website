@@ -208,7 +208,7 @@ export default function SponsorDashboard() {
   }, []);
 
   const markAsRead = async (id: string) => {
-    const apiUrl = API || 'http://localhost:8000';
+    const apiUrl = API || 'http://localhost:8003';
     try {
       const res = await authFetch(`${apiUrl}/api/notifications/${id}/read/`, { method: 'POST' });
       if (res.ok) setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
@@ -216,7 +216,7 @@ export default function SponsorDashboard() {
   };
 
   const markAllRead = async () => {
-    const apiUrl = API || 'http://localhost:8000';
+    const apiUrl = API || 'http://localhost:8003';
     try {
       const res = await authFetch(`${apiUrl}/api/notifications/read_all/`, { method: 'POST' });
       if (res.ok) {

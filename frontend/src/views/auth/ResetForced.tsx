@@ -27,7 +27,7 @@ export default function ResetForced() {
 
         setIsLoading(true);
         try {
-            const apiUrl = API || 'http://localhost:8000';
+            const apiUrl = API || 'http://localhost:8003';
             const res = await authFetch(`${apiUrl}/api/auth/reset-forced/`, {
                 method: 'POST',
                 body: JSON.stringify({

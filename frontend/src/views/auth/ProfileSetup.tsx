@@ -102,7 +102,7 @@ export default function ProfileSetup() {
         setIsLoading(true);
         setError(null);
         try {
-            const apiUrl = API || 'http://localhost:8000';
+            const apiUrl = API || 'http://localhost:8003';
             const submissionData = new FormData();
             
             // Append all text fields
