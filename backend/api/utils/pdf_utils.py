@@ -1,178 +1,342 @@
-import os
-import base64
 import io
-from django.core.files.base import ContentFile
-from reportlab.pdfgen import canvas
-from reportlab.lib.pagesizes import letter
-from PyPDF2 import PdfReader, PdfWriter
-from PIL import Image
-from django.conf import settings
-
-def decode_and_draw_signature(can, sig_data, px, py, width=120, height=45):
-    """Refactored helper to decode base64 signature and draw it on canvas"""
-    try:
-        if not sig_data: return
-        img_data = sig_data
-        if 'base64,' in img_data:
-            img_data = img_data.split('base64,')[1]
-        sig_img = Image.open(io.BytesIO(base64.b64decode(img_data)))
-        can.drawInlineImage(sig_img, px - (width/2), py - (height/2), width=width, height=height)
-    except Exception as e:
-        print(f"Signature decoding error: {e}")
-
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image as PlatypusImage
+import base64
+from reportlab.lib.pagesizes import LETTER
+from reportlab.lib import colors
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image, Table, TableStyle
 from reportlab.lib.units import inch
+from django.core.files.base import ContentFile
+from PIL import Image as PILImage
 
-def generate_signed_consent_pdf(consent_obj):
+def _process_signature_image(sig_str, styles):
     """
-    Overlays signatures onto the original consent template PDF based on predefined coordinates.
+    Shared helper to process base64 signatures or text into ReportLab elements.
     """
-    study = consent_obj.study
-    if not study:
+    if not sig_str:
         return None
-    if not consent_obj.template or not consent_obj.template.file:
-        return None
-
-    template_path = consent_obj.template.file.path
-    if not os.path.exists(template_path):
-        return None
-
-    # Predefined fields from template
-    fields = consent_obj.template.placed_fields or []
-    if not fields:
-        return None
-
-    # 1. Group fields by page (1-based index)
-    pages_to_fields = {}
-    for f in fields:
-        p = f.get('page', 1)
-        if p not in pages_to_fields:
-            pages_to_fields[p] = []
-        pages_to_fields[p].append(f)
-
-    # 2. Prepare for PyPDF2 merge
-    reader = PdfReader(template_path)
-    writer = PdfWriter()
-
-    # PDF dimensions (Letter is 612 x 792 points)
-    WIDTH, HEIGHT = 612, 792
-
-    for i in range(len(reader.pages)):
-        page = reader.pages[i]
-        page_num = i + 1
-
-        if page_num in pages_to_fields:
-            # Create overlay for this specific page
-            packet = io.BytesIO()
-            can = canvas.Canvas(packet, pagesize=letter)
+    if sig_str.startswith('data:image'):
+        try:
+            sig_bytes = base64.b64decode(sig_str.split(',')[1])
+            img_buffer = io.BytesIO(sig_bytes)
             
-            for f in pages_to_fields[page_num]:
-                f_type = f.get('type')
-                px = (f.get('x', 0) / 100.0) * WIDTH
-                py = HEIGHT - ((f.get('y', 0) / 100.0) * HEIGHT)
+            # Sanitize image with PIL to avoid ReportLab transparency issues
+            pil_img = PILImage.open(img_buffer)
+            if pil_img.mode in ('RGBA', 'LA') or (pil_img.mode == 'P' and 'transparency' in pil_img.info):
+                alpha = pil_img.convert('RGBA').split()[-1]
+                bg = PILImage.new("RGB", pil_img.size, (255, 255, 255))
+                bg.paste(pil_img, mask=alpha)
+                pil_img = bg
+            elif pil_img.mode != 'RGB':
+                pil_img = pil_img.convert('RGB')
+                
+            clean_buffer = io.BytesIO()
+            pil_img.save(clean_buffer, format='JPEG')
+            clean_buffer.seek(0)
+            
+            return Image(clean_buffer, width=1.5*inch, height=0.5*inch)
+        except Exception as e:
+            print(f"Error processing signature image: {e}")
+            return Paragraph("[Signature Image Error]", styles['Normal'])
+    else:
+        # Typed signature
+        return Paragraph(f"<i>{sig_str}</i>", styles['Normal'])
 
-                # DRAW LOGIC
-                if f_type == 'Participant Signature':
-                    decode_and_draw_signature(can, consent_obj.participant_signature, px, py)
-                elif f_type in ['Participant Name', 'Legal Full Name', 'Full Name']:
-                    can.setFont("Helvetica-Bold", 10)
-                    can.drawString(px, py, consent_obj.full_name or "")
-                elif f_type in ['Participant Date', 'Date', 'Signed Date']:
-                    can.setFont("Helvetica", 10)
-                    dt = consent_obj.participant_signed_at or consent_obj.agreed_at
-                    can.drawString(px, py, dt.strftime("%Y-%m-%d %H:%M") if dt else "")
-                elif f_type == 'CC Signature':
-                    decode_and_draw_signature(can, consent_obj.cc_signature, px, py)
-                elif f_type in ['CC Name', 'Coordinator Name']:
-                    can.setFont("Helvetica-Bold", 10)
-                    can.drawString(px, py, consent_obj.cc_name or "")
-                elif f_type in ['PI Verification', 'PI Signature']:
-                    decode_and_draw_signature(can, consent_obj.pi_signature, px, py)
-                elif f_type == 'PI Name':
-                    can.setFont("Helvetica-Bold", 10)
-                    can.drawString(px, py, consent_obj.pi_name or "")
-
-            can.save()
-            packet.seek(0)
-            overlay_reader = PdfReader(packet)
-            if len(overlay_reader.pages) > 0:
-                page.merge_page(overlay_reader.pages[0])
-
-        writer.add_page(page)
-
-    # 3. Finalize
-    output_stream = io.BytesIO()
-    writer.write(output_stream)
+def generate_signed_consent_pdf(consent_record):
+    """
+    Generates a professional PDF document combining consent text and signatures.
+    """
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=LETTER, rightMargin=72, leftMargin=72, topMargin=72, bottomMargin=72)
+    styles = getSampleStyleSheet()
     
-    study_id = study.protocol_id or str(study.pk)
-    filename = f"Consent_{study_id}_{consent_obj.pk}.pdf"
-    consent_obj.signed_pdf.save(filename, ContentFile(output_stream.getvalue()), save=False)
+    # Custom Styles
+    title_style = ParagraphStyle(
+        'CustomTitle',
+        parent=styles['Heading1'],
+        fontSize=18,
+        spaceAfter=20,
+        alignment=1, # Center
+        textColor=colors.HexColor('#2563eb')
+    )
+    
+    header_style = ParagraphStyle(
+        'Header',
+        parent=styles['Normal'],
+        fontSize=10,
+        textColor=colors.grey,
+        spaceAfter=12
+    )
+    
+    content_style = ParagraphStyle(
+        'Content',
+        parent=styles['Normal'],
+        fontSize=11,
+        leading=14,
+        spaceAfter=12
+    )
+
+    elements = []
+    has_template_file = bool(consent_record.template and consent_record.template.file)
+    
+    if not has_template_file:
+        # 1. Header Information
+        elements.append(Paragraph("MusB RESEARCH PORTAL - OFFICIAL RECORD", header_style))
+        elements.append(Paragraph(f"Study: {consent_record.study.title} ({consent_record.study.protocol_id})", header_style))
+        elements.append(Spacer(1, 0.2 * inch))
+        
+        # 2. Title
+        elements.append(Paragraph("Informed Consent Agreement", title_style))
+        elements.append(Spacer(1, 0.3 * inch))
+        
+        # 3. Consent Content
+        content = consent_record.content_snapshot
+        if not content and consent_record.template and consent_record.template.terms_content:
+            content = consent_record.template.terms_content
+        if not content:
+            content = "Refer to study protocol for consent terms."
+            
+        # Handle multiple lines
+        for line in content.split('\n'):
+            if line.strip():
+                elements.append(Paragraph(line, content_style))
+            else:
+                elements.append(Spacer(1, 0.1 * inch))
+                
+        elements.append(Spacer(1, 0.5 * inch))
+        elements.append(Paragraph("<hr/>", styles['Normal']))
+        elements.append(Spacer(1, 0.2 * inch))
+    else:
+        # Append only the signature page to the uploaded template
+        elements.append(Paragraph("MusB RESEARCH PORTAL - OFFICIAL RECORD", header_style))
+        elements.append(Paragraph(f"Study: {consent_record.study.title} ({consent_record.study.protocol_id})", header_style))
+        elements.append(Spacer(1, 0.2 * inch))
+        elements.append(Paragraph("Informed Consent - Signature Certificate", title_style))
+        elements.append(Spacer(1, 0.3 * inch))
+        elements.append(Paragraph("This page serves as the official signature certificate for the attached Informed Consent document.", content_style))
+        elements.append(Spacer(1, 0.5 * inch))
+    
+    # 4. Signatures Table
+    # Participant Column
+    p_sig_element = _process_signature_image(consent_record.participant_signature, styles)
+    p_col = [
+        Paragraph("<b>PARTICIPANT</b>", styles['Normal']),
+        Spacer(1, 0.1 * inch),
+        Paragraph(f"Name: {consent_record.full_name}", styles['Normal']),
+        Paragraph(f"Date: {consent_record.participant_signed_at.strftime('%Y-%m-%d %H:%M') if consent_record.participant_signed_at else '—'}", styles['Normal']),
+        Spacer(1, 0.1 * inch),
+        p_sig_element or Paragraph("[No Signature]", styles['Normal'])
+    ]
+    
+    # Coordinator Column
+    cc_sig_element = _process_signature_image(consent_record.cc_signature, styles)
+    cc_col = [
+        Paragraph("<b>COORDINATOR / STAFF</b>", styles['Normal']),
+        Spacer(1, 0.1 * inch),
+        Paragraph(f"Name: {consent_record.cc_name or '—'}", styles['Normal']),
+        Paragraph(f"Date: {consent_record.cc_verified_at.strftime('%Y-%m-%d %H:%M') if consent_record.cc_verified_at else '—'}", styles['Normal']),
+        Spacer(1, 0.1 * inch),
+        cc_sig_element or Paragraph("[Awaiting Co-Signature]", styles['Normal'])
+    ]
+    
+    # PI Column (if applicable)
+    pi_col = []
+    if consent_record.pi_verified or consent_record.pi_signature:
+        pi_sig_element = _process_signature_image(consent_record.pi_signature, styles)
+        pi_col = [
+            Paragraph("<b>PRINCIPAL INVESTIGATOR</b>", styles['Normal']),
+            Spacer(1, 0.1 * inch),
+            Paragraph(f"Name: {consent_record.pi_name or '—'}", styles['Normal']),
+            Paragraph(f"Date: {consent_record.pi_verified_at.strftime('%Y-%m-%d %H:%M') if consent_record.pi_verified_at else '—'}", styles['Normal']),
+            Spacer(1, 0.1 * inch),
+            pi_sig_element or Paragraph("[Signed Electronically]", styles['Normal'])
+        ]
+
+    # Create Signature Layout
+    row = [p_col, cc_col]
+    if pi_col:
+        row.append(pi_col)
+    
+    sig_table = Table([row], colWidths=[2.2*inch] * len(row))
+    sig_table.setStyle(TableStyle([
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('LEFTPADDING', (0, 0), (-1, -1), 0),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 10),
+    ]))
+    
+    elements.append(sig_table)
+    
+    # Build PDF
+    doc.build(elements)
+    
+    final_buffer = io.BytesIO()
+    
+    if has_template_file:
+        try:
+            from pypdf import PdfWriter, PdfReader
+            merger = PdfWriter()
+            
+            template_bytes = consent_record.template.file.read()
+            template_pdf = PdfReader(io.BytesIO(template_bytes))
+            merger.append(template_pdf)
+            
+            sig_pdf = PdfReader(io.BytesIO(buffer.getvalue()))
+            merger.append(sig_pdf)
+            
+            merger.write(final_buffer)
+            merger.close()
+        except Exception as e:
+            print(f"Error merging PDF template: {e}")
+            final_buffer = io.BytesIO(buffer.getvalue())
+    else:
+        final_buffer = io.BytesIO(buffer.getvalue())
+        
+    # Save to model
+    filename = f"signed_consent_{consent_record.pk}.pdf"
+    consent_record.signed_pdf.save(filename, ContentFile(final_buffer.getvalue()), save=False)
+    buffer.close()
+    final_buffer.close()
     return filename
 
 def generate_signed_questionnaire_pdf(instance):
     """
-    Generates a signed PDF for a QuestionnaireScheduleInstance by overlaying sigs.
+    Generates a professional PDF document for a completed questionnaire instance.
     """
-    template = instance.study_questionnaire.template
-    if not template or not template.pdf_file:
-        return None
-
-    template_path = template.pdf_file.path
-    if not os.path.exists(template_path):
-        return None
-
-    fields = template.placed_fields or []
-    if not fields:
-        # If no fields placed, we still want to indicate completion if needed
-        return None
-
-    pages_to_fields = {}
-    for f in fields:
-        p = f.get('page', 1)
-        if p not in pages_to_fields: pages_to_fields[p] = []
-        pages_to_fields[p].append(f)
-
-    reader = PdfReader(template_path)
-    writer = PdfWriter()
-    WIDTH, HEIGHT = 612, 792
-
-    for i in range(len(reader.pages)):
-        page = reader.pages[i]
-        page_num = i + 1
-        if page_num in pages_to_fields:
-            packet = io.BytesIO()
-            can = canvas.Canvas(packet, pagesize=letter)
-            for f in pages_to_fields[page_num]:
-                f_type = f.get('type')
-                px = (f.get('x', 0) / 100.0) * WIDTH
-                py = HEIGHT - ((f.get('y', 0) / 100.0) * HEIGHT)
-
-                if f_type == 'Participant Signature':
-                    decode_and_draw_signature(can, instance.participant_signature, px, py)
-                elif f_type in ['Participant Name', 'Name']:
-                    can.setFont("Helvetica-Bold", 10)
-                    can.drawString(px, py, instance.participant.full_name or "")
-                elif f_type in ['Participant Date', 'Date']:
-                    can.setFont("Helvetica", 10)
-                    dt = instance.participant_signed_at
-                    can.drawString(px, py, dt.strftime("%Y-%m-%d %H:%M") if dt else "")
-                elif f_type == 'CC Signature':
-                    decode_and_draw_signature(can, instance.coordinator_signature, px, py)
-                elif f_type == 'PI Signature':
-                    decode_and_draw_signature(can, instance.pi_signature, px, py)
-
-            can.save()
-            packet.seek(0)
-            overlay_reader = PdfReader(packet)
-            if len(overlay_reader.pages) > 0:
-                page.merge_page(overlay_reader.pages[0])
-        writer.add_page(page)
-
-    output_stream = io.BytesIO()
-    writer.write(output_stream)
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=LETTER, rightMargin=72, leftMargin=72, topMargin=72, bottomMargin=72)
+    styles = getSampleStyleSheet()
     
+    # Custom Styles
+    title_style = ParagraphStyle(
+        'CustomTitle',
+        parent=styles['Heading1'],
+        fontSize=18,
+        spaceAfter=20,
+        alignment=1, # Center
+        textColor=colors.HexColor('#2563eb')
+    )
+    
+    header_style = ParagraphStyle(
+        'Header',
+        parent=styles['Normal'],
+        fontSize=10,
+        textColor=colors.grey,
+        spaceAfter=12
+    )
+
+    q_style = ParagraphStyle(
+        'Question',
+        parent=styles['Normal'],
+        fontSize=11,
+        fontName='Helvetica-Bold',
+        spaceBefore=10,
+        spaceAfter=5
+    )
+
+    a_style = ParagraphStyle(
+        'Answer',
+        parent=styles['Normal'],
+        fontSize=11,
+        leftIndent=20,
+        spaceAfter=10,
+        textColor=colors.HexColor('#1e40af')
+    )
+
+    elements = []
+    
+    # 1. Header Information
+    elements.append(Paragraph("MusB RESEARCH PORTAL - CLINICAL INSTRUMENT RECORD", header_style))
+    study_info = f"Study: {instance.participant.study.title} ({instance.participant.study.protocol_id})"
+    elements.append(Paragraph(study_info, header_style))
+    elements.append(Paragraph(f"Participant: {instance.participant.participant_sid}", header_style))
+    elements.append(Paragraph(f"Scheduled Date: {instance.scheduled_date}", header_style))
+    if instance.completed_at:
+        elements.append(Paragraph(f"Completion Date: {instance.completed_at.strftime('%Y-%m-%d %H:%M')}", header_style))
+    elements.append(Spacer(1, 0.2 * inch))
+    
+    # 2. Title
+    instrument_name = instance.study_questionnaire.template.name if instance.study_questionnaire else "Clinical Instrument"
+    elements.append(Paragraph(instrument_name, title_style))
+    elements.append(Spacer(1, 0.3 * inch))
+    
+    # 3. Content (Responses)
+    response_data = instance.response_data or {}
+    if not response_data:
+        elements.append(Paragraph("<i>No response data found.</i>", styles['Normal']))
+    else:
+        for q, a in response_data.items():
+            # Clean up keys if they are technical
+            q_text = str(q).replace('_', ' ').capitalize()
+            elements.append(Paragraph(f"<b>{q_text}</b>", q_style))
+            elements.append(Paragraph(str(a), a_style))
+
+    elements.append(Spacer(1, 0.5 * inch))
+    elements.append(Paragraph("<hr/>", styles['Normal']))
+    elements.append(Spacer(1, 0.2 * inch))
+    
+    # 4. Signatures Table
+    p_sig = _process_signature_image(instance.participant_signature, styles)
+    p_col = [
+        Paragraph("<b>PARTICIPANT</b>", styles['Normal']),
+        Spacer(1, 0.1 * inch),
+        Paragraph(f"Date: {instance.participant_signed_at.strftime('%Y-%m-%d %H:%M') if instance.participant_signed_at else '—'}", styles['Normal']),
+        Spacer(1, 0.1 * inch),
+        p_sig or Paragraph("[No Signature]", styles['Normal'])
+    ]
+    
+    cc_sig = _process_signature_image(instance.coordinator_signature, styles)
+    cc_col = [
+        Paragraph("<b>COORDINATOR</b>", styles['Normal']),
+        Spacer(1, 0.1 * inch),
+        Paragraph(f"Date: {instance.coordinator_signed_at.strftime('%Y-%m-%d %H:%M') if instance.coordinator_signed_at else '—'}", styles['Normal']),
+        Spacer(1, 0.1 * inch),
+        cc_sig or Paragraph("[Awaiting Signature]", styles['Normal'])
+    ]
+    
+    pi_sig = _process_signature_image(instance.pi_signature, styles)
+    pi_col = [
+        Paragraph("<b>PRINCIPAL INVESTIGATOR</b>", styles['Normal']),
+        Spacer(1, 0.1 * inch),
+        Paragraph(f"Date: {instance.pi_signed_at.strftime('%Y-%m-%d %H:%M') if instance.pi_signed_at else '—'}", styles['Normal']),
+        Spacer(1, 0.1 * inch),
+        pi_sig or Paragraph("[Awaiting Signature]", styles['Normal'])
+    ]
+
+    sig_table = Table([[p_col, cc_col, pi_col]], colWidths=[2.2*inch] * 3)
+    sig_table.setStyle(TableStyle([
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('LEFTPADDING', (0, 0), (-1, -1), 0),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 10),
+    ]))
+    
+    elements.append(sig_table)
+    
+    # Build PDF
+    doc.build(elements)
+    
+    final_buffer = io.BytesIO()
+    has_template_file = bool(instance.study_questionnaire and instance.study_questionnaire.template and instance.study_questionnaire.template.pdf_file)
+    
+    if has_template_file:
+        try:
+            from pypdf import PdfWriter, PdfReader
+            merger = PdfWriter()
+            template_bytes = instance.study_questionnaire.template.pdf_file.read()
+            template_pdf = PdfReader(io.BytesIO(template_bytes))
+            merger.append(template_pdf)
+            sig_pdf = PdfReader(io.BytesIO(buffer.getvalue()))
+            merger.append(sig_pdf)
+            merger.write(final_buffer)
+            merger.close()
+        except Exception as e:
+            print(f"Error merging Questionnaire PDF template: {e}")
+            final_buffer = io.BytesIO(buffer.getvalue())
+    else:
+        final_buffer = io.BytesIO(buffer.getvalue())
+        
+    # Save to model
     filename = f"Signed_Instrument_{instance.pk}.pdf"
-    instance.signed_pdf.save(filename, ContentFile(output_stream.getvalue()), save=False)
+    instance.signed_pdf.save(filename, ContentFile(final_buffer.getvalue()), save=False)
+    buffer.close()
+    final_buffer.close()
     return filename
 

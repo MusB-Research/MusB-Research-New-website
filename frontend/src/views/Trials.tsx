@@ -38,8 +38,6 @@ export default function Trials() {
     const [loading, setLoading] = useState(true);
     const [studies, setStudies] = useState<any[]>([]);
     const [showCompleted, setShowCompleted] = useState(false);
-    const [selectedStudy, setSelectedStudy] = useState<any | null>(null);
-    const [currency, setCurrency] = useState('USD');
 
 // Manual currencySigns removed in favor of Intl.NumberFormat utility
 
@@ -84,6 +82,8 @@ export default function Trials() {
                     status: statusMap[s.status] || 'Paused',
                     duration: s.duration || s.time_commitment || "4-12 Weeks",
                     compensation: s.compensation || "Varies by study",
+                    location: s.location || "",
+                    countries: Array.isArray(s.countries) ? s.countries : (typeof s.countries === 'string' && s.countries ? s.countries.split(',').map((c: string) => c.trim()) : (s.location ? [s.location] : [])),
                     tags: [s.trial_model, mappedType].filter(Boolean),
                     pi_details: s.pi_details
                 };
@@ -369,21 +369,21 @@ export default function Trials() {
                                 {showCompleted ? 'Explore our past research and findings.' : 'Explore open studies. Spots can fill quickly.'}
                             </p>
                         </div>
-                        <div className="bg-slate-900/40 backdrop-blur-xl p-3 md:p-4 rounded-3xl border border-white/10 flex flex-wrap md:flex-nowrap items-center gap-4 w-full md:w-auto">
-                            <div className="relative flex-1 min-w-[200px] md:min-w-[300px]">
-                                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                        <div className="bg-slate-900/40 backdrop-blur-xl p-2.5 md:p-3 rounded-[2.2rem] border border-white/10 flex flex-col md:flex-row items-stretch md:items-center gap-3 w-full md:w-auto shrink-0 select-none">
+                            <div className="relative flex-1 min-w-[200px] md:min-w-[320px] flex items-center">
+                                <Search className="absolute left-4 w-4 h-4 text-slate-500" />
                                 <input
                                     type="text"
                                     placeholder="Search studies..."
-                                    className="w-full pl-12 pr-6 py-3 bg-white/5 border border-white/10 rounded-2xl outline-none focus:border-cyan-500 transition-all text-sm font-bold text-white placeholder:text-slate-600"
+                                    className="w-full pl-12 pr-6 h-[52px] bg-white/5 border border-white/10 rounded-2xl outline-none focus:border-cyan-500 focus:bg-white/[0.08] transition-all text-sm font-bold text-white placeholder:text-slate-600"
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
                                 />
                             </div>
 
-                            <div className="h-8 w-px bg-white/10 mx-2 hidden md:block" />
+                            <div className="h-10 w-px bg-white/10 mx-1 hidden md:block" />
 
-                            <label className="flex items-center gap-3 px-5 py-3 bg-white/5 rounded-2xl border border-white/5 hover:bg-white/10 transition-all cursor-pointer group shrink-0 ml-auto md:ml-0">
+                            <label className="flex items-center justify-center gap-3 px-6 h-[52px] bg-white/5 rounded-2xl border border-white/5 hover:bg-white/10 hover:border-white/10 transition-all cursor-pointer group shrink-0 select-none">
                                 <div className="relative flex items-center justify-center">
                                     <input
                                         type="checkbox"
@@ -416,217 +416,99 @@ export default function Trials() {
                                 </button>
                             ))}
                         </div>
-
-                        <div className="flex items-center gap-4 bg-slate-900/40 backdrop-blur-xl p-2 rounded-2xl border border-white/10">
-                            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-4">Currency</span>
-                            <select
-                                value={currency}
-                                onChange={(e) => setCurrency(e.target.value)}
-                                className="bg-transparent text-white text-[11px] font-black uppercase tracking-widest outline-none cursor-pointer pr-4"
-                            >
-                                {['USD', 'EUR', 'GBP', 'CAD', 'AUD', 'INR'].map(c => (
-                                    <option key={c} value={c} className="bg-slate-900">{c} ({getCurrencySymbol(c)})</option>
-                                ))}
-                            </select>
-                        </div>
                     </div>
 
-                    <AnimatePresence mode="wait">
-                        {selectedStudy ? (
-                            <motion.div
-                                key="details"
-                                initial={{ opacity: 0, x: 50 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                exit={{ opacity: 0, x: -50 }}
-                                className="relative bg-slate-950/40 backdrop-blur-xl rounded-[3rem] border border-white/10 p-8 md:p-16 overflow-hidden"
-                            >
-                                <button 
-                                    onClick={() => setSelectedStudy(null)}
-                                    className="absolute top-8 right-8 text-slate-500 hover:text-white transition-colors flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em]"
-                                >
-                                    &larr; Back to List
-                                </button>
-
-                                <div className="max-w-4xl mx-auto space-y-12">
-                                    <div className="space-y-6">
-                                        <div className={`inline-block px-4 py-1.5 rounded-full text-[12px] font-black uppercase tracking-widest bg-cyan-500/10 text-cyan-400`}>
-                                            {selectedStudy.status}
-                                        </div>
-                                        <h2 className="text-4xl md:text-6xl font-black text-white uppercase italic tracking-tighter leading-none">{selectedStudy.title}</h2>
-                                        <div className="flex flex-wrap gap-4">
-                                            {selectedStudy.tags.map((tag: string) => (
-                                                <span key={tag} className="px-3 py-1 bg-white/5 rounded-lg text-[12px] font-bold text-slate-500 uppercase tracking-widest">{tag}</span>
-                                            ))}
-                                        </div>
-                                    </div>
-
-                                    <div className="grid md:grid-cols-2 gap-12 border-y border-white/5 py-12">
-                                        <div className="space-y-8">
-                                            <div>
-                                                <h3 className="text-[11px] font-black text-cyan-400 uppercase tracking-[0.3em] mb-4">Brief Summary</h3>
-                                                <div className="prose prose-invert prose-sm">
-                                                    {renderDescription(selectedStudy.description)}
-                                                </div>
-                                            </div>
-                                            <div>
-                                                <h3 className="text-[11px] font-black text-cyan-400 uppercase tracking-[0.3em] mb-4">Overview</h3>
-                                                <div className="prose prose-invert prose-sm">
-                                                    {renderDescription(selectedStudy.overview)}
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div className="space-y-8">
-                                            <div>
-                                                <h3 className="text-[11px] font-black text-cyan-400 uppercase tracking-[0.3em] mb-4">Benefits for Participants</h3>
-                                                <div className="prose prose-invert prose-sm">
-                                                    {renderDescription(selectedStudy.benefit)}
-                                                </div>
-                                            </div>
-                                            <div>
-                                                <h3 className="text-[11px] font-black text-cyan-400 uppercase tracking-[0.3em] mb-4">Participation Message</h3>
-                                                <div className="prose prose-invert prose-sm">
-                                                    {renderDescription(selectedStudy.participation_message)}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                                        <div className="bg-white/2 rounded-2xl p-6 border border-white/5">
-                                            <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest mb-2">Compensation</p>
-                                            <p className="text-xl font-black text-white italic">{getCurrencySymbol(currency)}{selectedStudy.compensation.replace(/[^0-9.]/g, '') || selectedStudy.compensation}</p>
-                                        </div>
-                                        <div className="bg-white/2 rounded-2xl p-6 border border-white/5">
-                                            <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest mb-2">Duration</p>
-                                            <p className="text-xl font-black text-white italic">{selectedStudy.duration}</p>
-                                        </div>
-                                        <div className="bg-white/2 rounded-2xl p-6 border border-white/5">
-                                            <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest mb-2">Condition</p>
-                                            <p className="text-xl font-black text-white italic">{selectedStudy.condition}</p>
-                                        </div>
-                                        <div className="bg-white/2 rounded-2xl p-6 border border-white/5">
-                                            <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest mb-2">Type</p>
-                                            <p className="text-xl font-black text-white italic">{selectedStudy.type}</p>
-                                        </div>
-                                    </div>
-
-                                    {/* Investigator Section */}
-                                    {selectedStudy.pi_details && (
-                                        <div className="pt-4 space-y-8">
-                                            <h3 className="text-[11px] font-black text-cyan-400 uppercase tracking-[0.3em]">Principal Investigator</h3>
-                                            <div className="flex flex-col md:flex-row items-center gap-8 p-8 rounded-[2.5rem] bg-white/[0.02] border border-white/5 group/pi hover:bg-white/[0.04] transition-all">
-                                                <div className="w-32 h-32 rounded-[2rem] bg-slate-950 border border-white/10 overflow-hidden shrink-0 shadow-2xl relative group-hover/pi:scale-105 transition-transform duration-500">
-                                                    {selectedStudy.pi_details.profile_picture ? (
-                                                        <img 
-                                                            src={selectedStudy.pi_details.profile_picture} 
-                                                            alt={selectedStudy.pi_details.name} 
-                                                            className="w-full h-full object-cover" 
-                                                        />
-                                                    ) : (
-                                                        <div className="w-full h-full flex items-center justify-center text-slate-800">
-                                                            <Users className="w-12 h-12" />
-                                                        </div>
-                                                    )}
-                                                </div>
-                                                <div className="space-y-4 text-center md:text-left flex-1">
-                                                    <div className="space-y-1">
-                                                        <h4 className="text-2xl font-black text-white uppercase italic tracking-tight">{selectedStudy.pi_details.name}</h4>
-                                                        <div className="text-cyan-400 text-[10px] font-black uppercase tracking-[0.2em]">{selectedStudy.pi_details.qualifications}</div>
-                                                    </div>
-                                                    <p className="text-slate-400 text-sm font-medium leading-relaxed max-w-xl">
-                                                        {selectedStudy.pi_details.bio}
-                                                    </p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    <div className="pt-8 flex flex-col md:flex-row gap-6">
-                                        <Link
-                                            to={`/studies/${selectedStudy.id}`}
-                                            className="flex-1 text-center py-6 rounded-[2rem] font-black text-sm uppercase tracking-widest transition-all bg-cyan-500 text-slate-900 hover:bg-white shadow-2xl shadow-cyan-500/20"
-                                        >
-                                            Join Study Now
-                                        </Link>
-                                        <button
-                                            onClick={() => setSelectedStudy(null)}
-                                            className="px-12 py-6 rounded-[2rem] font-black text-sm uppercase tracking-widest transition-all bg-white/5 text-white hover:bg-white/10 border border-white/10"
-                                        >
-                                            Cancel
-                                        </button>
-                                    </div>
-                                </div>
-                            </motion.div>
-                        ) : (
-                            <motion.div
-                                key="list"
-                                initial={{ opacity: 0, x: -50 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                exit={{ opacity: 0, x: 50 }}
-                                className="relative bg-slate-950/40 backdrop-blur-xl rounded-3xl border border-white/10 p-8 md:pt-16 md:pb-8 md:px-16 overflow-hidden group/container"
-                            >
+                    <div
+                        className="relative bg-slate-950/40 backdrop-blur-xl rounded-3xl border border-white/10 p-8 md:pt-16 md:pb-8 md:px-16 overflow-hidden group/container"
+                    >
                                 <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-cyan-500/5 blur-[120px] rounded-full"></div>
 
                                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 relative z-10">
                                     {filteredStudies.map((study) => (
                                         <div key={study.id} className="group border border-white/5 rounded-[3rem] p-6 md:p-10 bg-slate-900/40 hover:bg-slate-900 hover:border-cyan-500/30 transition-all flex flex-col relative overflow-hidden shadow-2xl">
                                             <div className="absolute -inset-1 bg-gradient-to-tr from-cyan-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
-                                            <div className="flex justify-between items-start mb-8">
-                                                <div className="space-y-4">
-                                                    <div className={`inline-block px-4 py-1.5 rounded-full text-[12px] font-black uppercase tracking-widest ${study.status === 'Recruiting' ? 'bg-cyan-500/10 text-cyan-400' :
-                                                            study.status === 'Upcoming' ? 'bg-emerald-500/10 text-emerald-400' :
-                                                                study.status === 'Paused' ? 'bg-amber-500/10 text-amber-400' :
-                                                                    completedStatuses.includes(study.status) ? 'bg-slate-500/10 text-slate-400 opacity-60' :
-                                                                        'bg-cyan-500/10 text-cyan-400'
-                                                        }`}>
+                                            <div className="flex justify-between items-start mb-6">
+                                                <div className="space-y-3">
+                                                    <div className={`inline-flex px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border ${
+                                                        study.status === 'Recruiting' ? 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20' :
+                                                        study.status === 'Upcoming' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
+                                                        study.status === 'Paused' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
+                                                        'bg-slate-500/10 text-slate-400 border-white/10'
+                                                    }`}>
                                                         {study.status}
                                                     </div>
-                                                    <h3 className="text-3xl font-black text-white group-hover:text-cyan-400 transition-colors uppercase">{study.title}</h3>
+                                                    <h3 className="text-2xl md:text-3xl font-black text-white group-hover:text-cyan-400 transition-all uppercase leading-tight tracking-tighter">
+                                                        {study.title}
+                                                    </h3>
+                                                    {/* Short Brief Description */}
+                                                    <p className="text-[13px] font-medium text-slate-400 line-clamp-2 leading-relaxed max-w-[90%]">
+                                                        {study.description || study.overview || "Join this groundbreaking clinical study to help advance health science."}
+                                                    </p>
                                                 </div>
-                                                <div className="flex flex-wrap gap-2 justify-end max-w-[200px]">
-                                                    {(study.tags || []).map((tag: string) => (
-                                                        <span key={tag} className="px-2 py-1 bg-white/5 rounded-lg text-[12px] font-bold text-slate-500 uppercase tracking-widest">{tag}</span>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                            <div className="mb-10 flex-grow scrollbar-hide max-h-[120px] overflow-hidden relative">
-                                                <div className="text-slate-400 font-medium line-clamp-3 leading-relaxed">
-                                                    {study.description}
-                                                </div>
-                                                <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-slate-900/40 to-transparent pointer-events-none" />
-                                            </div>
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
-                                                <div className="bg-white/2 rounded-2xl p-4 border border-white/5 flex items-center gap-4">
-                                                    <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-slate-500 group-hover:text-cyan-400 transition-colors shrink-0">
-                                                        <DollarSign className="w-5 h-5" />
-                                                    </div>
-                                                    <div>
-                                                        <div className="text-[12px] font-black uppercase tracking-widest text-slate-600 mb-1">Compensation</div>
-                                                        <div className="text-sm font-bold text-white">{getCurrencySymbol(currency)}{study.compensation.replace(/[^0-9.]/g, '') || study.compensation}</div>
-                                                    </div>
-                                                </div>
-                                                <div className="bg-white/2 rounded-2xl p-4 border border-white/5 flex items-center gap-4">
-                                                    <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-slate-500 group-hover:text-cyan-400 transition-colors shrink-0">
-                                                        <Clock className="w-5 h-5" />
-                                                    </div>
-                                                    <div>
-                                                        <div className="text-[12px] font-black uppercase tracking-widest text-slate-600 mb-1">Duration</div>
-                                                        <div className="text-sm font-bold text-white">{study.duration}</div>
-                                                    </div>
+                                                <div className="flex flex-wrap gap-2 justify-end max-w-[120px]">
+                                                    {(study.tags || []).map((tag: string) => {
+                                                        const isHybrid = (tag || '').toLowerCase() === 'hybrid';
+                                                        let displayTag = tag;
+                                                        if (isHybrid && study.countries && study.countries.length > 0) {
+                                                            const cStr = Array.isArray(study.countries) ? study.countries.join(', ') : study.countries;
+                                                            displayTag = `${cStr} - ${tag}`;
+                                                        }
+                                                        return (
+                                                            <span key={tag} className="px-2 py-0.5 bg-white/5 border border-white/5 rounded text-[9px] font-black text-slate-600 uppercase tracking-widest">
+                                                                {displayTag}
+                                                            </span>
+                                                        );
+                                                    })}
                                                 </div>
                                             </div>
-                                            <button
-                                                onClick={() => setSelectedStudy(study)}
+
+                                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-8">
+                                                <div className="bg-white/2 rounded-2xl p-4 border border-white/5 flex flex-col items-center text-center gap-2 group/item hover:bg-white/5 transition-all">
+                                                    <div className="w-8 h-8 rounded-xl bg-white/5 flex items-center justify-center text-slate-500 group-hover:text-cyan-400 transition-colors shrink-0">
+                                                        <DollarSign className="w-4 h-4" />
+                                                    </div>
+                                                    <div className="min-w-0 w-full">
+                                                        <div className="text-[9px] font-black uppercase tracking-widest text-slate-600 mb-1">Compensation</div>
+                                                        <div className="text-[11px] font-black text-white group-hover/item:text-cyan-400 transition-colors truncate px-1">
+                                                            {study.compensation}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div className="bg-white/2 rounded-2xl p-4 border border-white/5 flex flex-col items-center text-center gap-2 group/item hover:bg-white/5 transition-all">
+                                                    <div className="w-8 h-8 rounded-xl bg-white/5 flex items-center justify-center text-slate-500 group-hover:text-cyan-400 transition-colors shrink-0">
+                                                        <Clock className="w-4 h-4" />
+                                                    </div>
+                                                    <div className="min-w-0 w-full">
+                                                        <div className="text-[9px] font-black uppercase tracking-widest text-slate-600 mb-1">Duration</div>
+                                                        <div className="text-[11px] font-black text-white group-hover/item:text-cyan-400 transition-colors truncate px-1">
+                                                            {study.duration}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div className="bg-white/2 rounded-2xl p-4 border border-white/5 flex flex-col items-center text-center gap-2 group/item hover:bg-white/5 transition-all">
+                                                    <div className="w-8 h-8 rounded-xl bg-white/5 flex items-center justify-center text-slate-500 group-hover:text-cyan-400 transition-colors shrink-0">
+                                                        <MapPin className="w-4 h-4" />
+                                                    </div>
+                                                    <div className="min-w-0 w-full">
+                                                        <div className="text-[9px] font-black uppercase tracking-widest text-slate-600 mb-1">Location</div>
+                                                        <div className="text-[11px] font-black text-white group-hover/item:text-cyan-400 transition-colors truncate px-1">
+                                                            {study.countries && study.countries.length > 0 
+                                                                ? (study.countries.length === 1 ? study.countries[0] : `${study.countries.length} Regions`)
+                                                                : (study.location && study.location.trim() !== '' ? study.location : (study.type === 'Virtual' ? 'Virtual' : 'On-site'))}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <Link
+                                                to={`/studies/${study.id}`}
                                                 className="block w-full text-center py-5 rounded-2xl font-black text-sm uppercase tracking-widest transition-all bg-white/5 text-white hover:bg-cyan-500 hover:text-slate-900 border border-white/10"
                                             >
                                                 View Details
-                                            </button>
+                                            </Link>
                                         </div>
                                     ))}
                                 </div>
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
+                            </div>
                 </section >
 
 

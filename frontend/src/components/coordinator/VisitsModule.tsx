@@ -111,6 +111,7 @@ export default function VisitsModule({ selectedStudyId, preloadedParticipants, p
     const [openAccordion, setOpenAccordion] = useState<string | null>('Checklist');
     const [mobileView, setMobileView] = useState<'LIST' | 'TIMELINE' | 'DETAILS'>('LIST');
     const [tempVitals, setTempVitals] = useState({ weight: 78.5, height: 1.82 });
+    const [actionMenuOpen, setActionMenuOpen] = useState(false);
 
     const mapParticipants = useCallback((data: any[]): Participant[] => {
         return data.map((p: any) => ({
@@ -138,7 +139,7 @@ export default function VisitsModule({ selectedStudyId, preloadedParticipants, p
                 id: v.id,
                 name: v.visit_type || 'Unspecified Visit',
                 scheduledDate: v.scheduled_date || v.date || null,
-                status: v.status === 'COMPLETED' ? 'Completed' : v.status === 'SCHEDULED' ? 'Scheduled' : 'Overdue',
+                status: v.status === 'COMPLETED' ? 'Completed' : v.status === 'SCHEDULED' ? 'Scheduled' : v.status === 'MISSED' ? 'Missed' : v.status === 'IN_PROGRESS' ? 'In Progress' : 'Overdue',
                 window: '±3 days',
                 actualDate: v.actual_date,
                 checklist: (Array.isArray(v.checklist) ? v.checklist : []).map((inner: any) => ({
@@ -416,11 +417,13 @@ export default function VisitsModule({ selectedStudyId, preloadedParticipants, p
                 if (onRefresh) onRefresh();
                 else loadData();
             } else {
-                alert("Protocol Sync Error: Failed to persist visit data.");
+                const errBody = await visitResp.json().catch(() => ({}));
+                console.error("Clinical Backend Error:", errBody);
+                alert(`Scheduling Failure: ${errBody.detail || errBody.error || 'The server rejected the clinical record.'}`);
             }
         } catch (err) {
-            console.error("Clinical Scheduling Failure:", err);
-            alert("Network interference detected during scheduling.");
+            console.error("Critical Connection Failure:", err);
+            alert("Connection error: Unable to reach clinical server. Please verify network status.");
         }
     };
 
@@ -593,9 +596,9 @@ export default function VisitsModule({ selectedStudyId, preloadedParticipants, p
             {/* Overlays */}
 
             {/* Header Bar: Responsive Stacking */}
-            <div className="flex-shrink-0 px-4 md:px-6 py-2.5 bg-[#0B101B] border-b border-white/10 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
-                <div className="flex items-center justify-between lg:justify-start gap-4 md:gap-8">
-                    <h2 className="text-sm md:text-lg font-black text-white tracking-widest uppercase italic">VISITS Oversight</h2>
+            <div className="flex-shrink-0 px-4 md:px-6 py-2 bg-[#0B101B] border-b border-white/10 flex flex-col lg:flex-row lg:items-center justify-between gap-2">
+                <div className="flex items-center justify-between lg:justify-start gap-4 md:gap-6">
+                    <h2 className="text-xs md:text-sm font-black text-white tracking-widest uppercase italic">VISITS Oversight</h2>
                     <div className="flex bg-white/5 p-0.5 rounded-xl border border-white/10 shrink-0">
                         {(['Timeline', 'Calendar'] as const).map(mode => (
                             <button key={mode} onClick={() => setViewMode(mode)} className={`px-3 md:px-4 py-1 rounded-lg text-[10px] md:text-xs font-black tracking-widest transition-all ${viewMode === mode ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20' : 'text-slate-500 hover:text-white'}`}>
@@ -606,42 +609,45 @@ export default function VisitsModule({ selectedStudyId, preloadedParticipants, p
                 </div>
 
                 <div className="flex items-center gap-2 md:gap-3 overflow-x-auto pb-1 md:pb-0 scrollbar-hide">
-                    <div className="relative w-full md:w-64">
+                    <div className="relative w-full md:w-56">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-500" />
-                        <input type="text" placeholder="Filter Subjects..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-xl pl-9 pr-4 py-1.5 text-[12px] text-white outline-none focus:border-indigo-500/50 transition-all placeholder:text-slate-600" />
+                        <input type="text" placeholder="Filter Subjects..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg pl-9 pr-4 py-1.5 text-[11px] text-white outline-none focus:border-indigo-500/50 transition-all placeholder:text-slate-600" />
                     </div>
-                    <button onClick={() => setIsScheduleOpen(true)} className="whitespace-nowrap px-4 py-1.5 bg-indigo-600/10 border border-indigo-600/20 text-indigo-400 rounded-xl text-[10px] font-black tracking-widest hover:bg-indigo-600 hover:text-white transition-all italic">
-                        + SCHEDULE
-                    </button>
-                    <button 
-                        onClick={() => {
-                            const client = window.google?.accounts?.oauth2?.initTokenClient({
-                                client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
-                                scope: 'https://www.googleapis.com/auth/calendar.events',
-                                callback: async (response: any) => {
-                                    if (response.access_token) {
-                                        await authFetch(`${API}/api/auth/save-google-token/`, {
-                                            method: 'POST',
-                                            body: JSON.stringify({
-                                                access_token: response.access_token,
-                                                expires_in: response.expires_in,
-                                                scope: response.scope
-                                            })
-                                        });
-                                        alert("Google Calendar Synchronized! Your appointments will now appear in your Google Calendar.");
-                                    }
-                                },
-                            });
-                            client?.requestAccessToken();
-                        }}
-                        className={`whitespace-nowrap px-4 py-1.5 border rounded-xl text-[10px] font-black tracking-widest transition-all italic flex items-center gap-2 ${getUser()?.google_calendar_linked ? 'bg-emerald-600/20 border-emerald-500/40 text-emerald-400' : 'bg-white/5 border-white/10 text-slate-400 hover:bg-emerald-600 hover:text-white'}`}
-                    >
-                        <Calendar className="w-3 h-3" /> 
-                        {getUser()?.google_calendar_linked ? 'CALENDAR LINKED' : 'SYNC GOOGLE'}
-                    </button>
-                    <button onClick={() => setIsProblemModalOpen(true)} className="whitespace-nowrap px-4 py-1.5 bg-rose-500/10 border border-rose-500/20 text-rose-400 rounded-xl text-[10px] font-black tracking-widest hover:bg-rose-500 hover:text-white transition-all italic">
-                        + REPORT
-                    </button>
+                    {/* Action buttons visible across all screens */}
+                    <div className="flex items-center gap-2 flex-wrap">
+                        <button onClick={() => setIsScheduleOpen(true)} className="whitespace-nowrap px-3 md:px-4 py-1.5 bg-indigo-600/10 border border-indigo-600/20 text-indigo-400 rounded-xl text-[10px] font-black tracking-widest hover:bg-indigo-600 hover:text-white transition-all italic">
+                            + SCHEDULE
+                        </button>
+                        <button 
+                            onClick={() => {
+                                const client = window.google?.accounts?.oauth2?.initTokenClient({
+                                    client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
+                                    scope: 'https://www.googleapis.com/auth/calendar.events',
+                                    callback: async (response: any) => {
+                                        if (response.access_token) {
+                                            await authFetch(`${API}/api/auth/save-google-token/`, {
+                                                method: 'POST',
+                                                body: JSON.stringify({
+                                                    access_token: response.access_token,
+                                                    expires_in: response.expires_in,
+                                                    scope: response.scope
+                                                })
+                                            });
+                                            alert("Google Calendar Synchronized! Your appointments will now appear in your Google Calendar.");
+                                        }
+                                    },
+                                });
+                                client?.requestAccessToken();
+                            }}
+                            className={`whitespace-nowrap px-3 md:px-4 py-1.5 border rounded-xl text-[10px] font-black tracking-widest transition-all italic flex items-center gap-2 ${getUser()?.google_calendar_linked ? 'bg-emerald-600/20 border-emerald-500/40 text-emerald-400' : 'bg-white/5 border-white/10 text-slate-400 hover:bg-emerald-600 hover:text-white'}`}
+                        >
+                            <Calendar className="w-3 h-3" /> 
+                            {getUser()?.google_calendar_linked ? 'CALENDAR LINKED' : 'SYNC GOOGLE'}
+                        </button>
+                        <button onClick={() => setIsProblemModalOpen(true)} className="whitespace-nowrap px-3 md:px-4 py-1.5 bg-rose-500/10 border border-rose-500/20 text-rose-400 rounded-xl text-[10px] font-black tracking-widest hover:bg-rose-500 hover:text-white transition-all italic">
+                            + REPORT
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -682,14 +688,14 @@ export default function VisitsModule({ selectedStudyId, preloadedParticipants, p
                                             setSelectedParticipantId(p.id);
                                             setMobileView('TIMELINE');
                                         }} 
-                                        className={`w-full text-left p-3 rounded-xl border transition-all ${selectedParticipantId === p.id ? 'bg-indigo-600/10 border-indigo-500/40 shadow-lg shadow-indigo-500/5' : 'bg-transparent border-transparent hover:bg-white/[0.03]'}`}
+                                        className={`w-full text-left p-3 rounded-xl border transition-all duration-200 ${selectedParticipantId === p.id ? 'bg-indigo-600/10 border-indigo-500/40 shadow-xl shadow-indigo-500/5 scale-[1.02]' : 'bg-transparent border-transparent hover:bg-white/[0.04]'}`}
                                     >
                                         <div className="flex items-center justify-between mb-1">
                                             <span className="text-[12px] font-black text-white italic tracking-tighter uppercase">{p.participant_sid}</span>
-                                            <div className={`w-1.5 h-1.5 rounded-full ${p.status === 'Active' ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-slate-600'}`} />
+                                            <div className={`w-1.5 h-1.5 rounded-full ${p.status === 'Active' ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]' : 'bg-slate-600'}`} />
                                         </div>
-                                        <p className="text-[13px] font-bold text-slate-300 truncate mb-0.5">{p.name}</p>
-                                        <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest truncate">
+                                        <p className="text-[13px] font-black text-slate-100 truncate mb-0.5">{p.name}</p>
+                                        <p className="text-[9px] text-slate-500 font-black uppercase tracking-widest truncate">
                                             <span className="text-indigo-400 italic">[{p.protocol_id}]</span> {p.study}
                                         </p>
                                     </button>
@@ -719,57 +725,57 @@ export default function VisitsModule({ selectedStudyId, preloadedParticipants, p
                                     </button>
 
                                     {/* Subject Header */}
-                                    <div className="mb-4 p-4 bg-white/[0.01] border border-white/5 rounded-2xl">
+                                    <div className="mb-2 p-2.5 bg-white/[0.01] border border-white/5 rounded-xl">
                                         <div className="flex items-start justify-between">
                                             <div className="min-w-0 flex-1">
-                                                <h3 className="text-xl md:text-2xl font-black text-white mb-1.5 uppercase italic tracking-tighter truncate">{selectedParticipant.name}</h3>
-                                                <div className="flex flex-wrap items-center gap-2.5">
-                                                    <span className="px-2.5 py-0.5 bg-white/5 rounded-lg text-[10px] font-black text-indigo-400 uppercase tracking-widest italic border border-white/10">
+                                                <h3 className="text-base md:text-lg font-black text-white mb-0.5 uppercase italic tracking-tighter truncate">{selectedParticipant.name}</h3>
+                                                <div className="flex flex-wrap items-center gap-2">
+                                                    <span className="px-1.5 py-0.5 bg-white/5 rounded-md text-[8px] font-black text-blue-400 uppercase tracking-widest italic border border-white/10">
                                                         SID: {selectedParticipant.participant_sid}
                                                     </span>
-                                                    <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest truncate">
+                                                    <p className="text-[8px] text-slate-500 font-black uppercase tracking-widest truncate">
                                                         {selectedParticipant.study}
                                                     </p>
                                                 </div>
                                             </div>
                                             <button 
                                                 onClick={() => setMobileView('DETAILS')}
-                                                className="lg:hidden p-2.5 bg-indigo-500/10 rounded-xl text-indigo-400"
+                                                className="lg:hidden p-1.5 bg-blue-500/10 rounded-lg text-blue-400"
                                             >
-                                                <MoreVertical className="w-5 h-5" />
+                                                < MoreVertical className="w-3.5 h-3.5" />
                                             </button>
                                         </div>
                                     </div>
 
                                     {/* Stats Grid */}
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
-                                        <div className="p-4 bg-[#0f172a]/50 border border-white/5 rounded-2xl flex items-center gap-4 group hover:bg-[#0f172a] transition-all">
-                                            <div className="p-3 bg-indigo-500/10 rounded-xl group-hover:scale-110 transition-transform">
-                                                <Activity className="w-7 h-7 text-indigo-400" />
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mb-3">
+                                        <div className="p-3 bg-[#0B101B]/60 border border-white/5 rounded-xl flex items-center gap-3 group hover:border-blue-500/20 transition-all">
+                                            <div className="p-2 bg-blue-500/10 rounded-lg group-hover:scale-110 transition-transform shadow-lg">
+                                                <Activity className="w-5 h-5 text-blue-400" />
                                             </div>
                                             <div>
-                                                <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.2em] mb-0.5">Protocol Progress</p>
-                                                <p className="text-3xl font-black text-white tabular-nums italic">{(selectedParticipant.visits && selectedParticipant.visits.length > 0) ? Math.round((selectedParticipant.visits.filter(v => v.status === 'Completed').length / selectedParticipant.visits.length) * 100) : 0}%</p>
+                                                <p className="text-[9px] text-slate-500 font-black uppercase tracking-[0.2em] mb-0.5">Protocol Adherence</p>
+                                                <p className="text-2xl font-black text-white tabular-nums italic">{(selectedParticipant.visits && selectedParticipant.visits.length > 0) ? Math.round((selectedParticipant.visits.filter(v => v.status === 'Completed').length / selectedParticipant.visits.length) * 100) : 0}%</p>
                                             </div>
                                         </div>
-                                        <div className="p-4 bg-[#0f172a]/50 border border-white/5 rounded-2xl flex flex-col justify-center group hover:bg-[#0f172a] transition-all">
-                                            <p className="text-[9px] text-slate-500 font-black uppercase tracking-[0.2em] mb-1">Target Window</p>
-                                            <p className="text-lg font-black text-white uppercase italic tracking-tighter">
+                                        <div className="p-3 bg-[#0B101B]/60 border border-white/5 rounded-xl flex flex-col justify-center group hover:border-blue-500/20 transition-all">
+                                            <p className="text-[8px] text-slate-500 font-black uppercase tracking-[0.2em] mb-0.5">Next Clinical Epoch</p>
+                                            <p className="text-[13px] font-black text-white uppercase italic tracking-tighter">
                                                 {selectedParticipant.nextVisitDue !== 'N/A' ? new Date(selectedParticipant.nextVisitDue).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' }).toUpperCase() : 'TBD'}
                                             </p>
                                         </div>
                                     </div>
 
-                                    <div className="relative py-4 overflow-x-auto custom-scrollbar scroll-smooth">
-                                        <div className="absolute left-0 right-0 top-[38px] h-px bg-white/5" />
-                                        <div className="flex flex-row flex-nowrap justify-start items-start gap-4 relative z-10 px-4 min-w-max">
+                                    <div className="relative py-2 overflow-x-auto custom-scrollbar scroll-smooth">
+                                        <div className="absolute left-0 right-0 top-[32px] h-px bg-white/5" />
+                                        <div className="flex flex-row flex-nowrap justify-start items-start gap-3 relative z-10 px-2 min-w-max">
                                             {isLoading ? (
                                                 /* Skeletons for Timeline */
                                                 Array.from({ length: 5 }).map((_, i) => (
-                                                    <div key={i} className="flex flex-col items-center gap-2.5 w-28 flex-none min-w-[90px]">
-                                                        <Skeleton variant="circle" size="w-9 h-9" dark={true} className="rounded-xl" />
-                                                        <Skeleton variant="text" className="w-20 h-3" dark={true} />
-                                                        <Skeleton variant="text" className="w-14 h-2 opacity-50" dark={true} />
+                                                    <div key={i} className="flex flex-col items-center gap-2 w-24 flex-none min-w-[80px]">
+                                                        <Skeleton variant="circle" size="w-8 h-8" dark={true} className="rounded-lg" />
+                                                        <Skeleton variant="text" className="w-16 h-2.5" dark={true} />
+                                                        <Skeleton variant="text" className="w-12 h-2 opacity-50" dark={true} />
                                                     </div>
                                                 ))
                                             ) : selectedParticipant.visits.length > 0 ? selectedParticipant.visits.map(v => (
@@ -779,21 +785,21 @@ export default function VisitsModule({ selectedStudyId, preloadedParticipants, p
                                                         setSelectedVisitId(v.id);
                                                         setMobileView('DETAILS');
                                                     }} 
-                                                    className="flex flex-col items-center gap-2.5 w-28 group flex-none min-w-[90px] text-center"
+                                                    className="flex flex-col items-center gap-3 w-32 group flex-none min-w-[100px] text-center"
                                                 >
-                                                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center border transition-all duration-300 ${v.id === selectedVisitId ? 'bg-indigo-600 border-indigo-400 scale-110 shadow-xl shadow-indigo-500/20' : 'bg-[#0f172a] border-white/10 group-hover:border-white/30'}`}>
-                                                        {v.status === 'Completed' ? <Check className="w-4.5 h-4.5 text-emerald-400" /> : <div className={`w-2 h-2 rounded-full ${v.status === 'Scheduled' ? 'bg-indigo-400' : 'bg-slate-600'}`} />}
+                                                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center border-2 transition-all duration-300 ${v.id === selectedVisitId ? 'bg-blue-600 border-blue-400 scale-110 shadow-2xl shadow-blue-500/40' : 'bg-[#0B101B] border-white/10 group-hover:border-white/30 hover:scale-105'}`}>
+                                                        {v.status === 'Completed' ? <Check className="w-6 h-6 text-emerald-400" /> : <div className={`w-2 h-2 rounded-full ${v.status === 'Scheduled' ? 'bg-blue-400 shadow-[0_0_10px_rgba(96,165,250,0.5)]' : 'bg-slate-700'}`} />}
                                                     </div>
                                                     <div className="text-center group-hover:scale-105 transition-transform">
-                                                        <p className="text-[11px] text-white font-black uppercase italic tracking-tighter truncate w-full px-2">{v.name}</p>
-                                                        <p className="text-[9px] text-slate-500 font-bold tracking-widest uppercase mt-0.5">
+                                                        <p className="text-[11px] text-white font-black uppercase italic tracking-tighter truncate w-full px-1">{v.name}</p>
+                                                        <p className="text-[9px] text-slate-500 font-black tracking-widest uppercase mt-1">
                                                             {v.scheduledDate ? new Date(v.scheduledDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : 'PENDING'}
                                                         </p>
                                                     </div>
                                                 </button>
                                             )) : (
-                                                <div className="w-full py-8 text-center min-w-[300px]">
-                                                    <p className="text-[10px] text-slate-600 font-black uppercase tracking-[0.3em] italic">Telemetry Offline: No Visits</p>
+                                                <div className="w-full py-6 text-center min-w-[300px]">
+                                                    <p className="text-[9px] text-slate-700 font-black uppercase tracking-[0.3em] italic">Telemetry Offline: No Visits</p>
                                                 </div>
                                             )}
                                         </div>
@@ -805,41 +811,41 @@ export default function VisitsModule({ selectedStudyId, preloadedParticipants, p
                         {/* Right Panel: Details */}
                         <div className={`
                             ${mobileView === 'DETAILS' ? 'flex w-full' : 'hidden lg:flex'} 
-                            lg:w-[340px] xl:w-[400px] min-w-[320px] border-l border-white/10 bg-[#0f172a] flex-col shrink-0 overflow-y-auto custom-scrollbar
+                            lg:w-[300px] xl:w-[340px] min-w-[280px] border-l border-white/10 bg-[#0B101B]/40 flex-col shrink-0 overflow-y-auto custom-scrollbar
                         `}>
                             {!selectedVisit ? (
-                                <div className="flex-1 flex flex-col items-center justify-center opacity-20 p-8 text-center">
-                                    <Stethoscope className="w-16 h-16 mb-6 text-slate-700" />
-                                    <p className="text-[10px] font-black uppercase tracking-[0.3em] italic text-slate-600">Awaiting Signal</p>
+                                <div className="flex-1 flex flex-col items-center justify-center opacity-20 p-6 text-center">
+                                    <Stethoscope className="w-12 h-12 mb-4 text-slate-700" />
+                                    <p className="text-[9px] font-black uppercase tracking-[0.3em] italic text-slate-600">Awaiting Signal</p>
                                 </div>
                             ) : (
                                 <div className="flex flex-col min-h-full">
                                     {/* Mobile Sub-Header */}
-                                    <div className="lg:hidden p-6 border-b border-white/5 flex items-center gap-4 bg-white/[0.01]">
-                                        <button onClick={() => setMobileView('TIMELINE')} className="p-2.5 bg-white/5 rounded-xl text-slate-400">
-                                            <ArrowRight className="w-4 h-4 rotate-180" />
+                                    <div className="lg:hidden p-4 border-b border-white/5 flex items-center gap-3 bg-white/[0.01]">
+                                        <button onClick={() => setMobileView('TIMELINE')} className="p-2 bg-white/5 rounded-lg text-slate-400">
+                                            <ArrowRight className="w-3.5 h-3.5 rotate-180" />
                                         </button>
                                         <div>
-                                            <p className="text-[10px] text-slate-500 font-black uppercase italic tracking-widest">Visit dossier</p>
-                                            <h4 className="text-lg font-black text-white italic uppercase tracking-tighter">{selectedVisit.name}</h4>
+                                            <p className="text-[9px] text-slate-500 font-black uppercase italic tracking-widest">Visit dossier</p>
+                                            <h4 className="text-base font-black text-white italic uppercase tracking-tighter">{selectedVisit.name}</h4>
                                         </div>
                                     </div>
 
-                                    <div className="p-4 pt-4 border-b border-white/10">
-                                        <div className="flex items-center justify-between mb-3">
+                                    <div className="p-3 pt-3 border-b border-white/5 bg-[#0B101B]/60">
+                                        <div className="flex items-center justify-between mb-2">
                                             <div className="hidden lg:block">
-                                                <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] italic">{selectedVisit.name}</h4>
-                                                <p className="text-2xl font-black text-white mt-1 italic tracking-tighter">Core Metrics</p>
+                                                <h4 className="text-[9px] font-black text-slate-600 uppercase tracking-[0.2em] italic">{selectedVisit.name}</h4>
+                                                <p className="text-xl font-black text-white italic tracking-tighter">Clinical Dossier</p>
                                             </div>
-                                            <span className={`shrink-0 px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest italic shadow-lg ${selectedVisit.status === 'Completed' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : selectedVisit.status === 'Scheduled' ? 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20' : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'}`}>
+                                            <span className={`shrink-0 px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest italic shadow-lg ${selectedVisit.status === 'Completed' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : selectedVisit.status === 'Scheduled' ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'}`}>
                                                 {selectedVisit.status}
                                             </span>
                                         </div>
                                         <div className="flex gap-3">
                                             <button onClick={handleSaveVitals}
-                                                className="flex-1 py-2.5 bg-indigo-600 text-white rounded-xl text-[10px] font-black uppercase tracking-[0.2em] italic hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-indigo-500/20"
+                                                className="flex-1 py-4 bg-blue-600 text-white rounded-xl text-[10px] font-black uppercase tracking-[0.2em] italic hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-blue-600/40"
                                              >
-                                                Vitals Flow
+                                                Sync Metrics
                                             </button>
                                         </div>
                                     </div>
@@ -1007,28 +1013,56 @@ export default function VisitsModule({ selectedStudyId, preloadedParticipants, p
                 {isScheduleOpen && (
                     <>
                         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsScheduleOpen(false)} className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100]" />
-                        <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-[500px] bg-[#1e293b] border border-white/10 rounded-2xl z-[101] p-6 md:p-8 shadow-2xl overflow-hidden">
-                            <div className="flex items-center justify-between mb-6">
-                                <h3 className="text-xl font-bold text-white uppercase italic tracking-tighter">Schedule Clinical Visit</h3>
+                        <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-[650px] bg-[#1e293b] border border-white/10 rounded-2xl z-[101] p-6 md:p-8 shadow-2xl overflow-hidden">
+                            <div className="flex items-center justify-between mb-5">
+                                <div>
+                                    <h3 className="text-lg font-black text-white uppercase italic tracking-tighter">Schedule <span className="text-blue-400">Clinical Visit</span></h3>
+                                    <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest mt-0.5 italic">Synchronize Protocol Epochs</p>
+                                </div>
                                 <button 
                                     onClick={() => setIsScheduleOpen(false)}
                                     className="p-2 bg-white/5 border border-white/10 rounded-xl text-slate-400 hover:text-white hover:bg-white/10 transition-all group"
                                 >
-                                    <X className="w-5 h-5 group-hover:rotate-90 transition-transform duration-300" />
+                                    <X className="w-4 h-4 group-hover:rotate-90 transition-transform duration-300" />
                                 </button>
                             </div>
-                            <div className="space-y-5">
-                                <div className="space-y-1.5">
-                                    <label className="text-xs text-slate-400 font-semibold tracking-wide">Target Participant</label>
-                                    <select value={scheduleData.participantId} onChange={e => setScheduleData(prev => ({ ...prev, participantId: e.target.value }))} className="w-full bg-[#0f172a] border border-white/10 rounded-lg p-3 text-white text-sm outline-none focus:border-indigo-500">
-                                        <option value="">Select Subject...</option>
-                                        {participants.map(p => <option key={p.id} value={p.id}>{p.name} ({p.participant_sid})</option>)}
-                                    </select>
+
+                            <div className="space-y-4">
+                                {/* Top Row: Study & Participant */}
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] text-slate-500 font-black uppercase tracking-widest italic">Clinical Protocol</label>
+                                        <select
+                                            value={scheduleData.studyId}
+                                            onChange={e => setScheduleData(prev => ({ ...prev, studyId: e.target.value, participantId: '' }))}
+                                            className="w-full bg-[#0B101B] border border-white/5 rounded-xl p-2.5 text-white text-[12px] font-bold outline-none focus:border-blue-500/50 transition-all appearance-none cursor-pointer"
+                                        >
+                                            <option value="">All Active Studies</option>
+                                            {allStudies.map((s: any) => (
+                                                <option key={s.id} value={s.id}>{s.protocol_id || s.title || s.name}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] text-slate-500 font-black uppercase tracking-widest italic">Subject Target</label>
+                                        <select 
+                                            value={scheduleData.participantId} 
+                                            onChange={e => setScheduleData(prev => ({ ...prev, participantId: e.target.value }))} 
+                                            className="w-full bg-[#0B101B] border border-white/5 rounded-xl p-2.5 text-white text-[12px] font-bold outline-none focus:border-blue-500/50 transition-all appearance-none cursor-pointer"
+                                        >
+                                            <option value="">Select Subject...</option>
+                                            {participants
+                                                .filter(p => !scheduleData.studyId || p.study_id === scheduleData.studyId)
+                                                .map(p => <option key={p.id} value={p.id}>{p.name} ({p.participant_sid})</option>)}
+                                        </select>
+                                    </div>
                                 </div>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-1.5">
-                                        <label className="text-xs text-slate-400 font-semibold tracking-wide">Visit Type</label>
-                                        <select value={scheduleData.visitType} onChange={e => setScheduleData(prev => ({ ...prev, visitType: e.target.value }))} className="w-full bg-[#0f172a] border border-white/10 rounded-lg p-3 text-white text-sm outline-none focus:border-indigo-500">
+
+                                {/* Middle Row: Visit Type & Mode */}
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] text-slate-500 font-black uppercase tracking-widest italic">Visit Classification</label>
+                                        <select value={scheduleData.visitType} onChange={e => setScheduleData(prev => ({ ...prev, visitType: e.target.value }))} className="w-full bg-[#0B101B] border border-white/5 rounded-xl p-2.5 text-white text-[12px] font-bold outline-none focus:border-blue-500/50 transition-all appearance-none cursor-pointer">
                                             <option value="SCREENING">Screening Visit</option>
                                             <option value="BASELINE">Baseline Visit</option>
                                             <option value="FOLLOW_UP">Follow-up Visit</option>
@@ -1040,55 +1074,60 @@ export default function VisitsModule({ selectedStudyId, preloadedParticipants, p
                                         {scheduleData.visitType === 'OTHER' && (
                                             <input 
                                                 type="text" 
-                                                placeholder="Enter custom visit name..."
+                                                placeholder="Custom Label..."
                                                 value={scheduleData.customVisitType}
                                                 onChange={e => setScheduleData(prev => ({ ...prev, customVisitType: e.target.value }))}
-                                                className="w-full bg-[#0f172a] border border-white/10 rounded-lg p-3 mt-2 text-white text-sm outline-none focus:border-indigo-500"
+                                                className="w-full bg-[#0B101B] border border-white/5 rounded-xl p-2.5 mt-1.5 text-white text-[12px] font-bold outline-none focus:border-blue-500/50 transition-all"
                                             />
                                         )}
                                     </div>
-                                    <div className="space-y-1.5">
-                                        <label className="text-xs text-slate-400 font-semibold tracking-wide">Visit Mode</label>
-                                        <select value={scheduleData.location} onChange={e => setScheduleData(prev => ({ ...prev, location: e.target.value }))} className="w-full bg-[#0f172a] border border-white/10 rounded-lg p-3 text-white text-sm outline-none focus:border-indigo-500">
-                                            <option value="Clinic">In-Clinic Visit</option>
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] text-slate-500 font-black uppercase tracking-widest italic">Site Location</label>
+                                        <select value={scheduleData.location} onChange={e => setScheduleData(prev => ({ ...prev, location: e.target.value }))} className="w-full bg-[#0B101B] border border-white/5 rounded-xl p-2.5 text-white text-[12px] font-bold outline-none focus:border-blue-500/50 transition-all appearance-none cursor-pointer">
+                                            <option value="MusB Research — Tampa">MusB Research — Tampa</option>
+                                            <option value="MusB Research — Clearwater">MusB Research — Clearwater</option>
+                                            <option value="Participant's home">Participant's Home</option>
                                             <option value="Virtual">Telehealth / Virtual</option>
-                                            <option value="Home Visit">At-Home Visit</option>
                                             <option value="OTHER">Other / Custom Mode...</option>
                                         </select>
                                         {scheduleData.location === 'OTHER' && (
                                             <input 
                                                 type="text" 
-                                                placeholder="Enter custom mode..."
+                                                placeholder="Custom Location..."
                                                 value={scheduleData.customLocation}
                                                 onChange={e => setScheduleData(prev => ({ ...prev, customLocation: e.target.value }))}
-                                                className="w-full bg-[#0f172a] border border-white/10 rounded-lg p-3 mt-2 text-white text-sm outline-none focus:border-indigo-500"
+                                                className="w-full bg-[#0B101B] border border-white/5 rounded-xl p-2.5 mt-1.5 text-white text-[12px] font-bold outline-none focus:border-blue-500/50 transition-all"
                                             />
                                         )}
                                     </div>
                                 </div>
-                                <div className="space-y-1.5">
-                                    <label className="text-xs text-slate-400 font-semibold tracking-wide">Specific Address / Room Details</label>
+
+                                {/* Address / Room Details */}
+                                <div className="space-y-1">
+                                    <label className="text-[10px] text-slate-500 font-black uppercase tracking-widest italic">Specific Address / Room Details</label>
                                     <input 
                                         type="text" 
                                         value={scheduleData.locationAddress} 
                                         onChange={e => setScheduleData(prev => ({ ...prev, locationAddress: e.target.value }))} 
                                         placeholder="e.g., Level 4, Clinical Suite 102"
-                                        className="w-full bg-[#0f172a] border border-white/10 rounded-lg p-3 text-white text-sm outline-none focus:border-indigo-500" 
+                                        className="w-full bg-[#0B101B] border border-white/5 rounded-xl p-2.5 text-white text-[12px] font-bold outline-none focus:border-blue-500/50 transition-all placeholder:text-white/20" 
                                     />
                                 </div>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-1.5">
-                                        <label className="text-xs text-slate-400 font-semibold tracking-wide">Date</label>
-                                        <input type="date" value={scheduleData.date} onChange={e => setScheduleData(prev => ({ ...prev, date: e.target.value }))} className="w-full bg-[#0f172a] border border-white/10 rounded-lg p-3 text-white text-sm focus:border-indigo-500" />
+
+                                {/* DateTime Row */}
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] text-slate-500 font-black uppercase tracking-widest italic">Execution Date</label>
+                                        <input type="date" value={scheduleData.date} onChange={e => setScheduleData(prev => ({ ...prev, date: e.target.value }))} className="w-full bg-[#0B101B] border border-white/5 rounded-xl p-2.5 text-white text-[12px] font-bold outline-none focus:border-blue-500/50 transition-all [color-scheme:dark]" />
                                     </div>
-                                    <div className="space-y-1.5">
-                                        <label className="text-xs text-slate-400 font-semibold tracking-wide">Local Time</label>
-                                        <input type="time" value={scheduleData.time} onChange={e => setScheduleData(prev => ({ ...prev, time: e.target.value }))} className="w-full bg-[#0f172a] border border-white/10 rounded-lg p-3 text-white text-sm focus:border-indigo-500" />
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] text-slate-500 font-black uppercase tracking-widest italic">Local Time</label>
+                                        <input type="time" value={scheduleData.time} onChange={e => setScheduleData(prev => ({ ...prev, time: e.target.value }))} className="w-full bg-[#0B101B] border border-white/5 rounded-xl p-2.5 text-white text-[12px] font-bold outline-none focus:border-blue-500/50 transition-all [color-scheme:dark]" />
                                     </div>
                                 </div>
 
-                                {/* Google Calendar Handshake Button Inside Modal */}
-                                <div className="pt-2">
+                                {/* Operations Footer */}
+                                <div className="pt-2 space-y-3">
                                     <button 
                                         type="button"
                                         onClick={() => {
@@ -1111,22 +1150,23 @@ export default function VisitsModule({ selectedStudyId, preloadedParticipants, p
                                             });
                                             client?.requestAccessToken();
                                         }}
-                                        className={`w-full py-2.5 rounded-lg text-[11px] font-black uppercase tracking-widest flex items-center justify-center gap-3 transition-all border ${
+                                        className={`w-full py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2.5 transition-all border ${
                                             getUser()?.google_calendar_linked 
-                                            ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' 
-                                            : 'bg-white/5 border-white/10 text-white hover:bg-white/10'
+                                            ? 'bg-emerald-500/5 border-emerald-500/20 text-emerald-400' 
+                                            : 'bg-white/5 border-white/5 text-slate-400 hover:text-white hover:bg-white/10'
                                         }`}
                                     >
-                                        <Calendar className="w-4 h-4" />
-                                        {getUser()?.google_calendar_linked ? 'Calendar Linked' : 'Connect Google Calendar'}
+                                        <Calendar className="w-3.5 h-3.5" />
+                                        {getUser()?.google_calendar_linked ? 'Protocol Cal Link Active' : 'Connect Google Ecosystem'}
                                     </button>
-                                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-2 text-center opacity-60">
-                                        Syncing allows participants to receive calendar invites automatically.
-                                    </p>
+                                    
+                                    <button 
+                                        onClick={handleScheduleConfirm} 
+                                        className="w-full py-3.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-[11px] font-black uppercase tracking-[0.2em] italic shadow-xl shadow-blue-600/20 transition-all active:scale-[0.98]"
+                                    >
+                                        Confirm Clinical Epoch
+                                    </button>
                                 </div>
-                                <button onClick={handleScheduleConfirm} className="w-full mt-2 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-bold tracking-wide transition-colors">
-                                    Confirm Schedule
-                                </button>
                             </div>
                         </motion.div>
                     </>
@@ -1134,7 +1174,7 @@ export default function VisitsModule({ selectedStudyId, preloadedParticipants, p
                 {isProblemModalOpen && (
                     <>
                         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsProblemModalOpen(false)} className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100]" />
-                        <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-[500px] bg-[#1e293b] border border-white/10 rounded-2xl z-[101] p-6 md:p-8 shadow-2xl overflow-hidden">
+                        <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-[650px] bg-[#1e293b] border border-white/10 rounded-2xl z-[101] p-6 md:p-8 shadow-2xl overflow-hidden">
                             <div className="flex items-center justify-between mb-6">
                                 <div className="flex items-center gap-3">
                                     <ShieldAlert className="w-6 h-6 text-red-500" />

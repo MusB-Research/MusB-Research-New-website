@@ -18,37 +18,60 @@ class PasswordResetThrottle(AnonRateThrottle):
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
-@throttle_classes([PasswordResetThrottle])
 def forgot_password(request):
-    email = request.data.get('email')
-    if not email:
-        return Response({'error': 'Email is required'}, status=status.HTTP_400_BAD_REQUEST)
+    try:
+        email = request.data.get('email')
+        if not email:
+            return Response({'error': 'Email is required'}, status=status.HTTP_400_BAD_REQUEST)
 
-    user = User.objects.filter(email=email).first()
-    if not user:
-        return Response({'message': 'If an account exists, a reset link has been sent'})
+        logger.info(f"Password reset request for: {email}")
 
-    token = generate_token()
-    MagicLink.objects.filter(email=email).delete()
-    MagicLink.objects.create(email=email, token=token)
+        user = User.objects.filter(email=email).first()
+        if not user:
+            # Security: Don't reveal if user exists
+            return Response({'message': 'If an account exists, a reset link has been sent'})
 
-    reset_link = f"{os.getenv('FRONTEND_URL', 'http://localhost:5173')}/reset-password?token={token}"
-    
-    from ..utils import send_mail_premium
-    success = send_mail_premium(
-        to_email=email,
-        subject='Reset Your Password - MusB Research',
-        title='Identity Recovery',
-        body=f"Hello,<br><br>We received a request to reset your MusB Research password. For your security, you can either click the button below or scan the QR code with your mobile device to set a new password.<br><br>This recovery link is temporary and will <strong>expire in 10 minutes</strong>.",
-        button_text='Reset Password',
-        button_url=reset_link,
-        qr_url=reset_link
-    )
+        token = generate_token()
+        
+        try:
+            MagicLink.objects.filter(email=email).delete()
+            MagicLink.objects.create(email=email, token=token)
+        except Exception as db_err:
+            logger.error(f"Database error during magic link creation: {db_err}")
+            return Response({'error': 'System is temporarily unavailable. Please try again later.'}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
 
-    if success:
-        return Response({'message': 'Reset link sent successfully'})
-    else:
-        return Response({'error': 'Failed to send reset link'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        from django.conf import settings
+        # Ensure we use the correct frontend URL for the link
+        frontend_url = getattr(settings, 'FRONTEND_URL', 'https://www.musbhealth.com')
+        reset_link = f"{frontend_url.rstrip('/')}/reset-password?token={token}"
+        
+        logger.info(f"Generated reset link for {email}")
+
+        from ..utils import send_mail_premium
+        success = send_mail_premium(
+            to_email=email,
+            subject='Reset Your Password - MusB Research',
+            title='Identity Recovery',
+            body=f"Hello,<br><br>We received a request to reset your MusB Research password. For your security, you can either click the button below or scan the QR code with your mobile device to set a new password.<br><br>This recovery link is temporary and will <strong>expire in 10 minutes</strong>.",
+            button_text='Reset Password',
+            button_url=reset_link,
+            qr_url=reset_link
+        )
+
+        if success:
+            logger.info(f"Reset email sent successfully to {email}")
+            return Response({'message': 'Reset link sent successfully'})
+        else:
+            logger.error(f"Failed to send reset email to {email}")
+            res = Response({'error': 'Failed to deliver reset link. Please check your email or contact support.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            res["Access-Control-Allow-Origin"] = "*"
+            return res
+            
+    except Exception as e:
+        logger.error(f"Critical error in forgot_password view: {e}", exc_info=True)
+        res = Response({'error': 'Internal server error occurred.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        res["Access-Control-Allow-Origin"] = "*"
+        return res
 
 
 @api_view(['POST'])

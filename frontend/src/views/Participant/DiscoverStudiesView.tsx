@@ -196,7 +196,9 @@ export default function DiscoverStudiesView({ loading: externalLoading, userProf
                                                 </div>
                                                 <div className="flex items-center gap-2 text-[11px] font-bold text-[#5F6F89] uppercase tracking-widest">
                                                     <MapPin className="w-3.5 h-3.5 text-[#00ADEF]" />
-                                                    {study.visits || 'Hybrid'}
+                                                    {study.countries && Array.isArray(study.countries) && study.countries.length > 0 
+                                                        ? study.countries[0] 
+                                                        : (study.location || study.visits || 'Hybrid')}
                                                 </div>
                                             </div>
                                         </div>
@@ -209,34 +211,20 @@ export default function DiscoverStudiesView({ loading: externalLoading, userProf
                                                 <span className="text-[10px] font-black text-[#00ADEF] uppercase tracking-widest">{enrollmentStatus}</span>
                                             </div>
                                         )}
-                                        {hasAnyActiveEnrollment && !isEnrolled ? (
-                                            <button
-                                                disabled={sendingInquiryId === study.id}
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    handleSendInquiry(study.id);
-                                                }}
-                                                className="min-w-[180px] py-4 rounded-[20px] font-black uppercase tracking-widest text-[11px] transition-all flex items-center justify-center gap-3 bg-[#F8FBFF] text-[#00ADEF] border border-[#BBDEFB] hover:bg-[#E3F2FD]"
-                                            >
-                                                {sendingInquiryId === study.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Info className="w-4 h-4" />}
-                                                Send Inquiry
-                                            </button>
-                                        ) : (
-                                            <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    navigate(`/studies/${study.protocol_id || study.id}/screener`);
-                                                }}
-                                                className={`min-w-[180px] py-4 rounded-[20px] font-black uppercase tracking-widest text-[11px] transition-all flex items-center justify-center gap-3 ${isEnrolled 
-                                                    ? (enrollmentStatus === 'CONSENTED' ? 'bg-[#F8FBFF] text-[#5F6F89] border border-[#E3ECF5]' : 'bg-[#00ADEF] text-white hover:bg-[#0096CF] shadow-lg shadow-[#00ADEF]/20')
-                                                    : 'bg-[#00ADEF] text-white hover:bg-[#0096CF] shadow-lg shadow-[#00ADEF]/20'
-                                                }`}
-                                            >
-                                                {enrollmentStatus === 'CONSENTED' ? <Save className="w-4 h-4" /> : <ClipboardCheck className="w-4 h-4" />}
-                                                {isEnrolled ? enrollmentStatus : 'Eligibility'}
-                                                <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
-                                            </button>
-                                        )}
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                navigate(`/studies/${study.protocol_id || study.id}/screener`);
+                                            }}
+                                            className={`min-w-[180px] py-4 rounded-[20px] font-black uppercase tracking-widest text-[11px] transition-all flex items-center justify-center gap-3 ${isEnrolled 
+                                                ? (enrollmentStatus === 'CONSENTED' ? 'bg-[#F8FBFF] text-[#5F6F89] border border-[#E3ECF5]' : 'bg-[#00ADEF] text-white hover:bg-[#0096CF] shadow-lg shadow-[#00ADEF]/20')
+                                                : 'bg-[#00ADEF] text-white hover:bg-[#0096CF] shadow-lg shadow-[#00ADEF]/20'
+                                            }`}
+                                        >
+                                            {enrollmentStatus === 'CONSENTED' ? <Save className="w-4 h-4" /> : <ClipboardCheck className="w-4 h-4" />}
+                                            {isEnrolled ? enrollmentStatus : 'Eligibility'}
+                                            <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+                                        </button>
                                     </div>
                                 </motion.div>
                             );
@@ -293,11 +281,16 @@ export default function DiscoverStudiesView({ loading: externalLoading, userProf
                                         )}
                                         <div className="flex items-center gap-2 text-[10px] font-bold text-[#1A2B49] uppercase tracking-wide">
                                             <MapPin className="w-3.5 h-3.5 text-[#00ADEF]" />
-                                            {study.visits || 'Hybrid'} Protocol
+                                            {study.countries && Array.isArray(study.countries) && study.countries.length > 0 
+                                                ? study.countries[0] 
+                                                : (study.location || study.visits || 'Hybrid')}
                                         </div>
                                         {study.compensation && (
                                                 <div className="px-2.5 py-1 bg-[#F0FDF4] border border-[#DCFCE7] rounded-full flex items-center gap-1.5">
-                                                    <span className="text-[11px] font-bold text-[#166534]">{getCurrencySymbol(study.compensation_currency)}{study.compensation}</span>
+                                                    <span className="text-[11px] font-bold text-[#166534]">
+                                                        {getCurrencySymbol(study.compensation_currency || study.compensation.split(' ')[0])}
+                                                        {study.compensation.replace(/^[A-Z$€£₹¥a-zA-Z]{2,3}\s*/, '').trim()}
+                                                    </span>
                                                     <span className="w-1 h-1 rounded-full bg-[#166534]/30" />
                                                     <span className="text-[10px] font-bold text-[#166534] uppercase tracking-wide">You will be compensated</span>
                                                 </div>
@@ -306,19 +299,6 @@ export default function DiscoverStudiesView({ loading: externalLoading, userProf
                                 </div>
 
                                 <div className="card-action-bottom relative z-10 pt-3">
-                                {hasAnyActiveEnrollment && !isEnrolled ? (
-                                    <button
-                                        disabled={sendingInquiryId === study.id}
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleSendInquiry(study.id);
-                                        }}
-                                        className="w-full h-11 flex items-center justify-center gap-2 font-bold uppercase tracking-widest text-[10px] rounded-xl transition-all shadow-sm bg-[#F8FBFF] text-[#00ADEF] border border-[#BBDEFB] hover:bg-[#E3F2FD]"
-                                    >
-                                        {sendingInquiryId === study.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Info className="w-3.5 h-3.5" />}
-                                        Send Inquiry
-                                    </button>
-                                ) : (
                                     <button
                                         onClick={(e) => {
                                             e.stopPropagation();
@@ -333,7 +313,6 @@ export default function DiscoverStudiesView({ loading: externalLoading, userProf
                                         {isEnrolled ? enrollmentStatus : 'Eligibility'}
                                         <ArrowRight className="w-2.5 h-2.5 ml-1 transition-transform group-hover:translate-x-1" />
                                     </button>
-                                )}
                                 </div>
                             </motion.div>
                         );

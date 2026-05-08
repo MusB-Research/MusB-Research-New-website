@@ -45,7 +45,7 @@ export default function WorkflowModerationPanel() {
                 fetchPendingContent(); // refresh
             } else {
                 const err = await res.json();
-                alert(`Action failed: ${err.detail || 'Insufficient permissions'}`);
+                alert(`Action failed: ${err.error || err.detail || 'Insufficient permissions'}`);
             }
         } catch (error) {
             console.error(error);

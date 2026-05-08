@@ -1,3 +1,4 @@
+from django.db import models, transaction
 from django.db.models import Q
 from bson import ObjectId
 from rest_framework.decorators import api_view, permission_classes, parser_classes
@@ -28,35 +29,31 @@ ALLOWED_ROLES = ['super_admin', 'admin', 'sponsor', 'coordinator', 'pi', 'team_m
 
 def check_permission(creator, target_role):
     """Enforce RBAC rules for user creation (Section 1.4)"""
-    if creator.status.upper() != "ACTIVE":
+    c_role = (creator.role or '').lower()
+    c_aff  = (creator.affiliation or '').lower()
+    t_role = (target_role or '').lower()
+
+    # Super Admin bypass — always allowed regardless of status
+    if c_role == "super_admin":
+        return True
+
+    # All other roles must be ACTIVE
+    if (creator.status or '').upper() != "ACTIVE":
         return False
 
-    c_role = creator.role.lower()
-    c_aff  = (creator.affiliation or '').lower()
-    t_role = target_role.lower()
-
-    if c_role == "super_admin":
-        # Super Admin can create any role (Master override)
-        return True
-    
     if c_role == "admin":
-        # Admin can create all operational roles including participants
         return t_role in ["admin", "sponsor", "coordinator", "pi", "participant"]
     
     if c_role == "coordinator" and c_aff == "musb":
-        # Coordinators can manage the medical team and recruitment pool
         return t_role in ["sponsor", "pi", "coordinator", "participant"]
     
     if c_role == "pi" and c_aff == "musb":
-        # MUSB PIs can manage their team and participants
         return t_role in ["sponsor", "coordinator", "participant"]
     
     if c_role == "pi" and c_aff == "onsite":
-        # Onsite PIs restricted to their own team or participants
         return t_role in ["team_member", "participant"]
 
     if c_role == "sponsor":
-        # Sponsors can create PIs, Coordinators, or other Sponsor team members
         return t_role in ["pi", "coordinator", "sponsor", "team_member"]
 
     return False
@@ -88,15 +85,17 @@ def admin_create_user(request):
     """
     try:
         admin_user = request.user
-        if not admin_user or not admin_user.is_authenticated or admin_user.role.upper() not in ['SUPER_ADMIN', 'ADMIN', 'PI', 'COORDINATOR', 'SPONSOR']:
-            return Response({'error': 'Unauthorized access.'}, status=status.HTTP_403_FORBIDDEN)
+        if not admin_user or not admin_user.is_authenticated or (getattr(admin_user, 'role', '') or '').upper() not in ['SUPER_ADMIN', 'ADMIN', 'PI', 'COORDINATOR', 'SPONSOR']:
+            res = Response({'error': 'Unauthorized access.'}, status=status.HTTP_403_FORBIDDEN)
+            res["Access-Control-Allow-Origin"] = "*"
+            return res
 
         # 1. Extraction
-        email       = request.data.get('email', '').strip().lower()
-        first_name  = request.data.get('first_name', '').strip()
-        middle_name = request.data.get('middle_name', '').strip() or None
-        last_name   = request.data.get('last_name', '').strip()
-        role_input  = request.data.get('role', '').strip()
+        email       = (request.data.get('email') or '').strip().lower()
+        first_name  = (request.data.get('first_name') or '').strip()
+        middle_name = (request.data.get('middle_name') or '').strip() or None
+        last_name   = (request.data.get('last_name') or '').strip()
+        role_input  = (request.data.get('role') or '').strip()
         lat         = request.data.get('lat')
         lng         = request.data.get('lng')
         
@@ -124,8 +123,12 @@ def admin_create_user(request):
 
         # 2. Validation
         if not all([email, first_name, last_name, role_input]):
-            logger.warning(f"Validation failed for user creation by {admin_user.email}. Missing fields.")
-            return Response({'error': 'First Name, Last Name, Email, and Role are mandatory.'}, status=status.HTTP_400_BAD_REQUEST)
+            missing = [f for f in ['email', 'first_name', 'last_name', 'role'] if not (request.data.get(f) or '').strip()]
+            err_msg = f"Missing mandatory fields: {', '.join(missing)}"
+            logger.warning(f"Validation failed for user creation by {admin_user.email}. {err_msg}")
+            res = Response({'error': 'First Name, Last Name, Email, and Role are mandatory.'}, status=status.HTTP_400_BAD_REQUEST)
+            res["Access-Control-Allow-Origin"] = "*"
+            return res
         
         # Find matching role in choices regardless of case
         role = None
@@ -135,15 +138,32 @@ def admin_create_user(request):
         
         if not role:
             logger.warning(f"Invalid role requested: {role_input} by {admin_user.email}")
-            return Response({'error': f'Invalid role. Allowed: {", ".join([r[1] for r in User.ROLE_CHOICES])}'}, status=status.HTTP_400_BAD_REQUEST)
+            res = Response({'error': f'Invalid role. Allowed: {", ".join([r[1] for r in User.ROLE_CHOICES])}'}, status=status.HTTP_400_BAD_REQUEST)
+            res["Access-Control-Allow-Origin"] = "*"
+            return res
 
         # 3. RBAC Permission Check
         if not check_permission(admin_user, role):
-            return Response({'error': 'You do not have permission to create this type of account.'}, status=status.HTTP_403_FORBIDDEN)
+            res = Response({'error': 'You do not have permission to create this type of account.'}, status=status.HTTP_403_FORBIDDEN)
+            res["Access-Control-Allow-Origin"] = "*"
+            return res
 
         existing_user = User.objects.filter(email=email).first()
         if existing_user:
-            return Response({
+            # If user is already registered, check if we can just re-invite them
+            if (existing_user.status or '').upper() == 'PENDING':
+                res = Response({
+                    'message': 'This user already has a pending invitation. You can resend their credentials from the dashboard.',
+                    'username': existing_user.username,
+                    'user_id': str(existing_user.id),
+                    'id': str(existing_user.id),
+                    'email': existing_user.email,
+                    'status': 'PENDING'
+                }, status=status.HTTP_200_OK)
+                res["Access-Control-Allow-Origin"] = "*"
+                return res
+
+            res = Response({
                 'error': 'This email is already registered on the platform.',
                 'existing_user': {
                     'name': f"{existing_user.first_name} {existing_user.last_name}",
@@ -153,88 +173,82 @@ def admin_create_user(request):
                     'status': existing_user.status
                 }
             }, status=status.HTTP_400_BAD_REQUEST)
+            res["Access-Control-Allow-Origin"] = "*"
+            return res
 
-        # 4. Generation
+        # 4. Affiliation logic
+        affiliation = 'MUSB' # Default
+        status_val = 'PENDING' # Default for invited users
+        
+        if (getattr(admin_user, 'role', '') or '').upper() == 'PI' and (getattr(admin_user, 'affiliation', '') or '').upper() == 'ONSITE':
+            affiliation = 'ONSITE'
+        elif to_bool(request.data.get('is_onsite_hire')):
+             affiliation = 'ONSITE'
+
+        # 5. Generation
         username = generate_unique_username(first_name, last_name)
         temp_password = generate_secure_password(14)
         study_id = request.data.get('study_id')
         if study_id and not str(study_id).strip():
             study_id = None
         
-        # 5. Create Magic Link for Seamless First Login
-        invite_token = generate_token()
-        MagicLink.objects.create(email=email, token=invite_token)
-        
+        with transaction.atomic():
+            # Create Magic Link for Seamless First Login
+            invite_token = generate_token()
+            MagicLink.objects.create(email=email, token=invite_token)
+            
+            # Atomic Creation
+            new_user = User.objects.create_user(
+                email=email,
+                password=temp_password,
+                first_name=first_name,
+                middle_name=middle_name,
+                last_name=last_name,
+                full_name=f"{first_name} {last_name}".strip(),
+                role=role,
+                affiliation=affiliation,
+                status=status_val,
+                username=username,
+                must_change_password=True,
+                profile_completed=False,
+                created_by=admin_user,
+                invited_by=admin_user,
+                invited_in_study=study_id,
+                is_active=True,
+                # Consortium Data
+                lat=lat,
+                lng=lng,
+                is_mellow_member=is_mellow,
+                organization=org,
+                bio=bio,
+                pronouns=pronouns,
+                linkedin_url=linkedin_url,
+                institute_url=institute_url,
+                qualifications=qualifications,
+                profile_image=profile_image,
+                cv_file=cv_file,
+                zip_code=request.data.get('zip_code') or None,
+                country=request.data.get('country') or None,
+                state=request.data.get('state') or None
+            )
+            
+            # Approval Request for Onsite Team Members
+            if status_val == 'PENDING' and affiliation == 'ONSITE':
+                from ..models import ApprovalRequest
+                ApprovalRequest.objects.create(
+                    requested_by=admin_user,
+                    target_user=new_user,
+                    status='pending'
+                )
+
         # Determine correct login URL based on role
         frontend_base = getattr(settings, 'FRONTEND_URL', 'https://musbhealth.com')
         if role.lower() == 'super_admin':
             login_url = f"{frontend_base.rstrip('/')}/mainframe/restricted-auth?token={invite_token}"
         else:
-            login_url = f"{frontend_base.rstrip('/')}/signin?token={invite_token}"
+            login_url = f"{frontend_base.rstrip('/')}/auth/accept-invitation?token={invite_token}"
 
-        # 6. Atomic Creation
-        affiliation = 'MUSB' # Default
-        status_val = 'PENDING' # Default for MusB invited users
-        
-        # Onsite PI adds team members -> inherit onsite, set pending
-        admin_role_upper = admin_user.role.upper()
-        admin_aff_upper = (admin_user.affiliation or '').upper()
-        
-        if admin_role_upper == 'PI' and admin_aff_upper == 'ONSITE':
-            affiliation = 'ONSITE'
-            if role.upper() == 'TEAM_MEMBER':
-                status_val = 'PENDING'
-            
-        elif to_bool(request.data.get('is_onsite_hire')):
-             affiliation = 'ONSITE'
-             if role.upper() == 'TEAM_MEMBER':
-                 status_val = 'PENDING'
-
-        # Create user record
-        new_user = User.objects.create_user(
-            email=email,
-            password=temp_password,
-            first_name=first_name,
-            middle_name=middle_name,
-            last_name=last_name,
-            full_name=f"{first_name} {last_name}".strip(),
-            role=role,
-            affiliation=affiliation,
-            status=status_val,
-            username=username,
-            must_change_password=True,
-            profile_completed=False,
-            created_by=admin_user,
-            invited_by=admin_user,
-            invited_in_study=study_id,
-            is_active=True,
-            # Consortium Data
-            lat=lat,
-            lng=lng,
-            is_mellow_member=is_mellow,
-            organization=org,
-            bio=bio,
-            pronouns=pronouns,
-            linkedin_url=linkedin_url,
-            institute_url=institute_url,
-            qualifications=qualifications,
-            profile_image=profile_image,
-            cv_file=cv_file,
-            zip_code=request.data.get('zip_code') or None,
-            country=request.data.get('country') or None,
-            state=request.data.get('state') or None
-        )
-        
-        # 7. Approval Request for Onsite Team Members
-        if status_val == 'PENDING':
-            from ..models import ApprovalRequest
-            ApprovalRequest.objects.create(
-                requested_by=admin_user,
-                target_user=new_user,
-                status='pending'
-            )
-        
-        # 8. TRIGGER NOTIFICATIONS
+        # 6. TRIGGER NOTIFICATIONS
         try:
             from django.apps import apps
             Notification = apps.get_model('api', 'Notification')
@@ -253,7 +267,6 @@ def admin_create_user(request):
 
             # If study context provided, notify PIs and Coordinators of that study
             if study_id:
-                # Use filter and first() to avoid InvalidId if study_id is malformed
                 target_study = None
                 try:
                     target_study = Study.objects.filter(Q(protocol_id=study_id) | Q(id=study_id)).first()
@@ -282,7 +295,7 @@ def admin_create_user(request):
         except Exception as notify_err:
             logger.error(f"Notification trigger failed: {str(notify_err)}")
 
-        # 9. Email Delivery Logic
+        # 7. Email Delivery Logic
         subject_map = {
             'pi': 'Your PI Coordinator Account Has Been Created',
             'coordinator': 'Your PI Coordinator Account Has Been Created',
@@ -329,7 +342,7 @@ def admin_create_user(request):
             detail=f'Created {role} account for {email}. Email sent: {email_sent}'
         )
         
-        return Response({
+        res = Response({
             'message': 'User created successfully.',
             'username': username,
             'email_sent': email_sent,
@@ -342,16 +355,20 @@ def admin_create_user(request):
             'status': (new_user.status or 'PENDING').upper(),
             'invitation_status': 'Accepted' if (new_user.status or '').upper() == 'ACTIVE' else 'Pending',
         }, status=status.HTTP_201_CREATED)
+        res["Access-Control-Allow-Origin"] = "*"
+        return res
 
     except Exception as e:
-        logger.error(f"Critical failure in onboarding user: {str(e)}", exc_info=True)
-        return Response({'error': f'Finalization failed: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        logger.exception(f"admin_create_user critical failure: {str(e)}")
+        res = Response({'error': f'Finalization failed: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        res["Access-Control-Allow-Origin"] = "*"
+        return res
 
 @api_view(['POST'])
 def admin_resend_credentials(request, user_id):
     """Endpoint to manual trigger credential resend/regeneration."""
     admin_user = request.user
-    if not admin_user or not admin_user.is_authenticated or admin_user.role.upper() not in ['SUPER_ADMIN', 'ADMIN', 'PI', 'COORDINATOR']:
+    if not admin_user or not admin_user.is_authenticated or (getattr(admin_user, 'role', '') or '').upper() not in ['SUPER_ADMIN', 'ADMIN', 'PI', 'COORDINATOR']:
         return Response({'error': 'Unauthorized.'}, status=status.HTTP_403_FORBIDDEN)
     
     try:
@@ -362,7 +379,7 @@ def admin_resend_credentials(request, user_id):
             return Response({'error': 'User has already secured their account. Password cannot be reset this way.'}, status=status.HTTP_400_BAD_REQUEST)
         
         # Permission Restriction: PI/Coordinator can ONLY resend for Sponsors
-        if admin_user.role.upper() in ['PI', 'COORDINATOR'] and target_user.role.lower() != 'sponsor':
+        if (getattr(admin_user, 'role', '') or '').upper() in ['PI', 'COORDINATOR'] and (getattr(target_user, 'role', '') or '').lower() != 'sponsor':
             return Response({'error': 'You only have the authority to manage Sponsor credentials.'}, status=status.HTTP_403_FORBIDDEN)
             
         new_temp_password = generate_secure_password(14)
@@ -406,13 +423,15 @@ def admin_resend_credentials(request, user_id):
     except User.DoesNotExist:
         return Response({'error': 'User not found.'}, status=status.HTTP_404_NOT_FOUND)
     except Exception as e:
-        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        res = Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        res["Access-Control-Allow-Origin"] = "*"
+        return res
 
 @api_view(['GET'])
 def admin_get_audit_logs(request):
     """Retrieves all platform audit logs for Super Admin dashboard."""
     admin_user = request.user
-    if not admin_user or not admin_user.is_authenticated or admin_user.role.upper() not in ['SUPER_ADMIN', 'ADMIN', 'COORDINATOR', 'PI']:
+    if not admin_user or not admin_user.is_authenticated or (getattr(admin_user, 'role', '') or '').upper() not in ['SUPER_ADMIN', 'ADMIN', 'COORDINATOR', 'PI']:
         return Response({'error': 'Unauthorized access.'}, status=status.HTTP_403_FORBIDDEN)
 
     # Cache for 60 seconds — audit logs are append-only so brief caching is safe

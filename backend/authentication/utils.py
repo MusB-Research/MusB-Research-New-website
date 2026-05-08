@@ -114,15 +114,59 @@ def send_mail_premium(to_email, subject, title, body, button_text=None, button_u
     </html>
     """
 
+    from django.conf import settings
+    
+    # ─────────────────────────────────────────────────────────
+    # PRODUCTION DELIVERY OPTIMIZATION
+    # If Resend is configured, use it for 100% deliverability.
+    # Otherwise fallback to standard Django mail (SMTP).
+    # ─────────────────────────────────────────────────────────
+    resend_key = getattr(settings, 'RESEND_API_KEY', None)
+    
+    if resend_key:
+        try:
+            import resend
+            resend.api_key = resend_key
+            
+            # Note: From address must be verified in Resend. 
+            # Using standard from_email or falling back to verified domain if needed.
+            from_email = settings.DEFAULT_FROM_EMAIL
+            if 'noreplymusbresearch@gmail.com' in from_email and not DEBUG:
+                # If using default gmail on prod, Resend might block it unless verified.
+                # However, we assume they set up their domain.
+                pass
+
+            resend.Emails.send({
+                "from": from_email,
+                "to": [to_email],
+                "subject": subject,
+                "html": html_content
+            })
+            logger.info(f"Premium email delivered via RESEND to {to_email}")
+            return True
+        except Exception as resend_err:
+            logger.error(f"Resend delivery failed, falling back to SMTP: {resend_err}")
+
+    # Fallback to standard SMTP
     try:
         from django.core.mail import EmailMultiAlternatives
-        from django.conf import settings
+        from django.utils.html import strip_tags
+        logger.info(f"[PREMIUM-EMAIL-SMTP] Attempting delivery to {to_email} via {settings.EMAIL_HOST}")
+        
         msg = EmailMultiAlternatives(subject, strip_tags(html_content), settings.DEFAULT_FROM_EMAIL, [to_email])
         msg.attach_alternative(html_content, "text/html")
         msg.send(fail_silently=False)
+        
+        logger.info(f"[PREMIUM-EMAIL-SMTP] SUCCESS: Delivered to {to_email}")
         return True
-    except Exception as e:
-        logger.error(f"Failed to deliver premium email to {to_email}: {e}")
+    except Exception as smtp_err:
+        logger.error(f"[PREMIUM-EMAIL-SMTP] CRITICAL FAILURE: Could not deliver to {to_email}.")
+        logger.error(f"SMTP Error Details: {str(smtp_err)}")
+        
+        # Diagnostic hints
+        if "AuthenticationFailed" in str(smtp_err) or "535" in str(smtp_err):
+            logger.error("HINT: Gmail SMTP Authentication failed. Ensure App Password is used and SMTP_EMAIL is correct.")
+        
         return False
 
 

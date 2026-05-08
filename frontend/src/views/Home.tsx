@@ -1836,7 +1836,7 @@ export default function Home() {
                                             <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(6,182,212,0.15)_0%,transparent_70%)] animate-pulse"></div>
                                         </div>
                                         <div className="absolute inset-x-8 bottom-8 p-10 rounded-3xl bg-slate-950/80 backdrop-blur-md border border-white/10 space-y-3 transform group-hover:-translate-y-2 transition-transform duration-700 z-20">
-                                            <h4 className="text-white font-black text-xl md:text-2xl uppercase tracking-wider">Mission-Driven Innovation</h4>
+                                            <h3 className="text-white font-black text-xl md:text-2xl uppercase tracking-wider">Mission-Driven Innovation</h3>
                                             <p className="text-slate-400 text-lg font-medium">Empowering brands with credible scientific substantiation.</p>
                                         </div>
                                     </div>
@@ -1934,7 +1934,7 @@ export default function Home() {
                                                                         <Activity className="w-5 h-5" />}
                                             </div>
                                             <div className="space-y-2">
-                                                <h4 className="text-white font-black group-hover:text-cyan-400 transition-colors uppercase text-lg md:text-xl tracking-tight leading-tight">{fac.name}</h4>
+                                                <h3 className="text-white font-black group-hover:text-cyan-400 transition-colors uppercase text-lg md:text-xl tracking-tight leading-tight">{fac.name}</h3>
                                                 <p className="text-slate-400 text-sm md:text-base leading-relaxed font-medium">{fac.description}</p>
                                             </div>
                                         </div>
@@ -1954,6 +1954,8 @@ export default function Home() {
                                         src="/facility_image.webp" 
                                         alt="MusB Research Facility" 
                                         className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-100 group-hover:scale-110 transition-all duration-1000"
+                                        width="800"
+                                        height="800"
                                     />
                                     <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-transparent opacity-80"></div>
                                 </div>

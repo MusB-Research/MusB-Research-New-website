@@ -55,18 +55,28 @@ const MessagesView = ({
 
     // Map Backend Conversations to UI Threads
     const threads: Thread[] = useMemo(() => {
-        return conversations.map((conv: any) => ({
+        // Combine prop conversations with any optimistically created ones in fullConversations
+        const propConvs = conversations || [];
+        const combined = [...propConvs];
+        
+        Object.keys(fullConversations).forEach(id => {
+            if (!combined.find(c => c.id === id)) {
+                combined.push(fullConversations[id]);
+            }
+        });
+
+        return combined.map((conv: any) => ({
             id: conv.id,
-            title: conv.study_protocol || 'Study Communication',
+            title: conv.study_protocol || conv.study?.title || 'Study Communication',
             last_message: conv.last_message_preview || 'No messages yet',
-            timestamp: new Date(conv.last_updated).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            timestamp: new Date(conv.last_updated || new Date()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
             unread_count: conv.status === 'ACTION_REQUIRED' ? 1 : 0,
             is_urgent: conv.is_flagged,
             staff_name: conv.assigned_coordinator || 'Clinical Staff',
             staff_role: 'Study Coordinator',
             status: conv.status === 'RESOLVED' ? 'responded' : 'active'
         }));
-    }, [conversations]);
+    }, [conversations, fullConversations]);
 
     // Map Backend Messages to UI
     const activeConversation = useMemo(() => {
@@ -167,13 +177,41 @@ const MessagesView = ({
     const handleSendMessage = async () => {
         if (!messageInput.trim()) return;
 
+        let targetThreadId = selectedThreadId;
+
+        // Auto-create thread if none selected but study context is available
+        if (!targetThreadId && study) {
+            try {
+                const apiUrl = API || 'http://localhost:8000';
+                const sId = study.id || study._id?.$oid || study._id || '';
+                const res = await authFetch(`${apiUrl}/api/clinical-conversations/`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ study: sId })
+                });
+                if (res.ok) {
+                    const newConv = await res.json();
+                    targetThreadId = newConv.id;
+                    setSelectedThreadId(targetThreadId);
+                } else {
+                    alert("Unable to start conversation for this study.");
+                    return;
+                }
+            } catch (err) {
+                console.error("Auto-thread creation failed:", err);
+                return;
+            }
+        }
+
+        if (!targetThreadId) return;
+
         try {
             const apiUrl = API || 'http://localhost:8003';
             const formData = new FormData();
             formData.append('text', messageInput);
             formData.append('tag', 'GENERAL');
 
-            const res = await authFetch(`${apiUrl}/api/clinical-conversations/${selectedThreadId}/add_message/`, {
+            const res = await authFetch(`${apiUrl}/api/clinical-conversations/${targetThreadId}/add_message/`, {
                 method: 'POST',
                 body: formData
             });
@@ -181,18 +219,23 @@ const MessagesView = ({
             if (res.ok) {
                 const newMessage = await res.json();
                 setMessageInput('');
+                
+                // Refresh list to show new message/thread
+                if (onAction) onAction();
+
+                // Optimistically update fullConversations
                 setFullConversations(prev => {
-                    const current = prev[selectedThreadId || ''];
-                    if (!current) return prev;
+                    const current = prev[targetThreadId || ''] || conversations.find((c: any) => c.id === targetThreadId) || { id: targetThreadId, study_protocol: study?.title || 'Study Communication' };
                     return {
                         ...prev,
-                        [selectedThreadId || '']: {
+                        [targetThreadId || '']: {
                             ...current,
-                            messages: [...(current.messages || []), newMessage]
+                            messages: [...(current.messages || []), newMessage],
+                            last_message_preview: newMessage.text,
+                            last_updated: newMessage.created_at || new Date().toISOString()
                         }
                     };
                 });
-                if (onAction) onAction();
             }
         } catch (err) {
             console.error("Failed to sync message:", err);
@@ -219,7 +262,9 @@ const MessagesView = ({
                                     });
                                     if (res.ok) {
                                         const newConv = await res.json();
-                                        handleThreadClick(newConv.id);
+                                        if (newConv && newConv.id) {
+                                            handleThreadClick(newConv.id);
+                                        }
                                         if (onAction) onAction();
                                     }
                                 } catch (err) { console.error(err); }
@@ -264,9 +309,11 @@ const MessagesView = ({
                                 <h5 className={`text-[14px] font-bold uppercase tracking-tight truncate mb-1 ${selectedThreadId === thread.id ? 'text-[#1E88E5]' : 'text-[#1A2B49]'}`}>{thread.title}</h5>
                                 <p className="text-[12px] font-bold text-[#5F6F89] truncate mb-2">{thread.last_message}</p>
                                 <div className="flex justify-end">
-                                    <Badge color={thread.status === 'responded' ? 'green' : 'blue'}>
-                                        {thread.status === 'responded' ? 'Replied' : 'Pending'}
-                                    </Badge>
+                                    {thread.status === 'responded' && (
+                                        <Badge color="green">
+                                            Replied
+                                        </Badge>
+                                    )}
                                 </div>
                             </motion.div>
                         ))
@@ -326,19 +373,20 @@ const MessagesView = ({
                     <div ref={chatEndRef} />
                 </div>
 
-                {/* Input */}
-                <div className="px-4 py-3 border-t border-[#E3ECF5] bg-white flex items-end gap-3">
+                <div className={`px-4 py-3 border-t border-[#E3ECF5] bg-white flex items-end gap-3 ${!selectedThreadId && !study ? 'opacity-50 pointer-events-none' : ''}`}>
                     <textarea
                         value={messageInput}
                         onChange={(e) => setMessageInput(e.target.value)}
-                        placeholder="Type clinical inquiry here..."
+                        disabled={!selectedThreadId && !study}
+                        placeholder={selectedThreadId || study ? "Type clinical inquiry here..." : "Join a study to start messaging"}
                         className="flex-1 bg-[#F8FBFF] border border-[#E3ECF5] rounded-xl px-4 py-2.5 text-[#1A2B49] font-bold text-[13px] placeholder:text-[#5F6F89] outline-none resize-none h-16 focus:border-[#1E88E5] transition-all"
                     />
                     <div className="flex items-center gap-2 shrink-0">
                         <Paperclip className="w-4 h-4 text-[#B0BCCF] cursor-not-allowed" />
                         <button
                             onClick={handleSendMessage}
-                            className="flex items-center gap-2 px-5 py-2.5 bg-[#1E88E5] rounded-xl text-[12px] font-bold text-white uppercase tracking-widest hover:bg-[#1565C0] shadow-md transition-all active:scale-95"
+                            disabled={(!selectedThreadId && !study) || !messageInput.trim()}
+                            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-[12px] font-bold text-white uppercase tracking-widest shadow-md transition-all active:scale-95 ${(!selectedThreadId && !study) || !messageInput.trim() ? 'bg-[#B0BCCF] cursor-not-allowed' : 'bg-[#1E88E5] hover:bg-[#1565C0]'}`}
                         >
                             <Send className="w-3.5 h-3.5" />
                             Send

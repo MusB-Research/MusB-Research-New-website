@@ -27,6 +27,22 @@ export const PersonnelPanel: React.FC<PersonnelPanelProps> = ({
 }) => {
     // Ensure documents array exists
     const documents = editedMember.documents || [];
+    const handleRemoveFile = (docId: string) => {
+        setEditedMember({
+            ...editedMember,
+            documents: documents.map(doc => {
+                if (doc.id === docId) {
+                    return {
+                        ...doc,
+                        status: 'Missing',
+                        uploadDate: undefined,
+                        fileName: undefined
+                    };
+                }
+                return doc;
+            })
+        });
+    };
     const validDocsCount = documents.filter(d => d.status === 'Valid').length;
 
     return (
@@ -36,7 +52,7 @@ export const PersonnelPanel: React.FC<PersonnelPanelProps> = ({
                 {/* Header */}
                 <div className="flex items-center justify-between px-6 sm:px-10 py-6 sm:py-8 border-b border-white/5 bg-white/[0.02]">
                     <h3 className="text-lg sm:text-xl font-black text-white tracking-tight uppercase italic leading-none">
-                        {mode === 'add' ? 'Add team member' : 'Modify team member'}
+                        {mode === 'add' ? 'Add member' : 'Edit member'}
                     </h3>
                     <button onClick={onClose} className="p-2 text-slate-500 hover:text-white transition-colors">
                         <X size={24} />
@@ -49,7 +65,7 @@ export const PersonnelPanel: React.FC<PersonnelPanelProps> = ({
                     <section className="space-y-6">
                         <div className="flex items-center gap-2 mb-6 sm:mb-8">
                             <div className="w-1.5 h-6 bg-blue-500 rounded-full" />
-                            <h4 className="text-sm font-black text-white uppercase tracking-widest leading-none">Personnel details</h4>
+                            <h4 className="text-sm font-black text-white uppercase tracking-widest leading-none">Member details</h4>
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                             <div className="space-y-2.5">
@@ -61,7 +77,7 @@ export const PersonnelPanel: React.FC<PersonnelPanelProps> = ({
                                 />
                             </div>
                             <div className="space-y-2.5">
-                                <label className="text-[10px] sm:text-[11px] font-black text-slate-500 uppercase tracking-[0.15em]">Registry role</label>
+                                <label className="text-[10px] sm:text-[11px] font-black text-slate-500 uppercase tracking-[0.15em]">Role</label>
                                 <select
                                     className="w-full bg-white/5 border border-white/5 rounded-xl p-4 sm:p-5 text-sm text-white focus:border-blue-500/50 outline-none transition-all appearance-none cursor-pointer font-bold"
                                     value={editedMember.role || ''}
@@ -92,7 +108,7 @@ export const PersonnelPanel: React.FC<PersonnelPanelProps> = ({
                                 />
                             </div>
                             <div className="space-y-2.5">
-                                <label className="text-[10px] sm:text-[11px] font-black text-slate-500 uppercase tracking-[0.15em]">Contact line</label>
+                                <label className="text-[10px] sm:text-[11px] font-black text-slate-500 uppercase tracking-[0.15em]">Phone number</label>
                                 <input
                                     className="w-full bg-white/5 border border-white/5 rounded-xl p-4 sm:p-5 text-sm text-white focus:border-blue-500/50 outline-none transition-all font-bold"
                                     value={editedMember.phone || ''}
@@ -106,10 +122,10 @@ export const PersonnelPanel: React.FC<PersonnelPanelProps> = ({
                     <section className="space-y-6">
                         <div className="flex items-center gap-2 mb-6 sm:mb-8">
                             <div className="w-1.5 h-6 bg-blue-500 rounded-full" />
-                            <h4 className="text-sm font-black text-white uppercase tracking-widest leading-none">Clinical access</h4>
+                            <h4 className="text-sm font-black text-white uppercase tracking-widest leading-none">Access details</h4>
                         </div>
                         <div className="space-y-4">
-                            <label className="text-[10px] sm:text-[11px] font-black text-slate-500 uppercase tracking-[0.15em]">Active study assignments</label>
+                            <label className="text-[10px] sm:text-[11px] font-black text-slate-500 uppercase tracking-[0.15em]">Assigned studies</label>
                             <div className="flex flex-wrap gap-1.5 sm:gap-2">
                                 {allStudies && allStudies.map(study => {
                                     const p = study.protocol_id || study.id;
@@ -146,7 +162,7 @@ export const PersonnelPanel: React.FC<PersonnelPanelProps> = ({
                                 </select>
                             </div>
                             <div className="space-y-2.5">
-                                <label className="text-[10px] sm:text-[11px] font-black text-slate-500 uppercase tracking-[0.15em]">Clinical focus</label>
+                                <label className="text-[10px] sm:text-[11px] font-black text-slate-500 uppercase tracking-[0.15em]">Specialty</label>
                                 <input
                                     className="w-full bg-white/5 border border-white/5 rounded-xl p-4 sm:p-5 text-sm text-white focus:border-blue-500/50 outline-none transition-all font-bold"
                                     value={editedMember.expertise || ''}
@@ -160,7 +176,7 @@ export const PersonnelPanel: React.FC<PersonnelPanelProps> = ({
                     <section className="space-y-6 pb-8">
                         <div className="flex items-center gap-2 mb-6 sm:mb-8">
                             <div className="w-1.5 h-6 bg-blue-500 rounded-full" />
-                            <h4 className="text-sm font-black text-white uppercase tracking-widest leading-none">Required documentation ({validDocsCount}/{documents.length})</h4>
+                            <h4 className="text-sm font-black text-white uppercase tracking-widest leading-none">Required documents ({validDocsCount}/{documents.length})</h4>
                         </div>
                         <div className="space-y-3">
                             {documents.length > 0 ? (
@@ -172,20 +188,32 @@ export const PersonnelPanel: React.FC<PersonnelPanelProps> = ({
                                             </div>
                                             <div className="min-w-0">
                                                 <p className="text-sm font-black text-white leading-none uppercase tracking-tight truncate">{doc.name}</p>
-                                                <p className="text-[10px] sm:text-[11px] text-slate-500 mt-2 font-bold uppercase tracking-widest">{doc.status === 'Valid' ? `Uploaded: ${doc.uploadDate}` : 'Pending upload'}</p>
+                                                <p className="text-[10px] sm:text-[11px] text-slate-500 mt-2 font-bold uppercase tracking-widest">
+                                                    {doc.status === 'Valid' ? (doc.fileName ? `File: ${doc.fileName}` : `Uploaded: ${doc.uploadDate}`) : 'Pending upload'}
+                                                </p>
                                             </div>
                                         </div>
-                                        <button
-                                            className={`w-full xs:w-auto px-6 py-2.5 sm:py-3 rounded-lg text-[10px] sm:text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all ${doc.status === 'Valid' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-blue-600/10 text-blue-400 border border-blue-500/20 hover:bg-blue-600/20'
-                                                }`}
-                                            onClick={() => triggerUpload(doc.id)}
-                                        >
-                                            <Upload size={14} /> {doc.status === 'Valid' ? 'Replace' : 'Upload'}
-                                        </button>
+                                        <div className="flex items-center gap-2 w-full xs:w-auto">
+                                            <button
+                                                className={`flex-1 xs:flex-none px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg text-[10px] sm:text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all ${doc.status === 'Valid' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-blue-600/10 text-blue-400 border border-blue-500/20 hover:bg-blue-600/20'
+                                                    }`}
+                                                onClick={() => triggerUpload(doc.id)}
+                                            >
+                                                <Upload size={14} /> {doc.status === 'Valid' ? 'Replace' : 'Upload'}
+                                            </button>
+                                            {doc.status === 'Valid' && (
+                                                <button
+                                                    className="px-4 py-2.5 sm:py-3 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 rounded-lg text-[10px] sm:text-xs font-black uppercase tracking-widest flex items-center justify-center transition-all"
+                                                    onClick={() => handleRemoveFile(doc.id)}
+                                                >
+                                                    Remove
+                                                </button>
+                                            )}
+                                        </div>
                                     </div>
                                 ))
                             ) : (
-                                <p className="text-sm text-slate-500 text-center py-8">Select a role to see required documents</p>
+                                <p className="text-sm text-slate-500 text-center py-8">Choose a role to see required documents</p>
                             )}
                         </div>
                     </section>
@@ -203,7 +231,7 @@ export const PersonnelPanel: React.FC<PersonnelPanelProps> = ({
                         className="order-1 sm:order-2 flex-[2] px-8 py-4 sm:py-5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs sm:text-sm font-black uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg shadow-blue-900/20 active:scale-[0.98] transition-all"
                         onClick={handleSave}
                     >
-                        <ShieldCheck size={18} /> Save record
+                        <ShieldCheck size={18} /> Save
                     </button>
                 </div>
             </div>

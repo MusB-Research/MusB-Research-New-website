@@ -21,6 +21,8 @@ import bson
 from bson import ObjectId
 import os
 import logging
+import datetime
+import json
 
 logger = logging.getLogger(__name__)
 
@@ -109,6 +111,8 @@ class SanitizedModelSerializer(serializers.ModelSerializer):
 
     def to_internal_value(self, data):
         # Sanitize all incoming string data.
+        # IMPORTANT: Only sanitize plain strings — do NOT touch lists/dicts/objects
+        # which may already be correctly parsed by a subclass's to_internal_value.
         try:
             mutable_data = data.dict() if hasattr(data, 'dict') else dict(data)
         except Exception:
@@ -116,8 +120,15 @@ class SanitizedModelSerializer(serializers.ModelSerializer):
 
         if isinstance(mutable_data, dict):
             for key, value in list(mutable_data.items()):
+                # Only sanitize plain strings — never mutate lists, dicts, or other types
                 if isinstance(value, str):
                     mutable_data[key] = sanitize_html(value)
+                # If a value is a list of strings (e.g. tags), sanitize each string element
+                elif isinstance(value, list):
+                    mutable_data[key] = [
+                        sanitize_html(v) if isinstance(v, str) else v
+                        for v in value
+                    ]
 
         return super().to_internal_value(mutable_data)
 
@@ -174,7 +185,7 @@ class UserSerializer(SanitizedModelSerializer):
             'role', 'phone_number', 'mobile_number',
             'profile_picture', 'profile_image', 'password', 'last_login_formatted', 'date_joined_formatted',
             'full_address', 'city', 'state', 'zip_code', 'country', 'place_of_origin',
-            'date_of_birth', 'age', 'has_active_enrollment',
+            'date_of_birth', 'age', 'gender', 'has_active_enrollment',
             'medical_licence', 'medical_licence_expiry', 'insurance_certificate', 'insurance_expiry',
             'cv_document', 'cv_expiry', 'gcp_training', 'gcp_training_expiry', 'financial_disclosure',
             'npi', 'qualifications',
@@ -405,8 +416,8 @@ class StudySerializer(SanitizedModelSerializer):
             'reward_type', 'reward_logic', 'reward_config',
             'consent_content', 'require_participant_sig', 'require_cc_verification', 'require_pi_signoff', 'require_lar',
             'consent_pdf_template', 'consent_pdf_url', 'consent_templates',
-            'documents',
-            'study_questionnaires', 'screener_config', 'avg_screener_duration',
+            'documents', 'countries',
+            'study_questionnaires', 'screener_config', 'screener_pdf_template', 'avg_screener_duration',
             'rct_design', 'medication_supply', 'has_study_kit', 'consent_collection',
             'created_at', 'updated_at'
         ]
@@ -432,39 +443,286 @@ class StudySerializer(SanitizedModelSerializer):
         return ret
 
     def to_internal_value(self, data):
-        # Strip unknown/extra frontend-only fields that the serializer doesn't know about
-        KNOWN_FIELDS = set(self.fields.keys()) | {
-            'pi_ids', 'coordinator_ids', 'sponsor_ids', 'pi_id', 'coordinator_id', 'sponsor_id', 'sponsor_org_id'
-        }
+        # Convert to mutable dict if it's a QueryDict (from Multipart/FormData)
+        if hasattr(data, 'dict'):
+            data = data.dict()
+        elif not isinstance(data, dict):
+            data = dict(data)
+        else:
+            data = data.copy()
+
+        # Strip unknown/extra frontend-only fields
         FRONTEND_ONLY_FIELDS = {
             'reward_amount', 'masking', 'indication', 'execution_type',
             'startDate', 'endDate',
-            # Also strip these if frontend accidentally sends them (they are read-only relations)
             'documents', 'assigned_pis', 'assigned_coordinators', 'assigned_sponsors', 'consent_templates'
         }
+        
         if isinstance(data, dict):
             # Map frontend keys to backend fields
             if 'consent_pdf_file' in data:
                 data['consent_pdf_template'] = data.pop('consent_pdf_file')
+            
+            if 'screener_pdf_file' in data:
+                data['screener_pdf_template'] = data.pop('screener_pdf_file')
+            
+            # Map Screener Configuration
+            if 'screenerQuestions' in data:
+                screener_qs = data.pop('screenerQuestions')
+                if isinstance(screener_qs, str):
+                    try:
+                        screener_qs = json.loads(screener_qs)
+                    except (ValueError, TypeError):
+                        pass
+                
+                import datetime
+                data['screener_config'] = {
+                    'questions': screener_qs if isinstance(screener_qs, (list, dict)) else [],
+                    'last_updated': str(datetime.datetime.now())
+                }
+            
+            # Map Consent Text
+            if 'extractedConsentText' in data:
+                data['consent_content'] = data.pop('extractedConsentText')
 
-            # Include study_questionnaires in KNOWN_FIELDS so it's not stripped
-            LOCAL_KNOWN = KNOWN_FIELDS | {'study_questionnaires', 'consent_pdf_template'}
-            data = {k: v for k, v in data.items() if k not in FRONTEND_ONLY_FIELDS or k == 'study_questionnaires' or k == 'consent_pdf_template'}
+            # --- Map Date Fields (Frontend camelCase -> Backend snake_case) ---
+            if 'startDate' in data and not data.get('start_date'):
+                data['start_date'] = data.pop('startDate')
+            if 'endDate' in data and not data.get('end_date'):
+                data['end_date'] = data.pop('endDate')
+
+            # --- Map Sponsor (Frontend 'sponsor' -> Backend 'sponsor_id' or 'sponsor_org_id') ---
+            if 'sponsor' in data:
+                val = data.get('sponsor')
+                if val:
+                    import bson
+                    if bson.ObjectId.is_valid(val):
+                        # Check if it's an organization or a user
+                        if SponsorOrganization.objects.filter(id=val).exists():
+                            data['sponsor_org_id'] = val
+                        elif User.objects.filter(id=val).exists():
+                            data['sponsor_id'] = val
+                    else:
+                        # Fallback to name
+                        data['sponsor_name'] = val
+
+            # Parse JSON strings for JSONFields
+            json_fields = [
+                'screener_config', 'reward_config', 'timeline', 'tags', 'privacy_standards', 
+                'consent_collection', 'study_questionnaires',
+            ]
+            for field in json_fields:
+                val = data.get(field)
+                if val and isinstance(val, str):
+                    if (val.strip().startswith('{') and val.strip().endswith('}')) or (val.strip().startswith('[') and val.strip().endswith(']')):
+                        try:
+                            data[field] = json.loads(val)
+                        except (ValueError, TypeError):
+                            pass
+
+            # --- Resolve pi_ids / coordinator_ids / sponsor_ids ---
+            # PrimaryKeyRelatedField(many=True) expects a list of PKs (or User instances).
+            # We accept: list of IDs, comma-string, or JSON string of IDs.
+            for id_field in ['pi_ids', 'coordinator_ids', 'sponsor_ids']:
+                val = data.get(id_field)
+                if val is None:
+                    continue
+                # Parse JSON string → list
+                if isinstance(val, str):
+                    val = val.strip()
+                    if val.startswith('['):
+                        try: val = json.loads(val)
+                        except: val = []
+                    elif ',' in val:
+                        val = [v.strip() for v in val.split(',') if v.strip()]
+                    elif val:
+                        val = [val]
+                    else:
+                        val = []
+                # Ensure it's a clean list of ObjectIds for MongoDB
+                if isinstance(val, list):
+                    import bson
+                    cleaned_ids = []
+                    for v in val:
+                        if v:
+                            v_str = str(v)
+                            if bson.ObjectId.is_valid(v_str):
+                                cleaned_ids.append(bson.ObjectId(v_str))
+                            else:
+                                cleaned_ids.append(v_str)
+                    data[id_field] = cleaned_ids
+                else:
+                    data.pop(id_field, None)
+
+            # Robust mapping for sponsor_org_id if arriving as string
+            if 'sponsor_org_id' in data and isinstance(data['sponsor_org_id'], str):
+                import bson
+                if bson.ObjectId.is_valid(data['sponsor_org_id']):
+                    data['sponsor_org_id'] = bson.ObjectId(data['sponsor_org_id'])
+
+            # Strip frontend helper fields
+            data = {k: v for k, v in data.items() if k not in FRONTEND_ONLY_FIELDS}
+
+            # Handle FileField string URLs (don't try to save a string URL to a FileField)
+            if 'consent_pdf_template' in data and isinstance(data.get('consent_pdf_template'), str):
+                data.pop('consent_pdf_template')
+            if 'screener_pdf_template' in data and isinstance(data.get('screener_pdf_template'), str):
+                data.pop('screener_pdf_template')
 
         try:
             return super().to_internal_value(data)
+        except serializers.ValidationError:
+            raise
         except Exception as e:
-            raise serializers.ValidationError({"detail": str(e)})
+            import traceback
+            raise serializers.ValidationError({"detail": str(e), "trace": traceback.format_exc()[-500:]})
+
+    def update(self, instance, validated_data):
+        # Extract relationship data before popping.
+        # NOTE: pi_ids/coordinator_ids/sponsor_ids come as lists of User objects
+        # after PrimaryKeyRelatedField validation, so we convert them to PKs.
+        def _extract_ids(field_name):
+            val = validated_data.pop(field_name, None)
+            if val is None: return None
+            # PrimaryKeyRelatedField(many=True) returns a list of model instances
+            result = []
+            for item in val:
+                if hasattr(item, 'pk'):
+                    result.append(item.pk)
+                else:
+                    result.append(item)
+            return result
+
+        pi_ids = _extract_ids('pi_ids')
+        coordinator_ids = _extract_ids('coordinator_ids')
+        sponsor_ids = _extract_ids('sponsor_ids')
+        study_questionnaires = validated_data.pop('study_questionnaires', None)
+
+        # Handle Many-to-Many Personnel Assignments
+        from .models import StudyAssignment
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        
+        def update_assignments(user_ids, role):
+            if user_ids is None: return
+            # 1. Remove existing assignments for this role not in the new list
+            instance.assignments.filter(role=role).exclude(user_id__in=user_ids).delete()
+            # 2. Add new assignments
+            for uid in user_ids:
+                if uid:
+                    StudyAssignment.objects.get_or_create(study=instance, user_id=uid, role=role)
+            # 3. Sync primary direct field for the first user
+            if user_ids and len(user_ids) > 0:
+                field_map = {'PI': 'pi', 'COORDINATOR': 'coordinator', 'SPONSOR_ADMIN': 'sponsor'}
+                field_name = field_map.get(role)
+                if field_name:
+                    setattr(instance, field_name + '_id', user_ids[0])
+                    # If it's a sponsor, try to sync sponsor_name
+                    if role == 'SPONSOR_ADMIN':
+                        try:
+                            user = User.objects.get(id=user_ids[0])
+                            instance.sponsor_name = user.get_full_name() or user.username
+                        except: pass
+
+        update_assignments(pi_ids, 'PI')
+        update_assignments(coordinator_ids, 'COORDINATOR')
+        update_assignments(sponsor_ids, 'SPONSOR_ADMIN')
+
+        # Update the study instance
+        instance = super().update(instance, validated_data)
+        
+        # Handle Clinical Instruments (StudyQuestionnaire)
+        if study_questionnaires is not None:
+            from .models import StudyQuestionnaire
+            existing_q_ids = set()
+            for q_data in study_questionnaires:
+                t_id = q_data.get('template_id') or q_data.get('template') or q_data.get('id')
+                if not t_id: continue
+                
+                existing_q_ids.add(str(t_id))
+                defaults = {}
+                if 'mode' in q_data:
+                    defaults['mode'] = q_data['mode']
+                
+                # Safe mapping for repeat_type
+                freq = q_data.get('frequency') or q_data.get('repeat_type')
+                if freq in ['DAILY', 'WEEKLY', 'MONTHLY', 'CUSTOM']:
+                    defaults['repeat_type'] = freq
+                elif freq == 'One time only':
+                    defaults['repeat_type'] = 'CUSTOM'
+                    defaults['repeat_count'] = 1
+
+                if 'frequency_interval' in q_data:
+                    try: defaults['frequency_interval'] = int(q_data['frequency_interval'])
+                    except: pass
+                if 'frequency_unit' in q_data:
+                    defaults['frequency_unit'] = q_data['frequency_unit']
+                if 'repeat_count' in q_data:
+                    try: defaults['repeat_count'] = int(q_data['repeat_count'])
+                    except: pass
+                if 'schedule_name' in q_data:
+                    defaults['schedule_name'] = q_data['schedule_name']
+                if 'allow_late_submission' in q_data:
+                    defaults['allow_late_submission'] = bool(q_data['allow_late_submission'])
+
+                StudyQuestionnaire.objects.update_or_create(
+                    study=instance,
+                    template_id=t_id,
+                    defaults=defaults
+                )
+            # Remove instruments no longer selected
+            instance.study_questionnaires.exclude(template_id__in=existing_q_ids).delete()
+
+        # Final safety sync: ensure direct fields (pi, coordinator, sponsor) are in StudyAssignments
+        for role, field in [('PI', 'pi'), ('COORDINATOR', 'coordinator'), ('SPONSOR_ADMIN', 'sponsor')]:
+            val = getattr(instance, field, None)
+            if val:
+                StudyAssignment.objects.get_or_create(study=instance, user=val, role=role)
+
+        return instance
 
 class StudyBriefSerializer(SanitizedModelSerializer):
     """High-Performance serializer for study lists/grids."""
+    enrollment_count = serializers.SerializerMethodField()
+    compliance_rate = serializers.SerializerMethodField()
+
+    def get_enrollment_count(self, obj):
+        return obj.participants.count()
+
+    def get_compliance_rate(self, obj):
+        # Calculate compliance across all participants and tasks
+        # This is a broad estimate for the study directory
+        try:
+            instances = QuestionnaireScheduleInstance.objects.filter(participant__study=obj)
+            total = instances.count()
+            if total == 0: return 0
+            completed = instances.filter(status__in=['COMPLETED', 'LATE']).count()
+            return round((completed / total) * 100, 1)
+        except Exception:
+            return 0
+
     class Meta:
         model = Study
         fields = [
             'id', 'title', 'protocol_id', 'sponsor_name', 'study_type', 'status', 'stage',
             'created_at', 'updated_at', 'primary_indication', 'condition', 'phase',
-            'is_archived', 'approval_status'
+            'is_archived', 'approval_status', 'consent_content', 'screener_config',
+            'enrollment_count', 'compliance_rate', 'sponsor_id', 'sponsor_org_id'
         ]
+
+    def to_representation(self, instance):
+        ret = super().to_representation(instance)
+        # Include personnel IDs for UI consistency and to prevent data loss in auto-saves
+        try:
+            all_assignments = instance.assignments.all()
+            ret['pi_ids'] = [str(a.user_id) for a in all_assignments if a.role == 'PI']
+            ret['coordinator_ids'] = [str(a.user_id) for a in all_assignments if a.role == 'COORDINATOR']
+            ret['sponsor_ids'] = [str(a.user_id) for a in all_assignments if a.role == 'SPONSOR_ADMIN']
+        except:
+            ret['pi_ids'] = []
+            ret['coordinator_ids'] = []
+            ret['sponsor_ids'] = []
+        return ret
 
 class PublicStudySerializer(SanitizedModelSerializer):
     """Lighter version for discovery page to boost performance"""
@@ -478,7 +736,7 @@ class PublicStudySerializer(SanitizedModelSerializer):
             'tags', 'created_at', 'screener_config',
             'overview', 'benefit', 'participation_message',
             'require_participant_sig', 'require_cc_verification', 
-            'require_pi_signoff', 'require_lar', 'consent_content',
+            'require_pi_signoff', 'require_lar', 'consent_content', 'countries',
             'pi_details'
         ]
         ordering = ['created_at']
@@ -541,6 +799,9 @@ class VisitSerializer(SanitizedModelSerializer):
             'pi_approved', 'locked', 'scheduled_by', 'scheduled_by_details',
             'updated_by', 'updated_by_details', 'pi_details', 'coordinator_details'
         ]
+        extra_kwargs = {
+            'notes': {'write_only': True, 'required': False}
+        }
 
     def to_representation(self, instance):
         ret = super().to_representation(instance)
@@ -573,6 +834,12 @@ class VisitSerializer(SanitizedModelSerializer):
                 'role': 'Study Coordinator'
             }
         return None
+
+class VisitBriefSerializer(SanitizedModelSerializer):
+    """Senior Developer: Lightweight visit serializer for timelines."""
+    class Meta:
+        model = Visit
+        fields = ['id', 'visit_type', 'scheduled_date', 'actual_date', 'status', 'checklist']
 
 
 
@@ -626,6 +893,12 @@ class AssignedFormSerializer(SanitizedModelSerializer):
         model = AssignedForm
         fields = ['id', 'study', 'form', 'form_details', 'participant', 'participant_name', 'status', 'participant_signature', 'participant_signed_at', 'coordinator_signature', 'coordinator_signed_at', 'coordinator_user', 'pi_signature', 'pi_signed_at', 'pi_user', 'data', 'signed_pdf', 'signed_pdf_url', 'due_date', 'created_at', 'updated_at']
         read_only_fields = ['participant_signed_at', 'coordinator_signed_at', 'pi_signed_at']
+
+    def get_signed_pdf_url(self, obj):
+        if not obj.signed_pdf: return None
+        request = self.context.get('request')
+        if request: return request.build_absolute_uri(obj.signed_pdf.url)
+        return obj.signed_pdf.url
 
 class AssignedFormBriefSerializer(SanitizedModelSerializer):
     participant_name = serializers.SerializerMethodField()
@@ -818,6 +1091,7 @@ class ConsentSerializer(SanitizedModelSerializer):
     protocol_id = serializers.CharField(source='study.protocol_id', read_only=True)
     signed_pdf_url = serializers.SerializerMethodField()
     decrypted_name = serializers.SerializerMethodField()
+    template_details = serializers.SerializerMethodField()
     
     # Auto-filled by the backend view — not required from the frontend
     email = serializers.EmailField(required=False, allow_blank=True, default='')
@@ -832,12 +1106,24 @@ class ConsentSerializer(SanitizedModelSerializer):
             'pi_name', 'pi_signature', 'pi_verified', 'pi_verified_at', 'pi_user', 'pi_user_name',
             'signing_status', 'audit_trail', 'signed_pdf', 'signed_pdf_url',
             'protocol_id', 'study_title', 'decrypted_name', 'is_valid',
-            'is_lar', 'lar_name', 'lar_relationship', 'lar_reason'
+            'is_lar', 'lar_name', 'lar_relationship', 'lar_reason', 'template_details'
         ]
         read_only_fields = ['agreed_at', 'ip_address']
 
     def get_decrypted_name(self, obj):
         return obj.full_name or ''
+
+    def get_template_details(self, obj):
+        template = obj.template
+        if not template: return None
+        return {
+            'terms_content': template.terms_content,
+            'require_participant_sig': template.require_participant_sig,
+            'require_cc_verification': template.require_cc_verification,
+            'require_pi_signoff': template.require_pi_signoff,
+            'require_witness': template.require_witness,
+            'require_lar': template.require_lar
+        }
     
     def to_internal_value(self, data):
         """Map frontend protocol ID to study ObjectId if needed."""
@@ -1022,17 +1308,67 @@ class AEReportSerializer(SanitizedModelSerializer):
 
 class DailyMedicationLogSerializer(SanitizedModelSerializer):
     participant_sid = serializers.CharField(source='participant.participant_sid', read_only=True)
+    participant_name = serializers.SerializerMethodField()
+    supporting_file_url = serializers.SerializerMethodField()
+
+    def get_participant_name(self, obj):
+        try:
+            p = obj.participant
+            if p.user:
+                return getattr(p.user, 'decrypted_name', None) or p.user.full_name
+            data = p.eligibility_data or {}
+            return data.get('fullName') or data.get('full_name') or data.get('name') or p.participant_sid
+        except Exception:
+            return 'Unknown'
+
+    def get_supporting_file_url(self, obj):
+        if not obj.supporting_file:
+            return None
+        request = self.context.get('request')
+        if request:
+            return request.build_absolute_uri(obj.supporting_file.url)
+        return obj.supporting_file.url
+
     class Meta:
         model = DailyMedicationLog
-        fields = ['id', 'participant', 'participant_sid', 'date', 'took_medicine', 'time_taken', 'full_dose', 'dose_amount', 'reason_missed', 'noticed_side_effects', 'side_effect_description', 'side_effect_start_time', 'side_effect_ongoing', 'severity', 'interfered_daily_activities', 'sought_medical_care', 'ae_additional_comments', 'overall_feeling', 'health_updates', 'supporting_file', 'is_draft', 'created_at', 'updated_at']
+        fields = [
+            'id', 'participant', 'participant_sid', 'participant_name',
+            'date', 'took_medicine', 'time_taken', 'full_dose', 'dose_amount', 'reason_missed',
+            'noticed_side_effects', 'side_effect_description', 'side_effect_start_time',
+            'side_effect_ongoing', 'severity', 'interfered_daily_activities', 'sought_medical_care',
+            'ae_additional_comments', 'overall_feeling', 'health_updates',
+            'supporting_file', 'supporting_file_url', 'is_draft', 'created_at', 'updated_at'
+        ]
         read_only_fields = ['participant']
 
 
 
-class StudyKitSerializer(serializers.ModelSerializer):
-    participant_name = serializers.CharField(source='participant.user.get_full_name', read_only=True)
+class StudyKitSerializer(SanitizedModelSerializer):
+    participant_name = serializers.CharField(source='participant.user.full_name', read_only=True)
     participant_id = serializers.CharField(source='participant.participant_sid', read_only=True)
     protocol_id = serializers.CharField(source='study.protocol_id', read_only=True)
+    participant_phone = serializers.SerializerMethodField()
+    participant_address = serializers.SerializerMethodField()
+
+    def get_participant_phone(self, obj):
+        if not obj.participant:
+            return "N/A"
+        p = obj.participant
+        if p.user:
+            return getattr(p.user, 'decrypted_phone', None) or p.user.phone_number or "N/A"
+        data = p.eligibility_data or {}
+        return data.get('phone') or data.get('phoneNumber') or 'N/A'
+
+    def get_participant_address(self, obj):
+        if obj.address:
+            return obj.address
+        if not obj.participant:
+            return "N/A"
+        p = obj.participant
+        if p.user:
+            return getattr(p.user, 'decrypted_address', None) or p.user.full_address or p.user.zip_code or "N/A"
+        data = p.eligibility_data or {}
+        return data.get('location') or data.get('address') or data.get('zipCode') or 'N/A'
 
     class Meta:
         model = StudyKit
@@ -1041,7 +1377,7 @@ class StudyKitSerializer(serializers.ModelSerializer):
             'tracking_number', 'address', 'shipping_label_url', 
             'return_label_url', 'last_updated', 'created_at',
             'participant_name', 'participant_id', 'protocol_id',
-            'study', 'participant'
+            'study', 'participant', 'participant_phone', 'participant_address'
         ]
         read_only_fields = ['last_updated', 'created_at']
 
@@ -1062,6 +1398,7 @@ class ParticipantSerializer(SanitizedModelSerializer):
     lab_results = LabResultSerializer(many=True, read_only=True)
     consent_records = ConsentSerializer(many=True, read_only=True)
     age = serializers.SerializerMethodField()
+    assigned_arm_name = serializers.CharField(source='assigned_arm.name', read_only=True, allow_null=True)
     condition = serializers.CharField(source='study.condition', read_only=True, allow_null=True)
     study_type = serializers.CharField(source='study.study_type', read_only=True, allow_null=True)
     
@@ -1121,7 +1458,7 @@ class ParticipantSerializer(SanitizedModelSerializer):
 
             'coordinator_approved', 'coordinator_approved_at', 'coordinator_signature',
             'pi_approved', 'pi_approved_at', 'pi_signature', 'approval_status',
-            'consent_details', 'randomization_details', 'assigned_arm'
+            'consent_details', 'randomization_details', 'assigned_arm', 'assigned_arm_name'
         ]
 
     def validate(self, data):
@@ -1146,13 +1483,18 @@ class ParticipantSerializer(SanitizedModelSerializer):
         return data
 
     def get_gender(self, obj):
-        return obj.gender
+        return obj.gender or (obj.user.gender if obj.user else None)
 
     def get_age(self, obj):
-        if not obj.dob: return None
+        # Fallback priority: 1. Participant.dob, 2. User.date_of_birth, 3. User.age
+        dob = obj.dob or (obj.user.date_of_birth if obj.user else None)
+        if not dob:
+            return obj.user.age if obj.user else None
+            
         from datetime import date
         today = date.today()
-        return today.year - obj.dob.year - ((today.month, today.day) < (obj.dob.month, self.safe_day(obj)))
+        # Calculate age correctly accounting for month/day
+        return today.year - dob.year - ((today.month, today.day) < (dob.month, dob.day))
     
     # Helper to avoid issues with leap years or missing days
     def safe_day(self, obj):
@@ -1164,6 +1506,9 @@ class ParticipantBriefSerializer(SanitizedModelSerializer):
     user_details = UserBriefSerializer(source='user', read_only=True)
     study_name = serializers.CharField(source='study.title', read_only=True)
     protocol_id = serializers.CharField(source='study.protocol_id', read_only=True)
+    visits = VisitBriefSerializer(many=True, read_only=True)
+    ae_reports = AEReportSerializer(many=True, read_only=True)
+    daily_logs = DailyMedicationLogSerializer(many=True, read_only=True)
     
     display_name = serializers.SerializerMethodField()
     display_email = serializers.SerializerMethodField()
@@ -1197,7 +1542,9 @@ class ParticipantBriefSerializer(SanitizedModelSerializer):
         fields = [
             'id', 'study', 'study_name', 'protocol_id', 'user', 'user_details',
             'participant_sid', 'status', 'created_at', 'reviewed_at',
-            'display_name', 'display_email', 'display_phone', 'display_address', 'coordinator_approved', 'pi_approved', 'approval_status'
+            'display_name', 'display_email', 'display_phone', 'display_address',
+            'visits', 'ae_reports', 'daily_logs',
+            'coordinator_approved', 'pi_approved', 'approval_status'
         ]
 
 class DeIdentifiedParticipantSerializer(SanitizedModelSerializer):
@@ -1261,8 +1608,8 @@ class CompensationSerializer(SanitizedModelSerializer):
         fields = [
             'id', 'participant', 'study', 'study_protocol', 'visit', 'task', 
             'participant_details', 'study_details', 'task_details', 'visit_details',
-            'transaction_type', 'description', 'amount', 'status', 'payment_method', 
-            'paid_at', 'notes', 'created_at'
+            'transaction_type', 'description', 'amount', 'currency', 'status', 'payment_method', 
+            'paid_at', 'notes', 'card_number', 'payment_reference', 'created_at'
         ]
 class QuestionnaireTemplateSerializer(SanitizedModelSerializer):
     used_in_studies = serializers.SerializerMethodField()
@@ -1284,9 +1631,22 @@ class QuestionnaireTemplateSerializer(SanitizedModelSerializer):
         ]
 
 class QuestionnaireTemplateBriefSerializer(SanitizedModelSerializer):
+    used_in_studies = serializers.SerializerMethodField()
+
     class Meta:
         model = QuestionnaireTemplate
-        fields = ['id', 'name', 'created_at']
+        fields = ['id', 'name', 'pdf_file', 'json_structure', 'created_at', 'used_in_studies']
+
+    def get_used_in_studies(self, obj):
+        sqs = getattr(obj, '_prefetched_objects_cache', {}).get('studyquestionnaire_set', None)
+        if sqs is None:
+            from .models import StudyQuestionnaire
+            sqs = StudyQuestionnaire.objects.filter(template=obj).select_related('study')
+        return [
+            {'id': str(sq.study.id), 'title': sq.study.title, 'protocol_id': sq.study.protocol_id}
+            for sq in sqs
+            if sq.study
+        ]
 
 class QuestionnaireScheduleInstanceBriefSerializer(SanitizedModelSerializer):
     """High-Performance light-weight serializer for schedule lists."""
@@ -1306,7 +1666,6 @@ class QuestionnaireScheduleInstanceBriefSerializer(SanitizedModelSerializer):
 
     def get_participant_details(self, obj):
         return {'full_name': obj.participant.user.full_name if obj.participant and obj.participant.user else 'Subject'}
-
 
 
 
@@ -1400,6 +1759,7 @@ class StudyQuestionnaireSerializer(SanitizedModelSerializer):
 class QuestionnaireScheduleInstanceSerializer(SanitizedModelSerializer):
     questionnaire_details = StudyQuestionnaireSerializer(source='study_questionnaire', read_only=True)
     participant_details = serializers.SerializerMethodField()
+    signed_pdf_url = serializers.SerializerMethodField()
 
     class Meta:
         model = QuestionnaireScheduleInstance
@@ -1407,9 +1767,15 @@ class QuestionnaireScheduleInstanceSerializer(SanitizedModelSerializer):
 
     def get_participant_details(self, obj):
         return {
-            'sid': obj.participant.participant_sid,
-            'name': obj.participant.user.full_name if obj.participant.user else 'Subject'
+            'sid': obj.participant.participant_sid if obj.participant else 'N/A',
+            'name': obj.participant.user.full_name if obj.participant and obj.participant.user else 'Subject'
         }
+
+    def get_signed_pdf_url(self, obj):
+        if not obj.signed_pdf: return None
+        request = self.context.get('request')
+        if request: return request.build_absolute_uri(obj.signed_pdf.url)
+        return obj.signed_pdf.url
 
 class InvitationSerializer(SanitizedModelSerializer):
     invited_by_name = serializers.CharField(source='invited_by.full_name', read_only=True)
@@ -1422,21 +1788,6 @@ class InvitationSerializer(SanitizedModelSerializer):
             'created_at', 'expires_at'
         ]
         read_only_fields = ['id', 'is_accepted', 'created_at', 'invited_by', 'expires_at']
-class StudyKitSerializer(serializers.ModelSerializer):
-    participant_name = serializers.CharField(source='participant.user.get_full_name', read_only=True)
-    participant_id = serializers.CharField(source='participant.participant_sid', read_only=True)
-    protocol_id = serializers.CharField(source='study.protocol_id', read_only=True)
-
-    class Meta:
-        model = StudyKit
-        fields = [
-            'id', 'kit_number', 'kit_type', 'status', 'carrier', 
-            'tracking_number', 'address', 'shipping_label_url', 
-            'return_label_url', 'last_updated', 'created_at',
-            'participant_name', 'participant_id', 'protocol_id',
-            'study', 'participant'
-        ]
-        read_only_fields = ['last_updated', 'created_at']
 
 class ClinicalAuditLogSerializer(SanitizedModelSerializer):
     user_name = serializers.CharField(source='user.full_name', read_only=True)

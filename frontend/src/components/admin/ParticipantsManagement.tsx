@@ -94,10 +94,50 @@ export default function ParticipantsManagement({ allParticipants = [], allStudie
         </div>
         <div className="flex gap-6">
           <button 
-            onClick={() => alert('Exporting data...')}
-            className="px-8 py-4 bg-white/5 border border-white/10 text-white rounded-3xl font-black text-[12px] uppercase tracking-[0.2em] flex items-center justify-center gap-3 hover:bg-white/10 transition-all active:scale-95"
+            onClick={() => {
+              const headers = ['Identity Name', 'ID', 'Email', 'Phone', 'Registered Date', 'Status'];
+              const csvData = filtered.map(p => [
+                `"${p.name.replace(/"/g, '""')}"`,
+                p.id,
+                p.email,
+                p.phone,
+                p.registeredDate,
+                p.status
+              ]);
+              const csvContent = [headers.join(','), ...csvData.map(r => r.join(','))].join('\n');
+              const blob = new Blob([csvContent], { type: 'text/csv' });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = `ADMIN_PARTICIPANTS_${new Date().toISOString().split('T')[0]}.csv`;
+              a.click();
+            }}
+            className="px-6 py-4 bg-white/5 border border-white/10 text-white rounded-3xl font-black text-[12px] uppercase tracking-[0.2em] flex items-center justify-center gap-3 hover:bg-white/10 transition-all active:scale-95"
           >
-            <Download className="w-5 h-5" /> Export Data
+            <Download className="w-4 h-4" /> CSV
+          </button>
+          <button 
+            onClick={() => {
+              const headers = ['Identity Name', 'ID', 'Email', 'Phone', 'Registered Date', 'Status'];
+              const clcData = filtered.map(p => [
+                p.name,
+                p.id,
+                p.email,
+                p.phone,
+                p.registeredDate,
+                p.status
+              ]);
+              const clcContent = [headers.join('\t'), ...clcData.map(r => r.join('\t'))].join('\n');
+              const blob = new Blob([clcContent], { type: 'text/plain' });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = `ADMIN_PARTICIPANTS_${new Date().toISOString().split('T')[0]}.clc`;
+              a.click();
+            }}
+            className="px-6 py-4 bg-white/5 border border-white/10 text-white rounded-3xl font-black text-[12px] uppercase tracking-[0.2em] flex items-center justify-center gap-3 hover:bg-white/10 transition-all active:scale-95"
+          >
+            <Download className="w-4 h-4" /> CLC
           </button>
           <button 
             onClick={onRegister}

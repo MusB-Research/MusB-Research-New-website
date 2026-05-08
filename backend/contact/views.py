@@ -373,7 +373,11 @@ Phone: {submission.phone or 'Not Provided'}
                         )
                     
                     # Always update eligibility data and timestamp
-                    participant.eligibility_data = metadata.get('formData', {})
+                    # Merge flat answers and formData to ensure all clinical review keys are present
+                    form_data = metadata.get('formData', {})
+                    answers = metadata.get('answers', {})
+                    
+                    participant.eligibility_data = {**form_data, **answers}
                     participant.status = 'PENDING_REVIEW'
                     participant.submitted_at = submission.submitted_at
                     participant.save()

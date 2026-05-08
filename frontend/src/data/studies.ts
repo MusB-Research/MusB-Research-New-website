@@ -24,6 +24,7 @@ export interface Study {
     compensation_range?: string;
     is_paid?: boolean;
     is_free_testing?: boolean;
+    countries?: string[];
     pi_details?: {
         name: string;
         profile_picture: string | null;
@@ -74,6 +75,7 @@ export const fetchStudies = async (): Promise<Study[]> => {
             compensation_range: d.compensation || 'Varies by study',
             is_paid: true,
             is_free_testing: false,
+            countries: d.countries || [],
             pi_details: d.pi_details
         }));
 

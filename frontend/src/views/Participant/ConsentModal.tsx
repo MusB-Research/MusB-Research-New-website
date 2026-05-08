@@ -26,28 +26,25 @@ const STEPS = [
 
 // ─── Read Document Sub-Component ───────────────────────────────────────────────
 const ReadDocumentStep = ({
-    fileUrl, hasFileUrl, termsContent, study,
+    fileUrl, hasFileUrl, termsContent, study, template,
     docAcknowledged, setDocAcknowledged,
     docTimerDone, setDocTimerDone,
-    docSecondsLeft, setDocSecondsLeft,
-    timerRef, onBack, onNext
+    onBack, onNext
 }: any) => {
-    // Start reading timer on mount
+    const divRef = useRef<HTMLDivElement>(null);
+
     useEffect(() => {
-        setDocTimerDone(false);
-        setDocSecondsLeft(15);
-        timerRef.current = setInterval(() => {
-            setDocSecondsLeft((s: number) => {
-                if (s <= 1) {
-                    clearInterval(timerRef.current!);
-                    setDocTimerDone(true);
-                    return 0;
-                }
-                return s - 1;
-            });
-        }, 1000);
-        return () => { if (timerRef.current) clearInterval(timerRef.current); };
-    }, []);
+        if (hasFileUrl && fileUrl) {
+            setDocTimerDone(true);
+        } else if (divRef.current) {
+            const { scrollHeight, clientHeight } = divRef.current;
+            if (scrollHeight <= clientHeight + 10) {
+                setDocTimerDone(true);
+            } else {
+                setDocTimerDone(false);
+            }
+        }
+    }, [hasFileUrl, fileUrl, termsContent]);
 
     const canProceed = docTimerDone && docAcknowledged;
 
@@ -64,7 +61,7 @@ const ReadDocumentStep = ({
                 <div className="flex items-center gap-2">
                     {!docTimerDone && (
                         <span className="px-3 py-1 bg-[#FFF3E0] border border-[#FFE0B2] text-[#E65100] text-[10px] font-bold rounded-full uppercase tracking-widest">
-                            Reading: {docSecondsLeft}s
+                            Please Scroll to Bottom
                         </span>
                     )}
                     {fileUrl && (
@@ -87,14 +84,17 @@ const ReadDocumentStep = ({
                     />
                 ) : (
                     <div
+                        ref={divRef}
                         onScroll={(e) => {
                             const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
-                            if (scrollHeight - scrollTop <= clientHeight + 60) setDocTimerDone(true);
+                            if (scrollHeight - scrollTop <= clientHeight + 10) {
+                                setDocTimerDone(true);
+                            }
                         }}
                         className="h-full overflow-y-auto p-6"
                     >
-                        <h3 className="text-base font-bold text-[#1A2B49] uppercase mb-4 text-center">{study?.title}</h3>
-                        <div className="text-sm text-[#1A2B49] leading-relaxed whitespace-pre-wrap font-medium">
+                        <h3 className="text-base font-black text-[#1A2B49] uppercase mb-4 text-center">{template?.title || study?.title}</h3>
+                        <div className="text-sm text-slate-900 leading-relaxed whitespace-pre-wrap font-bold">
                             {termsContent || 'No document content available. Please contact your study coordinator.'}
                         </div>
                     </div>
@@ -112,11 +112,11 @@ const ReadDocumentStep = ({
                         {docAcknowledged && <CheckCircle2 className="w-3.5 h-3.5 text-white" />}
                     </div>
                     <div className="min-w-0">
-                        <p className={`text-[11px] font-bold uppercase tracking-widest leading-relaxed ${docTimerDone ? 'text-[#1A2B49]' : 'text-[#B0BCCF]'}`}>
+                        <p className={`text-[11px] font-black uppercase tracking-widest leading-relaxed ${docTimerDone ? 'text-[#1A2B49]' : 'text-slate-600'}`}>
                             I confirm that I have read and understood the complete informed consent document and voluntarily agree to participate in this clinical research study.
                         </p>
                         {!docTimerDone && (
-                            <p className="text-[10px] text-[#B0BCCF] font-bold mt-0.5">Available after reading timer completes ({docSecondsLeft}s remaining)</p>
+                            <p className="text-[10px] text-amber-600 font-black mt-0.5 uppercase tracking-wider">Please scroll to the bottom of the document to enable checkbox</p>
                         )}
                     </div>
                 </label>
@@ -149,7 +149,6 @@ const ConsentModal = ({ isOpen, onClose, onComplete, study, template, userProfil
     const [docViewed, setDocViewed] = useState(false);
     const [docAcknowledged, setDocAcknowledged] = useState(false);
     const [docTimerDone, setDocTimerDone] = useState(false);
-    const [docSecondsLeft, setDocSecondsLeft] = useState(15);
     const contentRef = useRef<HTMLDivElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -170,7 +169,6 @@ const ConsentModal = ({ isOpen, onClose, onComplete, study, template, userProfil
             setDocViewed(false);
             setDocAcknowledged(false);
             setDocTimerDone(false);
-            setDocSecondsLeft(15);
             setHasSigned(false);
             setTypedName('');
             setTypedSignature('');
@@ -374,7 +372,7 @@ const ConsentModal = ({ isOpen, onClose, onComplete, study, template, userProfil
                             <FileText className="w-4.5 h-4.5" />
                         </div>
                         <div>
-                            <h3 className="text-base font-bold text-[#1A2B49] uppercase tracking-tight leading-none">Informed Consent</h3>
+                            <h3 className="text-base font-black text-[#1A2B49] uppercase tracking-tight leading-none">{template?.title || 'Informed Consent Form'}</h3>
                             <p className="text-[10px] font-bold text-[#5F6F89] uppercase tracking-widest mt-0.5">Secure eConsent System · {template?.version ? `v${template.version}` : 'Latest'}</p>
                         </div>
                     </div>
@@ -421,41 +419,25 @@ const ConsentModal = ({ isOpen, onClose, onComplete, study, template, userProfil
                                 </div>
 
                                 {/* Terms summary */}
-                                <div
-                                    ref={contentRef}
-                                    onScroll={handleScroll}
-                                    className="flex-1 overflow-y-auto bg-[#F8FBFF] rounded-2xl border border-[#E3ECF5] p-5 text-sm text-[#1A2B49] leading-relaxed whitespace-pre-wrap font-medium no-scrollbar"
-                                >
-                                    {termsContent || (
-                                        <span className="text-[#8A99B3] italic">
-                                            Standard clinical study participation terms apply. Please use the "View Full Document" button below to read the complete consent form before proceeding.
-                                        </span>
-                                    )}
+                                <div className="flex-1 bg-[#F8FBFF] rounded-2xl border border-[#E3ECF5] p-6 flex flex-col items-center justify-center text-center">
+                                    <ShieldCheck className="w-12 h-12 text-[#1E88E5] mb-4 opacity-50" />
+                                    <h4 className="text-base font-black text-[#1A2B49] mb-2 uppercase tracking-wide">Ready to Review</h4>
+                                    <p className="text-sm text-slate-800 leading-relaxed max-w-lg font-bold">
+                                        You are about to review the <strong className="text-blue-600 font-black">{template?.title || 'Informed Consent Form'}</strong> for <strong className="text-[#1A2B49] font-black">{study?.title || 'this study'}</strong>. 
+                                        Please proceed to the next step to read the full terms and conditions of your participation. 
+                                        A complete review and acknowledgement of the document is required before you can digitally sign and submit your consent.
+                                    </p>
                                 </div>
 
                                 {/* View Document CTA */}
-                                <div className="mt-4 flex items-center justify-between gap-3">
+                                <div className="mt-4 flex items-center justify-end gap-3">
+                                    <button onClick={onClose} className="text-[11px] font-bold text-[#8A99B3] hover:text-[#1A2B49] uppercase tracking-widest transition-colors mr-2">Cancel</button>
                                     <button
-                                        onClick={() => { setDocFullscreen(true); }}
-                                        className="flex items-center gap-2 px-5 py-3 bg-[#1A2B49] hover:bg-[#0f1e38] text-white text-[11px] font-bold uppercase tracking-widest rounded-xl transition-all shadow-sm"
+                                        onClick={() => setStep(2)}
+                                        className="px-6 py-3 rounded-xl font-bold text-[12px] uppercase tracking-widest transition-all bg-[#1E88E5] text-white hover:bg-[#1565C0] shadow-md"
                                     >
-                                        <Eye className="w-4 h-4" />
-                                        View Full Document
+                                        Continue to Document →
                                     </button>
-
-                                    <div className="flex items-center gap-3">
-                                        <button onClick={onClose} className="text-[11px] font-bold text-[#8A99B3] hover:text-[#1A2B49] uppercase tracking-widest transition-colors">Cancel</button>
-                                        <button
-                                            onClick={() => setStep(2)}
-                                            disabled={!!(termsContent && !scrolledToBottom) && !docViewed}
-                                            className={`px-6 py-3 rounded-xl font-bold text-[12px] uppercase tracking-widest transition-all
-                                                ${(scrolledToBottom || docViewed || !termsContent)
-                                                    ? 'bg-[#1E88E5] text-white hover:bg-[#1565C0] shadow-md'
-                                                    : 'bg-[#F0F4FA] text-[#B0BCCF] cursor-not-allowed'}`}
-                                        >
-                                            {scrolledToBottom || docViewed || !termsContent ? 'Continue →' : 'Scroll to Continue'}
-                                        </button>
-                                    </div>
                                 </div>
                             </motion.div>
                         )}
@@ -467,13 +449,11 @@ const ConsentModal = ({ isOpen, onClose, onComplete, study, template, userProfil
                                 hasFileUrl={hasFileUrl}
                                 termsContent={termsContent}
                                 study={study}
+                                template={template}
                                 docAcknowledged={docAcknowledged}
                                 setDocAcknowledged={setDocAcknowledged}
                                 docTimerDone={docTimerDone}
                                 setDocTimerDone={setDocTimerDone}
-                                docSecondsLeft={docSecondsLeft}
-                                setDocSecondsLeft={setDocSecondsLeft}
-                                timerRef={timerRef}
                                 onBack={() => setStep(1)}
                                 onNext={() => { setDocViewed(true); setStep(3); }}
                             />

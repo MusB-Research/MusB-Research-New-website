@@ -82,12 +82,35 @@ export default function CCC_SubjectReviewModule({
     // State
     const [participant, setParticipant] = useState<any>(null);
     const [loading, setLoading] = useState(true);
-    const [activeTab, setActiveTab] = useState(initialTab);
 
-    // Sync if initialTab changes (e.g. navigation update)
+    // Tab Definitions
+    const tabs = useMemo(() => {
+        const base = ['Overview', 'Screening Review'];
+        // Only show clinical data tabs if the participant has progressed past screening or has data
+        if (participant) {
+            const hasClinicalData = ['ENROLLED', 'ACTIVE', 'COMPLETED', 'WITHDRAWN'].includes(participant.status) || 
+                                   (participant.lab_results && participant.lab_results.length > 0) ||
+                                   (participant.symptoms && participant.symptoms.length > 0);
+            
+            if (hasClinicalData) {
+                base.push('Outcomes', 'Safety', 'Core Diagnostics');
+            }
+        }
+        base.push('Artifacts', 'Audit');
+        return base;
+    }, [participant]);
+
+    const [activeTab, setActiveTab] = useState(initialTab || 'Overview');
+
+    // Sync and Validate Tab
     useEffect(() => {
-        if (initialTab) setActiveTab(initialTab);
-    }, [initialTab]);
+        const requestedTab = initialTab || 'Overview';
+        if (tabs.includes(requestedTab)) {
+            setActiveTab(requestedTab);
+        } else {
+            setActiveTab('Overview');
+        }
+    }, [initialTab, tabs]);
     const [auditLog, setAuditLog] = useState<AuditEntry[]>([]);
     const [toasts, setToasts] = useState<{ id: string, type: string, message: string }[]>([]);
     const [confirmModal, setConfirmModal] = useState<{ message: string, type: string, onConfirm: () => void } | null>(null);
@@ -200,18 +223,32 @@ export default function CCC_SubjectReviewModule({
     const [screenerSchema, setScreenerSchema] = useState<any>(null);
     useEffect(() => {
         const fetchSchema = async () => {
-            if (!selectedStudyId) return;
+            if (!selectedStudyId || selectedStudyId === 'all') {
+                setScreenerSchema(null);
+                return;
+            }
             try {
+                // 1. Try to fetch dynamic form if it exists
                 const res = await authFetch(`${API}/api/forms/?study_id=${selectedStudyId}&public=true`);
                 if (res.ok) {
                     const data = await res.json();
                     const forms = Array.isArray(data) ? data : (data.results || []);
                     if (forms.length > 0) {
                         setScreenerSchema(forms[0].schema);
+                        return; // Found form-based schema
+                    }
+                }
+
+                // 2. Fallback: Fetch Study directly and use screener_config
+                const studyRes = await authFetch(`${API}/api/studies/${selectedStudyId}/`);
+                if (studyRes.ok) {
+                    const studyData = await studyRes.json();
+                    if (studyData.screener_config) {
+                        setScreenerSchema(studyData.screener_config);
                     }
                 }
             } catch (err) {
-                console.error("Failed to fetch schema:", err);
+                console.error("Failed to fetch schema or study:", err);
             }
         };
         fetchSchema();
@@ -436,7 +473,6 @@ export default function CCC_SubjectReviewModule({
     );
 
     const alerts: any[] = []; 
-    const tabs = ['Overview', 'Enrollment Workflow', 'Informed Consent', 'Screening Review', 'Outcomes', 'Safety', 'Core Diagnostics', 'Artifacts', 'Audit'];
 
     return (
         <div style={{...S.panel, backgroundColor: '#0B1221', color: '#CBD5E1'}}>
@@ -555,30 +591,7 @@ export default function CCC_SubjectReviewModule({
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: -10 }}
                             transition={{ duration: 0.2 }}
-                        >                             {activeTab === 'Enrollment Workflow' && (
-                                <ClinicalEnrollmentWorkflow 
-                                    participant={processedParticipant} 
-                                    onApprove={handleDualApproval}
-                                    onRandomize={async () => {
-                                        try {
-                                            const res = await authFetch(`${API}/api/participants/${participantId}/randomize/`, { method: 'POST' });
-                                            if (res.ok) {
-                                                addToast("Participant randomized successfully.");
-                                                fetchData();
-                                            }
-                                        } catch (err) {
-                                            addToast("Randomization failed.", "error");
-                                        }
-                                    }}
-                                    addToast={addToast}
-                                />
-                            )}
-                            {activeTab === 'Informed Consent' && (
-                                <InformedConsentWorkflow 
-                                    participant={processedParticipant} 
-                                />
-                            )}
-
+                        >
                             {activeTab === 'Overview' && (
                                 <SubjectOverview 
                                     participant={processedParticipant} 
@@ -591,8 +604,8 @@ export default function CCC_SubjectReviewModule({
                                     isApproving={isApproving}
                                 />
                             )}
-                            {activeTab === 'Screening Review' && <EligibilityAudit participant={processedParticipant} screeningNotes={screeningNotes} setScreeningNotes={setScreeningNotes} logAction={logAction} />}
-                            {activeTab === 'Outcomes' && <ClinicalOutcomes participant={processedParticipant} />}
+                            {activeTab === 'Screening Review' && <EligibilityAudit participant={processedParticipant} screeningNotes={screeningNotes} setScreeningNotes={setScreeningNotes} logAction={logAction} onUpdateParticipant={setParticipant} />}
+                            {activeTab === 'Outcomes' && <ClinicalOutcomes participant={processedParticipant} onUpdateParticipant={setParticipant} />}
                             {activeTab === 'Safety' && <SafetySignals participant={processedParticipant} />}
                             {activeTab === 'Core Diagnostics' && <LabParameters participant={processedParticipant} />}
                             {activeTab === 'Artifacts' && <DocumentRegistry participant={processedParticipant} />}

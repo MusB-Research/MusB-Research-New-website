@@ -1071,15 +1071,17 @@ export default function SuperAdminDashboard() {
         ...formData,
         start_date: formData.startDate,
         end_date: formData.endDate,
-        description: formData.brief_description,
-        primary_indication: formData.indication,
-        condition: formData.indication || formData.condition,
-        study_type: formData.execution_type,
-        target_screened: formData.target_subjects,
-        pi_ids: formData.assigned_pis,
-        coordinator_ids: formData.assigned_coordinators,
-        sponsor_org_id: formData.sponsor_org_id,
-        stage: formData.stage
+        description: formData.briefSummary || formData.brief_description,
+        primary_indication: formData.category || formData.indication,
+        condition: formData.category || formData.indication || formData.condition,
+        study_type: formData.executionMode || formData.execution_type,
+        target_screened: formData.targetEnrollment || formData.target_subjects,
+        pi_ids: formData.selectedPIs || formData.assigned_pis || [],
+        coordinator_ids: formData.selectedCoordinators || formData.assigned_coordinators || [],
+        sponsor_ids: formData.selectedSponsorUsers?.length ? formData.selectedSponsorUsers : (formData.sponsor ? [formData.sponsor] : []),
+        sponsor_name: formData.sponsor,
+        stage: formData.stage || 'PREPARING_TO_LAUNCH',
+        status: formData.status || 'PREPARING_TO_LAUNCH'
       };
       const url = selectedStudy
         ? `${apiUrl}/api/studies/${studyId}/`
@@ -2639,7 +2641,7 @@ export default function SuperAdminDashboard() {
         <div className="h-24 flex items-center justify-center border-b border-white/5 bg-[#0a0b1a]/40 shrink-0">
           <Link to="/" target="_blank" rel="noopener noreferrer" className="group">
             <div className="bg-white p-1 rounded-xl group-hover:scale-105 transition-transform overflow-hidden shadow-xl shadow-white/5">
-              <img src="/logo.jpg" alt="Logo" className="h-15 w-auto object-contain" />
+              <img src="/logo.jpg" alt="Logo" className="h-15 w-auto object-contain" width="474" height="164" />
             </div>
           </Link>
           <button onClick={() => setIsSidebarOpen(false)} className="lg:hidden absolute top-6 right-6 p-2 text-slate-500 hover:text-white">

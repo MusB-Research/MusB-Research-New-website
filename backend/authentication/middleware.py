@@ -23,6 +23,9 @@ class OnboardingEnforcementMiddleware:
         re.compile(r'^/api/auth/logout/?$'),
         re.compile(r'^/api/auth/reset-forced/?$'),
         re.compile(r'^/api/auth/setup-credentials/?$'),
+        re.compile(r'^/api/auth/forgot-password/?$'),
+        re.compile(r'^/api/auth/reset-password/?$'),
+        re.compile(r'^/api/auth/check-email/?$'),
         re.compile(r'^/api/invitations/verify/?$'),
         re.compile(r'^/api/health/?$'),
         re.compile(r'^/api/news/?'),
@@ -34,6 +37,7 @@ class OnboardingEnforcementMiddleware:
         re.compile(r'^/api/studies/?(\?|$)'),
         re.compile(r'^/api/contact/?'),
         re.compile(r'^/api/careers/?'),
+        re.compile(r'^/api/kits/?'),
         re.compile(r'^/admin/'),
     ]
 
@@ -66,6 +70,7 @@ class OnboardingEnforcementMiddleware:
         re.compile(r'^/api/participant-tasks/?'),
         re.compile(r'^/api/ae-reports/?'),
         re.compile(r'^/api/daily-medication-logs/?'),
+        re.compile(r'^/api/kits/?'),
     ]
 
     def __init__(self, get_response):

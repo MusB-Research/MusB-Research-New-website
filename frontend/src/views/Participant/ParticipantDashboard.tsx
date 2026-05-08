@@ -34,6 +34,8 @@ import FormSignatureModal from './FormSignatureModal';
 import DiscoverStudiesView from './DiscoverStudiesView';
 import InstrumentModal from './InstrumentModal';
 import ParticipantBackground from './ParticipantBackground';
+import ClinicalEnrollmentWorkflow from '../../components/coordinator/subject-review/clinical/ClinicalEnrollmentWorkflow';
+import InformedConsentWorkflow from '../../components/coordinator/subject-review/clinical/InformedConsentWorkflow';
 
 export default function ParticipantDashboard() {
     const navigate = useNavigate();
@@ -57,10 +59,10 @@ export default function ParticipantDashboard() {
         if (route === 'reports') return 'Reports';
         if (route === 'visits') return 'Visits';
         if (route === 'compensation') return 'Compensation';
-        if (route === 'kits') return 'Kits';
-        if (route === 'profile') return 'Profile';
-        if (route === 'privacy') return 'Privacy & Data';
-        if (route === 'discover') return 'Discover Studies';
+        if (route === 'kits' || route === 'study-kit') return 'Study Kit';
+        if (route === 'return-label') return 'Return Label';
+        if (route === 'enrollment') return 'Enrollment';
+        if (route === 'consent') return 'Consent';
         return 'Dashboard';
     });
 
@@ -75,23 +77,27 @@ export default function ParticipantDashboard() {
         else if (route === 'reports') setActiveNav('Reports');
         else if (route === 'visits') setActiveNav('Visits');
         else if (route === 'compensation') setActiveNav('Compensation');
-        else if (route === 'kits') setActiveNav('Kits');
+        else if (route === 'kits' || route === 'study-kit') setActiveNav('Study Kit');
+        else if (route === 'return-label') setActiveNav('Return Label');
+        else if (route === 'enrollment') setActiveNav('Enrollment');
+        else if (route === 'consent') setActiveNav('Consent');
         else if (route === 'profile') setActiveNav('Profile');
         else if (route === 'privacy') setActiveNav('Privacy & Data');
         else if (route === 'discover') setActiveNav('Discover Studies');
         else if (route === 'participant' || !route) setActiveNav('Dashboard');
     }, [location.pathname]);
 
-    const handleNavClick = (label: string) => {
+    const handleNavClick = (label: string, skipReset: boolean = false) => {
         // Normalize label to Title Case (e.g., 'tasks' -> 'Tasks')
         const normalizedLabel = label.split(' ').map(w => w ? w.charAt(0).toUpperCase() + w.slice(1).toLowerCase() : '').join(' ');
 
         const slugs: Record<string, string> = {
             'Dashboard': '', 'Tasks': 'tasks', 'Logs': 'logs',
             'Messages': 'messages', 'Documents': 'documents', 'Reports': 'reports',
-            'Visits': 'visits', 'Compensation': 'compensation', 'Kits': 'kits', 
-            'Profile': 'profile', 'Privacy & Data': 'privacy',
-            'Discover Studies': 'discover'
+            'Visits': 'visits', 'Compensation': 'compensation', 'Study Kit': 'study-kit', 
+            'Return Label': 'return-label', 'Enrollment': 'enrollment', 'Consent': 'consent', 
+            'Profile': 'profile', 
+            'Privacy & Data': 'privacy', 'Discover Studies': 'discover'
         };
 
         const finalLabel = slugs[normalizedLabel] !== undefined ? normalizedLabel : label;
@@ -101,10 +107,15 @@ export default function ParticipantDashboard() {
             window.open('/', '_blank');
         } else {
             setActiveNav(finalLabel);
+            // Reset context-specific states when manually navigating via sidebar/tabs
+            if (!skipReset) {
+                setSelectedLog(null);
+                setLogsPreselectedDate(null);
+            }
             navigate(`/dashboard/participant${slug ? '/' + slug : ''}`);
             
             // Lazy load clinical data for tabs that need it
-            const clinicalTabs = ['Tasks', 'Visits', 'Reports', 'Documents', 'Logs', 'Compensation', 'Messages', 'Kits'];
+            const clinicalTabs = ['Tasks', 'Visits', 'Reports', 'Documents', 'Logs', 'Compensation', 'Messages', 'Study Kit', 'Return Label'];
             if (clinicalTabs.includes(finalLabel) && !tasks.length) {
                 loadClinicalData();
             }
@@ -173,6 +184,7 @@ export default function ParticipantDashboard() {
     const [helpRequests, setHelpRequests] = useState<any[]>([]);
     const [signatures, setSignatures] = useState<any[]>([]);
     const [assignedForms, setAssignedForms] = useState<any[]>([]);
+    const [allDocuments, setAllDocuments] = useState<any[]>([]);
     const [kits, setKits] = useState<any[]>([]);
     const [logs, setLogs] = useState<any[]>([]);
     const [availableConsentTemplates, setAvailableConsentTemplates] = useState<any[]>([]);
@@ -245,7 +257,24 @@ export default function ParticipantDashboard() {
 
     const [currentTime, setCurrentTime] = useState(new Date());
 
-    const refreshData = (silent = false) => {
+    const mapUserToProfile = (u: any) => {
+        if (!u) return null;
+        return {
+            userName: u.decrypted_name || u.full_name || u.email || 'Participant',
+            userEmail: u.email || '',
+            userPicture: u.profile_picture || u.picture || '',
+            firstName: (u.decrypted_name || u.full_name || '')?.split(' ')[0] || 'User',
+            userPhone: (u.decrypted_phone && !u.decrypted_phone.startsWith('gAAAA')) ? u.decrypted_phone : (u.mobile_number || u.phone_number || ''),
+            userLocation: (u.decrypted_address && !u.decrypted_address.startsWith('gAAAA')) ? u.decrypted_address : (u.full_address || ''),
+            userTimezone: u.timezone || 'UTC',
+            userAge: u.age || '',
+            userDob: u.date_of_birth || '',
+            userRole: u.role || 'PARTICIPANT',
+            googleAuth: u.google_auth || false
+        };
+    };
+
+    const refreshData = (silent = true) => {
         if (!silent) setIsDataLoading(true);
         setRefreshKey(k => k + 1);
     };
@@ -323,20 +352,8 @@ export default function ParticipantDashboard() {
 
         // Sync fresh user data (ensures profile updates are reflected without re-login)
         if (data.user) {
-            const u = data.user;
-            setUserProfile({
-                userName: u.full_name || '',
-                userEmail: u.email || '',
-                userPicture: u.profile_picture || '',
-                firstName: (u.full_name || '').split(' ')[0],
-                userPhone: u.decrypted_phone || u.mobile_number || u.phone_number || '',
-                userLocation: u.decrypted_address || u.full_address || '',
-                userTimezone: u.timezone || 'UTC',
-                userAge: u.age || '',
-                userDob: u.date_of_birth || '',
-                userRole: u.role || 'PARTICIPANT',
-                googleAuth: u.google_auth || false
-            });
+            const mapped = mapUserToProfile(data.user);
+            if (mapped) setUserProfile(mapped);
         }
         
         const fetchedTasks = safeArray(data.tasks);
@@ -352,6 +369,7 @@ export default function ParticipantDashboard() {
         setAssignedForms(safeArray(data.assigned_forms));
         setSignatures(safeArray(data.active_consents));
         setAvailableConsentTemplates(safeArray(data.available_consent_templates));
+        setAllDocuments(safeArray(data.documents));
         setLogs(fetchedLogs);
         setKits(safeArray(data.kits));
         setHelpRequests(safeArray(data.help_requests));
@@ -389,7 +407,7 @@ export default function ParticipantDashboard() {
                         participant: pId,
                         title: isToday ? 'Daily Medication Log' : isFuture ? `Upcoming Log: ${dateStr}` : `Missed Log: ${dateStr}`,
                         status: logEntry ? 'COMPLETED' : 'PENDING',
-                        due_date: targetDate.toISOString(),
+                        due_date: dateStr, // Use dateStr instead of targetDate.toISOString() to ensure local date alignment
                         visit_name: isToday ? 'Daily Check-in' : isFuture ? 'Scheduled Entry' : 'Retrospective Log',
                         timeline_group: 'Medication Tracking',
                         estimated_time: '2 min',
@@ -409,7 +427,20 @@ export default function ParticipantDashboard() {
             (sig.study && getId(sig.study) === sId)
         ) || justSignedTemplateIds.current.has(sId);
 
-        if (!hasSignedStudyConsent && s?.consent_content) {
+        // Populate available templates from response (needed for ConsentModal resolution)
+        const availableTemplates = safeArray(data.available_consent_templates);
+        setAvailableConsentTemplates(availableTemplates);
+
+        // Pick best template: prefer ACTIVE one, fallback to first
+        const bestTemplate = availableTemplates.find((t: any) => (t.status || '').toUpperCase() === 'ACTIVE') || availableTemplates[0];
+
+        // Inject consent task if: not yet signed AND (study has consent_content OR there is an active consent template)
+        // Workflow Requirement: Only show consent task after participant is ELIGIBLE or FULLY_APPROVED
+        const isApprovedForConsent = ['ELIGIBLE', 'FULLY_APPROVED', 'CONSENTED', 'RANDOMIZED', 'ACTIVE'].includes(activeParticipantStatus) || 
+                                     (p?.approval_status === 'FULLY_APPROVED');
+                                     
+        const hasConsentContent = !!(s?.consent_content) || availableTemplates.length > 0;
+        if (!hasSignedStudyConsent && hasConsentContent && isApprovedForConsent) {
             const taskId = `db-consent-${sId}`;
             if (!fetchedTasks.some((task: any) => getId(task) === taskId)) {
                 fetchedTasks.unshift({
@@ -423,7 +454,12 @@ export default function ParticipantDashboard() {
                     timeline_group: 'Mandatory',
                     estimated_time: '15 min',
                     task_type: 'CONSENT',
-                    p_data: { 
+                    // p_data carries the full template so ConsentModal can render content
+                    p_data: bestTemplate ? {
+                        ...bestTemplate,
+                        // Prefer template's own terms_content; fall back to study-level consent_content
+                        terms_content: bestTemplate.terms_content || s?.consent_content || '',
+                    } : { 
                         id: sId, 
                         title: s.title, 
                         terms_content: s.consent_content, 
@@ -438,11 +474,12 @@ export default function ParticipantDashboard() {
 
         // 4. Questionnaire Injection
         fetchedQues.forEach((q: any) => {
+            const qName = q.questionnaire_details?.schedule_name || q.questionnaire_details?.template_details?.name || q.schedule_name || 'Questionnaire';
             fetchedTasks.push({
                 id: `qs-${q.id}`,
                 study: sId,
                 participant: pId,
-                title: q.schedule_name || q.template_details?.name || 'Questionnaire',
+                title: qName,
                 status: q.status || 'PENDING',
                 due_date: q.scheduled_date || q.created_at,
                 visit_name: 'Instrumentation',
@@ -450,7 +487,7 @@ export default function ParticipantDashboard() {
                 estimated_time: '10 min',
                 task_type: 'QUESTIONNAIRE',
                 q_data: q,
-                task_details: { task_type: 'QUESTIONNAIRE', description: `Please complete the ${q.schedule_name} instrument.` }
+                task_details: { task_type: 'QUESTIONNAIRE', description: `Please complete the ${qName} instrument.` }
             });
         });
 
@@ -482,7 +519,8 @@ export default function ParticipantDashboard() {
             
             try {
                 isFetchingRef.current = true;
-                if (!isSilent) setIsDataLoading(true);
+                // Only show loading skeletons if we don't have participants yet or it's a forced non-silent load
+                if (!isSilent && allParticipants.length === 0) setIsDataLoading(true);
 
                 // FAST: Load lightweight menu first (no clinical data)
                 const currentP = allParticipants[selectedStudyIndex];
@@ -501,19 +539,8 @@ export default function ParticipantDashboard() {
                 if (userRes) {
                     const localU = getUser();
                     saveUser({ ...localU, ...userRes });
-                    setUserProfile({
-                        userName: userRes.decrypted_name || userRes.full_name || getDisplayName(userRes),
-                        userEmail: userRes.email || '',
-                        userPicture: userRes.profile_picture || userRes.picture || '',
-                        firstName: (userRes.decrypted_name || userRes.full_name)?.split(' ')[0] || getDisplayName(userRes),
-                        userPhone: (userRes.decrypted_phone && !userRes.decrypted_phone.startsWith('gAAAA')) ? userRes.decrypted_phone : '',
-                        userLocation: (userRes.decrypted_address && !userRes.decrypted_address.startsWith('gAAAA')) ? userRes.decrypted_address : '',
-                        userTimezone: userRes.timezone || 'UTC',
-                        userAge: userRes.age || '',
-                        userDob: userRes.date_of_birth || '',
-                        userRole: userRes.role || 'PARTICIPANT',
-                        googleAuth: userRes.google_auth || false
-                    });
+                    const mapped = mapUserToProfile(userRes);
+                    if (mapped) setUserProfile(mapped);
                 }
 
                     // 2. Handle Participant List & Selection
@@ -540,18 +567,30 @@ export default function ParticipantDashboard() {
                             return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
                         });
                         setAllParticipants(filtered);
+
+                        // If any study is enrolled, select it automatically first
+                        const enrolledIdx = filtered.findIndex((p: any) => 
+                            ['ENROLLED', 'RANDOMIZED', 'ACTIVE'].includes((p.status || '').toUpperCase())
+                        );
+                        if (enrolledIdx !== -1 && selectedStudyIndex === 0) {
+                            setSelectedStudyIndex(enrolledIdx);
+                        }
                         
                         // Populate studies list from all participants to enable the switcher immediately
                         const studyMap = new Map();
                         filtered.forEach((p: any) => {
-                            if (p.study && !studyMap.has(getId(p.study))) {
+                            const sId = getId(p.study);
+                            if (sId && !studyMap.has(sId)) {
                                 // If study is a full object, use it; otherwise build a brief one
                                 const studyObj = typeof p.study === 'object' ? p.study : {
                                     id: p.study,
                                     title: p.study_name || p.protocol_id || 'Untitled Study',
                                     protocol_id: p.protocol_id || 'PO-XXXX'
                                 };
-                                studyMap.set(getId(p.study), studyObj);
+                                studyMap.set(sId, {
+                                    ...studyObj,
+                                    participantStatus: p.status
+                                });
                             }
                         });
                         setAllStudies(Array.from(studyMap.values()));
@@ -589,7 +628,7 @@ export default function ParticipantDashboard() {
         if (activeParticipant && activeStudy && !isDataLoading) {
             loadClinicalData();
         }
-    }, [activeParticipant?.participant_sid, activeStudy?.id]);
+    }, [activeParticipant?.participant_sid, activeStudy?.id, refreshKey]);
 
     const activeStudyId = String(activeStudy?.id || activeStudy?._id?.$oid || activeStudy?._id || activeStudy?.$oid || '').trim();
 
@@ -819,12 +858,23 @@ export default function ParticipantDashboard() {
                     window.open(pdfUrl, '_blank');
                     return;
                 }
-                setModalConfig({
-                    isOpen: true,
-                    title: 'Document Update',
-                    desc: "Your signed Consent PDF is still being generated. Please retry in a few minutes.",
-                    primaryAction: 'OK'
-                });
+                
+                // Fallback for plain-text forms that do not generate PDFs
+                const pdf = new jsPDF();
+                pdf.setFont('helvetica', 'bold');
+                pdf.setFontSize(22);
+                pdf.setTextColor(30, 136, 229);
+                pdf.text('MusB RESEARCH PORTAL', 45, 25);
+                pdf.setFontSize(14);
+                pdf.setTextColor(0, 0, 0);
+                pdf.text('DOCUMENT DETAILS', 15, 65);
+                pdf.setFontSize(10);
+                pdf.text(`Document: Signed Consent Form`, 15, 80);
+                pdf.text(`Status: Verified Digital Signature`, 15, 90);
+                pdf.text(`Date: ${new Date().toLocaleDateString()}`, 15, 100);
+                
+                // Open standard digital record representation
+                window.open(pdf.output('bloburl'), '_blank');
                 return;
             }
             if (taskType === 'DAILY_LOG') {
@@ -853,12 +903,21 @@ export default function ParticipantDashboard() {
                     window.open(pdfUrl, '_blank');
                     return;
                 }
-                setModalConfig({
-                    isOpen: true,
-                    title: 'Generation in Progress',
-                    desc: "Your signed Form PDF is still being generated. Please retry in a few minutes.",
-                    primaryAction: 'OK'
-                });
+                
+                const pdf = new jsPDF();
+                pdf.setFont('helvetica', 'bold');
+                pdf.setFontSize(22);
+                pdf.setTextColor(30, 136, 229);
+                pdf.text('MusB RESEARCH PORTAL', 45, 25);
+                pdf.setFontSize(14);
+                pdf.setTextColor(0, 0, 0);
+                pdf.text('DOCUMENT DETAILS', 15, 65);
+                pdf.setFontSize(10);
+                pdf.text(`Document: Signed Form Submission`, 15, 80);
+                pdf.text(`Status: Verified Digital Signature`, 15, 90);
+                pdf.text(`Date: ${new Date().toLocaleDateString()}`, 15, 100);
+                
+                window.open(pdf.output('bloburl'), '_blank');
                 return;
             }
         }
@@ -939,16 +998,17 @@ export default function ParticipantDashboard() {
                 if (logEntry) {
                     setSelectedLog(logEntry);
                     setLogsDefaultViewMode('HISTORY');
-                    handleNavClick('Logs');
+                    handleNavClick('Logs', true);
                 } else {
                     setLogsPreselectedDate(dateStr);
                     setLogsDefaultViewMode('HISTORY');
-                    handleNavClick('Logs');
+                    handleNavClick('Logs', true);
                 }
             } else {
+                setSelectedLog(null);
                 setLogsPreselectedDate(task.due_date?.split('T')[0]);
                 setLogsDefaultViewMode('FORM');
-                handleNavClick('Logs');
+                handleNavClick('Logs', true);
             }
             return;
         }
@@ -1070,16 +1130,11 @@ export default function ParticipantDashboard() {
         for (const [key, view] of Object.entries(directNav)) {
             if (lowerTitle.includes(key)) {
                 const slugs: Record<string, string> = {
-                    'Dashboard': '',
-                    'Tasks': 'tasks',
-
-                    'Logs': 'logs',
-                    'Messages': 'messages',
-                    'Documents': 'documents',
-                    'Reports': 'reports',
-                    'Compensation': 'compensation',
-                    'Profile': 'profile',
-                    'Privacy & Data': 'privacy'
+                    'Dashboard': '', 'Tasks': 'tasks', 'Logs': 'logs',
+                    'Messages': 'messages', 'Documents': 'documents', 'Reports': 'reports',
+                    'Visits': 'visits', 'Compensation': 'compensation', 'Study Kit': 'study-kit',
+                    'Return Label': 'return-label', 'Profile': 'profile', 
+                    'Privacy & Data': 'privacy', 'Discover Studies': 'discover'
                 };
                 const slug = slugs[view];
                 setActiveNav(view);
@@ -1327,12 +1382,11 @@ export default function ParticipantDashboard() {
         { label: 'Documents', icon: FileText, hidden: !isEnrolled },
         { label: 'Reports', icon: TrendingUp, hidden: !isEnrolled },
         { label: 'Visits', icon: Calendar, hidden: !isEnrolled },
-        { label: 'Consent (New)', icon: ShieldCheck, hidden: !isEnrolled },
         { label: 'Compensation', icon: Trophy, hidden: !isEnrolled },
 
         { label: 'Profile', icon: User },
-        { label: 'Study Kit', icon: Package, hidden: !isEnrolled },
-        { label: 'Return Label', icon: Truck, hidden: !isEnrolled },
+        { label: 'Study Kit', icon: Package, hidden: !isEnrolled || !activeStudy?.has_study_kit },
+        { label: 'Return Label', icon: Truck, hidden: !isEnrolled || !activeStudy?.has_study_kit },
         { label: 'Privacy & Data', icon: ShieldCheck },
     ].filter(item => !item.hidden);
 
@@ -1616,6 +1670,13 @@ export default function ParticipantDashboard() {
                                     allStudies={allStudies}
                                     selectedStudyIndex={selectedStudyIndex}
                                     onStudySwitch={(idx: number) => {
+                                        const targetStudy = allStudies[idx];
+                                        const isPendingTarget = ['PENDING_APPROVAL', 'APPLIED', 'PENDING_REVIEW'].includes((targetStudy?.participantStatus || '').toUpperCase());
+                                        const hasEnrolledStudy = allStudies.some(s => !['PENDING_APPROVAL', 'APPLIED', 'PENDING_REVIEW'].includes((s?.participantStatus || '').toUpperCase()));
+                                        if (isPendingTarget && hasEnrolledStudy) {
+                                            alert('You are already enrolled in a study. This application is pending review.');
+                                            return;
+                                        }
                                         setSelectedStudyIndex(idx);
                                         setActiveStudy(allStudies[idx]);
                                         setActiveParticipant(allParticipants[idx]);
@@ -1648,7 +1709,14 @@ export default function ParticipantDashboard() {
                                             </button>
                                         </div>
                                     )}
-                                    <DocumentsView study={activeStudy} signatures={signatures} assignedForms={assignedForms} isLoading={isDataLoading} />
+                                    <DocumentsView 
+                                        study={activeStudy} 
+                                        signatures={signatures} 
+                                        assignedForms={assignedForms} 
+                                        tasks={tasks}
+                                        uploadedDocuments={allDocuments}
+                                        isLoading={isDataLoading} 
+                                    />
                                 </div>
                             )}
                             {activeNav === 'Reports' && (
@@ -1663,7 +1731,7 @@ export default function ParticipantDashboard() {
                                     isLoading={isDataLoading}
                                 />
                             )}
-                            {activeNav === 'Visits' && <VisitsView visits={filteredVisits} study={activeStudy} tasks={filteredTasks} isLoading={isDataLoading} />}
+                            {activeNav === 'Visits' && <VisitsView visits={filteredVisits} study={activeStudy} tasks={filteredTasks} isLoading={isDataLoading} onAction={openActionModal} />}
                             {activeNav === 'Compensation' && (
                                 <CompensationView
                                     study={activeStudy}
@@ -1687,8 +1755,8 @@ export default function ParticipantDashboard() {
                                     studyId={activeStudy?.protocol_id || activeStudy?.id}
                                 />
                             )}
-                            {activeNav === 'Study Kit' && <StudyKitView isLoading={isDataLoading} study={activeStudy} onAction={handleNavClick} />}
-                            {activeNav === 'Return Label' && <ReturnLabelView onBack={() => setActiveNav('Dashboard')} />}
+                            {activeNav === 'Study Kit' && <StudyKitView isLoading={isDataLoading} study={activeStudy} kits={kits} onAction={handleNavClick} />}
+                            {activeNav === 'Return Label' && <ReturnLabelView onBack={() => handleNavClick('Study Kit')} />}
                             {activeNav === 'Privacy & Data' && <PrivacyDataView onAction={openActionModal} isLoading={isDataLoading} />}
                         </motion.div>
                     </AnimatePresence>

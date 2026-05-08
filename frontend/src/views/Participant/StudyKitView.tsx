@@ -62,9 +62,13 @@ const StudyKitView = ({ onAction, study, kits: initialKits = [], isLoading = fal
         if (initialKits && initialKits.length > 0) {
             setKits(initialKits);
             setInternalLoading(false);
-        } else if (!isLoading) {
-            // Only fetch if parent isn't already loading its summary
+        } else if (!isLoading && kits.length === 0) {
+            // Only fetch if parent isn't already loading its summary AND we don't have kits yet
             fetchKits();
+        } else if (isLoading) {
+            setInternalLoading(true);
+        } else {
+            setInternalLoading(false);
         }
     }, [initialKits, isLoading]);
 
@@ -203,26 +207,26 @@ const StudyKitView = ({ onAction, study, kits: initialKits = [], isLoading = fal
     return (
         <div className="flex flex-col gap-10 pb-12">
             {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6">
                 <div>
-                     <div className="flex items-center gap-2 text-[12px] font-bold text-[#8A99B3] uppercase tracking-widest mb-3">
+                     <div className="flex items-center gap-2 text-[10px] sm:text-[12px] font-bold text-[#8A99B3] uppercase tracking-widest mb-2 sm:mb-3">
                         <span>Portal</span>
-                        <ChevronRight className="w-3.5 h-3.5" />
+                        <ChevronRight className="w-3 h-3 sm:w-3.5 h-3.5" />
                         <span className="text-[#1E88E5]">Asset Logistics</span>
                     </div>
-                    <h2 className="text-2xl font-bold text-[#1A2B49] uppercase tracking-tight">Kits & Clinical Supply</h2>
-                    <p className="text-[13px] font-bold text-[#5F6F89] uppercase tracking-widest mt-1">Managed distribution and collection of research material</p>
+                    <h2 className="text-xl sm:text-2xl font-bold text-[#1A2B49] uppercase tracking-tight">Kits & Clinical Supply</h2>
+                    <p className="text-[11px] sm:text-[13px] font-bold text-[#5F6F89] uppercase tracking-widest mt-1">Managed distribution and collection of research material</p>
                 </div>
-                <div className="flex bg-white p-1 rounded-xl border border-[#E3ECF5] shadow-sm">
+                <div className="flex bg-white p-1 rounded-xl border border-[#E3ECF5] shadow-sm w-full sm:w-auto">
                     <button
                         onClick={() => setActiveTab('outbound')}
-                        className={`px-8 py-2.5 rounded-lg text-[12px] font-bold uppercase tracking-widest transition-all ${activeTab === 'outbound' ? 'bg-[#1E88E5] text-white shadow-md' : 'text-[#8A99B3] hover:text-[#5F6F89]'}`}
+                        className={`flex-1 sm:flex-none px-4 sm:px-8 py-2 sm:py-2.5 rounded-lg text-[11px] sm:text-[12px] font-bold uppercase tracking-widest transition-all ${activeTab === 'outbound' ? 'bg-[#1E88E5] text-white shadow-md' : 'text-[#8A99B3] hover:text-[#5F6F89]'}`}
                     >
                         Active Shipments
                     </button>
                     <button
                         onClick={() => setActiveTab('return')}
-                        className={`px-8 py-2.5 rounded-lg text-[12px] font-bold uppercase tracking-widest transition-all ${activeTab === 'return' ? 'bg-[#1E88E5] text-white shadow-md' : 'text-[#8A99B3] hover:text-[#5F6F89]'}`}
+                        className={`flex-1 sm:flex-none px-4 sm:px-8 py-2 sm:py-2.5 rounded-lg text-[11px] sm:text-[12px] font-bold uppercase tracking-widest transition-all ${activeTab === 'return' ? 'bg-[#1E88E5] text-white shadow-md' : 'text-[#8A99B3] hover:text-[#5F6F89]'}`}
                     >
                         Return History
                     </button>
@@ -237,44 +241,46 @@ const StudyKitView = ({ onAction, study, kits: initialKits = [], isLoading = fal
                     </div>
                 ) : filteredKits.map((kit, idx) => (
                     <motion.div key={kit.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.1 }}>
-                        <Card className="group overflow-hidden relative bg-white border border-[#E3ECF5] shadow-lg">
-                            <div className="p-8 space-y-8">
+                        <Card className="group overflow-hidden relative bg-white border border-[#E3ECF5] shadow-lg rounded-[24px] sm:rounded-[32px]">
+                            <div className="p-6 sm:p-8 space-y-6 sm:space-y-8">
                                 {/* Header Row */}
-                                <div className="flex justify-between items-start">
-                                    <div className="flex items-center gap-5">
-                                        <div className="w-16 h-16 bg-[#F8FBFF] rounded-[24px] flex items-center justify-center border border-[#E3ECF5] text-[#1E88E5] transition-all group-hover:bg-[#E3F2FD]">
-                                            <Package className="w-8 h-8" strokeWidth={1.5} />
+                                <div className="flex flex-col sm:flex-row justify-between items-start gap-4 sm:gap-0">
+                                    <div className="flex items-center gap-4 sm:gap-5">
+                                        <div className="w-12 h-12 sm:w-16 h-16 bg-[#F8FBFF] rounded-[18px] sm:rounded-[24px] flex items-center justify-center border border-[#E3ECF5] text-[#1E88E5] transition-all group-hover:bg-[#E3F2FD] shrink-0">
+                                            <Package className="w-6 h-6 sm:w-8 h-8" strokeWidth={1.5} />
                                         </div>
-                                        <div>
-                                            <h4 className="text-[20px] font-bold text-[#1A2B49] uppercase tracking-tight">{kit.kit_type}</h4>
+                                        <div className="min-w-0">
+                                            <h4 className="text-[16px] sm:text-[20px] font-bold text-[#1A2B49] uppercase tracking-tight truncate">{kit.kit_type}</h4>
                                             <div className="flex items-center gap-2 mt-1">
-                                                <span className="text-[11px] font-bold text-[#8A99B3] uppercase tracking-widest">SEQ:</span>
-                                                <span className="text-[12px] font-bold text-[#1A2B49] uppercase tracking-tight font-mono">{kit.kit_number}</span>
+                                                <span className="text-[9px] sm:text-[11px] font-bold text-[#8A99B3] uppercase tracking-widest">SEQ:</span>
+                                                <span className="text-[10px] sm:text-[12px] font-bold text-[#1A2B49] uppercase tracking-tight font-mono">{kit.kit_number}</span>
                                             </div>
                                         </div>
                                     </div>
-                                    {getStatusBadge(kit.status)}
+                                    <div className="sm:self-start">
+                                        {getStatusBadge(kit.status)}
+                                    </div>
                                 </div>
 
                                 {/* Tracking Info */}
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 p-6 bg-[#F8FBFF] border border-[#E3ECF5] rounded-3xl relative overflow-hidden shadow-inner-sm">
-                                    <div className="absolute top-0 right-0 p-6 opacity-[0.03] group-hover:opacity-[0.05] transition-opacity">
-                                        <Truck className="w-24 h-24 -rotate-12" />
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 p-5 sm:p-6 bg-[#F8FBFF] border border-[#E3ECF5] rounded-2xl sm:rounded-3xl relative overflow-hidden shadow-inner-sm">
+                                    <div className="absolute top-0 right-0 p-4 sm:p-6 opacity-[0.03] group-hover:opacity-[0.05] transition-opacity">
+                                        <Truck className="w-16 h-16 sm:w-24 h-24 -rotate-12" />
                                     </div>
                                     <div className="space-y-1">
-                                        <span className="text-[10px] font-bold text-[#8A99B3] uppercase tracking-widest">Logistics Unit</span>
-                                        <p className="text-[14px] font-bold text-[#1A2B49] uppercase tracking-tight">{kit.carrier || 'Pending'}</p>
+                                        <span className="text-[9px] sm:text-[10px] font-bold text-[#8A99B3] uppercase tracking-widest">Logistics Unit</span>
+                                        <p className="text-[13px] sm:text-[14px] font-bold text-[#1A2B49] uppercase tracking-tight">{kit.carrier || 'Pending'}</p>
                                     </div>
-                                    <div className="space-y-1.5 md:col-span-2">
-                                        <span className="text-[10px] font-bold text-[#8A99B3] uppercase tracking-widest">Asset Tracking ID</span>
-                                        <div className="flex items-center gap-4">
-                                            <p className="text-[15px] font-bold text-[#1E88E5] font-mono tracking-tighter">
+                                    <div className="space-y-1 sm:space-y-1.5 sm:col-span-2">
+                                        <span className="text-[9px] sm:text-[10px] font-bold text-[#8A99B3] uppercase tracking-widest">Asset Tracking ID</span>
+                                        <div className="flex items-center gap-3 sm:gap-4 flex-wrap">
+                                            <p className="text-[13px] sm:text-[15px] font-bold text-[#1E88E5] font-mono tracking-tighter">
                                                 {kit.tracking_number || "AWAITING SYNC"}
                                             </p>
                                             {kit.tracking_number && (
                                                 <button
                                                     onClick={() => window.open('https://www.fedex.com', '_blank')}
-                                                    className="p-1 px-3 bg-white text-[10px] font-bold text-[#1E88E5] border border-[#E3ECF5] rounded-lg hover:bg-blue-50 transition-all uppercase"
+                                                    className="px-2.5 py-1 bg-white text-[9px] sm:text-[10px] font-bold text-[#1E88E5] border border-[#E3ECF5] rounded-lg hover:bg-blue-50 transition-all uppercase"
                                                 >
                                                     Track
                                                 </button>
@@ -284,19 +290,19 @@ const StudyKitView = ({ onAction, study, kits: initialKits = [], isLoading = fal
                                 </div>
 
                                 {/* Progress */}
-                                <div className="space-y-4">
-                                    <div className="flex justify-between items-center text-[10px] font-bold uppercase tracking-widest">
+                                <div className="space-y-3 sm:space-y-4">
+                                    <div className="flex justify-between items-center text-[9px] sm:text-[10px] font-bold uppercase tracking-widest">
                                         <span className="text-[#8A99B3]">Chain of Custody</span>
                                         <span className="text-[#1A2B49]">Stage {getStatusStep(kit.status)}/5</span>
                                     </div>
-                                    <div className="flex gap-1.5">
+                                    <div className="flex gap-1 sm:gap-1.5">
                                         {[1, 2, 3, 4, 5].map(s => (
-                                            <div key={s} className={`h-1.5 flex-1 rounded-full transition-all duration-700 ${s <= getStatusStep(kit.status) ? 'bg-[#1E88E5]' : 'bg-[#E3ECF5]'}`} />
+                                            <div key={s} className={`h-1 sm:h-1.5 flex-1 rounded-full transition-all duration-700 ${s <= getStatusStep(kit.status) ? 'bg-[#1E88E5]' : 'bg-[#E3ECF5]'}`} />
                                         ))}
                                     </div>
                                     <div className="flex items-center gap-2 text-[#5F6F89]">
-                                        <Clock className="w-4 h-4 text-[#8A99B3]" />
-                                        <span className="text-[11px] font-bold uppercase tracking-widest">
+                                        <Clock className="w-3.5 h-3.5 sm:w-4 h-4 text-[#8A99B3]" />
+                                        <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-widest">
                                             {kit.expected_delivery ? `Est. Completion: ${new Date(kit.expected_delivery).toLocaleDateString()}` : "ETA: ESTIMATING FLOW"}
                                         </span>
                                     </div>
@@ -304,21 +310,21 @@ const StudyKitView = ({ onAction, study, kits: initialKits = [], isLoading = fal
 
                                 {/* Materials */}
                                 <div className="space-y-4 pt-4 border-t border-[#F8FBFF]">
-                                    <h5 className="text-[11px] font-bold text-[#8A99B3] uppercase tracking-widest">Clinical Protocol Documentation</h5>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                    <h5 className="text-[10px] sm:text-[11px] font-bold text-[#8A99B3] uppercase tracking-widest px-1">Clinical Protocol Documentation</h5>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                         <button
                                             onClick={() => {
                                                 downloadDummyPdf('Clinical Collection Guide');
                                                 setSubView('GUIDE');
                                             }}
-                                            className="flex items-center gap-4 p-5 bg-[#F8FBFF] border border-[#E3ECF5] rounded-2xl hover:bg-white transition-all text-left shadow-sm group/btn"
+                                            className="flex items-center gap-4 p-4 sm:p-5 bg-[#F8FBFF] border border-[#E3ECF5] rounded-2xl hover:bg-white transition-all text-left shadow-sm group/btn"
                                         >
-                                            <div className="w-12 h-12 rounded-xl bg-white border border-[#E3ECF5] flex items-center justify-center text-[#B0BCCF] group-hover/btn:text-[#1E88E5] shadow-sm transition-all">
-                                                <FileIcon className="w-5.5 h-5.5" />
+                                            <div className="w-10 h-10 sm:w-12 h-12 rounded-xl bg-white border border-[#E3ECF5] flex items-center justify-center text-[#B0BCCF] group-hover/btn:text-[#1E88E5] shadow-sm transition-all shrink-0">
+                                                <FileIcon className="w-5 sm:w-5.5 h-5 sm:h-5.5" />
                                             </div>
-                                            <div className="flex flex-col">
-                                                <span className="text-[13px] font-bold text-[#1A2B49] uppercase tracking-tight">Collection Protocol</span>
-                                                <span className="text-[10px] font-bold text-[#1E88E5] uppercase tracking-widest mt-0.5">VIEW GUIDE</span>
+                                            <div className="flex flex-col min-w-0">
+                                                <span className="text-[12px] sm:text-[13px] font-bold text-[#1A2B49] uppercase tracking-tight truncate">Collection Protocol</span>
+                                                <span className="text-[9px] sm:text-[10px] font-bold text-[#1E88E5] uppercase tracking-widest mt-0.5">VIEW GUIDE</span>
                                             </div>
                                         </button>
                                         <button
@@ -326,31 +332,31 @@ const StudyKitView = ({ onAction, study, kits: initialKits = [], isLoading = fal
                                                 downloadDummyPdf('Digital Return Label');
                                                 setSubView('LABEL');
                                             }}
-                                            className="flex items-center gap-4 p-5 bg-[#F8FBFF] border border-[#E3ECF5] rounded-2xl hover:bg-white transition-all text-left shadow-sm group/btn"
+                                            className="flex items-center gap-4 p-4 sm:p-5 bg-[#F8FBFF] border border-[#E3ECF5] rounded-2xl hover:bg-white transition-all text-left shadow-sm group/btn"
                                         >
-                                            <div className="w-12 h-12 rounded-xl bg-white border border-[#E3ECF5] flex items-center justify-center text-[#B0BCCF] group-hover/btn:text-[#1E88E5] shadow-sm transition-all">
-                                                <Download className="w-5.5 h-5.5" />
+                                            <div className="w-10 h-10 sm:w-12 h-12 rounded-xl bg-white border border-[#E3ECF5] flex items-center justify-center text-[#B0BCCF] group-hover/btn:text-[#1E88E5] shadow-sm transition-all shrink-0">
+                                                <Download className="w-5 sm:w-5.5 h-5 sm:h-5.5" />
                                             </div>
-                                            <div className="flex flex-col">
-                                                <span className="text-[13px] font-bold text-[#1A2B49] uppercase tracking-tight">Return Logistics</span>
-                                                <span className="text-[10px] font-bold text-[#1E88E5] uppercase tracking-widest mt-0.5">TRANSIT LABEL</span>
+                                            <div className="flex flex-col min-w-0">
+                                                <span className="text-[12px] sm:text-[13px] font-bold text-[#1A2B49] uppercase tracking-tight truncate">Return Logistics</span>
+                                                <span className="text-[9px] sm:text-[10px] font-bold text-[#1E88E5] uppercase tracking-widest mt-0.5">TRANSIT LABEL</span>
                                             </div>
                                         </button>
                                     </div>
                                 </div>
 
                                 {/* Actions */}
-                                <div className="flex flex-col md:flex-row gap-3 pt-6 border-t border-[#F8FBFF]">
+                                <div className="flex flex-col sm:flex-row gap-3 pt-6 border-t border-[#F8FBFF]">
                                     {kit.status === 'PREPARING' || kit.status === 'ASSIGNED' ? (
-                                        <button className="flex-1 bg-[#F8FBFF] text-[#B0BCCF] py-5 rounded-2xl border border-[#E3ECF5] font-bold text-[12px] uppercase tracking-widest cursor-not-allowed">
+                                        <button className="flex-1 bg-[#F8FBFF] text-[#B0BCCF] py-4 sm:py-5 rounded-2xl border border-[#E3ECF5] font-bold text-[11px] sm:text-[12px] uppercase tracking-widest cursor-not-allowed">
                                             Awaiting Distribution
                                         </button>
-                                    ) : (window.location.protocol === 'kit.status' ? '' : (
-                                        <div className="flex-1 flex flex-col md:flex-row gap-3">
+                                    ) : (
+                                        <div className="flex-1 flex flex-col sm:flex-row gap-3">
                                             {(kit.status === 'SHIPPED' || kit.status === 'SHIPPED FROM CENTER') && (
                                                 <button
                                                     onClick={() => handleKitAction(kit.id, 'confirm_receipt')}
-                                                    className="flex-1 bg-[#1E88E5] hover:bg-[#1565C0] text-white py-5 rounded-2xl font-bold text-[13px] uppercase tracking-widest transition-all shadow-lg shadow-blue-500/10 flex items-center justify-center gap-2"
+                                                    className="flex-1 bg-[#1E88E5] hover:bg-[#1565C0] text-white py-4 sm:py-5 rounded-2xl font-bold text-[12px] sm:text-[13px] uppercase tracking-widest transition-all shadow-lg shadow-blue-500/10 flex items-center justify-center gap-2"
                                                 >
                                                     <CheckCircle2 className="w-4 h-4" />
                                                     Confirm Delivery
@@ -362,22 +368,22 @@ const StudyKitView = ({ onAction, study, kits: initialKits = [], isLoading = fal
                                                         setSelectedKit(kit);
                                                         setIsCollectionModalOpen(true);
                                                     }}
-                                                    className={`flex-1 ${kit.status === 'IN COLLECTION' ? 'bg-[#4CAF50] hover:bg-[#388E3C]' : 'bg-[#1E88E5] hover:bg-[#1565C0]'} text-white py-5 rounded-2xl font-bold text-[13px] uppercase tracking-widest transition-all shadow-lg flex items-center justify-center gap-2`}
+                                                    className={`flex-1 ${kit.status === 'IN COLLECTION' ? 'bg-[#4CAF50] hover:bg-[#388E3C]' : 'bg-[#1E88E5] hover:bg-[#1565C0]'} text-white py-4 sm:py-5 rounded-2xl font-bold text-[12px] sm:text-[13px] uppercase tracking-widest transition-all shadow-lg flex items-center justify-center gap-2`}
                                                 >
                                                     {kit.status === 'IN COLLECTION' ? <Zap className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current" />}
                                                     {kit.status === 'IN COLLECTION' ? 'Resume Protocol' : 'Execute Collection'}
                                                 </button>
                                             )}
                                             {(kit.status === 'SHIPPED FROM PARTICIPANT') && (
-                                                 <button className="flex-1 bg-[#F8FBFF] text-[#1E88E5] py-5 rounded-2xl border border-[#E3ECF5] font-bold text-[12px] uppercase tracking-widest cursor-not-allowed">
+                                                 <button className="flex-1 bg-[#F8FBFF] text-[#1E88E5] py-4 sm:py-5 rounded-2xl border border-[#E3ECF5] font-bold text-[11px] sm:text-[12px] uppercase tracking-widest cursor-not-allowed">
                                                     Asset In Transit
                                                 </button>
                                             )}
                                         </div>
-                                    ))}
+                                    )}
                                     <button
                                         onClick={() => setIsReportModalOpen(true)}
-                                        className="px-8 py-5 bg-white text-[#5F6F89] hover:bg-[#FDECEA] hover:text-[#D32F2F] hover:border-[#D32F2F]/20 rounded-2xl border border-[#E3ECF5] font-bold text-[12px] uppercase tracking-widest transition-all"
+                                        className="px-6 sm:px-8 py-4 sm:py-5 bg-white text-[#5F6F89] hover:bg-[#FDECEA] hover:text-[#D32F2F] hover:border-[#D32F2F]/20 rounded-2xl border border-[#E3ECF5] font-bold text-[11px] sm:text-[12px] uppercase tracking-widest transition-all"
                                     >
                                         Log Issue
                                     </button>
@@ -397,37 +403,37 @@ const StudyKitView = ({ onAction, study, kits: initialKits = [], isLoading = fal
                             initial={{ scale: 0.95, opacity: 0 }} 
                             animate={{ scale: 1, opacity: 1 }} 
                             exit={{ scale: 0.95, opacity: 0 }} 
-                            className="relative w-full max-w-lg bg-white rounded-[32px] p-10 shadow-2xl overflow-hidden"
+                            className="relative w-full max-w-lg bg-white rounded-[24px] sm:rounded-[32px] p-6 sm:p-10 shadow-2xl overflow-hidden"
                             onClick={(e) => e.stopPropagation()}
                         >
-                            <div className="space-y-4 mb-10">
-                                <div className="w-14 h-14 bg-[#FDECEA] rounded-2xl flex items-center justify-center text-[#D32F2F] border border-[#FFCDD2]">
-                                    <AlertCircle className="w-7 h-7" />
+                            <div className="space-y-4 mb-8 sm:mb-10">
+                                <div className="w-12 h-12 sm:w-14 h-14 bg-[#FDECEA] rounded-2xl flex items-center justify-center text-[#D32F2F] border border-[#FFCDD2]">
+                                    <AlertCircle className="w-6 h-6 sm:w-7 h-7" />
                                 </div>
-                                <h3 className="text-xl font-bold text-[#1A2B49] uppercase tracking-tight">Report Logistics Anomaly</h3>
-                                <p className="text-[12px] text-[#8A99B3] font-bold uppercase tracking-widest">Immediate clinical coordination required</p>
+                                <h3 className="text-lg sm:text-xl font-bold text-[#1A2B49] uppercase tracking-tight">Report Logistics Anomaly</h3>
+                                <p className="text-[10px] sm:text-[12px] text-[#8A99B3] font-bold uppercase tracking-widest">Immediate clinical coordination required</p>
                             </div>
 
                             <div className="space-y-6">
                                 <div className="space-y-2.5">
-                                    <label className="text-[11px] font-bold text-[#5F6F89] uppercase tracking-widest px-1">Detailed Description of Incident</label>
+                                    <label className="text-[10px] sm:text-[11px] font-bold text-[#5F6F89] uppercase tracking-widest px-1">Detailed Description of Incident</label>
                                     <textarea 
-                                        className="w-full h-32 bg-[#F8FBFF] border border-[#E3ECF5] rounded-2xl p-6 text-[#1A2B49] font-bold outline-none focus:border-[#D32F2F]/30 resize-none transition-all"
+                                        className="w-full h-32 bg-[#F8FBFF] border border-[#E3ECF5] rounded-2xl p-4 sm:p-6 text-[#1A2B49] font-bold text-[13px] sm:text-[14px] outline-none focus:border-[#D32F2F]/30 resize-none transition-all"
                                         placeholder="Identify damaged components, missing protocol items, or carrier issues..."
                                     />
                                 </div>
 
-                                <div className="flex gap-4">
+                                <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
                                     <button 
                                         onClick={() => setIsReportModalOpen(false)}
-                                        className="flex-1 py-4.5 bg-[#F8FBFF] text-[#8A99B3] hover:text-[#5F6F89] rounded-xl font-bold uppercase tracking-widest text-[12px] transition-all"
+                                        className="w-full sm:flex-1 py-4 bg-[#F8FBFF] text-[#8A99B3] hover:text-[#5F6F89] rounded-xl font-bold uppercase tracking-widest text-[11px] sm:text-[12px] transition-all"
                                     >Cancel</button>
                                     <button 
                                         onClick={() => {
                                             handleKitAction(kits[0]?.id || '', 'report_issue', { reason: 'Reported via Modal' });
                                             setIsReportModalOpen(false);
                                         }}
-                                        className="flex-1 py-4.5 bg-[#D32F2F] text-white rounded-xl font-bold uppercase tracking-widest text-[12px] transition-all shadow-lg shadow-red-500/20"
+                                        className="w-full sm:flex-1 py-4 bg-[#D32F2F] text-white rounded-xl font-bold uppercase tracking-widest text-[11px] sm:text-[12px] transition-all shadow-lg shadow-red-500/20"
                                     >Submit Report</button>
                                 </div>
                             </div>
@@ -445,35 +451,39 @@ const StudyKitView = ({ onAction, study, kits: initialKits = [], isLoading = fal
                             initial={{ scale: 0.95, opacity: 0, y: 30 }} 
                             animate={{ scale: 1, opacity: 1, y: 0 }} 
                             exit={{ scale: 0.95, opacity: 0, y: 30 }} 
-                            className="relative w-full max-w-2xl bg-white rounded-[40px] shadow-2xl overflow-y-auto max-h-[90vh] custom-scroll border border-[#E3ECF5]"
+                            className="relative w-full max-w-2xl bg-white rounded-[24px] sm:rounded-[40px] shadow-2xl overflow-y-auto max-h-[90vh] custom-scroll border border-[#E3ECF5]"
                         >
-                            <div className="absolute top-8 right-8 z-[210]">
-                                <button onClick={() => setIsCollectionModalOpen(false)} className="w-10 h-10 bg-[#F8FBFF] border border-[#E3ECF5] rounded-full flex items-center justify-center text-[#8A99B3] hover:text-[#1A2B49] transition-all">
-                                    <X className="w-5 h-5" />
+                            <div className="absolute top-4 sm:top-8 right-4 sm:right-8 z-[210]">
+                                <button onClick={() => setIsCollectionModalOpen(false)} className="w-8 h-8 sm:w-10 h-10 bg-[#F8FBFF] border border-[#E3ECF5] rounded-full flex items-center justify-center text-[#8A99B3] hover:text-[#1A2B49] transition-all">
+                                    <X className="w-4 h-4 sm:w-5 h-5" />
                                 </button>
                             </div>
 
-                            <div className="p-12">
-                                <div className="space-y-2 mb-10">
-                                    <h3 className="text-2xl font-bold text-[#1A2B49] uppercase tracking-tight">Active Clinical Collection</h3>
-                                    <div className="flex items-center gap-2">
-                                         <Badge color="blue">PROTOCOL ID: BIO-202X</Badge>
-                                         <span className="text-[11px] font-bold text-[#B0BCCF] uppercase tracking-widest">Encrypted Session</span>
+                            <div className="p-6 sm:p-12">
+                                <div className="space-y-1 sm:space-y-2 mb-8 sm:mb-10">
+                                    <h3 className="text-lg sm:text-2xl font-bold text-[#1A2B49] uppercase tracking-tight">Active Clinical Collection</h3>
+                                    <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                                         <div className="w-fit"><Badge color="blue">PROTOCOL ID: BIO-202X</Badge></div>
+                                         <span className="text-[10px] sm:text-[11px] font-bold text-[#B0BCCF] uppercase tracking-widest px-1">Encrypted Session</span>
                                     </div>
                                 </div>
 
-                                <StepIndicator steps={collectionSteps} currentStep={collectionStep} />
+                                <div className="overflow-x-auto pb-4 -mx-2 px-2 scrollbar-hide sm:overflow-visible sm:pb-0 sm:mx-0 sm:px-0">
+                                    <div className="min-w-[400px] sm:min-w-0">
+                                        <StepIndicator steps={collectionSteps} currentStep={collectionStep} />
+                                    </div>
+                                </div>
 
-                                <div className="min-h-[350px] py-10">
+                                <div className="min-h-[300px] sm:min-h-[350px] py-6 sm:py-10">
                                     {collectionStep === 0 && (
                                         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-                                            <div className="space-y-8">
-                                                <div className="p-6 bg-[#F0F6FF] border border-[#E3F2FD] rounded-3xl space-y-3">
+                                            <div className="space-y-6 sm:space-y-8">
+                                                <div className="p-5 sm:p-6 bg-[#F0F6FF] border border-[#E3F2FD] rounded-2xl sm:rounded-3xl space-y-2 sm:space-y-3">
                                                     <div className="flex items-center gap-3 text-[#1E88E5]">
-                                                        <Info className="w-5 h-5" />
-                                                        <span className="text-[11px] font-bold uppercase tracking-widest">Safety Compliance</span>
+                                                        <Info className="w-4 h-4 sm:w-5 h-5" />
+                                                        <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-widest">Safety Compliance</span>
                                                     </div>
-                                                    <p className="text-[13px] font-bold text-[#5F6F89] uppercase tracking-widest leading-relaxed">System state verification: Hand sanitization and workspace preparation mandatory.</p>
+                                                    <p className="text-[12px] sm:text-[13px] font-bold text-[#5F6F89] uppercase tracking-widest leading-relaxed">System state verification: Hand sanitization and workspace preparation mandatory.</p>
                                                 </div>
                                                 <Checklist
                                                     items={stepItems[0]}
@@ -484,28 +494,28 @@ const StudyKitView = ({ onAction, study, kits: initialKits = [], isLoading = fal
                                         </motion.div>
                                     )}
                                     {collectionStep === 1 && (
-                                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-10 text-center py-6">
-                                            <div className="w-24 h-24 bg-[#F0F6FF] rounded-[32px] flex items-center justify-center mx-auto border border-[#E3F2FD] text-[#1E88E5] shadow-sm">
-                                                <Play className="w-10 h-10 fill-current ml-1" />
+                                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-8 sm:space-y-10 text-center py-4 sm:py-6">
+                                            <div className="w-20 h-20 sm:w-24 h-24 bg-[#F0F6FF] rounded-[24px] sm:rounded-[32px] flex items-center justify-center mx-auto border border-[#E3F2FD] text-[#1E88E5] shadow-sm">
+                                                <Play className="w-8 h-8 sm:w-10 h-10 fill-current ml-1" />
                                             </div>
-                                            <div className="space-y-4">
-                                                <h4 className="text-xl font-bold text-[#1A2B49] uppercase tracking-tight">Audio-Visual Protocol</h4>
-                                                <p className="text-[13px] font-bold text-[#5F6F89] uppercase tracking-widest leading-relaxed max-w-sm mx-auto">Follow the clinical directive. Timestamps are logged on execution.</p>
+                                            <div className="space-y-3 sm:space-y-4">
+                                                <h4 className="text-lg sm:text-xl font-bold text-[#1A2B49] uppercase tracking-tight">Audio-Visual Protocol</h4>
+                                                <p className="text-[12px] sm:text-[13px] font-bold text-[#5F6F89] uppercase tracking-widest leading-relaxed max-w-xs sm:max-w-sm mx-auto">Follow the clinical directive. Timestamps are logged on execution.</p>
                                             </div>
-                                            <button className="flex items-center gap-3 mx-auto px-10 py-5 bg-[#1E88E5] text-white rounded-2xl transition-all font-bold uppercase tracking-widest text-[12px] shadow-lg shadow-blue-500/10 hover:bg-[#1565C0]">
+                                            <button className="flex items-center gap-3 mx-auto px-8 sm:px-10 py-4 sm:py-5 bg-[#1E88E5] text-white rounded-2xl transition-all font-bold uppercase tracking-widest text-[11px] sm:text-[12px] shadow-lg shadow-blue-500/10 hover:bg-[#1565C0]">
                                                 Launch Protocol Video
                                             </button>
                                         </motion.div>
                                     )}
 
                                     {collectionStep === 2 && (
-                                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-8">
-                                            <div className="p-6 bg-[#F0F6FF] border border-[#E3F2FD] rounded-3xl space-y-3">
+                                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6 sm:space-y-8">
+                                            <div className="p-5 sm:p-6 bg-[#F0F6FF] border border-[#E3F2FD] rounded-2xl sm:rounded-3xl space-y-2 sm:space-y-3">
                                                 <div className="flex items-center gap-3 text-[#1E88E5]">
-                                                    <Package className="w-5 h-5" />
-                                                    <span className="text-[11px] font-bold uppercase tracking-widest">Containment Directive</span>
+                                                    <Package className="w-4 h-4 sm:w-5 h-5" />
+                                                    <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-widest">Containment Directive</span>
                                                 </div>
-                                                <p className="text-[13px] font-bold text-[#5F6F89] uppercase tracking-widest leading-relaxed">Seal all specimens in secondary containment biohazard assets.</p>
+                                                <p className="text-[12px] sm:text-[13px] font-bold text-[#5F6F89] uppercase tracking-widest leading-relaxed">Seal all specimens in secondary containment biohazard assets.</p>
                                             </div>
                                             <Checklist
                                                 items={stepItems[2]}
@@ -516,13 +526,13 @@ const StudyKitView = ({ onAction, study, kits: initialKits = [], isLoading = fal
                                     )}
 
                                     {collectionStep === 3 && (
-                                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-8">
-                                            <div className="p-6 bg-[#E8F5E9] border border-[#C8E6C9] rounded-3xl space-y-3">
+                                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6 sm:space-y-8">
+                                            <div className="p-5 sm:p-6 bg-[#E8F5E9] border border-[#C8E6C9] rounded-2xl sm:rounded-3xl space-y-2 sm:space-y-3">
                                                 <div className="flex items-center gap-3 text-[#2E7D32]">
-                                                    <Ship className="w-5 h-5" />
-                                                    <span className="text-[11px] font-bold uppercase tracking-widest">Return Logistics</span>
+                                                    <Ship className="w-4 h-4 sm:w-5 h-5" />
+                                                    <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-widest">Return Logistics</span>
                                                 </div>
-                                                <p className="text-[13px] font-bold text-[#5F6F89] uppercase tracking-widest leading-relaxed">Affix encrypted return label and transfer to logistics provider.</p>
+                                                <p className="text-[12px] sm:text-[13px] font-bold text-[#5F6F89] uppercase tracking-widest leading-relaxed">Affix encrypted return label and transfer to logistics provider.</p>
                                             </div>
                                             <Checklist
                                                 items={stepItems[3]}
@@ -533,11 +543,11 @@ const StudyKitView = ({ onAction, study, kits: initialKits = [], isLoading = fal
                                     )}
                                 </div>
 
-                                <div className="flex gap-4 pt-10 border-t border-[#F8FBFF]">
+                                <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-8 sm:pt-10 border-t border-[#F8FBFF]">
                                     <button
                                         disabled={collectionStep === 0}
                                         onClick={() => setCollectionStep(s => Math.max(0, s - 1))}
-                                        className="flex-1 py-5 bg-[#F8FBFF] text-[#8A99B3] rounded-2xl font-bold uppercase tracking-widest text-[12px] hover:text-[#1A2B49] transition-all disabled:opacity-30 border border-[#E3ECF5]"
+                                        className="w-full sm:flex-1 py-4 sm:py-5 bg-[#F8FBFF] text-[#8A99B3] rounded-2xl font-bold uppercase tracking-widest text-[11px] sm:text-[12px] hover:text-[#1A2B49] transition-all disabled:opacity-30 border border-[#E3ECF5]"
                                     >
                                         Go Back
                                     </button>
@@ -551,7 +561,7 @@ const StudyKitView = ({ onAction, study, kits: initialKits = [], isLoading = fal
                                                 setCollectionStep(s => s + 1);
                                             }
                                         }}
-                                        className={`flex-1 py-5 rounded-2xl font-bold uppercase tracking-widest text-[12px] transition-all shadow-lg ${!isStepValid ? 'bg-[#E3ECF5] text-[#B0BCCF] cursor-not-allowed' : 'bg-[#1E88E5] text-white hover:bg-[#1565C0]'}`}
+                                        className={`w-full sm:flex-1 py-4 sm:py-5 rounded-2xl font-bold uppercase tracking-widest text-[11px] sm:text-[12px] transition-all shadow-lg ${!isStepValid ? 'bg-[#E3ECF5] text-[#B0BCCF] cursor-not-allowed' : 'bg-[#1E88E5] text-white hover:bg-[#1565C0]'}`}
                                     >
                                         {collectionStep === collectionSteps.length - 1 ? 'Submit Submission' : 'Next Step'}
                                     </button>

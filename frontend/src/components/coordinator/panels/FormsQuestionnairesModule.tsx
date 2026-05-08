@@ -144,8 +144,8 @@ export default function FormsQuestionnairesModule({ selectedStudyId }: { selecte
 
     const stats = useMemo(() => {
         if (!forms?.length) return { completion: '0%', pending: 0, queries: 0, synced: 0 };
-        const completed = forms.filter(f => f.status === 'COMPLETED').length;
-        const pending = forms.filter(f => f.status === 'PENDING').length;
+        const completed = forms.filter(f => f.status === 'COMPLETED' || f.status === 'LATE').length;
+        const pending = forms.filter(f => f.status === 'PENDING' || f.status === 'IN_PROGRESS').length;
         const queries = forms.filter(f => f.status === 'PARTICIPANT_SIGNED').length;
         
         return {

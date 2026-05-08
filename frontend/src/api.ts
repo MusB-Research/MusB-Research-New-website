@@ -147,6 +147,14 @@ export const markAllNotificationsRead = () =>
 export const deleteNotification = (id: string) => 
     apiFetch<any>(`/api/notifications/${id}/`, { method: 'DELETE' });
 
+export const fetchConsents = (studyId?: string, participantId?: string) => {
+    const params = new URLSearchParams();
+    if (studyId && studyId !== 'all') params.set('study_id', studyId);
+    if (participantId) params.set('participant_id', participantId);
+    const qs = params.toString() ? `?${params}` : '';
+    return apiFetch<any[]>(`/api/consent/${qs}`);
+};
+
 export { apiFetch };
 
 

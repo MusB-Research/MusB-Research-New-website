@@ -126,6 +126,7 @@ export default function AcceptInvitation() {
       <div style={styles.card}>
         {/* Header */}
         <div style={styles.header}>
+          <img src="/logo.jpg" alt="MusB Research" style={{ height: 50, objectFit: 'contain', margin: '0 auto 12px', display: 'block', borderRadius: 8 }} />
           <div style={styles.logo}>MusB Research</div>
           <div style={styles.tagline}>Clinical Operations Program</div>
         </div>

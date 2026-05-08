@@ -30,6 +30,7 @@ interface OversightModuleProps {
     stats: Stats;
     currentTime: Date;
     visits: Visit[];
+    tasks?: any[];
     onLaunch: () => void;
     onNavigate: (id: string) => void;
     isAdmin?: boolean;
@@ -69,7 +70,8 @@ export const OperationsOversight: React.FC<OversightModuleProps> = ({
     });
 
     const getVisitsForDay = (date: Date) => {
-        return visits.filter(v => {
+        return (visits || []).filter(v => {
+            if (!v.scheduled_date) return false;
             const vDate = new Date(v.scheduled_date);
             return vDate.getDate() === date.getDate() &&
                 vDate.getMonth() === date.getMonth() &&
@@ -142,7 +144,7 @@ export const OperationsOversight: React.FC<OversightModuleProps> = ({
                     <div className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
                     <h3 className="text-[11px] font-black text-slate-500 tracking-[0.4em] uppercase italic">Critical Operations Queue</h3>
                 </div>
-                <div className={`grid ${isMobile ? 'grid-cols-1' : 'grid-cols-3'} gap-6`}>
+                <div className={`grid ${isMobile ? 'grid-cols-1' : isTablet ? 'grid-cols-2' : 'grid-cols-3'} gap-6`}>
                     {isLoading ? (
                         Array.from({ length: 3 }).map((_, i) => (
                             <div key={i} className="flex items-center justify-between p-6 bg-[#0B101B]/20 border border-white/5 rounded-[2rem]">
@@ -177,10 +179,10 @@ export const OperationsOversight: React.FC<OversightModuleProps> = ({
             </div>
 
             {/* Calendar & Next Section */}
-            <div className={`grid grid-cols-1 ${isMobile ? '' : 'lg:grid-cols-12'} gap-10 pt-6`}>
+            <div className={`grid grid-cols-1 ${isMobile ? '' : 'lg:grid-cols-12 items-stretch'} gap-10 pt-6`}>
                 {/* Calendar Side */}
-                <div className={`${isMobile ? '' : 'lg:col-span-8'} space-y-8`}>
-                    <div className="flex items-center justify-between">
+                <div className={`${isMobile ? '' : 'lg:col-span-8'} flex flex-col justify-between gap-8 h-full`}>
+                    <div className="flex items-center justify-between shrink-0">
                         <div className="flex items-center gap-3">
                             <CalendarDays className="w-4 h-4 text-slate-600" />
                             <h3 className="text-[11px] font-black text-slate-500 tracking-[0.4em] uppercase italic">Visit Scheduler</h3>
@@ -192,7 +194,7 @@ export const OperationsOversight: React.FC<OversightModuleProps> = ({
                         </div>
                     </div>
 
-                    <div className="bg-[#0B101B]/50 backdrop-blur-2xl border border-white/5 rounded-[3rem] p-6 md:p-10 shadow-2xl relative overflow-hidden">
+                    <div className="bg-[#0B101B]/50 backdrop-blur-2xl border border-white/5 rounded-[3rem] p-6 md:p-10 shadow-2xl relative overflow-hidden flex-1 flex flex-col justify-center">
                         <div className="grid grid-cols-7 gap-2 md:gap-4">
                             {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, i) => (
                                 <div key={i} className="text-center text-[9px] md:text-[10px] font-black text-slate-700 py-4 tracking-widest uppercase italic">
@@ -243,14 +245,14 @@ export const OperationsOversight: React.FC<OversightModuleProps> = ({
                 </div>
 
                 {/* What's Next Side */}
-                <div className={`${isMobile ? '' : 'lg:col-span-4'} space-y-8`}>
-                    <div className="flex items-center gap-3">
+                <div className={`${isMobile ? '' : 'lg:col-span-4'} flex flex-col justify-between gap-8 h-full`}>
+                    <div className="flex items-center gap-3 shrink-0">
                         <Target className="w-4 h-4 text-slate-600" />
                         <h3 className="text-[11px] font-black text-slate-500 tracking-[0.4em] uppercase italic">Priority Pipeline</h3>
                     </div>
-                    <div className="bg-[#0B101B]/50 backdrop-blur-2xl border border-white/5 rounded-[3rem] overflow-hidden shadow-2xl flex flex-col h-full">
+                    <div className="bg-[#0B101B]/50 backdrop-blur-2xl border border-white/5 rounded-[3rem] overflow-hidden shadow-2xl flex flex-col flex-1 h-full min-h-[360px] justify-between">
                         <div className="divide-y divide-white/5 overflow-y-auto custom-scrollbar flex-1">
-                            {visits.filter(v => v.status === 'SCHEDULED' || v.status === 'PENDING').sort((a, b) => new Date(a.scheduled_date).getTime() - new Date(b.scheduled_date).getTime()).slice(0, 6).map((v, i) => (
+                            {(visits || []).filter(v => v.status === 'SCHEDULED' || v.status === 'PENDING').sort((a, b) => new Date(a.scheduled_date).getTime() - new Date(b.scheduled_date).getTime()).slice(0, 6).map((v, i) => (
                                 <div
                                     key={i}
                                     className="p-8 hover:bg-white/[0.04] transition-all cursor-pointer group relative overflow-hidden"
@@ -276,7 +278,7 @@ export const OperationsOversight: React.FC<OversightModuleProps> = ({
                                     </div>
                                 </div>
                             ))}
-                            {visits.length === 0 && (
+                            {(visits || []).length === 0 && (
                                 <div className="p-16 text-center text-slate-600 text-xs italic uppercase tracking-widest opacity-50">No priority visits in queue</div>
                             )}
                         </div>

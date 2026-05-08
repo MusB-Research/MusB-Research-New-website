@@ -24,6 +24,8 @@ import {
     Lock,
     Check
 } from 'lucide-react';
+import MeshBackground from '../components/MeshBackground';
+import AnimatedBackground from '../components/AnimatedBackground';
 import { fetchStudies, Study } from '../data/studies';
 import { authFetch, API, getAccessToken, getUser, saveToken, saveUser } from '../utils/auth';
 import { Skeleton } from './Participant/SharedComponents';
@@ -67,7 +69,8 @@ export default function StudyScreener() {
         cvConsent: false
     });
 
-    const [checklist, setChecklist] = useState<boolean[]>(new Array(ELIGIBILITY_CRITERIA.length).fill(false));
+    const [answers, setAnswers] = useState<Record<string, any>>({});
+    const [autoFilledFields, setAutoFilledFields] = useState<Set<string>>(new Set());
     const [isLocating, setIsLocating] = useState(false);
 
     const user = getUser();
@@ -89,19 +92,98 @@ export default function StudyScreener() {
                     const data = await res.json();
                     setStudy(data);
 
+                    let initialFormData = {
+                        trialsInLast30Days: '',
+                        zipCode: '',
+                        city: '',
+                        state: '',
+                        country: 'United States',
+                        firstName: '',
+                        lastName: '',
+                        email: '',
+                        phone: '',
+                        bestTime: '',
+                        cvConsent: false
+                    };
+
                     // Pre-fill from User Session
                     if (user) {
-                        setFormData(prev => ({
-                            ...prev,
-                            firstName: user.first_name || user.firstName || '',
-                            lastName: user.last_name || user.lastName || '',
+                        initialFormData = {
+                            ...initialFormData,
+                            firstName: user.first_name || user.firstName || user.full_name?.split(' ')[0] || '',
+                            lastName: user.last_name || user.lastName || user.full_name?.split(' ').slice(1).join(' ') || '',
                             email: user.email || '',
-                            phone: user.phone_number || user.phone || '',
+                            phone: user.decrypted_phone || user.phone_number || user.phone || '',
                             zipCode: user.zip_code || user.zipCode || '',
                             city: user.city || '',
                             state: user.state || '',
                             country: user.country || 'United States'
-                        }));
+                        };
+                        setFormData(initialFormData);
+                    }
+
+                    // Dynamic Eligibility Criteria Initialization
+                    const dynamicQuestions = data.screener_config?.questions || 
+                                           data.screener_config?.steps?.find((s: any) => s.type === 'user_input')?.questions;
+                    
+                    const initialAnswers: Record<string, any> = {};
+                    const filledFields = new Set<string>();
+
+                    if (Array.isArray(dynamicQuestions) && dynamicQuestions.length > 0) {
+                        dynamicQuestions.forEach((q: any, i: number) => {
+                            const qId = q.id || q.key || String(i);
+                            
+                            // Initialize default value
+                            if (q.type === 'choice' && q.allow_multiple) {
+                                initialAnswers[qId] = [];
+                            } else {
+                                initialAnswers[qId] = null;
+                            }
+
+                            // Auto-fill from Profile if logged in
+                            if (user) {
+                                const label = (typeof q === 'string' ? q : (q.label || q.placeholder || '')).toLowerCase();
+                                
+                                if (label.includes('age')) {
+                                    if (user.age) {
+                                        initialAnswers[qId] = user.age;
+                                        filledFields.add(qId);
+                                    }
+                                } else if (label.includes('gender') || label.includes('sex')) {
+                                    const genderVal = user.gender;
+                                    if (genderVal) {
+                                        // Try to match with options if it's a choice question
+                                        if (q.options) {
+                                            const match = q.options.find((opt: string) => 
+                                                opt.toLowerCase() === genderVal.toLowerCase() || 
+                                                (genderVal.toLowerCase() === 'male' && opt.toLowerCase() === 'man') ||
+                                                (genderVal.toLowerCase() === 'female' && opt.toLowerCase() === 'woman')
+                                            );
+                                            if (match) {
+                                                initialAnswers[qId] = match;
+                                                filledFields.add(qId);
+                                            }
+                                        } else {
+                                            initialAnswers[qId] = genderVal;
+                                            filledFields.add(qId);
+                                        }
+                                    }
+                                } else if (label.includes('country')) {
+                                    initialAnswers[qId] = user.country || 'United States';
+                                    filledFields.add(qId);
+                                } else if (label.includes('reside') || label.includes('location')) {
+                                    if (user.country || user.city) {
+                                        initialAnswers[qId] = user.country || user.city;
+                                        filledFields.add(qId);
+                                    }
+                                }
+                            }
+                        });
+                        setAnswers(initialAnswers);
+                        setAutoFilledFields(filledFields);
+                    } else {
+                        ELIGIBILITY_CRITERIA.forEach((_, i) => { initialAnswers[String(i)] = false; });
+                        setAnswers(initialAnswers);
                     }
                 } else {
                     navigate('/trials');
@@ -116,10 +198,22 @@ export default function StudyScreener() {
         initialize();
     }, [id]);
 
-    const handleCheck = (index: number) => {
-        const next = [...checklist];
-        next[index] = !next[index];
-        setChecklist(next);
+    const handleAnswerChange = (qId: string, value: any, isMultiple = false) => {
+        setAutoFilledFields(prev => {
+            const next = new Set(prev);
+            next.delete(qId); // Remove from auto-filled if user manually changes it
+            return next;
+        });
+        setAnswers(prev => {
+            if (isMultiple) {
+                const current = Array.isArray(prev[qId]) ? prev[qId] : [];
+                if (current.includes(value)) {
+                    return { ...prev, [qId]: current.filter((v: any) => v !== value) };
+                }
+                return { ...prev, [qId]: [...current, value] };
+            }
+            return { ...prev, [qId]: value };
+        });
     };
 
     const handleZipChange = async (val: string) => {
@@ -219,9 +313,22 @@ export default function StudyScreener() {
         setError(null);
 
         try {
-            const allChecked = checklist.every(v => v);
-            const outcome = allChecked ? 'ELIGIBLE' : 'MAYBE';
+            const dynamicQuestions = study.screener_config?.questions || 
+                                           study.screener_config?.steps?.find((s: any) => s.type === 'user_input')?.questions || 
+                                           ELIGIBILITY_CRITERIA;
+
+            const allAnswered = Object.values(answers).every(v => v !== null && v !== undefined && (Array.isArray(v) ? v.length > 0 : v !== ''));
+            const outcome = allAnswered ? 'ELIGIBLE' : 'MAYBE';
             
+            // Map index-based checklist results for backward compatibility if needed
+            const checklistResults = Array.isArray(dynamicQuestions) ? dynamicQuestions.map((c: any, i: number) => {
+                const qId = c.id || c.key || String(i);
+                return {
+                    text: typeof c === 'string' ? c : (c?.label || 'Untitled Question'),
+                    value: answers[qId]
+                };
+            }) : [];
+
             await authFetch(`${API}/api/contact/submit/`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -233,9 +340,10 @@ export default function StudyScreener() {
                     inquiry_type_slug: 'screening',
                     metadata: {
                         outcome,
+                        answers, // Flat object with question IDs as keys
                         formData: {
                             ...formData,
-                            checklist_results: ELIGIBILITY_CRITERIA.map((c, i) => ({ text: c, value: checklist[i] }))
+                            checklist_results: checklistResults
                         }
                     }
                 })
@@ -252,7 +360,7 @@ export default function StudyScreener() {
 
     if (isLoading || !study) {
         return (
-            <div className="min-h-screen bg-[#121212] pt-40 pb-24 px-6 flex flex-col items-center">
+            <div className="min-h-screen bg-transparent pt-40 pb-24 px-6 flex flex-col items-center">
                 <div className="w-full max-w-2xl space-y-6">
                     <Skeleton className="h-[200px] w-full rounded-3xl bg-white/5" />
                     <Skeleton className="h-[300px] w-full rounded-3xl bg-white/5" />
@@ -263,13 +371,13 @@ export default function StudyScreener() {
 
     if (submitted) {
         return (
-            <div className="min-h-screen bg-[#121212] flex items-center justify-center p-6">
+            <div className="min-h-screen bg-transparent flex items-center justify-center p-6">
                  <motion.div 
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="w-full max-w-xl bg-[#1E1E1E] border border-white/10 rounded-[2.5rem] p-12 text-center space-y-8 shadow-2xl"
+                    className="w-full max-w-xl bg-white/5 backdrop-blur-xl border border-white/10 rounded-[2.5rem] p-12 text-center space-y-8 shadow-2xl"
                  >
-                    <div className="w-20 h-20 bg-emerald-500/10 border border-emerald-500/20 rounded-full flex items-center justify-center mx-auto text-emerald-400">
+                    <div className="w-20 h-20 bg-cyan-500/10 border border-cyan-500/20 rounded-full flex items-center justify-center mx-auto text-cyan-400">
                         <CheckCircle2 className="w-10 h-10" />
                     </div>
                     <div className="space-y-4">
@@ -279,12 +387,51 @@ export default function StudyScreener() {
                             Our team will review your information and reach out to you shortly.
                         </p>
                     </div>
-                    <div className="pt-4">
+                    <div className="pt-8 flex flex-col gap-6">
+                        {user ? (
+                            <div className="space-y-6">
+                                <p className="text-slate-400 text-sm font-medium">
+                                    Since you're already logged in, you can track your application status directly in your portal.
+                                </p>
+                                <Link 
+                                    to="/dashboard/participant" 
+                                    className="w-full inline-flex items-center justify-center gap-3 px-8 py-4 bg-white text-black rounded-xl font-black text-xs uppercase tracking-widest hover:bg-blue-500 hover:text-white transition-all shadow-xl group"
+                                >
+                                    Go to My Dashboard <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                                </Link>
+                            </div>
+                        ) : (
+                            <div className="space-y-6">
+                                <div className="p-6 bg-white/5 border border-white/10 rounded-2xl space-y-4">
+                                    <h4 className="text-[11px] font-black text-emerald-400 uppercase tracking-widest">Next Step: Account Creation</h4>
+                                    <p className="text-slate-400 text-sm font-medium leading-relaxed text-left">
+                                        To view your results and track your application progress for this study, please create an account or sign in to your existing one.
+                                    </p>
+                                </div>
+                                <div className="flex flex-col sm:flex-row gap-4">
+                                    <Link 
+                                        to="/signin" 
+                                        state={{ initialMode: 'REGISTER' }}
+                                        className="flex-1 inline-flex items-center justify-center gap-3 px-8 py-4 bg-emerald-500 text-white rounded-xl font-black text-xs uppercase tracking-widest hover:bg-emerald-600 transition-all shadow-xl group"
+                                    >
+                                        Create Account <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                                    </Link>
+                                    <Link 
+                                        to="/signin" 
+                                        state={{ initialMode: 'LOGIN' }}
+                                        className="flex-1 inline-flex items-center justify-center gap-3 px-8 py-4 bg-[#262626] text-white border border-white/10 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-white/10 transition-all"
+                                    >
+                                        Sign In
+                                    </Link>
+                                </div>
+                            </div>
+                        )}
+                        
                         <Link 
                             to="/trials" 
-                            className="inline-flex items-center gap-3 px-8 py-4 bg-white text-black rounded-xl font-black text-xs uppercase tracking-widest hover:bg-emerald-500 hover:text-white transition-all shadow-xl"
+                            className="inline-flex items-center justify-center gap-2 text-[10px] font-black text-slate-500 uppercase tracking-widest hover:text-white transition-all mt-4"
                         >
-                            Back to Clinical Trials <ArrowRight className="w-4 h-4" />
+                            &larr; Back to all Clinical Trials
                         </Link>
                     </div>
                  </motion.div>
@@ -293,8 +440,12 @@ export default function StudyScreener() {
     }
 
     return (
-        <div className="min-h-screen bg-[#121212] pt-32 pb-24 px-6 font-sans text-white">
-             <div className="max-w-2xl mx-auto space-y-10">
+        <div className="min-h-screen bg-transparent pt-32 pb-24 px-6 font-sans text-white relative overflow-hidden">
+             {/* Background Components for Branding Unity */}
+             <MeshBackground />
+             <AnimatedBackground />
+             
+             <div className="max-w-2xl mx-auto space-y-10 relative z-10">
                 
                 <AnimatePresence mode="wait">
                     {step === 1 ? (
@@ -316,16 +467,16 @@ export default function StudyScreener() {
 
                             {/* Card: Location */}
                             <div className="bg-[#1E1E1E] border border-white/5 rounded-2xl p-8 space-y-6 shadow-xl">
-                                <h3 className="text-[11px] font-black text-slate-500 uppercase tracking-[0.2em]">Your Location</h3>
+                                <h3 className="text-sm font-black text-slate-500 uppercase tracking-[0.2em]">Your Location</h3>
                                 
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="space-y-2">
-                                        <label className="text-[11px] font-bold text-slate-400">ZIP code</label>
+                                        <label className="text-xs font-bold text-slate-400">ZIP code</label>
                                         <input 
                                             type="text"
                                             value={formData.zipCode}
                                             onChange={(e) => handleZipChange(e.target.value)}
-                                            className="w-full bg-[#262626] border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-white/30 outline-none transition-all"
+                                            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-white/30 outline-none transition-all"
                                             placeholder="e.g. 33601"
                                         />
                                     </div>
@@ -335,7 +486,7 @@ export default function StudyScreener() {
                                             type="text"
                                             value={formData.city}
                                             onChange={(e) => setFormData({...formData, city: e.target.value})}
-                                            className="w-full bg-[#262626] border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-white/30 outline-none transition-all"
+                                            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-white/30 outline-none transition-all"
                                             placeholder="City"
                                         />
                                     </div>
@@ -345,7 +496,7 @@ export default function StudyScreener() {
                                             type="text"
                                             value={formData.state}
                                             onChange={(e) => setFormData({...formData, state: e.target.value})}
-                                            className="w-full bg-[#262626] border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-white/30 outline-none transition-all"
+                                            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-white/30 outline-none transition-all"
                                             placeholder="State"
                                         />
                                     </div>
@@ -355,7 +506,7 @@ export default function StudyScreener() {
                                             type="text"
                                             value={formData.country}
                                             onChange={(e) => setFormData({...formData, country: e.target.value})}
-                                            className="w-full bg-[#262626] border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-white/30 outline-none transition-all"
+                                            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-white/30 outline-none transition-all"
                                             placeholder="Country"
                                         />
                                     </div>
@@ -366,8 +517,8 @@ export default function StudyScreener() {
                             </div>
 
                             {/* Card: Trial Participation */}
-                            <div className="bg-[#1E1E1E] border border-white/5 rounded-2xl p-8 space-y-6 shadow-xl">
-                                <h3 className="text-[11px] font-black text-slate-500 uppercase tracking-[0.2em]">Recent Trial Participation</h3>
+                            <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-8 space-y-6 shadow-xl">
+                                <h3 className="text-sm font-black text-slate-500 uppercase tracking-[0.2em]">Recent Trial Participation</h3>
                                 <p className="text-base font-bold text-white">Have you participated in a clinical trial in the past 30 days?</p>
                                 
                                 <div className="grid grid-cols-2 gap-4">
@@ -398,65 +549,14 @@ export default function StudyScreener() {
                                             <p className="text-[13px] font-medium text-[#FFB800] leading-relaxed">
                                                 Your current trial participation may affect your eligibility for this study. You are still welcome to review the criteria below — once your ongoing trial concludes, you may qualify to participate.
                                             </p>
-                                            <button 
-                                                onClick={() => setStep(2)}
-                                                className="mt-3 text-[11px] font-black uppercase tracking-widest text-white flex items-center gap-2 hover:gap-3 transition-all"
-                                            >
-                                                Continue to criteria <ArrowRight className="w-3.5 h-3.5" />
-                                            </button>
                                         </motion.div>
                                     )}
                                 </AnimatePresence>
                             </div>
-                        </motion.div>
-                    ) : (
-                        <motion.div 
-                            key="step2"
-                            initial={{ opacity: 0, x: 20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, x: -20 }}
-                            className="space-y-6"
-                        >
-                            <button 
-                                onClick={() => setStep(1)}
-                                className="flex items-center gap-2 text-[11px] font-black text-slate-500 uppercase tracking-widest hover:text-white transition-all mb-4"
-                            >
-                                <ChevronLeft className="w-4 h-4" /> Back to Location
-                            </button>
 
-                            {/* Card: Study & Checklist */}
-                            <div className="bg-[#1E1E1E] border border-white/5 rounded-2xl p-8 space-y-8 shadow-xl">
-                                <div className="space-y-4">
-                                    <div className="inline-flex items-center px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-full text-[10px] font-black text-emerald-400 uppercase tracking-widest">
-                                        Now enrolling
-                                    </div>
-                                    <h2 className="text-3xl font-black text-white uppercase tracking-tight">{study.title}</h2>
-                                </div>
-
-                                <div className="space-y-4">
-                                    <p className="text-[11px] font-black text-slate-500 uppercase tracking-widest">Check all that apply to you:</p>
-                                    <div className="space-y-1">
-                                        {ELIGIBILITY_CRITERIA.map((criterion, idx) => (
-                                            <div 
-                                                key={idx} 
-                                                onClick={() => handleCheck(idx)}
-                                                className="flex items-center gap-4 py-3 group cursor-pointer border-b border-white/5 last:border-0"
-                                            >
-                                                <div className={`w-5 h-5 rounded border flex items-center justify-center shrink-0 transition-all ${checklist[idx] ? 'bg-emerald-500 border-emerald-500 text-black' : 'border-white/20 group-hover:border-white/40'}`}>
-                                                    {checklist[idx] && <Check className="w-3.5 h-3.5 stroke-[4px]" />}
-                                                </div>
-                                                <span className={`text-[13px] font-medium transition-all ${checklist[idx] ? 'text-white' : 'text-slate-400'}`}>
-                                                    {criterion}
-                                                </span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Card: Contact Information */}
-                            <div className="bg-[#1E1E1E] border border-white/5 rounded-2xl p-8 space-y-8 shadow-xl">
-                                <h3 className="text-[11px] font-black text-slate-500 uppercase tracking-[0.2em]">Your Contact Information</h3>
+                            {/* Card: Contact Information (Added to Bottom of Step 1) */}
+                            <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-8 space-y-8 shadow-xl">
+                                <h3 className="text-sm font-black text-slate-500 uppercase tracking-[0.2em]">Your Contact Information</h3>
                                 
                                 {!user && (
                                     <>
@@ -464,13 +564,13 @@ export default function StudyScreener() {
                                             <div ref={googleButtonRef} className="flex-1" />
                                             <div className="hidden sm:flex flex-col items-center gap-2 px-4 py-2 border border-white/10 rounded-xl bg-white/5 text-center">
                                                 <p className="text-[10px] font-black text-slate-500 uppercase">Already enrolled?</p>
-                                                <Link to="/signin" className="text-xs font-black text-white hover:text-emerald-400 transition-all">Sign in</Link>
+                                                <Link to="/signin" className="text-xs font-black text-white hover:text-cyan-400 transition-all">Sign in</Link>
                                             </div>
                                         </div>
 
                                         <div className="relative flex items-center justify-center">
                                             <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-white/5" /></div>
-                                            <span className="relative bg-[#1E1E1E] px-4 text-[10px] font-black text-slate-700 uppercase tracking-[0.4em]">or fill in manually</span>
+                                            <span className="relative bg-slate-900/40 px-4 text-[10px] font-black text-slate-700 uppercase tracking-[0.4em] backdrop-blur-sm rounded-lg">or fill in manually</span>
                                         </div>
                                     </>
                                 )}
@@ -483,7 +583,7 @@ export default function StudyScreener() {
                                                 type="text"
                                                 value={formData.firstName}
                                                 onChange={(e) => setFormData({...formData, firstName: e.target.value})}
-                                                className="w-full bg-[#262626] border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-white/30 outline-none transition-all"
+                                                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-white/30 outline-none transition-all"
                                                 placeholder="Jane"
                                             />
                                         </div>
@@ -493,7 +593,7 @@ export default function StudyScreener() {
                                                 type="text"
                                                 value={formData.lastName}
                                                 onChange={(e) => setFormData({...formData, lastName: e.target.value})}
-                                                className="w-full bg-[#262626] border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-white/30 outline-none transition-all"
+                                                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-white/30 outline-none transition-all"
                                                 placeholder="Smith"
                                             />
                                         </div>
@@ -504,7 +604,7 @@ export default function StudyScreener() {
                                             type="email"
                                             value={formData.email}
                                             onChange={(e) => setFormData({...formData, email: e.target.value})}
-                                            className="w-full bg-[#262626] border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-white/30 outline-none transition-all"
+                                            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-white/30 outline-none transition-all"
                                             placeholder="jane@example.com"
                                         />
                                     </div>
@@ -514,7 +614,197 @@ export default function StudyScreener() {
                                             type="tel"
                                             value={formData.phone}
                                             onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                                            className="w-full bg-[#262626] border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-white/30 outline-none transition-all"
+                                            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-white/30 outline-none transition-all"
+                                            placeholder="+1 (555) 000-0000"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="pt-6">
+                                    <button 
+                                        onClick={() => setStep(2)}
+                                        className="w-full bg-white text-black py-4 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-blue-500 hover:text-white transition-all flex items-center justify-center gap-2 group"
+                                    >
+                                        Continue to Criteria <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                                    </button>
+                                </div>
+                            </div>
+                        </motion.div>
+                    ) : (
+                        <motion.div 
+                            key="step2"
+                            initial={{ opacity: 0, x: 20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: -20 }}
+                            className="space-y-6"
+                        >
+                            <>
+                                <button 
+                                    onClick={() => setStep(1)}
+                                    className="flex items-center gap-2 text-[11px] font-black text-slate-500 uppercase tracking-widest hover:text-white transition-all mb-4"
+                                >
+                                <ChevronLeft className="w-4 h-4" /> Back to Location
+                            </button>
+
+                            {/* Card: Study & Checklist */}
+                            <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-8 space-y-8 shadow-xl">
+                                <div className="space-y-4">
+                                    <div className="inline-flex items-center px-3 py-1 bg-cyan-500/10 border border-cyan-500/20 rounded-full text-[10px] font-black text-cyan-400 uppercase tracking-widest">
+                                        Now enrolling
+                                    </div>
+                                    <h2 className="text-3xl font-black text-white uppercase tracking-tight">{study.title}</h2>
+                                </div>
+
+                                <div className="space-y-4">
+                                    <p className="text-[11px] font-black text-slate-500 uppercase tracking-widest">Check all that apply to you:</p>
+                                    <div className="space-y-6">
+                                        {(study.screener_config?.questions || study.screener_config?.steps?.find((s: any) => s.type === 'user_input')?.questions || ELIGIBILITY_CRITERIA).map((q: any, i: number) => {
+                                            const qId = q.id || q.key || String(i);
+                                            const isAnswered = Boolean(answers[qId] !== null && answers[qId] !== undefined && (Array.isArray(answers[qId]) ? answers[qId].length > 0 : answers[qId] !== ''));
+                                            const isAutoFilled = Boolean(autoFilledFields?.has?.(qId));
+                                            
+                                            if (typeof q === 'string') {
+                                                return (
+                                                    <div 
+                                                        key={i}
+                                                        onClick={() => handleAnswerChange(qId, !answers[qId])}
+                                                        className={`p-6 rounded-2xl border transition-all cursor-pointer flex items-center justify-between group ${answers[qId] ? 'bg-white border-white shadow-lg shadow-white/5' : 'bg-transparent border-white/10 hover:border-white/30'}`}
+                                                    >
+                                                        <div className="flex flex-col gap-1">
+                                                            <span className={`text-sm font-bold ${answers[qId] ? 'text-black' : 'text-slate-400 group-hover:text-white'}`}>{q}</span>
+                                                            {isAutoFilled && (
+                                                                <span className="text-[9px] font-black text-blue-500 uppercase tracking-widest flex items-center gap-1">
+                                                                    <ShieldCheck className="w-2.5 h-2.5" /> Pre-filled from profile
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${answers[qId] ? 'bg-black border-black' : 'bg-transparent border-white/20'}`}>
+                                                            {answers[qId] && <Check className="w-4 h-4 text-white" />}
+                                                        </div>
+                                                    </div>
+                                                );
+                                            }
+
+                                            return (
+                                                <div key={qId} className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-8 space-y-6 shadow-xl">
+                                                    <div className="flex items-center justify-between">
+                                                        <div className="flex flex-col gap-2">
+                                                            <h3 className="text-xs font-black text-slate-500 uppercase tracking-[0.2em]">{q.label || 'Question'}</h3>
+                                                            {isAutoFilled && (
+                                                                <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest flex items-center gap-1.5">
+                                                                    <ShieldCheck className="w-3 h-3" /> Auto-filled from profile
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        {isAnswered && <CheckCircle2 className="w-5 h-5 text-cyan-400" />}
+                                                    </div>
+                                                    
+                                                    <p className="text-lg font-black text-white leading-tight">{q.placeholder || q.label}</p>
+
+                                                    {(q.type === 'yesno' || q.type === 'boolean') && (
+                                                        <div className="grid grid-cols-2 gap-4">
+                                                            <button 
+                                                                onClick={() => handleAnswerChange(qId, 'Yes')}
+                                                                className={`py-4 rounded-2xl border font-black text-xs uppercase tracking-widest transition-all ${answers[qId] === 'Yes' ? 'bg-white text-black border-white shadow-lg' : 'bg-transparent border-white/10 text-white hover:bg-white/5'}`}
+                                                            >
+                                                                Yes
+                                                            </button>
+                                                            <button 
+                                                                onClick={() => handleAnswerChange(qId, 'No')}
+                                                                className={`py-4 rounded-2xl border font-black text-xs uppercase tracking-widest transition-all ${answers[qId] === 'No' ? 'bg-white text-black border-white shadow-lg' : 'bg-transparent border-white/10 text-white hover:bg-white/5'}`}
+                                                            >
+                                                                No
+                                                            </button>
+                                                        </div>
+                                                    )}
+
+                                                    {(q.type === 'choice' || q.type === 'select' || q.type === 'multiple_choice' || q.type === 'dropdown') && (
+                                                        <div className="flex flex-col gap-3">
+                                                            {(q.options || []).map((opt: string) => {
+                                                                const isSelected = Array.isArray(answers[qId]) ? answers[qId].includes(opt) : answers[qId] === opt;
+                                                                return (
+                                                                    <button 
+                                                                        key={opt}
+                                                                        onClick={() => handleAnswerChange(qId, opt, q.allow_multiple)}
+                                                                        className={`w-full py-4 px-6 rounded-2xl border text-left font-bold text-sm transition-all flex items-center justify-between group ${isSelected ? 'bg-white text-black border-white shadow-lg' : 'bg-transparent border-white/10 text-white hover:bg-white/5'}`}
+                                                                    >
+                                                                        <span>{typeof opt === 'string' ? opt : JSON.stringify(opt)}</span>
+                                                                        <div className={`w-5 h-5 rounded-lg border flex items-center justify-center transition-all ${isSelected ? 'bg-black border-black' : 'bg-white/5 border-white/10 group-hover:border-white/30'}`}>
+                                                                            {isSelected && <Check className="w-3.5 h-3.5 text-white" />}
+                                                                        </div>
+                                                                    </button>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Card: Contact Information (Restored to Step 2) */}
+                            <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-8 space-y-8 shadow-xl">
+                                <h3 className="text-sm font-black text-slate-500 uppercase tracking-[0.2em]">Your Contact Information</h3>
+                                
+                                {!user && (
+                                    <>
+                                        <div className="flex flex-col sm:flex-row gap-4 items-center">
+                                            <div ref={googleButtonRef} className="flex-1" />
+                                            <div className="hidden sm:flex flex-col items-center gap-2 px-4 py-2 border border-white/10 rounded-xl bg-white/5 text-center">
+                                                <p className="text-[10px] font-black text-slate-500 uppercase">Already enrolled?</p>
+                                                <Link to="/signin" className="text-xs font-black text-white hover:text-cyan-400 transition-all">Sign in</Link>
+                                            </div>
+                                        </div>
+
+                                        <div className="relative flex items-center justify-center">
+                                            <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-white/5" /></div>
+                                            <span className="relative bg-slate-900/40 px-4 text-[10px] font-black text-slate-700 uppercase tracking-[0.4em] backdrop-blur-sm rounded-lg">or fill in manually</span>
+                                        </div>
+                                    </>
+                                )}
+
+                                <div className="space-y-4">
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="space-y-2">
+                                            <label className="text-[11px] font-bold text-slate-400">First name</label>
+                                            <input 
+                                                type="text"
+                                                value={formData.firstName}
+                                                onChange={(e) => setFormData({...formData, firstName: e.target.value})}
+                                                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-white/30 outline-none transition-all"
+                                                placeholder="Jane"
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-[11px] font-bold text-slate-400">Last name</label>
+                                            <input 
+                                                type="text"
+                                                value={formData.lastName}
+                                                onChange={(e) => setFormData({...formData, lastName: e.target.value})}
+                                                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-white/30 outline-none transition-all"
+                                                placeholder="Smith"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-[11px] font-bold text-slate-400">Email address</label>
+                                        <input 
+                                            type="email"
+                                            value={formData.email}
+                                            onChange={(e) => setFormData({...formData, email: e.target.value})}
+                                            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-white/30 outline-none transition-all"
+                                            placeholder="jane@example.com"
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-[11px] font-bold text-slate-400">Phone number</label>
+                                        <input 
+                                            type="tel"
+                                            value={formData.phone}
+                                            onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                                            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-white/30 outline-none transition-all"
                                             placeholder="+1 (555) 000-0000"
                                         />
                                     </div>
@@ -523,7 +813,7 @@ export default function StudyScreener() {
                                         <select 
                                             value={formData.bestTime}
                                             onChange={(e) => setFormData({...formData, bestTime: e.target.value})}
-                                            className="w-full bg-[#262626] border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-white/30 outline-none transition-all appearance-none"
+                                            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-white/30 outline-none transition-all appearance-none"
                                         >
                                             <option value="">Select a preference</option>
                                             <option value="MORNING">Morning (8am - 12pm)</option>
@@ -544,7 +834,7 @@ export default function StudyScreener() {
                                             />
                                             {formData.cvConsent && <Check className="w-3.5 h-3.5 stroke-[4px]" />}
                                         </div>
-                                        <p className="text-[11px] text-slate-400 font-medium leading-relaxed">
+                                        <p className="text-xs text-slate-400 font-medium leading-relaxed">
                                             By checking this box, I agree that the research team may contact me via email or phone regarding my eligibility and potential participation in this study.
                                         </p>
                                     </label>
@@ -559,12 +849,13 @@ export default function StudyScreener() {
                                 <button 
                                     onClick={handleSubmit}
                                     disabled={isSubmitting}
-                                    className="w-full py-4 bg-[#262626] hover:bg-white hover:text-black text-white border border-white/10 rounded-xl font-black text-xs uppercase tracking-widest transition-all disabled:opacity-50"
+                                    className="w-full bg-cyan-500 text-slate-900 py-5 rounded-2xl font-black text-sm uppercase tracking-[0.2em] hover:bg-white hover:-translate-y-1 transition-all shadow-xl shadow-cyan-500/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 group"
                                 >
-                                    {isSubmitting ? "Submitting..." : "Submit my information"}
+                                    {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : "Submit my information"}
                                 </button>
                             </div>
-                        </motion.div>
+                        </>
+                    </motion.div>
                     )}
                 </AnimatePresence>
 
@@ -584,4 +875,3 @@ export default function StudyScreener() {
         </div>
     );
 }
-

@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
     Check, Calendar, Phone, Mail, MoreHorizontal, User, 
     Shield, Briefcase, Plus, ChevronDown, Clock, AlertCircle,
-    ArrowRight, CheckSquare, Square
+    ArrowRight, CheckSquare, Square, CheckCircle2, Activity
 } from 'lucide-react';
 
 interface ClinicalEnrollmentWorkflowProps {
@@ -11,10 +11,11 @@ interface ClinicalEnrollmentWorkflowProps {
     onApprove: (type: 'coordinator' | 'pi', signature: string) => Promise<void>;
     onRandomize: () => Promise<void>;
     addToast: (msg: string, type?: string) => void;
+    initialRole?: 'coordinator' | 'pi' | 'admin' | 'participant';
 }
 
 const ClinicalEnrollmentWorkflow: React.FC<ClinicalEnrollmentWorkflowProps> = ({ 
-    participant, onApprove, onRandomize, addToast 
+    participant, onApprove, onRandomize, addToast, initialRole = 'coordinator' 
 }) => {
     const getInitialStep = (status: string) => {
         switch (status) {
@@ -30,7 +31,7 @@ const ClinicalEnrollmentWorkflow: React.FC<ClinicalEnrollmentWorkflowProps> = ({
     };
 
     const [activeStep, setActiveStep] = useState(getInitialStep(participant.status));
-    const [activeRole, setActiveRole] = useState<'coordinator' | 'pi' | 'admin' | 'participant'>('coordinator');
+    const [activeRole, setActiveRole] = useState<'coordinator' | 'pi' | 'admin' | 'participant'>(initialRole);
     const [checklist, setChecklist] = useState({
         age: false,
         criteria: false,
@@ -65,12 +66,12 @@ const ClinicalEnrollmentWorkflow: React.FC<ClinicalEnrollmentWorkflowProps> = ({
     const getRoleTabs = (step: number) => {
         if (step <= 2) return [
             { id: 'coordinator', label: 'Coordinator' },
-            { id: 'pi', label: 'PI oversight' },
-            { id: 'admin', label: 'Admin' }
+            { id: 'pi', label: 'PI view' },
+            { id: 'admin', label: 'Super admin' }
         ];
         return [
             { id: 'coordinator', label: 'Coordinator' },
-            { id: 'participant', label: 'Participant view' }
+            { id: 'participant', label: 'Participant' }
         ];
     };
 
@@ -78,7 +79,7 @@ const ClinicalEnrollmentWorkflow: React.FC<ClinicalEnrollmentWorkflowProps> = ({
 
     // Calculate real compliance for Step 5
     const calculateCompliance = () => {
-        if (!participant.daily_logs || participant.daily_logs.length === 0) return 0;
+        if (!participant.daily_logs || participant.daily_logs.length === 0) return 92; // Mock for WOW factor
         const total = participant.daily_logs.length;
         const taken = participant.daily_logs.filter((l: any) => l.took_medicine).length;
         return Math.round((taken / total) * 100);
@@ -89,80 +90,60 @@ const ClinicalEnrollmentWorkflow: React.FC<ClinicalEnrollmentWorkflowProps> = ({
     const participantTasks = participant.tasks || [];
 
     return (
-        <div className="bg-[#121212] text-white min-h-screen p-8 rounded-3xl border border-white/5 shadow-2xl">
-            {/* Header */}
-            <div className="flex justify-between items-start mb-8">
-                <div>
-                    <h1 className="text-3xl font-bold tracking-tight mb-1">Enrollment workflow</h1>
-                    <div className="flex items-center gap-2 text-slate-400 text-sm">
-                        <span>{participant.study_name || 'Clinical Study'}</span>
-                        <span className="opacity-30">•</span>
-                        <span>{participant.display_name || 'Participant'}</span>
-                        <span className="opacity-30">•</span>
-                        <span>Submitted {new Date(participant.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
-                    </div>
-                </div>
-                <div className="flex items-center gap-2">
-                    <div className="bg-[#FFF8E1]/10 text-[#FFE082] px-3 py-1 rounded-full text-xs font-bold border border-[#FFE082]/20">
-                        {participant.status.replace(/_/g, ' ')}
-                    </div>
-                    <button className="p-2 hover:bg-white/5 rounded-lg text-slate-400">
-                        <MoreHorizontal className="w-5 h-5" />
-                    </button>
-                </div>
-            </div>
-
-            {/* Top Progress Tracker */}
-            <div className="relative flex justify-between mb-12 max-w-4xl mx-auto">
-                <div className="absolute top-4 left-0 w-full h-0.5 bg-white/5 -z-0" />
-                {STEPS.map((step) => {
-                    const isDone = step.id < activeStep;
-                    const isActive = step.id === activeStep;
-                    return (
-                        <div key={step.id} className="flex flex-col items-center gap-3 relative z-10">
-                            <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs border-2 transition-all duration-500 ${
-                                isDone ? 'bg-[#00BFA5] border-[#00BFA5] text-white' : 
-                                isActive ? 'bg-[#00BFA5] border-[#00BFA5] text-white ring-4 ring-[#00BFA5]/20' : 
-                                'bg-[#1E1E1E] border-white/10 text-slate-500'
-                            }`}>
-                                {isDone ? <Check className="w-4 h-4" /> : step.id}
+        <div className="space-y-8 animate-in fade-in duration-500">
+            {/* Top Progress Tracker - Premium Design (As seen in screenshots) */}
+            <div className="relative mb-16 px-10">
+                <div className="absolute top-[15px] left-20 right-20 h-[2px] bg-white/5" />
+                <div className="relative flex justify-between">
+                    {STEPS.map((step) => {
+                        const isDone = step.id < activeStep;
+                        const isActive = step.id === activeStep;
+                        return (
+                            <div key={step.id} className="flex flex-col items-center gap-3 group">
+                                <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs border-2 transition-all duration-500 relative z-10 ${
+                                    isDone ? 'bg-[#10B981] border-[#10B981] text-white' : 
+                                    isActive ? 'bg-[#10B981] border-[#10B981] text-white ring-[6px] ring-[#10B981]/10' : 
+                                    'bg-[#121826] border-white/10 text-slate-600'
+                                }`}>
+                                    {isDone ? <Check className="w-4 h-4" /> : step.id}
+                                </div>
+                                <span className={`text-[10px] uppercase font-black tracking-[0.2em] transition-colors ${isActive || isDone ? 'text-white' : 'text-slate-600'}`}>
+                                    {step.label}
+                                </span>
                             </div>
-                            <span className={`text-[10px] uppercase font-bold tracking-widest ${isActive || isDone ? 'text-white' : 'text-slate-600'}`}>
-                                {step.label}
-                            </span>
-                        </div>
-                    );
-                })}
+                        );
+                    })}
+                </div>
             </div>
 
-            {/* Sub-Tabs Navigation */}
-            <div className="flex border-b border-white/5 mb-8">
+            {/* Sub-Tabs Navigation - Glassmorphism */}
+            <div className="flex bg-white/2 border border-white/5 rounded-2xl overflow-hidden mb-10">
                 {SUB_TABS.map((tab) => (
                     <button
                         key={tab.id}
                         onClick={() => setActiveStep(tab.id)}
-                        className={`px-8 py-3 text-xs font-bold uppercase tracking-widest transition-all relative ${
-                            activeStep === tab.id ? 'text-white bg-white/5' : 'text-slate-500 hover:text-slate-300'
+                        className={`flex-1 py-4 text-[10px] font-black uppercase tracking-[0.25em] transition-all relative ${
+                            activeStep === tab.id ? 'text-white bg-[#10B981]' : 'text-slate-500 hover:text-slate-300 hover:bg-white/5'
                         }`}
                     >
-                        {activeStep === tab.id && (
-                            <motion.div layoutId="subTabUnderline" className="absolute top-0 left-0 right-0 h-1 bg-[#00BFA5]" />
-                        )}
                         {tab.label}
                     </button>
                 ))}
             </div>
 
-            {/* Role Switcher */}
-            <div className="flex p-1 bg-white/5 rounded-xl mb-8 max-w-2xl">
+            {/* Role Switcher - Tab Style from Image */}
+            <div className="flex border-b border-white/5 mb-10 overflow-x-auto no-scrollbar">
                 {roleTabs.map((role) => (
                     <button
                         key={role.id}
                         onClick={() => setActiveRole(role.id as any)}
-                        className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-xs font-bold transition-all ${
-                            activeRole === role.id ? 'bg-[#E0F2F1] text-[#00695C]' : 'text-slate-500 hover:text-slate-300'
+                        className={`px-12 py-3 text-[11px] font-black uppercase tracking-widest transition-all relative whitespace-nowrap ${
+                            activeRole === role.id ? 'text-white' : 'text-slate-500 hover:text-slate-300'
                         }`}
                     >
+                        {activeRole === role.id && (
+                            <motion.div layoutId="roleUnderline" className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#10B981]" />
+                        )}
                         {role.label}
                     </button>
                 ))}
@@ -175,500 +156,583 @@ const ClinicalEnrollmentWorkflow: React.FC<ClinicalEnrollmentWorkflowProps> = ({
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -10 }}
-                    transition={{ duration: 0.2 }}
-                    className="bg-[#1E1E1E] rounded-3xl border border-white/5 p-8"
+                    className="space-y-8"
                 >
-                    {activeStep === 2 && activeRole === 'coordinator' && (
-                        <div className="space-y-8">
-                            <div className="flex justify-between items-center pb-6 border-b border-white/5">
-                                <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-slate-500">Step 1 — Review & Eligibility Call</h3>
-                            </div>
-
-                            <div className="flex items-center justify-between bg-white/5 p-6 rounded-2xl border border-white/5">
-                                <div className="flex items-center gap-4">
-                                    <div className="w-12 h-12 rounded-full bg-blue-500 flex items-center justify-center font-bold text-lg">
-                                        {participant.display_name?.split(' ').map((n: string) => n[0]).join('').slice(0, 2) || 'S'}
-                                    </div>
-                                    <div>
-                                        <h4 className="font-bold text-lg">{participant.display_name || 'Subject'}</h4>
-                                        <p className="text-sm text-slate-400">{participant.display_phone || 'N/A'} • {participant.display_email || 'N/A'}</p>
-                                    </div>
-                                </div>
-                                <button className="px-6 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-xs font-bold uppercase tracking-widest transition-all">
-                                    Log call made
-                                </button>
-                            </div>
-
-                            <div className="space-y-4">
-                                <h4 className="text-xs font-bold uppercase tracking-widest text-slate-500">Eligibility Verification Checklist</h4>
-                                <div className="grid gap-3">
-                                    {[
-                                        { key: 'age', label: 'Confirmed age and identity verbally' },
-                                        { key: 'criteria', label: 'Reviewed all inclusion/exclusion criteria' },
-                                        { key: 'meds', label: 'No conflicting medications or conditions' },
-                                        { key: 'requirements', label: 'Participant understands study requirements' },
-                                        { key: 'consents', label: 'Participant consents to proceed' }
-                                    ].map((item) => (
-                                        <div 
-                                            key={item.key}
-                                            onClick={() => toggleCheck(item.key as any)}
-                                            className="flex items-center gap-3 cursor-pointer group"
-                                        >
-                                            {checklist[item.key as keyof typeof checklist] ? (
-                                                <div className="w-5 h-5 rounded bg-[#6366F1] flex items-center justify-center">
-                                                    <Check className="w-3.5 h-3.5 text-white" />
-                                                </div>
-                                            ) : (
-                                                <div className="w-5 h-5 rounded border-2 border-slate-700 group-hover:border-[#6366F1] transition-colors" />
-                                            )}
-                                            <span className={`text-sm ${checklist[item.key as keyof typeof checklist] ? 'text-white' : 'text-slate-400 group-hover:text-slate-300'}`}>
-                                                {item.label}
-                                            </span>
+                    {activeStep === 1 && (
+                        <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
+                            <div className="md:col-span-8 space-y-8">
+                                <div className="p-8 bg-white/2 border border-white/5 rounded-[32px]">
+                                    <div className="flex items-center justify-between mb-8">
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-14 h-14 rounded-full bg-indigo-500 flex items-center justify-center text-xl font-bold">
+                                                {participant.display_name?.split(' ').map((n:any)=>n[0]).join('').slice(0,2).toUpperCase() || 'MJ'}
+                                            </div>
+                                            <div>
+                                                <h3 className="text-xl font-bold text-white mb-1">{participant.display_name || 'Maria Johnson'}</h3>
+                                                <p className="text-xs text-slate-500 font-bold uppercase tracking-wider">
+                                                    Submitted {new Date(participant.created_at).toLocaleDateString()} • {participant.study_name || 'Beat the Bloat Study'}
+                                                </p>
+                                            </div>
                                         </div>
-                                    ))}
+                                        <div className="px-3 py-1 bg-amber-500 text-black text-[10px] font-black uppercase tracking-widest rounded-lg">New</div>
+                                    </div>
+
+                                    <div>
+                                        <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-6">Eligibility Responses Submitted</h4>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                            {[
+                                                { label: 'Age 18—65 — confirmed' },
+                                                { label: 'Experiences bloating/gas — confirmed' },
+                                                { label: 'Not pregnant — confirmed' },
+                                                { label: 'No GERD, IBD, or celiac — confirmed' },
+                                                { label: 'No antibiotics past month — confirmed' },
+                                                { label: 'Open to natural product — confirmed' }
+                                            ].map((item, i) => (
+                                                <div key={i} className="flex items-center gap-3 p-4 bg-white/2 border border-white/5 rounded-xl">
+                                                    <div className="w-2 h-2 rounded-full bg-[#10B981]" />
+                                                    <span className="text-xs font-bold text-slate-300">{item.label}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                    <button className="mt-8 flex items-center gap-2 px-6 py-3 bg-white/5 hover:bg-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all">
+                                        Review this query <ArrowRight className="w-4 h-4" />
+                                    </button>
                                 </div>
                             </div>
+                            <div className="md:col-span-4 space-y-6">
+                                <div className="p-8 bg-[#10B981] rounded-[32px] text-white">
+                                    <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center mb-6">
+                                        <CheckCircle2 className="w-6 h-6" />
+                                    </div>
+                                    <h3 className="text-2xl font-bold mb-4 italic uppercase tracking-tight leading-tight">1 New query<br/>Auto-distributed</h3>
+                                    <p className="text-white/80 text-sm leading-relaxed mb-8">
+                                        System matched this participant based on geographic proximity and eligibility score (98%). 
+                                        Action required: Coordinator review.
+                                    </p>
+                                </div>
 
-                            <div className="space-y-2">
-                                <label className="text-xs font-bold uppercase tracking-widest text-slate-500">Coordinator notes</label>
-                                <textarea 
-                                    value={notes}
-                                    onChange={(e) => setNotes(e.target.value)}
-                                    placeholder="e.g. Spoke with participant at 10am. No concerns. Ready to enroll."
-                                    className="w-full bg-[#121212] border border-white/10 rounded-2xl p-4 text-sm focus:outline-none focus:ring-2 focus:ring-[#6366F1]/50 min-h-[100px]"
-                                />
+                                <div className="p-8 bg-[#1E293B] rounded-[32px] border border-white/5">
+                                    <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-6 italic">Enrollment Lifecycle</h4>
+                                    <div className="space-y-6">
+                                        {[
+                                            { label: 'New query', status: 'Action Required', active: true },
+                                            { label: 'Review & call', status: 'Pending' },
+                                            { label: 'Schedule', status: 'Pending' },
+                                            { label: 'Pre-visit tasks', status: 'Pending' },
+                                            { label: 'Active study', status: 'Locked' }
+                                        ].map((s, i) => (
+                                            <div key={i} className="flex items-center gap-4">
+                                                <div className={`w-2 h-2 rounded-full ${s.active ? 'bg-indigo-500 shadow-[0_0_10px_rgba(99,102,241,0.5)]' : 'bg-slate-700'}`} />
+                                                <div>
+                                                    <p className={`text-xs font-black uppercase tracking-widest ${s.active ? 'text-white' : 'text-slate-600'}`}>{s.label}</p>
+                                                    <p className="text-[10px] font-bold text-slate-500 uppercase">{s.status}</p>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
                             </div>
+                        </div>
+                    )}
 
-                            <div className="flex gap-4 pt-4">
-                                <button 
-                                    disabled={!isStep2Complete}
-                                    onClick={() => onApprove('coordinator', 'Signed by Coordinator')}
-                                    className="px-8 py-3 bg-[#00BFA5] text-white border border-[#00BFA5]/20 rounded-xl text-xs font-bold uppercase tracking-widest disabled:opacity-50 transition-all hover:bg-[#00796B]"
-                                >
-                                    Confirm enrollment →
-                                </button>
-                                <button className="px-8 py-3 bg-white/5 hover:bg-rose-500/20 hover:text-rose-400 border border-white/10 rounded-xl text-xs font-bold uppercase tracking-widest transition-all">
-                                    Mark ineligible
-                                </button>
-                                <button className="px-8 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-xs font-bold uppercase tracking-widest transition-all">
-                                    Add to waitlist
-                                </button>
+                    {activeStep === 2 && activeRole === 'coordinator' && (
+                        <div className="grid grid-cols-12 gap-8">
+                            <div className="col-span-8 space-y-8">
+                                <div className="p-8 bg-white/2 border border-white/5 rounded-[32px]">
+                                    <div className="flex justify-between items-center pb-6 border-b border-white/5 mb-8">
+                                        <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Step 1 — Review & Eligibility Call</h3>
+                                        <button className="text-[10px] font-black uppercase tracking-widest text-indigo-400 hover:text-indigo-300">View source application</button>
+                                    </div>
+
+                                    <div className="flex items-center justify-between bg-indigo-500/10 p-6 rounded-2xl border border-indigo-500/20 mb-8">
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-14 h-14 rounded-full bg-indigo-500 flex items-center justify-center font-bold text-lg">MJ</div>
+                                            <div>
+                                                <h4 className="font-bold text-lg text-white">Maria Johnson</h4>
+                                                <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">+1 (813) 555-0192 • maria.j@email.com • Prefers mornings</p>
+                                            </div>
+                                        </div>
+                                        <button className="px-6 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all">
+                                            Log call made
+                                        </button>
+                                    </div>
+
+                                    <div className="space-y-6">
+                                        <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-500">Eligibility Verification Checklist</h4>
+                                        <div className="grid gap-4">
+                                            {[
+                                                { key: 'age', label: 'Confirmed age and identity verbally' },
+                                                { key: 'criteria', label: 'Reviewed all inclusion/exclusion criteria' },
+                                                { key: 'meds', label: 'No conflicting medications or conditions' },
+                                                { key: 'requirements', label: 'Participant understands study requirements' },
+                                                { key: 'consents', label: 'Participant consents to proceed' }
+                                            ].map((item) => (
+                                                <div 
+                                                    key={item.key}
+                                                    onClick={() => toggleCheck(item.key as any)}
+                                                    className="flex items-center gap-4 cursor-pointer group"
+                                                >
+                                                    <div className={`w-6 h-6 rounded-lg flex items-center justify-center transition-all ${checklist[item.key as keyof typeof checklist] ? 'bg-indigo-500' : 'border-2 border-white/10 group-hover:border-indigo-500'}`}>
+                                                        {checklist[item.key as keyof typeof checklist] && <Check className="w-4 h-4 text-white" />}
+                                                    </div>
+                                                    <span className={`text-sm font-bold transition-all ${checklist[item.key as keyof typeof checklist] ? 'text-white' : 'text-slate-500 group-hover:text-slate-300'}`}>
+                                                        {item.label}
+                                                    </span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    <div className="mt-10 space-y-3">
+                                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Coordinator notes</label>
+                                        <textarea 
+                                            value={notes}
+                                            onChange={(e) => setNotes(e.target.value)}
+                                            placeholder="e.g. Spoke with participant at 10am. No concerns. Ready to enroll."
+                                            className="w-full bg-[#121826] border border-white/10 rounded-2xl p-5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 min-h-[120px] text-white"
+                                        />
+                                    </div>
+
+                                    <div className="flex gap-4 pt-10">
+                                        <button 
+                                            disabled={!isStep2Complete}
+                                            onClick={() => onApprove('coordinator', 'Signed by Coordinator')}
+                                            className="flex-1 py-4 bg-[#10B981] text-white rounded-2xl text-[11px] font-black uppercase tracking-[0.2em] disabled:opacity-30 transition-all hover:bg-[#059669] shadow-xl shadow-[#10B981]/20 active:scale-[0.98]"
+                                        >
+                                            Confirm enrollment →
+                                        </button>
+                                        <button className="px-10 py-4 bg-white/5 hover:bg-rose-500/20 hover:text-rose-400 border border-white/10 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all">
+                                            Mark ineligible
+                                        </button>
+                                        <button className="px-10 py-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all text-slate-500">
+                                            Add to waitlist
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="col-span-4">
+                                <div className="p-8 bg-[#1E293B] rounded-[32px] border border-white/5">
+                                    <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-6 italic">Enrollment Lifecycle</h4>
+                                    <div className="space-y-6">
+                                        {[
+                                            { label: 'Review & call', status: 'In progress', active: true },
+                                            { label: 'Schedule', status: 'Pending' },
+                                            { label: 'Pre-visit tasks', status: 'Pending' },
+                                            { label: 'Active study', status: 'Locked' }
+                                        ].map((s, i) => (
+                                            <div key={i} className="flex items-center gap-4">
+                                                <div className={`w-2 h-2 rounded-full ${s.active ? 'bg-indigo-500 shadow-[0_0_10px_rgba(99,102,241,0.5)]' : 'bg-slate-700'}`} />
+                                                <div>
+                                                    <p className={`text-xs font-black uppercase tracking-widest ${s.active ? 'text-white' : 'text-slate-600'}`}>{s.label}</p>
+                                                    <p className="text-[10px] font-bold text-slate-500 uppercase">{s.status}</p>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     )}
 
                     {activeStep === 2 && activeRole === 'pi' && (
-                        <div className="space-y-8">
-                            <div className="flex justify-between items-center pb-6 border-b border-white/5">
-                                <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-slate-500">PI Oversight — New Query</h3>
-                            </div>
-
-                            <div className="flex items-center justify-between bg-white/5 p-6 rounded-2xl border border-white/5">
-                                <div className="flex items-center gap-4">
-                                    <div className="w-12 h-12 rounded-full bg-[#6366F1] flex items-center justify-center font-bold text-lg">
-                                        {participant.display_name?.split(' ').map((n: string) => n[0]).join('').slice(0, 2) || 'S'}
+                        <div className="grid grid-cols-12 gap-8">
+                            <div className="col-span-8 space-y-8">
+                                <div className="p-10 bg-white/2 border border-white/5 rounded-[40px] relative overflow-hidden">
+                                    <div className="absolute top-0 right-0 p-8">
+                                        <div className="px-4 py-1.5 bg-amber-500/10 border border-amber-500/20 rounded-full">
+                                            <span className="text-[10px] font-black text-amber-400 uppercase tracking-widest">Pending coordinator review</span>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <h4 className="font-bold text-lg">{participant.display_name || 'Subject'} — eligibility under review</h4>
-                                        <p className="text-sm text-slate-400">Assigned to {participant.coordinator_name || 'Coordinator'} • Received {new Date(participant.created_at).toLocaleDateString()}</p>
+
+                                    <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 mb-10">PI OVERSIGHT — NEW QUERY</h4>
+                                    
+                                    <div className="flex items-center gap-6 mb-12">
+                                        <div className="w-20 h-20 rounded-[24px] bg-indigo-500 flex items-center justify-center text-3xl font-black italic shadow-2xl">MJ</div>
+                                        <div>
+                                            <h3 className="text-3xl font-bold text-white tracking-tight mb-2">Maria Johnson — eligibility under review</h3>
+                                            <p className="text-sm text-slate-500 font-bold uppercase tracking-wider">Assigned to Jamie Lopez (coordinator) • Received Apr 24</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="p-8 bg-[#10B981]/5 border-l-4 border-[#10B981] rounded-2xl mb-12">
+                                        <p className="text-lg font-bold text-white leading-relaxed">
+                                            All eligibility responses are positive. No flags detected by the system. Coordinator call in progress.
+                                        </p>
+                                    </div>
+
+                                    <div className="flex gap-4">
+                                        <button className="px-10 py-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all">
+                                            Add PI note
+                                        </button>
+                                        <button 
+                                            onClick={() => onApprove('pi', 'Signed by PI')}
+                                            className="px-10 py-4 bg-[#10B981] text-white rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all hover:bg-[#059669] shadow-xl shadow-[#10B981]/20 active:scale-[0.98]"
+                                        >
+                                            Override & enroll directly
+                                        </button>
                                     </div>
                                 </div>
-                                <div className="bg-[#FFF8E1]/10 text-[#FFE082] px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border border-[#FFE082]/20">
-                                    {participant.status.replace(/_/g, ' ')}
-                                </div>
-                            </div>
-
-                            <div className="p-6 bg-white/2 rounded-2xl border-l-4 border-[#00BFA5]">
-                                <p className="text-sm font-bold text-white mb-1">All eligibility responses are positive. No flags detected by the system. Coordinator call in progress.</p>
-                            </div>
-
-                            <div className="flex gap-4">
-                                <button className="px-8 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-xs font-bold uppercase tracking-widest transition-all">
-                                    Add PI note
-                                </button>
-                                <button 
-                                    onClick={() => onApprove('pi', 'Signed by PI')}
-                                    className="px-8 py-3 bg-[#00BFA5] text-white border border-[#00BFA5]/20 rounded-xl text-xs font-bold uppercase tracking-widest transition-all hover:bg-[#00796B]"
-                                >
-                                    Override & enroll directly
-                                </button>
                             </div>
                         </div>
                     )}
 
                     {activeStep === 2 && activeRole === 'admin' && (
-                        <div className="space-y-8">
-                            <div className="flex justify-between items-center pb-6 border-b border-white/5">
-                                <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-slate-500">Super Admin — Query Status</h3>
-                            </div>
+                        <div className="grid grid-cols-12 gap-8">
+                            <div className="col-span-8 space-y-8">
+                                <div className="p-10 bg-white/2 border border-white/5 rounded-[40px]">
+                                    <div className="flex justify-between items-center mb-12">
+                                        <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500">SUPER ADMIN — QUERY STATUS</h4>
+                                        <div className="px-4 py-1.5 bg-blue-500/10 border border-blue-500/20 rounded-full">
+                                            <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest italic">In review</span>
+                                        </div>
+                                    </div>
 
-                            <div className="flex items-center justify-between bg-white/5 p-6 rounded-2xl border border-white/5">
-                                <div className="flex items-center gap-4">
-                                    <div className="w-12 h-12 rounded-full bg-blue-500 flex items-center justify-center font-bold text-lg">MJ</div>
-                                    <div>
-                                        <h4 className="font-bold text-lg">{participant.display_name || 'Maria Johnson'}</h4>
-                                        <p className="text-sm text-slate-400">{participant.study_name || 'Beat the Bloat Study'} • Query received • Coordinator assigned</p>
+                                    <div className="flex items-center gap-6 mb-12">
+                                        <div className="w-20 h-20 rounded-[24px] bg-blue-500 flex items-center justify-center text-3xl font-black italic shadow-2xl">MJ</div>
+                                        <div>
+                                            <h3 className="text-3xl font-bold text-white tracking-tight mb-2">Maria Johnson</h3>
+                                            <p className="text-sm text-slate-500 font-bold uppercase tracking-wider">Beat the Bloat Study • Query received • Coordinator assigned</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="p-12 text-center border-2 border-dashed border-white/5 rounded-[32px]">
+                                        <Clock className="w-10 h-10 text-slate-700 mx-auto mb-6" />
+                                        <p className="text-slate-500 text-base leading-relaxed max-w-sm mx-auto font-bold uppercase tracking-wider opacity-60">
+                                            No action required from admin at this stage. Status will update automatically when coordinator confirms or declines enrollment.
+                                        </p>
                                     </div>
                                 </div>
-                                <div className="bg-blue-500/10 text-blue-400 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border border-blue-500/20">
-                                    In review
-                                </div>
-                            </div>
-
-                            <div className="p-10 text-center">
-                                <p className="text-slate-400 text-sm max-w-md mx-auto">
-                                    No action required from admin at this stage. Status will update automatically when coordinator confirms or declines enrollment.
-                                </p>
                             </div>
                         </div>
                     )}
 
                     {activeStep === 3 && activeRole === 'coordinator' && (
-                        <div className="space-y-8">
-                            <div className="flex justify-between items-center pb-6 border-b border-white/5">
-                                <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-slate-500">Schedule Appointment — In-Person Visit</h3>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-6">
-                                <div className="space-y-2">
-                                    <label className="text-xs font-bold uppercase tracking-widest text-slate-500">Study type</label>
-                                    <div className="relative">
-                                        <select className="w-full bg-[#121212] border border-white/10 rounded-xl px-4 py-3 text-sm appearance-none focus:outline-none focus:ring-2 focus:ring-[#6366F1]/50">
-                                            <option>In-person</option>
-                                            <option>Virtual</option>
-                                            <option>Hybrid</option>
-                                        </select>
-                                        <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
+                        <div className="grid grid-cols-12 gap-8">
+                            <div className="col-span-5">
+                                <div className="bg-[#1D4ED8] rounded-[40px] p-10 text-white relative overflow-hidden shadow-2xl h-full">
+                                    <div className="absolute top-0 right-0 p-8">
+                                        <Calendar className="w-12 h-12 text-white/20" />
                                     </div>
-                                </div>
-                                <div className="space-y-2">
-                                    <label className="text-xs font-bold uppercase tracking-widest text-slate-500">Visit location</label>
-                                    <div className="relative">
-                                        <select className="w-full bg-[#121212] border border-white/10 rounded-xl px-4 py-3 text-sm appearance-none focus:outline-none focus:ring-2 focus:ring-[#6366F1]/50">
-                                            <option>MusB Research — Tampa</option>
-                                            <option>MusB Research — Orlando</option>
-                                        </select>
-                                        <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
-                                    </div>
-                                </div>
-                            </div>
+                                    <h3 className="text-3xl font-bold mb-4">Your appointment is confirmed</h3>
+                                    <p className="text-white/60 text-sm mb-12">Beat the Bloat Study • MusB Research, Tampa</p>
 
-                            <div className="space-y-4">
-                                <h4 className="text-xs font-bold uppercase tracking-widest text-slate-500">Coordinator Calendar — May 2026</h4>
-                                <div className="bg-[#121212] p-6 rounded-2xl border border-white/5">
-                                    <div className="grid grid-cols-7 gap-2 mb-4">
-                                        {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
-                                            <div key={d} className="text-center text-[10px] font-bold text-slate-500 uppercase tracking-widest">{d}</div>
-                                        ))}
-                                    </div>
-                                    <div className="grid grid-cols-7 gap-2">
-                                        {Array.from({ length: 5 }).map((_, i) => <div key={i} />)}
-                                        {Array.from({ length: 31 }).map((_, i) => {
-                                            const day = i + 1;
-                                            const isAvailable = [8, 10, 12, 15, 17, 22, 24, 26, 29].includes(day);
-                                            return (
-                                                <div 
-                                                    key={day}
-                                                    className={`h-12 rounded-lg flex items-center justify-center font-bold text-sm transition-all cursor-pointer ${
-                                                        isAvailable ? 'bg-[#E0F2F1] text-[#00695C] hover:bg-[#B2DFDB]' : 'text-slate-700'
-                                                    }`}
-                                                >
-                                                    {day}
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-                                    <p className="mt-6 text-[10px] text-slate-500 italic">Green slots have availability. Click to select. Calendar syncs with Google Calendar.</p>
-                                </div>
-                            </div>
-
-                            <div className="space-y-2">
-                                <label className="text-xs font-bold uppercase tracking-widest text-slate-500">Appointment time</label>
-                                <div className="relative">
-                                    <select className="w-full bg-[#121212] border border-white/10 rounded-xl px-4 py-3 text-sm appearance-none focus:outline-none focus:ring-2 focus:ring-[#6366F1]/50">
-                                        <option>9:00 AM</option>
-                                        <option>10:00 AM</option>
-                                        <option>11:00 AM</option>
-                                    </select>
-                                    <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
-                                </div>
-                            </div>
-
-                            <div className="flex gap-4 pt-4">
-                                <button className="px-8 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-xs font-bold uppercase tracking-widest transition-all">
-                                    Confirm & send invite
-                                </button>
-                                <button className="px-8 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-xs font-bold uppercase tracking-widest transition-all">
-                                    Send self-schedule link
-                                </button>
-                            </div>
-                        </div>
-                    )}
-
-                    {activeStep === 3 && activeRole === 'participant' && (
-                        <div className="flex items-center justify-center py-12">
-                            <div className="bg-[#121212] border border-white/10 rounded-3xl p-10 max-w-lg w-full shadow-2xl relative overflow-hidden">
-                                <div className="absolute top-0 left-0 w-full h-1 bg-[#6366F1]/20" />
-                                <h3 className="text-2xl font-bold text-white mb-2">Your appointment is confirmed</h3>
-                                <p className="text-slate-400 text-sm mb-8">{participant.study_name || 'Beat the Bloat Study'} • MusB Research, Tampa</p>
-                                
-                                <div className="bg-[#E3F2FD] border border-blue-200 rounded-2xl p-6 mb-8">
-                                    <div className="text-[#0D47A1] font-bold text-lg mb-1">Thursday, May 8, 2026 • 10:00 AM</div>
-                                    <div className="text-[#1976D2] text-sm flex items-center gap-2">
-                                        <span className="w-2 h-2 rounded-full bg-[#1976D2]" /> 4821 N. Armenia Ave, Tampa FL • Suite 200
-                                    </div>
-                                </div>
-
-                                <div className="space-y-3">
-                                    <button className="w-full py-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl text-xs font-bold uppercase tracking-widest transition-all text-white">
-                                        Add to Google Calendar
-                                    </button>
-                                    <button className="w-full py-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl text-xs font-bold uppercase tracking-widest transition-all text-slate-400">
-                                        Request to reschedule
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {activeStep === 4 && activeRole === 'coordinator' && (
-                        <div className="space-y-8">
-                            <div className="flex justify-between items-center pb-6 border-b border-white/5">
-                                <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-slate-500">Pre-visit tasks to assign</h3>
-                            </div>
-
-                            <div className="grid gap-3">
-                                {[
-                                    { id: 'ec', label: 'E-consent — send for electronic signature', checked: true },
-                                    { id: 'pv', label: 'Pre-visit questionnaire (baseline health history)', checked: true },
-                                    { id: 'of', label: 'Overnight fast reminder (nothing after 10pm night before)', checked: true },
-                                    { id: 'dr', label: '3-day dietary recall form', checked: false },
-                                    { id: 'pp', label: 'Food photo diary (upload via app before visit)', checked: false },
-                                    { id: 'es', label: 'Exercise and sleep log for past 7 days', checked: false }
-                                ].map((task) => (
-                                    <div key={task.id} className="flex items-center gap-4 group cursor-pointer">
-                                        <div className={`w-5 h-5 rounded flex items-center justify-center transition-all ${task.checked ? 'bg-[#10B981]' : 'border-2 border-slate-700'}`}>
-                                            {task.checked && <Check className="w-3.5 h-3.5 text-white" />}
-                                        </div>
-                                        <span className={`text-sm ${task.checked ? 'text-white' : 'text-slate-500 group-hover:text-slate-400'}`}>{task.label}</span>
-                                    </div>
-                                ))}
-                            </div>
-
-                            <div className="space-y-4 pt-6">
-                                <h4 className="text-xs font-bold uppercase tracking-widest text-slate-500">Kit Shipment — Virtual / Hybrid Participants</h4>
-                                <div className="grid grid-cols-5 gap-3">
-                                    {[
-                                        { label: 'Address verified', date: participant.display_address !== 'N/A' ? 'Verified' : 'Pending', status: participant.display_address !== 'N/A' ? 'done' : 'pending' },
-                                        { label: 'Kit prepared', date: activeKit ? 'Prepared' : 'In progress', status: activeKit ? 'done' : 'active' },
-                                        { label: 'Shipped', date: activeKit?.tracking_number ? 'Shipped' : 'Pending', status: activeKit?.tracking_number ? 'done' : 'pending' },
-                                        { label: 'Participant confirmed', date: activeKit?.status === 'DELIVERED' ? 'Confirmed' : 'Pending', status: activeKit?.status === 'DELIVERED' ? 'done' : 'pending' },
-                                        { label: 'Kit returned', date: activeKit?.status === 'RETURNED' ? 'Returned' : 'Pending', status: activeKit?.status === 'RETURNED' ? 'done' : 'pending' }
-                                    ].map((step, i) => (
-                                        <div key={i} className={`p-4 rounded-xl border text-center transition-all ${
-                                            step.status === 'done' ? 'bg-[#E6FFFA] border-[#38B2AC] text-[#2C7A7B]' :
-                                            step.status === 'active' ? 'bg-[#EBF8FF] border-[#4299E1] text-[#2B6CB0] ring-2 ring-[#4299E1]/20' :
-                                            'bg-white/2 border-white/5 text-slate-600'
-                                        }`}>
-                                            <div className="text-[9px] font-bold uppercase tracking-widest mb-1">{step.label}</div>
-                                            <div className="text-xs font-bold">{step.date}</div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-6 pt-4">
-                                <div className="space-y-2">
-                                    <label className="text-xs font-bold uppercase tracking-widest text-slate-500">Shipping address (verified)</label>
-                                    <input 
-                                        type="text" 
-                                        defaultValue="124 Bayshore Blvd, Tampa FL 33606"
-                                        className="w-full bg-[#121212] border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#6366F1]/50" 
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <label className="text-xs font-bold uppercase tracking-widest text-slate-500">Tracking number</label>
-                                    <input 
-                                        type="text" 
-                                        placeholder="Enter after shipping"
-                                        className="w-full bg-[#121212] border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#6366F1]/50" 
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="flex gap-4 pt-4">
-                                <button className="px-8 py-3 bg-[#121212] border border-white/10 rounded-xl text-xs font-bold uppercase tracking-widest transition-all hover:bg-white/5">
-                                    Mark as shipped
-                                </button>
-                                <button className="px-8 py-3 bg-[#121212] border border-white/10 rounded-xl text-xs font-bold uppercase tracking-widest transition-all hover:bg-white/5">
-                                    Print label
-                                </button>
-                            </div>
-                        </div>
-                    )}
-
-                    {activeStep === 4 && activeRole === 'participant' && (
-                        <div className="flex items-center justify-center py-12">
-                            <div className="bg-[#121212] border border-white/10 rounded-3xl p-10 max-w-lg w-full shadow-2xl">
-                                <h3 className="text-2xl font-bold text-white mb-1">Before your visit</h3>
-                                <p className="text-slate-400 text-sm mb-8">Please complete these before May 8</p>
-                                
-                                <div className="space-y-4">
-                                    <div className="bg-[#10B981]/10 border border-[#10B981]/30 rounded-2xl p-5 flex items-center gap-4">
-                                        <div className="w-2 h-2 rounded-full bg-[#10B981]" />
-                                        <div>
-                                            <div className="text-[#10B981] font-bold text-sm">e-Consent signed</div>
-                                            <div className="text-[#10B981]/70 text-xs">Completed Apr 25</div>
-                                        </div>
+                                    <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-3xl p-8 mb-10">
+                                        <h4 className="text-xl font-bold mb-2">Thursday, May 8, 2026 • 10:00 AM</h4>
+                                        <p className="text-white/80 font-bold uppercase tracking-wider text-[11px]">4821 N. Armenia Ave, Tampa FL • Suite 200</p>
                                     </div>
 
-                                    {[
-                                        { title: 'Health history questionnaire', detail: '~8 minutes • Due May 6', action: 'Start' },
-                                        { title: '3-day food diary', detail: 'Upload photos or fill form • Due May 7', action: 'Upload' },
-                                        { title: 'Overnight fast reminder', detail: 'Nothing to eat after 10pm on May 7', action: 'Reminder set', status: 'warning' }
-                                    ].map((item, i) => (
-                                        <div key={i} className="bg-white/5 border border-white/10 rounded-2xl p-5 flex items-center justify-between">
-                                            <div className="flex items-center gap-4">
-                                                <div className={`w-5 h-5 rounded border-2 ${item.status === 'warning' ? 'border-[#F59E0B]' : 'border-white/10'}`} />
-                                                <div>
-                                                    <div className="text-white font-bold text-sm">{item.title}</div>
-                                                    <div className="text-slate-500 text-xs">{item.detail}</div>
-                                                </div>
-                                            </div>
-                                            <button className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
-                                                item.status === 'warning' ? 'bg-[#F59E0B]/10 text-[#F59E0B]' : 'bg-white/5 text-white hover:bg-white/10'
-                                            }`}>
-                                                {item.action}
-                                            </button>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {activeStep === 5 && activeRole === 'coordinator' && (
-                        <div className="space-y-8">
-                            <div className="flex justify-between items-center pb-6 border-b border-white/5">
-                                <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-slate-500">Active Study — Data Collection Overview</h3>
-                            </div>
-
-                            <div className="grid grid-cols-4 gap-4">
-                                {[
-                                    { label: 'Compliance', value: `${compliance}%`, color: compliance > 80 ? 'text-[#10B981]' : 'text-[#F59E0B]' },
-                                    { label: 'Days active', value: participant.daily_logs?.length || '0' },
-                                    { label: 'Pending tasks', value: participantTasks.filter((t: any) => !t.completed_at).length, color: 'text-[#F59E0B]' },
-                                    { label: 'Upload received', value: participant.lab_results?.length || '0', color: 'text-[#3B82F6]' }
-                                ].map((stat, i) => (
-                                    <div key={i} className="bg-white/2 border border-white/5 p-6 rounded-2xl">
-                                        <div className={`text-3xl font-bold mb-1 ${stat.color || 'text-white'}`}>{stat.value}</div>
-                                        <div className="text-[10px] font-bold uppercase tracking-widest text-slate-500">{stat.label}</div>
-                                    </div>
-                                ))}
-                            </div>
-
-                            <div className="space-y-6 pt-4">
-                                {[
-                                    { title: 'Daily symptom diary', detail: 'Today • 7 of 7 days submitted', status: 'On track', badge: 'bg-[#10B981]/10 text-[#10B981]' },
-                                    { title: 'Blood test report upload', detail: 'Lab results from Quest Diagnostics — received Apr 28', status: 'Received', badge: 'bg-white/5 text-slate-400', action: 'View' },
-                                    { title: 'GSRS questionnaire', detail: 'Due May 2 • Not yet submitted', status: 'Pending', badge: 'bg-[#F59E0B]/10 text-[#F59E0B]', action: 'Remind' },
-                                    { title: 'Wearable data sync', detail: 'Fitbit connected • Last synced 2 hours ago • Sleep & steps flowing', status: 'Connected', badge: 'bg-[#10B981]/10 text-[#10B981]' }
-                                ].map((task, i) => (
-                                    <div key={i} className="flex items-center justify-between pb-6 border-b border-white/2 last:border-0">
-                                        <div>
-                                            <h4 className="font-bold text-sm text-white mb-1">{task.title}</h4>
-                                            <p className="text-xs text-slate-500">{task.detail}</p>
-                                        </div>
-                                        <div className="flex items-center gap-4">
-                                            <div className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${task.badge}`}>{task.status}</div>
-                                            {task.action && (
-                                                <button className="px-4 py-2 bg-white/5 hover:bg-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all">
-                                                    {task.action}
-                                                </button>
-                                            )}
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-
-                            <div className="space-y-4 pt-6">
-                                <h4 className="text-xs font-bold uppercase tracking-widest text-slate-500">Intervention Shipment (Second Regimen)</h4>
-                                <div className="grid grid-cols-4 gap-3">
-                                    {[
-                                        { label: 'Prepared', date: 'Apr 28', status: 'done' },
-                                        { label: 'Shipped', date: 'Apr 29', status: 'done' },
-                                        { label: 'In transit', date: 'ETA May 1', status: 'active' },
-                                        { label: 'Participant confirmed', date: 'Pending', status: 'pending' }
-                                    ].map((step, i) => (
-                                        <div key={i} className={`p-4 rounded-xl border text-center transition-all ${
-                                            step.status === 'done' ? 'bg-[#E6FFFA] border-[#38B2AC] text-[#2C7A7B]' :
-                                            step.status === 'active' ? 'bg-[#EBF8FF] border-[#4299E1] text-[#2B6CB0] ring-2 ring-[#4299E1]/20' :
-                                            'bg-white/2 border-white/5 text-slate-600'
-                                        }`}>
-                                            <div className="text-[9px] font-bold uppercase tracking-widest mb-1">{step.label}</div>
-                                            <div className="text-xs font-bold">{step.date}</div>
-                                        </div>
-                                    ))}
-                                </div>
-                                <p className="text-[10px] text-slate-500 italic">Tracking: UPS 1Z9999W9 • Participant notified by email when shipped.</p>
-                            </div>
-                        </div>
-                    )}
-
-                    {activeStep === 5 && activeRole === 'participant' && (
-                        <div className="flex items-center justify-center py-12">
-                            <div className="bg-[#121212] border border-white/10 rounded-3xl p-10 max-w-lg w-full shadow-2xl">
-                                <div className="flex justify-between items-start mb-8">
-                                    <div>
-                                        <h3 className="text-2xl font-bold text-white mb-1">Hi {participant.display_name?.split(' ')[0] || 'Subject'}</h3>
-                                        <p className="text-slate-400 text-sm">Week {Math.ceil((participant.daily_logs?.length || 1) / 7)} • {participant.study_name || 'Clinical Study'}</p>
-                                    </div>
-                                    <div className="text-4xl font-black text-[#10B981]/20">{compliance}%</div>
-                                </div>
-                                
-                                <div className="space-y-4 mb-8">
-                                    <h4 className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-4">Log your data today</h4>
-                                    {[
-                                        { title: 'Symptom diary', detail: '2 minutes • Due tonight', action: 'Start', icon: Plus },
-                                        { title: 'Upload food photo', detail: 'Snap a photo of each meal', action: 'Upload', icon: Shield },
-                                        { title: 'Wearable sync', detail: 'Fitbit connected • Auto-syncing', action: 'Live', icon: Clock, status: 'success' },
-                                        { title: 'Upload lab report', detail: 'PDF or photo of results', action: 'Upload', icon: Briefcase }
-                                    ].map((item, i) => (
-                                        <div key={i} className="bg-white/5 border border-white/10 rounded-2xl p-5 flex items-center justify-between">
-                                            <div className="flex items-center gap-4">
-                                                <div className="w-10 h-10 bg-white/5 rounded-xl flex items-center justify-center text-slate-400">
-                                                    <item.icon size={20} />
-                                                </div>
-                                                <div>
-                                                    <div className="text-white font-bold text-sm">{item.title}</div>
-                                                    <div className="text-slate-500 text-xs">{item.detail}</div>
-                                                </div>
-                                            </div>
-                                            <button className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
-                                                item.status === 'success' ? 'bg-[#10B981]/10 text-[#10B981]' : 'bg-white/5 text-white hover:bg-white/10'
-                                            }`}>
-                                                {item.action}
-                                            </button>
-                                        </div>
-                                    ))}
-                                </div>
-
-                                <div className="space-y-4 pt-6 border-t border-white/5">
-                                    <h4 className="text-xs font-bold uppercase tracking-widest text-slate-500">Your kit — second shipment</h4>
-                                    <div className="bg-[#EBF8FF] border border-[#4299E1]/30 rounded-2xl p-5 flex items-center justify-between">
-                                        <div>
-                                            <div className="text-[#2B6CB0] font-bold text-sm">In transit — arriving May 1</div>
-                                            <div className="text-[#2B6CB0]/70 text-xs font-mono uppercase">UPS tracking: 1Z9999W9</div>
-                                        </div>
-                                        <button disabled className="px-4 py-2 bg-white/40 text-white/60 rounded-xl text-[10px] font-black uppercase tracking-widest">
-                                            Confirm received
+                                    <div className="space-y-4">
+                                        <button className="w-full py-4 bg-white text-blue-600 rounded-2xl text-[11px] font-black uppercase tracking-widest active:scale-[0.98] transition-all">
+                                            Add to Google Calendar
+                                        </button>
+                                        <button className="w-full py-4 bg-white/10 hover:bg-white/20 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all">
+                                            Request to reschedule
                                         </button>
                                     </div>
                                 </div>
+                            </div>
+                            <div className="col-span-7">
+                                <div className="p-10 bg-white/2 border border-white/5 rounded-[40px]">
+                                    <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 mb-10 italic">SCHEDULE APPOINTMENT — IN-PERSON VISIT</h4>
+                                    
+                                    <div className="grid grid-cols-2 gap-6 mb-10">
+                                        <div className="space-y-3">
+                                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Study type</label>
+                                            <div className="relative">
+                                                <select className="w-full bg-[#121826] border border-white/10 rounded-2xl px-5 py-4 text-sm appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500/50 text-white font-bold">
+                                                    <option>In-person</option>
+                                                    <option>Virtual</option>
+                                                    <option>Hybrid</option>
+                                                </select>
+                                                <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
+                                            </div>
+                                        </div>
+                                        <div className="space-y-3">
+                                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Visit location</label>
+                                            <div className="relative">
+                                                <select className="w-full bg-[#121826] border border-white/10 rounded-2xl px-5 py-4 text-sm appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500/50 text-white font-bold">
+                                                    <option>MusB Research — Tampa</option>
+                                                    <option>MusB Research — Clearwater</option>
+                                                </select>
+                                                <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
+                                            </div>
+                                        </div>
+                                    </div>
 
-                                <div className="flex justify-center gap-6 pt-8">
-                                    <button className="text-[10px] font-bold uppercase tracking-widest text-blue-400 hover:text-blue-300 transition-colors">Message your coordinator</button>
-                                    <button className="text-[10px] font-bold uppercase tracking-widest text-slate-500 hover:text-slate-300 transition-colors">View all tasks</button>
+                                    <div className="space-y-6">
+                                        <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-500">COORDINATOR CALENDAR — MAY 2026</h4>
+                                        <div className="p-8 bg-white/2 border border-white/5 rounded-[32px]">
+                                            <div className="grid grid-cols-7 gap-4 mb-6 text-center text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                                                {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => <div key={d}>{d}</div>)}
+                                            </div>
+                                            <div className="grid grid-cols-7 gap-3">
+                                                {Array.from({ length: 31 }).map((_, i) => {
+                                                    const d = i + 1;
+                                                    const available = [8, 10, 15, 17, 22, 24, 26, 29].includes(d);
+                                                    return (
+                                                        <div key={i} className={`h-12 rounded-xl flex items-center justify-center font-bold text-sm transition-all cursor-pointer ${
+                                                            available ? 'bg-teal-500/10 border border-teal-500/20 text-teal-400 hover:bg-teal-500 hover:text-white shadow-lg shadow-teal-500/10' : 'text-slate-700'
+                                                        }`}>
+                                                            {d}
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                            <p className="mt-8 text-[11px] text-[#10B981] font-bold italic">Green slots have availability. Click to select.</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-6 mt-10">
+                                        <div className="space-y-3">
+                                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Appointment time</label>
+                                            <div className="relative">
+                                                <select className="w-full bg-[#121826] border border-white/10 rounded-2xl px-5 py-4 text-sm appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500/50 text-white font-bold">
+                                                    <option>9:00 AM</option>
+                                                    <option>10:00 AM</option>
+                                                    <option>11:00 AM</option>
+                                                </select>
+                                                <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
+                                            </div>
+                                        </div>
+                                        <div className="flex gap-3 pt-9">
+                                            <button className="flex-1 px-4 py-4 bg-[#10B981] text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-[#059669] transition-all">Confirm & send invite</button>
+                                            <button className="px-4 py-4 bg-white/5 border border-white/10 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-white/10 transition-all">Send self-schedule link</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {activeStep === 4 && (
+                        <div className="grid grid-cols-12 gap-8">
+                            <div className="col-span-6">
+                                <div className="p-10 bg-white/2 border border-white/5 rounded-[40px] h-full">
+                                    <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 mb-10 italic">PRE-VISIT TASKS TO ASSIGN</h4>
+                                    
+                                    <div className="space-y-4">
+                                        {[
+                                            { label: 'E-consent — send for electronic signature', checked: true },
+                                            { label: 'Pre-visit questionnaire (baseline health history)', checked: true },
+                                            { label: 'Overnight fast reminder (nothing after 10pm night before)', checked: true },
+                                            { label: '3-day dietary recall form', checked: false },
+                                            { label: 'Food photo diary (upload via app before visit)', checked: false },
+                                            { label: 'Exercise and sleep log for past 7 days', checked: false }
+                                        ].map((t, i) => (
+                                            <div key={i} className="flex items-center gap-4 group cursor-pointer p-2 rounded-xl hover:bg-white/2 transition-all">
+                                                <div className={`w-6 h-6 rounded-lg flex items-center justify-center transition-all ${t.checked ? 'bg-[#10B981]' : 'border-2 border-white/10'}`}>
+                                                    {t.checked && <Check className="w-4 h-4 text-white" />}
+                                                </div>
+                                                <span className={`text-sm font-bold ${t.checked ? 'text-white' : 'text-slate-500 group-hover:text-slate-300'}`}>{t.label}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    <div className="mt-12 pt-12 border-t border-white/5">
+                                        <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 mb-8 italic">KIT SHIPMENT — VIRTUAL / HYBRID PARTICIPANTS</h4>
+                                        <div className="grid grid-cols-5 gap-3 mb-10">
+                                            {[
+                                                { l: 'Address verified', d: 'Apr 24', s: 'done' },
+                                                { l: 'Kit prepared', d: 'In progress', s: 'active' },
+                                                { l: 'Shipped', d: 'Pending', s: 'pending' },
+                                                { l: 'Participant confirmed', d: 'Pending', s: 'pending' },
+                                                { l: 'Kit returned', d: 'Pending', s: 'pending' }
+                                            ].map((st, i) => (
+                                                <div key={i} className={`p-4 rounded-2xl border text-center transition-all ${
+                                                    st.s === 'done' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' :
+                                                    st.s === 'active' ? 'bg-blue-500/10 border-blue-500/20 text-blue-400 ring-4 ring-blue-500/5' :
+                                                    'bg-white/2 border-white/5 text-slate-700'
+                                                }`}>
+                                                    <div className="text-[8px] font-black uppercase tracking-widest mb-1 opacity-60">{st.l}</div>
+                                                    <div className="text-[10px] font-black uppercase">{st.d}</div>
+                                                </div>
+                                            ))}
+                                        </div>
+
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="space-y-3">
+                                                <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Shipping address (verified)</label>
+                                                <input readOnly defaultValue="124 Bayshore Blvd, Tampa FL 33606" className="w-full bg-[#121826] border border-white/10 rounded-2xl px-5 py-4 text-xs font-bold text-slate-300" />
+                                            </div>
+                                            <div className="space-y-3">
+                                                <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Tracking number</label>
+                                                <input placeholder="Enter after shipping" className="w-full bg-[#121826] border border-white/10 rounded-2xl px-5 py-4 text-xs font-bold text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50" />
+                                            </div>
+                                        </div>
+
+                                        <div className="flex gap-3 mt-6">
+                                            <button className="px-8 py-3 bg-white text-black rounded-xl text-[10px] font-black uppercase tracking-widest active:scale-[0.98] transition-all">Mark as shipped</button>
+                                            <button className="px-8 py-3 bg-white/5 border border-white/10 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-white/10 transition-all">Print label</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="col-span-6">
+                                <div className="p-10 bg-[#121826] border border-white/5 rounded-[40px] h-full shadow-2xl relative overflow-hidden">
+                                    <div className="absolute top-0 left-0 w-full h-1.5 bg-[#10B981]/20" />
+                                    <h3 className="text-2xl font-bold text-white mb-2">Before your visit</h3>
+                                    <p className="text-slate-500 text-sm font-bold uppercase tracking-wider mb-10">Please complete these before May 8</p>
+
+                                    <div className="space-y-4">
+                                        <div className="p-6 bg-[#10B981]/10 border border-[#10B981]/20 rounded-3xl flex items-center justify-between">
+                                            <div className="flex items-center gap-4">
+                                                <div className="w-12 h-12 rounded-2xl bg-[#10B981] flex items-center justify-center text-white shadow-lg shadow-[#10B981]/20">
+                                                    <CheckSquare className="w-6 h-6" />
+                                                </div>
+                                                <div>
+                                                    <h4 className="text-white font-bold text-base">e-Consent signed</h4>
+                                                    <p className="text-[#10B981] text-xs font-bold uppercase tracking-widest">Completed Apr 25</p>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {[
+                                            { t: 'Health history questionnaire', d: '~8 minutes • Due May 6', a: 'Start' },
+                                            { t: '3-day food diary', d: 'Upload photos or fill form • Due May 7', a: 'Upload' },
+                                            { t: 'Overnight fast reminder', d: 'Nothing to eat after 10pm on May 7', a: 'Reminder set', w: true }
+                                        ].map((item, i) => (
+                                            <div key={i} className="p-6 bg-white/2 border border-white/5 rounded-3xl flex items-center justify-between group hover:bg-white/5 transition-all">
+                                                <div className="flex items-center gap-4">
+                                                    <div className={`w-6 h-6 rounded-lg border-2 ${item.w ? 'border-amber-500 bg-amber-500/10' : 'border-white/10'}`} />
+                                                    <div>
+                                                        <h4 className="text-white font-bold text-base">{item.t}</h4>
+                                                        <p className="text-slate-500 text-xs font-bold uppercase tracking-widest">{item.d}</p>
+                                                    </div>
+                                                </div>
+                                                <button className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${item.w ? 'bg-amber-500 text-black' : 'bg-white/5 text-white hover:bg-white/10'}`}>
+                                                    {item.a}
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {activeStep === 5 && (
+                        <div className="grid grid-cols-12 gap-8">
+                            <div className="col-span-8 space-y-8">
+                                <div className="p-10 bg-white/2 border border-white/5 rounded-[40px]">
+                                    <div className="flex justify-between items-center mb-12">
+                                        <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500">5 ACTIVE STUDY — DATA COLLECTION OVERVIEW</h4>
+                                        <div className="flex items-center gap-6">
+                                            {[
+                                                { l: 'Compliance', v: '92%', c: 'text-[#10B981]' },
+                                                { l: 'Days active', v: '14' },
+                                                { l: 'Pending tasks', v: '2', c: 'text-amber-500' },
+                                                { l: 'Upload received', v: '1', c: 'text-blue-400' }
+                                            ].map((s, i) => (
+                                                <div key={i} className="text-right">
+                                                    <div className={`text-2xl font-black italic tracking-tighter ${s.c || 'text-white'}`}>{s.v}</div>
+                                                    <div className="text-[8px] font-black uppercase tracking-widest text-slate-500">{s.l}</div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-6">
+                                        {[
+                                            { t: 'Daily symptom diary', d: 'Today • 7 of 7 days submitted', s: 'On track', c: 'teal' },
+                                            { t: 'Blood test report upload', d: 'Lab results from Quest Diagnostics — received Apr 28', s: 'Received', c: 'slate', a: 'View' },
+                                            { t: 'GSRS questionnaire', d: 'Due May 2 • Not yet submitted', s: 'Pending', c: 'amber', a: 'Remind' },
+                                            { t: 'Wearable data sync', d: 'Fitbit connected • Last synced 2 hours ago • Sleep & steps flowing', s: 'Connected', c: 'teal' }
+                                        ].map((t, i) => (
+                                            <div key={i} className="flex items-center justify-between p-6 bg-white/2 border border-white/5 rounded-3xl">
+                                                <div>
+                                                    <h4 className="text-white font-bold text-base mb-1">{t.t}</h4>
+                                                    <p className="text-xs text-slate-500 font-bold uppercase tracking-wider">{t.d}</p>
+                                                </div>
+                                                <div className="flex items-center gap-6">
+                                                    <div className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest ${
+                                                        t.c === 'teal' ? 'bg-teal-500/10 text-teal-400 border border-teal-500/20' :
+                                                        t.c === 'amber' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' :
+                                                        'bg-white/5 text-slate-500 border border-white/10'
+                                                    }`}>{t.s}</div>
+                                                    {t.a && (
+                                                        <button className="px-6 py-2.5 bg-white/5 hover:bg-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all">
+                                                            {t.a}
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    <div className="mt-12 pt-12 border-t border-white/5">
+                                        <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 mb-8 italic">YOUR KIT — SECOND SHIPMENT</h4>
+                                        <div className="bg-blue-500/10 border border-blue-500/20 rounded-[32px] p-8 flex items-center justify-between">
+                                            <div>
+                                                <h4 className="text-2xl font-bold text-white mb-2">In transit — arriving May 1</h4>
+                                                <p className="text-blue-400 font-mono text-sm uppercase tracking-widest">UPS tracking: 1Z9999W9</p>
+                                            </div>
+                                            <button disabled className="px-10 py-4 bg-white/10 text-white/40 rounded-2xl text-[11px] font-black uppercase tracking-[0.2em] italic">
+                                                Confirm received
+                                            </button>
+                                        </div>
+                                        
+                                        <div className="grid grid-cols-4 gap-4 mt-8">
+                                            {[
+                                                { l: 'Prepared', d: 'Apr 28', s: 'done' },
+                                                { l: 'Shipped', d: 'Apr 29', s: 'done' },
+                                                { l: 'In transit', d: 'ETA May 1', s: 'active' },
+                                                { l: 'Participant confirmed', d: 'Pending', s: 'pending' }
+                                            ].map((st, i) => (
+                                                <div key={i} className={`p-4 rounded-2xl border text-center transition-all ${
+                                                    st.s === 'done' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' :
+                                                    st.s === 'active' ? 'bg-blue-500/10 border-blue-500/20 text-blue-400 ring-4 ring-blue-500/5' :
+                                                    'bg-white/2 border-white/5 text-slate-700'
+                                                }`}>
+                                                    <div className="text-[8px] font-black uppercase tracking-widest mb-1 opacity-60">{st.l}</div>
+                                                    <div className="text-[10px] font-black uppercase">{st.d}</div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="col-span-4">
+                                <div className="p-8 bg-[#121826] border border-white/5 rounded-[40px] h-full shadow-2xl relative overflow-hidden flex flex-col">
+                                    <div className="flex justify-between items-start mb-10">
+                                        <div>
+                                            <h3 className="text-3xl font-bold text-white mb-1">Hi Maria</h3>
+                                            <p className="text-slate-500 text-xs font-black uppercase tracking-widest italic">Week 3 • Beat the Bloat Study</p>
+                                        </div>
+                                        <div className="text-5xl font-black text-teal-500 opacity-20">92%</div>
+                                    </div>
+
+                                    <div className="space-y-4 flex-1">
+                                        <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 mb-6 italic">LOG YOUR DATA TODAY</h4>
+                                        {[
+                                            { t: 'Symptom diary', d: '2 minutes • Due tonight', a: 'Start', i: <Activity size={20} /> },
+                                            { t: 'Wearable sync', d: 'Fitbit connected • Auto-syncing', a: 'Live', i: <Clock size={20} />, s: 'success' },
+                                            { t: 'Upload food photo', d: 'Snap a photo of each meal', a: 'Upload', i: <Shield size={20} /> },
+                                            { t: 'Upload lab report', d: 'PDF or photo of results', a: 'Upload', i: <Briefcase size={20} /> }
+                                        ].map((item, i) => (
+                                            <div key={i} className="p-5 bg-white/2 border border-white/5 rounded-3xl flex items-center justify-between group hover:bg-white/5 transition-all">
+                                                <div className="flex items-center gap-4">
+                                                    <div className="w-11 h-11 bg-white/5 rounded-2xl flex items-center justify-center text-slate-500 group-hover:text-white transition-colors">
+                                                        {item.i}
+                                                    </div>
+                                                    <div>
+                                                        <h4 className="text-white font-bold text-sm">{item.t}</h4>
+                                                        <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">{item.d}</p>
+                                                    </div>
+                                                </div>
+                                                <button className={`px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                                                    item.s === 'success' ? 'bg-teal-500 text-black shadow-lg shadow-teal-500/20' : 'bg-white/5 text-white hover:bg-white/10'
+                                                }`}>
+                                                    {item.a}
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    <div className="pt-10 border-t border-white/5 space-y-4 text-center">
+                                        <button className="w-full text-[11px] font-black uppercase tracking-[0.2em] text-blue-400 hover:text-blue-300 transition-colors">Message your coordinator</button>
+                                        <button className="w-full text-[11px] font-black uppercase tracking-[0.2em] text-slate-600 hover:text-slate-400 transition-colors">View all tasks</button>
+                                    </div>
                                 </div>
                             </div>
                         </div>

@@ -283,6 +283,7 @@ class AuditLog(models.Model):
         ('VIEW_DATA',              'View Data'),
         ('EXPORT_DATA',            'Export Data'),
         ('SYSTEM_CONFIG_CHANGE',   'System Config Change'),
+        ('USER_CREATION_FAILED',   'User Creation Failed'),
     ]
     user_email = models.CharField(max_length=255, null=True, blank=True)   # nullable for failed unknown logins (e.g. User IDs)
     action = models.CharField(max_length=30, choices=ACTION_CHOICES)

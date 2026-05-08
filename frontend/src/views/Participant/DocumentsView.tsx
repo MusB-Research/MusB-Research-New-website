@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { Card, Badge, Skeleton } from './SharedComponents';
 import { jsPDF } from 'jspdf';
+import { authFetch, API } from '../../utils/auth';
 
 // --- Types ---
 interface Document {
@@ -22,15 +23,25 @@ interface Document {
     status: 'Signed' | 'Pending' | 'Verified' | 'Uploaded' | 'Important';
     size: string;
     type: 'pdf' | 'image' | 'doc' | 'csv';
+    _raw?: any;
 }
 
 interface DocumentsViewProps {
     study?: any;
     signatures?: any[];
     assignedForms?: any[];
+    tasks?: any[];
+    uploadedDocuments?: any[];
 }
 
-const DocumentsView = ({ study, signatures = [], assignedForms = [], isLoading = false }: DocumentsViewProps & { isLoading?: boolean }) => {
+const DocumentsView = ({ 
+    study, 
+    signatures = [], 
+    assignedForms = [], 
+    tasks = [],
+    uploadedDocuments = [],
+    isLoading = false 
+}: DocumentsViewProps & { isLoading?: boolean }) => {
     // --- State ---
     const [searchQuery, setSearchQuery] = useState('');
     const [activeCategory, setActiveCategory] = useState('All');
@@ -82,7 +93,18 @@ const DocumentsView = ({ study, signatures = [], assignedForms = [], isLoading =
         }
     }, [selectedDoc]);
 
-    const getDocumentContent = async (doc: Document) => {
+    const getDocumentContent = async (doc: Document & { _raw?: any }) => {
+        // If the document has a real file associated with it, use that
+        const fileUrl = doc._raw?.file || doc._raw?.signed_pdf || doc._raw?.signed_pdf_url || (doc as any).file;
+        
+        if (fileUrl && typeof fileUrl === 'string') {
+            // Resolve relative URLs
+            if (fileUrl.startsWith('http')) return fileUrl;
+            const baseUrl = API || 'http://localhost:8000';
+            return fileUrl.startsWith('/') ? `${baseUrl}${fileUrl}` : `${baseUrl}/${fileUrl}`;
+        }
+
+        // Fallback to mock PDF for items without real files
         const pdf = new jsPDF();
         pdf.setFont('helvetica', 'bold');
         pdf.setFontSize(22);
@@ -94,6 +116,8 @@ const DocumentsView = ({ study, signatures = [], assignedForms = [], isLoading =
         pdf.text("Name: " + doc.name, 15, 80);
         pdf.text("Classification: " + doc.category, 15, 90);
         pdf.text("Source: " + doc.uploadedBy, 15, 100);
+        pdf.text("Date: " + doc.date, 15, 110);
+        pdf.text("Note: This is a system-generated summary of your clinical record.", 15, 130);
         return pdf.output('datauristring');
     };
 
@@ -118,7 +142,7 @@ const DocumentsView = ({ study, signatures = [], assignedForms = [], isLoading =
                     uploadedBy: 'Study Team',
                     date: dateStr,
                     status: statusLabel,
-                    size: sig.signed_pdf ? '—' : 'Pending PDF',
+                    size: 'Digital Record',
                     type: 'pdf',
                     _raw: sig,  // keep reference for download link
                 } as any);
@@ -133,14 +157,53 @@ const DocumentsView = ({ study, signatures = [], assignedForms = [], isLoading =
                     docs.push({
                         id: af.id || `af-${idx}`,
                         name: af.form_title || af.title || 'Signed Form',
-                        category: 'Signed Consent',
+                        category: 'Clinical Questionnaire',
                         uploadedBy: 'Study Team',
                         date: af.participant_signed_at ? new Date(af.participant_signed_at).toLocaleDateString('en-US') : '',
                         status: 'Signed',
                         size: '—',
                         type: 'pdf',
+                        _raw: af
                     });
                 });
+        }
+
+        // 3. Completed Instrument Tasks (like daily logs)
+        if (tasks && tasks.length > 0) {
+            tasks.filter((t: any) => t.status === 'COMPLETED' && (t.task_type === 'QUESTIONNAIRE' || t.task_type === 'DAILY_LOG'))
+                 .forEach((t: any) => {
+                     const rawData = t.q_data || t.p_data || t;
+                     if (rawData.signed_pdf_url || rawData.signed_pdf) {
+                         docs.push({
+                             id: t.id,
+                             name: t.title || 'Completed Instrument',
+                             category: 'Clinical Data',
+                             uploadedBy: 'Study Team',
+                             date: t.due_date ? new Date(t.due_date).toLocaleDateString('en-US') : '',
+                             status: 'Verified',
+                             size: '—',
+                             type: 'pdf',
+                             _raw: rawData
+                         });
+                     }
+                 });
+        }
+
+        // 4. Real documents from backend (uploaded by participant or shared with them)
+        if (uploadedDocuments && uploadedDocuments.length > 0) {
+            uploadedDocuments.forEach((ud: any) => {
+                docs.push({
+                    id: ud.id,
+                    name: ud.title || 'Uploaded Document',
+                    category: ud.category || 'Participant Record',
+                    uploadedBy: ud.uploaded_by_role === 'PARTICIPANT' ? 'Participant' : 'Study Team',
+                    date: ud.uploaded_at ? new Date(ud.uploaded_at).toLocaleDateString('en-US') : '',
+                    status: 'Uploaded',
+                    size: '—',
+                    type: 'pdf',
+                    _raw: ud
+                });
+            });
         }
         
         // 4. Participant local uploads (simulated persistence for current session)
@@ -241,17 +304,28 @@ const DocumentsView = ({ study, signatures = [], assignedForms = [], isLoading =
     };
 
     const handleAction = async (doc: Document & { _raw?: any }, action: 'VIEW' | 'DOWNLOAD') => {
-        // If this is a real signed consent with a PDF, open it directly
-        const realPdfUrl = (doc as any)._raw?.signed_pdf_url || (doc as any)._raw?.signed_pdf;
-        if (realPdfUrl) {
-            window.open(realPdfUrl, '_blank');
-            return;
-        }
+        const realPdfUrl = (doc as any)._raw?.signed_pdf_url || (doc as any)._raw?.signed_pdf || (doc as any)._raw?.file;
 
         if (action === 'VIEW') {
             setSelectedDoc(doc);
             return;
         }
+
+        if (action === 'DOWNLOAD') {
+            if (realPdfUrl) {
+                const baseUrl = API || 'http://localhost:8000';
+                const fullUrl = realPdfUrl.startsWith('http') ? realPdfUrl : (realPdfUrl.startsWith('/') ? `${baseUrl}${realPdfUrl}` : `${baseUrl}/${realPdfUrl}`);
+                const link = document.createElement('a');
+                link.href = fullUrl;
+                link.download = doc.name;
+                link.target = '_blank';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                return;
+            }
+        }
+
         // DOWNLOAD fallback (jsPDF for mock docs)
         const pdf = new jsPDF();
         pdf.setFont('helvetica', 'bold');
@@ -630,32 +704,55 @@ const DocumentsView = ({ study, signatures = [], assignedForms = [], isLoading =
                                 <button 
                                     className="flex-1 bg-[#1E88E5] text-white py-4.5 rounded-xl font-bold text-[13px] uppercase tracking-[0.2em] hover:bg-[#1565C0] shadow-lg shadow-blue-500/10 transition-all active:scale-95 disabled:opacity-50 disabled:grayscale"
                                     disabled={!uploadedFile || (selectedCategory === 'OTHER' && !newCategoryName)}
-                                    onClick={() => {
+                                    onClick={async () => {
                                         let finalCategory = selectedCategory;
                                         if (selectedCategory === 'OTHER' && newCategoryName) {
                                             setAvailableCategories(prev => [...prev, newCategoryName]);
                                             finalCategory = newCategoryName;
                                         }
                                         
-                                        if (uploadedFile) {
-                                            const newDoc: Document = {
-                                                id: Math.random().toString(36).substr(2, 9),
-                                                name: uploadedFile.name,
-                                                category: finalCategory,
-                                                uploadedBy: 'Participant',
-                                                date: new Date().toLocaleDateString('en-US'),
-                                                status: 'Uploaded',
-                                                size: `${Math.round(uploadedFile.size / 1024)} KB`,
-                                                type: uploadedFile.name.split('.').pop() as any || 'pdf'
-                                            };
-                                            setLocalDocuments(prev => [newDoc, ...prev]);
+                                        if (uploadedFile && study) {
+                                            try {
+                                                const formData = new FormData();
+                                                formData.append('file', uploadedFile);
+                                                formData.append('title', uploadedFile.name);
+                                                formData.append('category', finalCategory);
+                                                formData.append('study', study.id);
+                                                formData.append('visibility', JSON.stringify(['PARTICIPANT']));
+                                                
+                                                const res = await authFetch(`${API}/api/documents/`, {
+                                                    method: 'POST',
+                                                    body: formData
+                                                });
+                                                
+                                                if (res.ok) {
+                                                    const savedDoc = await res.json();
+                                                    const newDoc: Document = {
+                                                        id: savedDoc.id,
+                                                        name: savedDoc.title,
+                                                        category: savedDoc.category || finalCategory,
+                                                        uploadedBy: 'Participant',
+                                                        date: new Date().toLocaleDateString('en-US'),
+                                                        status: 'Uploaded',
+                                                        size: `${Math.round(uploadedFile.size / 1024)} KB`,
+                                                        type: uploadedFile.name.split('.').pop() as any || 'pdf',
+                                                        _raw: savedDoc
+                                                    };
+                                                    setLocalDocuments(prev => [newDoc, ...prev]);
+                                                    alert("SECURE TRANSMISSION SUCCESS: Document has been encrypted and added to your clinical repository.");
+                                                } else {
+                                                    alert("Upload failed. Please try again.");
+                                                }
+                                            } catch (err) {
+                                                console.error("Upload error:", err);
+                                                alert("Connection error during transmission.");
+                                            }
                                         }
 
                                         setIsUploadModalOpen(false);
                                         setUploadedFile(null);
                                         setNewCategoryName('');
                                         setShowNewCategoryInput(false);
-                                        alert("SECURE TRANSMISSION SUCCESS: Document has been encrypted and added to your clinical repository.");
                                     }}
                                 >
                                     Complete Upload

@@ -23,7 +23,7 @@ import ParticipantOversight from '../components/pi/panels/ParticipantOversight';
 import FormsQuestionnairesModule from '../components/pi/panels/FormsQuestionnairesModule';
 import ConsentModule from '../components/coordinator/consent/ConsentModule';
 import LabsResultsModule from '../components/pi/panels/LabsResultsModule';
-import ReportsSignOffModule from '../components/pi/panels/ReportsSignOffModule';
+// import ReportsSignOffModule from '../components/pi/panels/ReportsSignOffModule';
 import StudyDocumentsModule from '../components/pi/panels/StudyDocumentsModule';
 import MyDocumentsModule from '../components/pi/panels/MyDocumentsModule';
 import AlertsModule from '../components/pi/panels/AlertsModule';
@@ -35,8 +35,10 @@ import StaffTasksModule from '../components/shared/StaffTasksModule';
 import ParticipantTaskManagement from '../components/shared/ParticipantTaskManagement';
 import TeamInventoryModule from '../components/pi/panels/TeamInventoryModule';
 import StudyKitsModule from '../components/shared/StudyKitsModule';
+import ParticipantLogsPanel from '../components/shared/ParticipantLogsPanel';
 import { usePolling } from '@/hooks/usePolling';
 import ConsentOversight from '../components/coordinator/panels/ConsentOversight';
+import CompensationManagement from '../components/coordinator/panels/CompensationManagement';
 
 
 import {
@@ -49,8 +51,9 @@ import {
     HelpCircle, Stethoscope, UsersRound, ArrowUpRight, LogOut,
     Globe, Rocket, Menu, FlaskConical, FileSearch, Layers,
     ListFilter, CheckSquare, ScrollText, Settings2, Database,
-    AlertTriangle, FileCheck, Building2, Truck, UserPlus, User
+    AlertTriangle, FileCheck, Building2, Truck, UserPlus, User, DollarSign, FileSignature
 } from 'lucide-react';
+
 
 type PIModule =
     | 'WEBSITE'
@@ -63,7 +66,6 @@ type PIModule =
     | 'CONSENT'
     | 'VISITS'
     | 'LABS'
-    | 'REPORTS'
     | 'MESSAGES'
     | 'ALERTS'
     | 'LAUNCH_STUDY'
@@ -76,7 +78,12 @@ type PIModule =
     | 'MY_DOCS'
     | 'TEAM_INVENTORY'
     | 'LOGISTICS'
-    | 'SUPPORT';
+    | 'SUPPORT'
+    | 'DAILY_LOGS'
+    | 'REPORTS'
+    | 'SUBJECT_REVIEW'
+    | 'PAYMENTS'
+    | 'CONSENT_TRACKER';
 
 interface SidebarItem {
     id: PIModule | 'WEBSITE';
@@ -127,6 +134,7 @@ export default function PIDashboard() {
         if (route === 'analytics') return 'ANALYTICS';
         if (route === 'tasks') return 'TASKS';
         if (route === 'logistics') return 'LOGISTICS';
+        if (route === 'consent-tracker') return 'CONSENT_TRACKER';
         if (route === 'participant-tasks') return 'PARTICIPANT_TASKS';
         return 'OVERVIEW';
     });
@@ -139,11 +147,11 @@ export default function PIDashboard() {
 
         console.log("[PIDashboard] Route sync:", { path, route });
 
-        if (route === 'pi' || !route || route === 'oversight' || route === 'overview') setActiveModule('OVERVIEW');
+        if (route === 'pi' || !route || route === 'overview') setActiveModule('OVERVIEW');
         else if (route === 'studies') setActiveModule('STUDIES');
-        else if (route === 'participants') setActiveModule('PARTICIPANTS');
+        else if (route === 'participants' || route === 'oversight') setActiveModule('PARTICIPANTS');
         else if (route === 'forms') setActiveModule('FORMS');
-        else if (route === 'consent') setActiveModule('CONSENT');
+        else if (route === 'consent' || route === 'consent-new') setActiveModule('CONSENT');
         else if (route === 'visits') setActiveModule('VISITS');
         else if (route === 'subject-review' || route === 'review') setActiveModule('PARTICIPANTS');
         else if (route === 'team') setActiveModule('TEAM');
@@ -160,12 +168,17 @@ export default function PIDashboard() {
         else if (route === 'analytics') setActiveModule('ANALYTICS');
         else if (route === 'tasks') setActiveModule('TASKS');
         else if (route === 'logistics') setActiveModule('LOGISTICS');
-        else if (route === 'sponsors') setActiveModule('SPONSORS');
+        else if (route === 'daily-logs') setActiveModule('DAILY_LOGS');
+        else if (route === 'consent-tracker') setActiveModule('CONSENT_TRACKER');
+        else if (route === 'payments') setActiveModule('PAYMENTS');
         else if (route === 'participant-tasks') setActiveModule('PARTICIPANT_TASKS');
+        else if (route === 'sponsors') setActiveModule('SPONSORS');
         else setActiveModule('OVERVIEW');
     }, [location.pathname]);
 
-    const handleModuleChange = (mod: PIModule) => {
+    const handleModuleChange = (mod: PIModule, tab?: string) => {
+        if (tab) setSelectedReviewTab(tab);
+        else setSelectedReviewTab('Overview');
         const slugs: Record<string, string> = {
             'OVERVIEW': '',
             'STUDIES': 'studies',
@@ -191,7 +204,10 @@ export default function PIDashboard() {
             'SPONSORS': 'sponsors',
             'INVITATIONS': 'invitations',
             'CONSENT_NEW': 'consent-new',
-            'PARTICIPANT_TASKS': 'participant-tasks'
+            'PARTICIPANT_TASKS': 'participant-tasks',
+            'DAILY_LOGS': 'daily-logs',
+            'PAYMENTS': 'payments',
+            'CONSENT_TRACKER': 'consent-tracker'
         };
         const slug = slugs[mod];
         setActiveModule(mod);
@@ -268,6 +284,7 @@ export default function PIDashboard() {
     const [viewDate, setViewDate] = useState(new Date());
     const [selectedStudy, setSelectedStudy] = useState<any>(null);
     const [selectedParticipantId, setSelectedParticipantId] = useState<string | null>(null);
+    const [selectedReviewTab, setSelectedReviewTab] = useState<string>('Overview');
     const [oversightStats, setOversightStats] = useState({
         upcomingVisits: 0,
         overdueFollowUps: 0,
@@ -350,11 +367,12 @@ export default function PIDashboard() {
             const overdue = visitsData.filter((v: any) => v.status === 'SCHEDULED' && new Date(v.scheduled_date) < now).length;
             const pendingForms = staffTasksData.filter((t: any) => !t.is_completed).length;
             const unreadAlerts = notificationsData.filter((n: any) => !n.is_read).length;
+            const awaitingCallback = participantsData.filter((p: any) => p.status === 'PENDING_REVIEW').length;
 
             setOversightStats({
                 upcomingVisits: upcoming,
                 overdueFollowUps: overdue,
-                awaitingCallback: 0,
+                awaitingCallback: awaitingCallback,
                 pendingForms: pendingForms,
                 unreadAlerts: unreadAlerts,
                 hasCriticalAlert: overdue > 0 || notificationsData.some((n: any) => n.priority === 'CRITICAL' && !n.is_read)
@@ -450,33 +468,38 @@ export default function PIDashboard() {
 
     const sidebarGroups: SidebarGroup[] = [
         {
-            group: 'Overview',
+            group: 'Core',
             items: [
                 { id: 'WEBSITE', label: 'Website', icon: Globe },
                 { id: 'OVERVIEW', label: 'Dashboard', icon: LayoutDashboard },
             ]
         },
         {
-            group: 'Work',
+            group: 'Clinical Ops',
             items: [
-                { id: 'STUDIES', label: 'Studies', icon: Beaker },
-                { id: 'TEAM', label: 'Team', icon: Users },
-                { id: 'PARTICIPANTS', label: 'Participants', icon: UsersRound },
-                { id: 'FORMS', label: 'Forms', icon: ClipboardList },
+                { id: 'STUDIES', label: 'Studies', icon: FlaskConical },
+                { id: 'TEAM', label: 'Team', icon: UsersRound },
+                { id: 'PARTICIPANTS', label: 'Oversight', icon: Microscope },
                 { id: 'VISITS', label: 'Visits', icon: Calendar },
-                { id: 'SPONSORS', label: 'Sponsors', icon: Building2 },
-                { id: 'TASKS', label: 'Staff Tasks', icon: ClipboardList },
-                { id: 'LABS', label: 'Labs', icon: Beaker },
-                { id: 'PARTICIPANT_TASKS', label: 'Subject Tasks', icon: ListFilter },
-                { id: 'LOGISTICS', label: 'Logistics', icon: Truck },
-                { id: 'LAUNCH_STUDY', label: 'New Study', icon: Rocket },
+                { id: 'DAILY_LOGS', label: 'Patient Logs', icon: ScrollText },
+                { id: 'CONSENT_TRACKER', label: 'Consent Tracker', icon: FileSignature },
             ]
         },
         {
-            group: 'Comms',
+            group: 'Finance & Data',
+            items: [
+                { id: 'PAYMENTS', label: 'Payments', icon: DollarSign },
+                { id: 'LABS', label: 'Lab Results', icon: Beaker },
+                { id: 'ANALYTICS', label: 'Analytics', icon: TrendingUp },
+            ]
+        },
+        {
+            group: 'Support',
             items: [
                 { id: 'MESSAGES', label: 'Messages', icon: MessageSquare },
-                { id: 'ALERTS', label: 'Alerts', icon: Bell, hasNotify: true },
+                { id: 'ALERTS', label: 'Alerts', icon: Bell, hasNotify: notifications.some(n => !n.is_read) },
+                { id: 'TASKS', label: 'Tasks', icon: CheckSquare },
+                { id: 'SUPPORT', label: 'Help', icon: HelpCircle },
             ]
         }
     ];
@@ -565,7 +588,7 @@ export default function PIDashboard() {
                                 {userPicture ? (
                                     <img src={userPicture} alt={userName} className="w-full h-full object-cover rounded-[0.9rem]" />
                                 ) : (
-                                    <span className="text-sm font-bold text-white uppercase ">
+                                    <span className="text-sm font-black text-white uppercase ">
                                         {userName.split(' ').map((n: string) => n?.[0]).join('').toUpperCase().slice(0, 2) || 'PI'}
                                     </span>
                                 )}
@@ -629,7 +652,7 @@ export default function PIDashboard() {
                 <div className="h-20 px-6 flex justify-between items-center border-b border-white/[0.05]">
                     <Link to="/" target="_blank" rel="noopener noreferrer" className="group transition-all">
                         <div className="bg-white p-2 rounded-2xl group-hover:scale-110 transition-transform shadow-[0_0_20px_rgba(255,255,255,0.1)]">
-                            <img src="/logo.jpg" alt="Logo" className="h-12 w-auto object-contain rounded-xl" />
+                            <img src="/logo.jpg" alt="Logo" className="h-12 w-auto object-contain rounded-xl" width="474" height="164" />
                         </div>
                     </Link>
                 </div>
@@ -755,6 +778,12 @@ export default function PIDashboard() {
                             preloadedParticipants={participants}
                         />
                     )}
+                    {activeModule === 'DAILY_LOGS' && (
+                        <ParticipantLogsPanel 
+                            selectedStudyId={globalSelectedStudyId}
+                            preloadedParticipants={participants}
+                        />
+                    )}
                     {activeModule === 'MESSAGES' && <PIMessagesModule />}
                     {activeModule === 'TEAM' && (
                         <PITeamModule 
@@ -770,6 +799,8 @@ export default function PIDashboard() {
                             <div className="bg-[#0B101B] rounded-[2.5rem] -mt-6">
                                 <SubjectReviewModule 
                                     participantId={selectedParticipantId} 
+                                    selectedStudyId={globalSelectedStudyId !== 'all' ? globalSelectedStudyId : undefined}
+                                    initialTab={selectedReviewTab}
                                     onClose={() => setSelectedParticipantId(null)} 
                                 />
                             </div>
@@ -778,12 +809,25 @@ export default function PIDashboard() {
                                 selectedStudyId={globalSelectedStudyId}
                                 preloadedData={summaryData}
                                 isLoading={summaryLoading}
-                                onOpenProfile={(id) => setSelectedParticipantId(id)}
+                                onOpenProfile={(id, tab) => {
+                                    setSelectedReviewTab(tab || 'Overview');
+                                    setSelectedParticipantId(id);
+                                }}
                             />
                         )
                     )}
                     {activeModule === 'FORMS' && <FormsQuestionnairesModule />}
+                    {activeModule === 'CONSENT' && (
+                        <div className="bg-[#0B101B] rounded-[2.5rem] -mt-6">
+                            <ConsentModule selectedStudyId={globalSelectedStudyId} />
+                        </div>
+                    )}
 
+                    {activeModule === 'CONSENT_TRACKER' && (
+                        <div className="p-6">
+                            <ConsentOversight selectedStudyId={globalSelectedStudyId} />
+                        </div>
+                    )}
 
                     {activeModule === 'VISITS' && (
                         <VisitsModule 
@@ -803,7 +847,8 @@ export default function PIDashboard() {
                         />
                     )}
 
-                    {activeModule === 'ALERTS' && <AlertsModule />}
+                    {activeModule === 'ALERTS' && <AlertsModule initialNotifications={notifications} />}
+                    {activeModule === 'MY_DOCS' && <MyDocumentsModule />}
                     {activeModule === 'SUPPORT' && <PIHelpSupportModule />}
                     {activeModule === 'AUDIT_LOG' && <AuditLogModule />}
                     {activeModule === 'TASKS' && (
@@ -811,15 +856,37 @@ export default function PIDashboard() {
                             primaryColor="teal" 
                             onRefresh={fetchAllData} 
                             preloadedTasks={tasks}
+                            onViewParticipant={(id, tab) => {
+                                handleModuleChange('PARTICIPANTS');
+                                setSelectedReviewTab(tab || 'Overview');
+                                setSelectedParticipantId(id);
+                            }}
                         />
                     )}
-                    {activeModule === 'PARTICIPANT_TASKS' && <ParticipantTaskManagement primaryColor="teal" />}
+                    {activeModule === 'PARTICIPANT_TASKS' && (
+                        <ParticipantTaskManagement 
+                            primaryColor="teal" 
+                            selectedStudyId={globalSelectedStudyId}
+                        />
+                    )}
+                    {activeModule === 'DAILY_LOGS' && (
+                        <ParticipantLogsPanel 
+                            selectedStudyId={globalSelectedStudyId !== 'all' ? globalSelectedStudyId : undefined}
+                            preloadedStudies={studies}
+                            preloadedParticipants={participants}
+                        />
+                    )}
                     {activeModule === 'STUDY_DOCS' && <StudyDocumentsModule selectedStudyId={globalSelectedStudyId} />}
                     {activeModule === 'ANALYTICS' && (
                         <AnalyticsModule 
                             selectedStudyId={globalSelectedStudyId}
                             preloadedData={summaryData}
                             isLoading={summaryLoading}
+                            onOpenProfile={(id, tab) => {
+                                handleModuleChange('PARTICIPANTS');
+                                setSelectedReviewTab(tab || 'Overview');
+                                setSelectedParticipantId(id);
+                            }}
                         />
                     )}
                     {activeModule === 'SPONSORS' && (
@@ -827,6 +894,11 @@ export default function PIDashboard() {
                             onRefresh={fetchAllData}
                             selectedStudyId={globalSelectedStudyId !== 'all' ? globalSelectedStudyId : undefined}
                             preloadedStudies={studies}
+                        />
+                    )}
+                    {activeModule === 'PAYMENTS' && (
+                        <CompensationManagement 
+                            selectedStudyId={globalSelectedStudyId !== 'all' ? globalSelectedStudyId : undefined}
                         />
                     )}
                 </AnimatePresence>
@@ -874,7 +946,7 @@ function OverviewModule({ loading, studyCount, participantCount, stats, visits, 
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <h2 className="text-lg md:text-xl font-bold text-white uppercase tracking-tight leading-none">
-                    Research <span className="text-teal-400">Overview</span>
+                    Study <span className="text-teal-400">Dashboard</span>
                 </h2>
                 <button
                     onClick={onLaunch}
@@ -1049,26 +1121,80 @@ function OverviewModule({ loading, studyCount, participantCount, stats, visits, 
                 </div>
             </div>
 
-            {/* Row 4 — Quick Access Bottom Grid */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 pt-6">
-                {[
-                    { label: 'Alert Center', sub: `${stats.unreadAlerts.toString().padStart(2, '0')} New Findings`, icon: Bell, id: 'ALERTS' },
-                    { label: 'Message Center', sub: '05 Real-time Channels', icon: MessageSquare, id: 'MESSAGES' },
-                    { label: 'Study Archive', sub: '12 Study Records', icon: FileText, id: 'STUDY_DOCS' },
-                    { label: 'Verified Docs', sub: '01 Compliance Flag', icon: ShieldCheck, id: 'MY_DOCS' }
-                ].map((card, i) => (
-                    <button 
-                        key={i} 
-                        onClick={() => onNavigate(card.id)} 
-                        className="group bg-white/[0.02] border border-white/5 rounded-2xl p-6 text-left hover:bg-white/[0.04] hover:border-teal-500/30 transition-all shadow-lg"
-                    >
-                        <div className="w-10 h-10 rounded-xl bg-teal-500/10 border border-teal-500/20 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                            <card.icon className="w-5 h-5 text-teal-400" />
+            {/* Row 4 — Task Oversight & Quick Access Bottom Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 pt-6">
+                {/* Pending Tasks Section */}
+                <div className="lg:col-span-8 bg-[#0B101B]/50 border border-white/5 rounded-3xl overflow-hidden shadow-2xl">
+                    <div className="p-6 border-b border-white/5 flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <ClipboardList className="w-5 h-5 text-teal-400" />
+                            <h3 className="text-xs font-bold text-white uppercase tracking-[0.2em]">Pending Protocol Tasks</h3>
                         </div>
-                        <h4 className="text-sm font-bold text-white uppercase tracking-tight leading-none group-hover:text-teal-400 transition-colors uppercase">{card.label}</h4>
-                        <p className="text-xs text-slate-500 font-bold uppercase tracking-widest mt-2 whitespace-nowrap">{card.sub}</p>
-                    </button>
-                ))}
+                        <button onClick={() => onNavigate('TASKS')} className="text-[10px] font-black text-teal-400 hover:text-white uppercase tracking-widest transition-colors flex items-center gap-2">
+                            View Manager <ArrowUpRight className="w-3 h-3" />
+                        </button>
+                    </div>
+                    <div className="p-6 divide-y divide-white/5">
+                        {loading ? (
+                            Array.from({ length: 3 }).map((_, i) => <PISkeleton key={i} className="h-20 mb-4" />)
+                        ) : (stats.pendingTasksData || []).filter((t: any) => t.status === 'NEW' || t.status === 'PENDING').slice(0, 3).map((task: any, idx: number) => (
+                            <div key={idx} className="py-5 flex items-center justify-between group cursor-pointer hover:bg-white/[0.02] transition-all px-4 rounded-xl -mx-4" onClick={() => onNavigate('TASKS')}>
+                                <div className="flex items-center gap-5">
+                                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center border ${
+                                        task.task_type === 'CONSENT_SIGNATURE' ? 'bg-indigo-500/10 border-indigo-500/20 text-indigo-400' :
+                                        task.task_type === 'AE_REVIEW' ? 'bg-rose-500/10 border-rose-500/20 text-rose-400' :
+                                        'bg-teal-500/10 border-teal-500/20 text-teal-400'
+                                    }`}>
+                                        <FileText className="w-5 h-5" />
+                                    </div>
+                                    <div>
+                                        <p className="text-sm font-bold text-white uppercase tracking-tight group-hover:text-teal-400 transition-colors">{task.title}</p>
+                                        <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">
+                                            {task.study_details?.protocol_id || 'System Task'} • {new Date(task.created_at).toLocaleDateString()}
+                                        </p>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-4">
+                                    <div className="text-right hidden md:block">
+                                        <p className="text-[9px] font-black text-slate-600 uppercase tracking-widest">Priority</p>
+                                        <p className={`text-[10px] font-black uppercase ${task.priority === 'HIGH' ? 'text-rose-500' : 'text-teal-400'}`}>{task.priority || 'Normal'}</p>
+                                    </div>
+                                    <ChevronRight className="w-5 h-5 text-white/10 group-hover:text-teal-400 transition-all" />
+                                </div>
+                            </div>
+                        ))}
+                        {(!stats.pendingTasksData || stats.pendingTasksData.filter((t: any) => t.status === 'NEW' || t.status === 'PENDING').length === 0) && (
+                            <div className="py-12 text-center">
+                                <ShieldCheck className="w-10 h-10 text-teal-500/20 mx-auto mb-4" />
+                                <p className="text-[11px] text-slate-600 font-bold uppercase tracking-widest">Protocol is clear. No pending tasks.</p>
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {/* Quick Access Side */}
+                <div className="lg:col-span-4 grid grid-cols-2 gap-6">
+                    {[
+                        { label: 'Alert Center', sub: `${stats.unreadAlerts.toString().padStart(2, '0')} New Findings`, icon: Bell, id: 'ALERTS' },
+                        { label: 'Message Center', sub: '05 Real-time Channels', icon: MessageSquare, id: 'MESSAGES' },
+                        { label: 'Study Archive', sub: '12 Study Records', icon: FileText, id: 'STUDY_DOCS' },
+                        { label: 'Verified Docs', sub: '01 Compliance Flag', icon: ShieldCheck, id: 'MY_DOCS' }
+                    ].map((card, i) => (
+                        <button 
+                            key={i} 
+                            onClick={() => onNavigate(card.id)} 
+                            className="group bg-white/[0.02] border border-white/5 rounded-[2rem] p-6 text-left hover:bg-white/[0.04] hover:border-teal-500/30 transition-all shadow-lg flex flex-col justify-between"
+                        >
+                            <div className="w-10 h-10 rounded-xl bg-teal-500/10 border border-teal-500/20 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                                <card.icon className="w-5 h-5 text-teal-400" />
+                            </div>
+                            <div>
+                                <h4 className="text-sm font-bold text-white uppercase tracking-tight leading-none group-hover:text-teal-400 transition-colors">{card.label}</h4>
+                                <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest mt-2">{card.sub}</p>
+                            </div>
+                        </button>
+                    ))}
+                </div>
             </div>
         </motion.div>
     );
@@ -1277,8 +1403,8 @@ function StudyOverviewModule({ studies, onAdd, onEdit, onStatusUpdate }: { studi
     );
 }
 
-function ComplianceModule() {
-    const user: any = getUser() || {};
+function ComplianceModule({ globalSelectedStudyId }: { globalSelectedStudyId?: string }) {
+    const user: any = getUser() || { name: 'User', email: 'user@example.com' };
 
     return (
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-12">

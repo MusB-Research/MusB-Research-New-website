@@ -9,6 +9,7 @@ export type ParticipantStatus =
     | 'CONSENTED' 
     | 'RANDOMIZED' 
     | 'ACTIVE' 
+    | 'ENROLLED'
     | 'COMPLETED' 
     | 'DROPPED' 
     | 'INELIGIBLE';
@@ -29,7 +30,9 @@ const STEPS = [
 ];
 
 const LifecycleTracker: React.FC<LifecycleTrackerProps> = ({ status, updatedAt }) => {
-    const currentIndex = STEPS.findIndex(s => s.key === status);
+    // Map ENROLLED to ACTIVE for the progress bar logic
+    const effectiveStatus = status === 'ENROLLED' ? 'ACTIVE' : status;
+    const currentIndex = STEPS.findIndex(s => s.key === effectiveStatus);
     const isTerminal = ['DROPPED', 'INELIGIBLE'].includes(status);
 
     return (

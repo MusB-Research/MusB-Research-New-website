@@ -1,7 +1,10 @@
 from rest_framework import viewsets, permissions, status, parsers, serializers
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.decorators import action
+from rest_framework.decorators import action, api_view, permission_classes
+from rest_framework.permissions import IsAdminUser
+from django.core.mail import send_mail
+from django.conf import settings
 from rest_framework.parsers import MultiPartParser, FormParser
 from pypdf import PdfReader
 from rest_framework.parsers import MultiPartParser, FormParser
@@ -24,6 +27,7 @@ ClinicalAuditLog, PIIRevealLog,
 import logging
 
 logger = logging.getLogger(__name__)
+# from .views import smtp_test - Removed due to circular import
 
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
@@ -47,6 +51,7 @@ from .serializers import (
 TeamMemberSerializer, ClinicalAuditLogSerializer, PIIRevealLogSerializer,
     StaffMemberSerializer, AdvisorSerializer, ClinicalCollaboratorSerializer
 )
+from .utils.pdf_utils import generate_signed_consent_pdf
 
 from authentication.models import User, AuditLog, Invitation
 from django.db.models import Q, Count, Case, When, IntegerField, FloatField, Avg
@@ -55,6 +60,7 @@ from django.utils.timezone import now
 import pytz
 from .utils.reward_logic import trigger_reward_logic
 import datetime
+from datetime import timedelta
 import bson
 from .utils.cache_utils import cache_api_response, invalidate_cache
 
@@ -70,7 +76,6 @@ class SoftPaginationMixin:
     Mixin to apply a limit-based slice to the queryset in the list view.
     Maintains a plain array response structure without metadata.
     """
-    @cache_api_response("participants_list", timeout=10)  # Short TTL for real-time dashboard hydration
     def list(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())
         
@@ -157,8 +162,8 @@ class SponsorOrganizationViewSet(SoftPaginationMixin, viewsets.ModelViewSet):
         return SponsorOrganization.objects.all().order_by('name')[:100]
 
     def perform_create(self, serializer):
-        # Allow Super Admin, Admin, and PI to create organizations for now
-        if (self.request.user.role or '').upper() not in ['SUPER_ADMIN', 'ADMIN', 'PI']:
+        # Allow Super Admin, Admin, PI, Coordinator, and Sponsor to create organizations
+        if (self.request.user.role or '').upper() not in ['SUPER_ADMIN', 'ADMIN', 'PI', 'COORDINATOR', 'SPONSOR']:
             raise serializers.ValidationError({"detail": "Unauthorized to create sponsor organization."})
         serializer.save()
 
@@ -218,6 +223,11 @@ class StudyViewSet(WorkflowContentMixin, viewsets.ModelViewSet):
                 Q(sponsor=user) | Q(assignments__user=user)
             ).distinct().order_by('created_at')
 
+        if role == 'SPONSOR_ADMIN':
+            return Study.objects.filter(
+                Q(assignments__user=user)
+            ).distinct().order_by('created_at')
+
         # 4. Participants: Only studies they are enrolled in
         return Study.objects.filter(
             participants__user=user,
@@ -255,6 +265,26 @@ class StudyViewSet(WorkflowContentMixin, viewsets.ModelViewSet):
             created_by_role=role,
             approval_status=approval_status
         )
+
+        # Automatically create a ConsentTemplate for the new study if consent info exists
+        try:
+            from .models import ConsentTemplate
+            consent_content = serializer.validated_data.get('consent_content')
+            consent_file = serializer.validated_data.get('consent_pdf_file')
+            
+            if consent_content or consent_file:
+                ConsentTemplate.objects.create(
+                    study=study,
+                    title=f"Main Consent - {study.protocol_id}",
+                    version="1.0",
+                    status="ACTIVE",
+                    terms_content=consent_content or "See attached document for details.",
+                    file=consent_file,
+                    require_pi_signoff=serializer.validated_data.get('require_pi_signoff', True),
+                    require_cc_verification=serializer.validated_data.get('require_cc_verification', True)
+                )
+        except Exception as e:
+            print(f"Error creating initial ConsentTemplate: {e}")
 
         # Handle Clinical Instruments (Questionnaires) from the Launch Form
         for q_data in questionnaires_data:
@@ -458,6 +488,237 @@ class StudyViewSet(WorkflowContentMixin, viewsets.ModelViewSet):
             'server_iso': timezone.now().isoformat() # Fully serializable
         })
 
+    @action(detail=True, methods=['get'], permission_classes=[IsAdminOrCoordinator])
+    def export_data(self, request, protocol_id=None):
+        """Export study data to CSV (XLSX compatible) or PDF"""
+        study = self.get_object()
+        format_type = request.query_params.get('format', 'csv').lower()
+        
+        from .models import Participant, QuestionnaireScheduleInstance
+        participants = Participant.objects.filter(study=study)
+        
+        if format_type == 'pdf':
+            from reportlab.lib.pagesizes import letter, landscape
+            from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+            from reportlab.lib.styles import getSampleStyleSheet
+            from reportlab.lib import colors
+            import io
+            
+            buffer = io.BytesIO()
+            doc = SimpleDocTemplate(buffer, pagesize=landscape(letter))
+            elements = []
+            styles = getSampleStyleSheet()
+            
+            elements.append(Paragraph(f"Study Export: {study.title}", styles['Title']))
+            elements.append(Paragraph(f"Protocol ID: {study.protocol_id}", styles['Normal']))
+            elements.append(Paragraph(f"Date: {timezone.now().strftime('%Y-%m-%d %H:%M')}", styles['Normal']))
+            elements.append(Spacer(1, 20))
+            
+            # Participant Table
+            data = [['Subject ID', 'Status', 'Enrolled At', 'Compliance %']]
+            for p in participants:
+                # Calculate compliance
+                q_stats = QuestionnaireScheduleInstance.objects.filter(participant=p).aggregate(
+                    total=Count('id'),
+                    done=Count(Case(When(status__in=['COMPLETED', 'LATE'], then=1), output_field=IntegerField()))
+                )
+                total = q_stats['total'] or 0
+                done = q_stats['done'] or 0
+                comp = f"{round(done/total*100, 1)}%" if total > 0 else "0%"
+                
+                data.append([
+                    p.participant_sid,
+                    p.status,
+                    p.created_at.strftime('%Y-%m-%d') if p.created_at else 'N/A',
+                    comp
+                ])
+                
+            t = Table(data)
+            t.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, 0), 12),
+                ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+                ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+                ('GRID', (0, 0), (-1, -1), 1, colors.black)
+            ]))
+            elements.append(t)
+            
+            doc.build(elements)
+            buffer.seek(0)
+            
+            response = HttpResponse(buffer, content_type='application/pdf')
+            response['Content-Disposition'] = f'attachment; filename="Study_{study.protocol_id}_Export.pdf"'
+            return response
+            
+        else: # Default CSV
+            import csv
+            from django.http import HttpResponse
+            
+            response = HttpResponse(content_type='text/csv')
+            response['Content-Disposition'] = f'attachment; filename="Study_{study.protocol_id}_Data.csv"'
+            
+            writer = csv.writer(response)
+            writer.writerow(['Subject ID', 'Status', 'Enrollment Date', 'Compliance Rate', 'Total Tasks', 'Completed Tasks'])
+            
+            for p in participants:
+                q_stats = QuestionnaireScheduleInstance.objects.filter(participant=p).aggregate(
+                    total=Count('id'),
+                    done=Count(Case(When(status__in=['COMPLETED', 'LATE'], then=1), output_field=IntegerField()))
+                )
+                total = q_stats['total'] or 0
+                done = q_stats['done'] or 0
+                comp = round(done/total*100, 1) if total > 0 else 0
+                
+                writer.writerow([
+                    p.participant_sid,
+                    p.status,
+                    p.created_at.isoformat() if p.created_at else '',
+                    f"{comp}%",
+                    total,
+                    done
+                ])
+                
+            return response
+
+    @action(detail=True, methods=['get'], permission_classes=[IsAdminOrCoordinator])
+    def aggregation_data(self, request, protocol_id=None):
+        """Fetch aggregated participant response data for the 'Data & Exports' view."""
+        study = self.get_object()
+        from .models import QuestionnaireScheduleInstance
+        
+        # Fetch all completed questionnaire instances for this study
+        instances = QuestionnaireScheduleInstance.objects.filter(
+            participant__study=study,
+            status__in=['COMPLETED', 'LATE']
+        ).select_related('participant', 'participant__user', 'study_questionnaire__template')
+        
+        results = []
+        for instance in instances:
+            data = instance.response_data or {}
+            if isinstance(data, dict) and 'answers' in data:
+                answers = data.get('answers', {})
+            else:
+                answers = data
+            
+            # Extract questions and metadata dynamically from the template
+            template = instance.study_questionnaire.template if instance.study_questionnaire else None
+            questions_list = []
+            
+            if template and template.json_structure:
+                sections = template.json_structure.get('sections', [])
+                if sections:
+                    for sec in sections:
+                        for field in sec.get('fields', []):
+                            questions_list.append({
+                                'id': field.get('id'),
+                                'label': field.get('label') or field.get('text') or field.get('id'),
+                                'type': field.get('type', 'text'),
+                                'options': field.get('options', [])
+                            })
+                else:
+                    questions = template.json_structure.get('questions', [])
+                    for q in questions:
+                        questions_list.append({
+                            'id': q.get('id'),
+                            'label': q.get('label') or q.get('text') or q.get('id'),
+                            'type': q.get('type', 'text'),
+                            'options': q.get('options', [])
+                        })
+            
+            # If no questions found in the template structure, fall back to answer keys
+            if not questions_list:
+                for k in sorted(answers.keys()):
+                    questions_list.append({
+                        'id': k,
+                        'label': k.replace('_', ' ').title(),
+                        'type': 'text',
+                        'options': []
+                    })
+            
+            def get_score_value(val):
+                if val is None:
+                    return 0
+                if isinstance(val, (int, float)):
+                    return int(val)
+                if isinstance(val, bool):
+                    return 1 if val else 0
+                
+                try:
+                    return int(val)
+                except ValueError:
+                    pass
+                
+                val_str = str(val).strip().lower()
+                mapping = {
+                    'not at all': 0, 'none': 0, 'no': 0, '0 times': 0, 'never': 0, 'rarely': 0,
+                    'mild': 1, 'a little': 1, 'yes': 1, '1-2 times': 1, 'sometimes': 1,
+                    'moderate': 2, 'moderately': 2, '3-5 times': 2, 'often': 2,
+                    'severe': 3, 'a lot': 3, 'more than 5 times': 3, 'always': 3
+                }
+                return mapping.get(val_str, 0)
+
+            def get_score(q_key):
+                val = answers.get(q_key)
+                return get_score_value(val)
+
+            somatic = sum(get_score(k) for k in ['q1', 'q2', 'q3', 'q11'])
+            psych = sum(get_score(k) for k in ['q4', 'q5', 'q6', 'q7'])
+            urogen = sum(get_score(k) for k in ['q8', 'q9', 'q10'])
+            
+            total = somatic + psych + urogen
+            if total == 0 and answers:
+                total = sum(get_score_value(v) for v in answers.values())
+            
+            results.append({
+                'id': str(instance.id),
+                'participant_id': instance.participant.participant_sid,
+                'participant_name': instance.participant.user.decrypted_name if instance.participant.user else "N/A",
+                'study_protocol': study.protocol_id,
+                'template_id': str(template.id) if template else 'default',
+                'template_name': template.name if template else (instance.schedule_name or 'Questionnaire'),
+                'questions': questions_list,
+                'date': instance.completed_at.strftime('%Y-%m-%d') if instance.completed_at else instance.scheduled_date.strftime('%Y-%m-%d'),
+                'answers': answers,
+                'scores': {
+                    'somatic': somatic,
+                    'psych': psych,
+                    'urogen': urogen,
+                    'total': total
+                },
+                'pdf_url': request.build_absolute_uri(instance.signed_pdf.url) if instance.signed_pdf else request.build_absolute_uri(f'/api/questionnaire-schedules/{instance.id}/export_data/?format=pdf')
+            })
+            
+        return Response(results)
+
+    @action(detail=True, methods=['post'], permission_classes=[IsAdminOrCoordinator])
+    def bulk_export_pdfs(self, request, protocol_id=None):
+        """
+        🚀 High-Performance Bulk Export Engine.
+        Triggers an asynchronous background task to bundle multiple assessment PDFs into a single ZIP archive.
+        Accepts a JSON payload with 'instance_ids'.
+        """
+        study = self.get_object()
+        instance_ids = request.data.get('instance_ids', [])
+        
+        if not instance_ids:
+            return Response(
+                {"error": "No assessment instances selected for archival."}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+            
+        from .tasks import generate_bulk_zip_task
+        # Dispatch to Celery worker to offload processing from the request loop
+        task = generate_bulk_zip_task.delay(str(study.id), instance_ids, str(request.user.id))
+        
+        return Response({
+            "status": "Archival process initiated",
+            "task_id": task.id,
+            "message": f"We are preparing an archive of {len(instance_ids)} assessments. You will receive a notification with the download link shortly."
+        }, status=status.HTTP_202_ACCEPTED)
+
     def perform_update(self, serializer):
         user = self.request.user
         role = (user.role or '').upper()
@@ -523,16 +784,29 @@ class StudyViewSet(WorkflowContentMixin, viewsets.ModelViewSet):
             study.assignments.filter(role='PI').exclude(user__in=pi_ids).delete()
             for pi_user in pi_ids:
                 StudyAssignment.objects.get_or_create(study=study, user=pi_user, role='PI')
+            # Set primary PI if not set
+            if not study.pi and pi_ids:
+                study.pi = pi_ids[0]
+                study.save(update_fields=['pi'])
+                
         if coord_ids is not None:
             study.assignments.filter(role='COORDINATOR').exclude(user__in=coord_ids).delete()
             for coord_user in coord_ids:
                 StudyAssignment.objects.get_or_create(study=study, user=coord_user, role='COORDINATOR')
+            # Set primary Coordinator if not set
+            if not study.coordinator and coord_ids:
+                study.coordinator = coord_ids[0]
+                study.save(update_fields=['coordinator'])
         
         # Sync Sponsor assignment
         if sponsor_ids is not None:
              study.assignments.filter(role='SPONSOR_ADMIN').exclude(user__in=sponsor_ids).delete()
              for sp_user in sponsor_ids:
                  StudyAssignment.objects.get_or_create(study=study, user=sp_user, role='SPONSOR_ADMIN')
+             # Set primary sponsor if not set
+             if not study.sponsor and sponsor_ids:
+                 study.sponsor = sponsor_ids[0]
+                 study.save(update_fields=['sponsor'])
         elif study.sponsor:
             study.assignments.filter(role='SPONSOR_ADMIN').exclude(user=study.sponsor).delete()
             StudyAssignment.objects.get_or_create(study=study, user=study.sponsor, role='SPONSOR_ADMIN')
@@ -598,32 +872,41 @@ class StudyViewSet(WorkflowContentMixin, viewsets.ModelViewSet):
         # Import AuditLog inside if needed, though it's already imported at module level
         AuditLog.log('PARTICIPANT_SELF_ENROLL', user_email=user.email, request=request, detail=f"User self-enrolled in study {study.protocol_id}. Multi-enrolled: {bool(active_enrollment)}")
         
-        # Notifications to Staff
-        if study.coordinator:
+        # Notifications to ALL Staff
+        staff_team = study.get_all_staff_users()
+        for staff_user in staff_team:
+            role = (getattr(staff_user, 'role', '') or '').upper()
+            
             Notification.objects.create(
-                user=study.coordinator,
+                user=staff_user,
                 title="New Study Interest",
                 message=f"Participant {sid} has expressed interest in {study.protocol_id} and added it to their portal.",
                 type="INFO"
             )
-            StaffTask.objects.create(
-                user=study.coordinator,
-                study=study,
-                title="Review Screener Form",
-                description=f"Participant {sid} has completed the screener for {study.protocol_id}. Please review eligibility.",
-                task_type="SCREENER_REVIEW",
-                reference_id=str(participant.pk),
-                due_date=timezone.now() + timezone.timedelta(hours=48),
-                status='NEW'
-            )
             
-        if study.pi:
-            Notification.objects.create(
-                user=study.pi,
-                title="New Study Interest",
-                message=f"Participant {sid} has expressed interest in {study.protocol_id}.",
-                type="INFO"
-            )
+            # Create review task for research staff
+            if role in ['COORDINATOR', 'PI']:
+                StaffTask.objects.create(
+                    user=staff_user,
+                    study=study,
+                    title="Review Screener Form",
+                    description=f"Participant {sid} has completed the screener for {study.protocol_id}. Please review eligibility.",
+                    task_type="SCREENER_REVIEW",
+                    reference_id=str(participant.pk),
+                    due_date=timezone.now() + timezone.timedelta(hours=48),
+                    status='NEW'
+                )
+
+        # Create ParticipantTask for Eligibility Screener
+        ParticipantTask.objects.create(
+            participant=participant,
+            study=study,
+            title="Complete Eligibility Screener",
+            description=f"Please answer the qualifying questions for {study.protocol_id} to determine your eligibility.",
+            task_type='SCREENER',
+            status='PENDING',
+            due_date=timezone.now() + timezone.timedelta(days=2)
+        )
         
         msg = 'Study added to your portal. Please complete the eligibility screener to proceed.'
         if active_enrollment:
@@ -738,31 +1021,30 @@ class PublicStudyViewSet(viewsets.ReadOnlyModelViewSet):
         AuditLog.log('PARTICIPANT_SELF_ENROLL', user_email=user.email, request=request, detail=f"User self-enrolled in study {study.protocol_id}. Multi-enrolled: {bool(active_enrollment)}")
         
         # Determine the Coordinator and PI for the study
-        if study.coordinator:
+        # Notifications to ALL Staff
+        staff_team = study.get_all_staff_users()
+        for staff_user in staff_team:
+            role = (getattr(staff_user, 'role', '') or '').upper()
+            
             Notification.objects.create(
-                user=study.coordinator,
+                user=staff_user,
                 title="New Study Interest",
                 message=f"Participant {sid} has expressed interest in {study.protocol_id} and added it to their portal.",
                 type="INFO"
             )
-            StaffTask.objects.create(
-                user=study.coordinator,
-                study=study,
-                title="Review Screener Form",
-                description=f"Participant {sid} has completed the screener for {study.protocol_id}. Please review eligibility.",
-                task_type="SCREENER_REVIEW",
-                reference_id=str(participant.pk),
-                due_date=timezone.now() + timezone.timedelta(hours=48),
-                status='NEW'
-            )
             
-        if study.pi:
-            Notification.objects.create(
-                user=study.pi,
-                title="New Study Interest",
-                message=f"Participant {sid} has expressed interest in {study.protocol_id}.",
-                type="INFO"
-            )
+            # Create review task for research staff
+            if role in ['COORDINATOR', 'PI']:
+                StaffTask.objects.create(
+                    user=staff_user,
+                    study=study,
+                    title="Review Screener Form",
+                    description=f"Participant {sid} has completed the screener for {study.protocol_id}. Please review eligibility.",
+                    task_type="SCREENER_REVIEW",
+                    reference_id=str(participant.pk),
+                    due_date=timezone.now() + timezone.timedelta(hours=48),
+                    status='NEW'
+                )
         
         msg = 'Study added to your portal. Please complete the eligibility screener to proceed.'
         if active_enrollment:
@@ -812,9 +1094,23 @@ class ParticipantViewSet(SoftPaginationMixin, viewsets.ModelViewSet):
             
         role = (user.role or '').upper()
         
-        # Staff roles see everyone
-        if role in ['ADMIN', 'SUPER_ADMIN', 'COORDINATOR', 'PI']:
-            qs = Participant.objects.select_related('user', 'study', 'study__coordinator', 'study__pi', 'reviewed_by').prefetch_related('user__groups')
+        # Staff roles see everyone they are involved with
+        if role in ['ADMIN', 'SUPER_ADMIN', 'COORDINATOR', 'PI', 'SPONSOR', 'SPONSOR_ADMIN'] or Study.objects.filter(Q(pi=user) | Q(coordinator=user) | Q(created_by=user) | Q(assignments__user=user)).exists():
+            qs = Participant.objects.all()
+            
+            # If not admin or research staff, restrict to studies the user is involved in
+            if role not in ['ADMIN', 'SUPER_ADMIN', 'COORDINATOR', 'PI']:
+                created_studies = Study.objects.filter(created_by=user).values_list('id', flat=True)
+                qs = qs.filter(
+                    Q(study__coordinator=user) | 
+                    Q(study__pi=user) | 
+                    Q(study__sponsor=user) |
+                    Q(study__created_by=user) |
+                    Q(study__id__in=created_studies) |
+                    Q(study__assignments__user=user)
+                ).distinct()
+
+            qs = qs.select_related('user', 'study', 'study__coordinator', 'study__pi', 'reviewed_by').prefetch_related('user__groups')
             
             # Optimization: Only prefetch heavy relations for detail view
             if self.action == 'retrieve' or self.action == 'me':
@@ -839,15 +1135,15 @@ class ParticipantViewSet(SoftPaginationMixin, viewsets.ModelViewSet):
         
     def perform_create(self, serializer):
         serializer.save()
-        invalidate_cache("participants_list")
+        invalidate_cache("participant_records_list")
         
     def perform_update(self, serializer):
         serializer.save()
-        invalidate_cache("participants_list")
+        invalidate_cache("participant_records_list")
         
     def perform_destroy(self, instance):
         instance.delete()
-        invalidate_cache("participants_list")
+        invalidate_cache("participant_records_list")
 
 
     # Removed _ensure_test_participant logic to allow 'No Active Study' states for testing as per user request.
@@ -918,6 +1214,10 @@ class ParticipantViewSet(SoftPaginationMixin, viewsets.ModelViewSet):
             participant.coordinator_approved = True
             participant.coordinator_approved_at = now
             participant.coordinator_signature = signature
+            # Coordinator approval clears need for PI approval
+            participant.pi_approved = True
+            participant.pi_approved_at = now
+            participant.pi_signature = signature or "SYSTEM (COORDINATOR APPROVED)"
             ClinicalAuditLog.log('COORDINATOR_APPROVAL', participant=participant, request=request, details={'signature': 'SIGNED'})
         
         if approval_type == 'pi' or role == 'PI':
@@ -932,7 +1232,31 @@ class ParticipantViewSet(SoftPaginationMixin, viewsets.ModelViewSet):
             if participant.status in ['NEW', 'PENDING_REVIEW']:
                 participant.status = 'ELIGIBLE'
                 ClinicalAuditLog.log('STATUS_CHANGE', participant=participant, request=request, details={'from': old_status, 'to': 'ELIGIBLE', 'reason': 'Dual Approval Complete'})
-        
+        else:
+            # Cross-notification for dual approval
+            if participant.coordinator_approved and not participant.pi_approved:
+                # Notify PIs that they need to approve
+                for pi in participant.study.get_all_staff_users():
+                    if (getattr(pi, 'role', '') or '').upper() == 'PI':
+                        Notification.objects.create(
+                            user=pi,
+                            title="PI Approval Required",
+                            message=f"Coordinator has approved participant {participant.participant_sid}. Your signature is now required for enrollment.",
+                            type="ACTION",
+                            link=f"/dashboard/pi/participants/{participant.participant_sid}"
+                        )
+            elif participant.pi_approved and not participant.coordinator_approved:
+                 # Notify Coordinators that they need to approve
+                for coord in participant.study.get_all_staff_users():
+                    if (getattr(coord, 'role', '') or '').upper() == 'COORDINATOR':
+                        Notification.objects.create(
+                            user=coord,
+                            title="Coordinator Approval Required",
+                            message=f"PI has approved participant {participant.participant_sid}. Your signature is now required.",
+                            type="ACTION",
+                            link=f"/dashboard/coordinator/participants/{participant.participant_sid}"
+                        )
+
         participant.save()
         return Response(ParticipantSerializer(participant).data)
 
@@ -1067,7 +1391,7 @@ class ParticipantViewSet(SoftPaginationMixin, viewsets.ModelViewSet):
             # 1. First choice: Enrolled/Active/Consented participants (who need the clinical dashboard)
             # 2. Second choice: Newest pending review 
             # 3. Third choice: Completed or others
-            participant = qs.select_related('study', 'study__coordinator', 'study__pi', 'user').order_by(
+            participant = qs.select_related('study', 'study__coordinator', 'study__pi', 'user', 'assigned_arm').order_by(
                 Case(
                     When(status__in=['ENROLLED', 'CONSENTED', 'RANDOMIZED', 'ACTIVE'], then=0),
                     When(status='PENDING_REVIEW', then=1),
@@ -1081,7 +1405,7 @@ class ParticipantViewSet(SoftPaginationMixin, viewsets.ModelViewSet):
             if not p_sid:
                  return Response({'error': 'Authorized for participants or requires participant_sid.'}, status=403)
             participant = Participant.objects.filter(participant_sid=p_sid).select_related(
-                'study', 'study__coordinator', 'study__pi', 'user'
+                'study', 'study__coordinator', 'study__pi', 'user', 'assigned_arm'
             ).first()
         
         if not participant:
@@ -1117,6 +1441,16 @@ class ParticipantViewSet(SoftPaginationMixin, viewsets.ModelViewSet):
             'id', 'participant_id', 'test_name', 'value', 'units',
             'status', 'lab_date', 'released_at', 'is_critical'
         )[:50])  # Only essential fields
+
+        # PERFORMANCE: Fetch study documents and filter visibility in Python to avoid unsupported MongoDB lookups
+        all_study_docs = Document.objects.filter(
+            study_id=s_id, is_archived=False
+        ).only('id', 'title', 'version', 'uploaded_at', 'file', 'visibility')[:100]
+        
+        docs_list = [
+            d for d in all_study_docs 
+            if not d.visibility or 'PARTICIPANT' in d.visibility or not isinstance(d.visibility, list)
+        ][:50]
 
         
         # Batch 3: Communication & Compliance
@@ -1156,6 +1490,11 @@ class ParticipantViewSet(SoftPaginationMixin, viewsets.ModelViewSet):
         )
         unread_count = base_notifications.filter(is_read=False).count() if hasattr(Notification, 'is_read') else 0
         notifications_list = list(base_notifications.order_by('-created_at')[:15])
+
+        # Batch 7: Active consent templates for this study (needed so participant portal can display consent content)
+        consent_templates_list = list(ConsentTemplate.objects.filter(
+            study_id=s_id, status='ACTIVE'
+        ).order_by('-version')[:5])
 
         # Get today's log status for virtual task injection
         has_today_log = DailyMedicationLog.objects.filter(
@@ -1205,7 +1544,9 @@ class ParticipantViewSet(SoftPaginationMixin, viewsets.ModelViewSet):
             'conversations': ClinicalConversationSerializer(conversations_list, many=True).data,
             'assigned_forms': AssignedFormSerializer(assigned_forms_list, many=True).data,
             'active_consents': ConsentSerializer(consent_list, many=True).data,
+            'available_consent_templates': ConsentTemplateSerializer(consent_templates_list, many=True).data,
             'medication_logs': DailyMedicationLogSerializer(logs_list, many=True).data,
+            'documents': DocumentSerializer(docs_list, many=True).data,
             'help_requests': StaffTaskSerializer(help_requests_list, many=True).data,
             'server_time': timezone.now(),
             'links': {
@@ -1329,26 +1670,29 @@ class ParticipantViewSet(SoftPaginationMixin, viewsets.ModelViewSet):
                 recipient_list=['info@musbresearch.com'],
                 fail_silently=True
             )
-        except Exception as e:
-            print(f"Failed to send eligibility email: {e}")
+            
+            # Create Staff Tasks for review
+            for member in team:
+                if member:
+                    StaffTask.objects.create(
+                        user=member,
+                        study=study,
+                        title="Eligibility Review Required",
+                        description=f"New eligibility submission from participant {participant.participant_sid}. Please review and approve.",
+                        task_type='SCREENER_REVIEW',
+                        reference_id=str(participant.id),
+                        due_date=now() + timedelta(hours=48)
+                    )
+                    Notification.objects.create(
+                        user=member,
+                        title="New Eligibility Submission",
+                        message=f"Participant {participant.participant_sid} has submitted their eligibility screener for {study.protocol_id}.",
+                        type="ACTION"
+                    )
 
-        for user in filter(None, team):
-            Notification.objects.create(
-                user=user,
-                title="Eligibility Submission",
-                message=f"Participant {participant.participant_sid} has submitted an eligibility form for {study.protocol_id}.",
-                type="INFO"
-            )
-            StaffTask.objects.create(
-                user=user,
-                study=study,
-                title="Review Eligibility",
-                description=f"Action Required: Review submission for {participant.participant_sid}.",
-                task_type="SCREENER_REVIEW",
-                reference_id=str(participant.pk),
-                due_date=timezone.now() + timezone.timedelta(hours=48),
-                status='NEW'
-            )
+        except Exception as e:
+            logger.error(f"Error in submit_eligibility: {e}")
+            return Response({'status': 'error', 'message': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         return Response({'status': 'submitted', 'message': 'Successfully submitted for review.'})
 
@@ -1379,12 +1723,13 @@ class ParticipantViewSet(SoftPaginationMixin, viewsets.ModelViewSet):
                 
                 # Update any pending review tasks
                 StaffTask.objects.filter(reference_id=str(participant.id), task_type="SCREENER_REVIEW").update(
-                    status='COMPLETED', 
+                    is_completed=True,
+                    status='ADDRESSED', 
                     completed_at=timezone.now()
                 )
 
                 # Invalidate lists to show change immediately on refresh
-                invalidate_cache("participants_list")
+                invalidate_cache("participant_records_list")
 
                 # Audit Log
                 DataAuditLog.objects.create(
@@ -1406,12 +1751,13 @@ class ParticipantViewSet(SoftPaginationMixin, viewsets.ModelViewSet):
                     if signature:
                         participant.coordinator_signature = signature
                     
-                    if participant.approval_status == 'PENDING_INITIAL_REVIEW':
-                        participant.approval_status = 'COORDINATOR_REVIEWED'
-                    elif participant.approval_status == 'PI_REVIEWED':
-                        participant.approval_status = 'FULLY_APPROVED'
+                    # Bypass PI approval when coordinator accepts
+                    participant.pi_approved = True
+                    participant.pi_approved_at = timezone.now()
+                    participant.pi_signature = signature or "SYSTEM (COORDINATOR APPROVED)"
+                    participant.approval_status = 'FULLY_APPROVED'
 
-                if role in ['PI', 'SUPER_ADMIN']:
+                if role in ['PI', 'ADMIN', 'SUPER_ADMIN']:
                     participant.pi_approved = True
                     participant.pi_approved_at = timezone.now()
                     if signature:
@@ -1513,12 +1859,13 @@ class ParticipantViewSet(SoftPaginationMixin, viewsets.ModelViewSet):
 
                 # Update any pending review tasks
                 StaffTask.objects.filter(reference_id=str(participant.id), task_type="SCREENER_REVIEW").update(
-                    status='COMPLETED', 
+                    is_completed=True,
+                    status='ADDRESSED', 
                     completed_at=timezone.now()
                 )
 
                 # Invalidate lists to show change immediately on refresh
-                invalidate_cache("participants_list")
+                invalidate_cache("participant_records_list")
 
                 # Audit Log
                 DataAuditLog.objects.create(
@@ -1591,7 +1938,7 @@ class ParticipantViewSet(SoftPaginationMixin, viewsets.ModelViewSet):
         from .utils.cache_utils import invalidate_cache
         if participant.user_id:
             invalidate_cache("participant_dashboard", user_id=str(participant.user_id))
-            invalidate_cache("participants_list")
+            invalidate_cache("participant_records_list")
             
         return Response({'status': 'toggled', 'is_flagged': new_state})
 
@@ -1612,7 +1959,7 @@ class ParticipantViewSet(SoftPaginationMixin, viewsets.ModelViewSet):
         if self.action == 'list':
             return ParticipantBriefSerializer
         return ParticipantSerializer
-    @cache_api_response("participants_list", timeout=300)
+    @cache_api_response("participant_records_list", timeout=30)  # 30s TTL — fresh enough for dashboard real-time accuracy
     def list(self, request, *args, **kwargs):
         # Performance: Inform serializer to skip expensive field-by-field decryption for bulk lists
         self.context = self.get_serializer_context()
@@ -1633,9 +1980,15 @@ class ParticipantViewSet(SoftPaginationMixin, viewsets.ModelViewSet):
         if role == 'PARTICIPANT':
             return Participant.objects.filter(user=user).select_related('user', 'study').order_by('-created_at')
             
-        # PIs and Coordinators only see participants in studies they are explicitly assigned to
-        assigned_study_ids = StudyAssignment.objects.filter(user=user).values_list('study_id', flat=True)
-        return Participant.objects.filter(study_id__in=assigned_study_ids).select_related('user', 'study').order_by('-created_at')
+        from django.db.models import Q
+        # PIs and Coordinators see participants in studies they are assigned to (via StudyAssignment) 
+        # OR where they are directly listed as PI/Coordinator/Creator on the Study object
+        return Participant.objects.filter(
+            Q(study__assignments__user=user) |
+            Q(study__pi=user) |
+            Q(study__coordinator=user) |
+            Q(study__created_by=user)
+        ).select_related('user', 'study').distinct().order_by('-created_at')
 
 class VisitViewSet(SoftPaginationMixin, viewsets.ModelViewSet):
     queryset = Visit.objects.all()
@@ -1653,7 +2006,11 @@ class VisitViewSet(SoftPaginationMixin, viewsets.ModelViewSet):
             return Visit.objects.select_related('participant', 'participant__user', 'participant__study', 'participant__study__pi', 'participant__study__coordinator', 'scheduled_by', 'updated_by').order_by('-scheduled_date')
         if (user.role or '').upper() == 'PARTICIPANT':
             return Visit.objects.filter(participant__user=user).select_related('participant', 'participant__user', 'participant__study', 'participant__study__pi', 'participant__study__coordinator', 'scheduled_by', 'updated_by').order_by('-scheduled_date')
-        # PIs, Coordinators, and Sponsors see visits for assigned studies
+        # PIs, Coordinators see all visits as research staff
+        if (user.role or '').upper() in ['PI', 'COORDINATOR']:
+             return Visit.objects.select_related('participant', 'participant__user', 'participant__study', 'participant__study__pi', 'participant__study__coordinator', 'scheduled_by', 'updated_by').order_by('-scheduled_date')
+        
+        # Others (Sponsors) see visits for assigned studies
         return Visit.objects.filter(participant__study__assignments__user=user).select_related('participant', 'participant__user', 'participant__study', 'participant__study__pi', 'participant__study__coordinator', 'scheduled_by', 'updated_by').distinct().order_by('-scheduled_date')
 
     def perform_create(self, serializer):
@@ -1692,15 +2049,21 @@ class VisitViewSet(SoftPaginationMixin, viewsets.ModelViewSet):
     def check_missed(self, request):
         from .tasks import check_missed_visits
         from django.conf import settings
+        import logging
+        logger = logging.getLogger(__name__)
         
         # Trigger background task. If Redis is missing locally, Celery EAGER blocks the entire thread for 10s!
-        if getattr(settings, 'CELERY_TASK_ALWAYS_EAGER', False):
-            import threading
-            threading.Thread(target=check_missed_visits, daemon=True).start()
-        else:
-            check_missed_visits.delay()
-            
-        return Response({'status': 'Background check initiated', 'message': 'Missed visits are being processed in the background.'})
+        try:
+            if getattr(settings, 'CELERY_TASK_ALWAYS_EAGER', False):
+                import threading
+                threading.Thread(target=check_missed_visits, daemon=True).start()
+            else:
+                check_missed_visits.delay()
+                
+            return Response({'status': 'Background check initiated', 'message': 'Missed visits are being processed in the background.'})
+        except Exception as e:
+            logger.error(f"Failed to initiate missed visit check: {str(e)}")
+            return Response({'error': 'Failed to initiate background task', 'detail': str(e)}, status=500)
 
     def perform_update(self, serializer):
         visit = serializer.save(updated_by=self.request.user)
@@ -1720,7 +2083,13 @@ class LeadViewSet(SoftPaginationMixin, viewsets.ModelViewSet):
         # PERFORMANCE: Added order_by to satisfy pagination requirements and avoid full scans
         if (user.role or '').upper() == 'SUPER_ADMIN': 
             return Lead.objects.all().select_related('study').order_by('-created_at')
-        return Lead.objects.filter(study__assignments__user=user).select_related('study').distinct().order_by('-created_at')
+        from django.db.models import Q
+        return Lead.objects.filter(
+            Q(study__assignments__user=user) |
+            Q(study__pi=user) |
+            Q(study__coordinator=user) |
+            Q(study__created_by=user)
+        ).select_related('study').distinct().order_by('-created_at')
 
     @cache_api_response("leads_list", timeout=120)
     def list(self, request, *args, **kwargs):
@@ -1734,7 +2103,13 @@ class CommunicationLogViewSet(SoftPaginationMixin, viewsets.ModelViewSet):
         user = self.request.user
         if not user.is_authenticated: return CommunicationLog.objects.none()
         if (user.role or '').upper() in ['SUPER_ADMIN', 'ADMIN']: return CommunicationLog.objects.all().select_related('participant', 'participant__user', 'participant__study')
-        return CommunicationLog.objects.filter(participant__study__assignments__user=user).select_related('participant', 'participant__user', 'participant__study').distinct()
+        from django.db.models import Q
+        return CommunicationLog.objects.filter(
+            Q(participant__study__assignments__user=user) |
+            Q(participant__study__pi=user) |
+            Q(participant__study__coordinator=user) |
+            Q(participant__study__created_by=user)
+        ).select_related('participant', 'participant__user', 'participant__study').distinct().order_by('-created_at')
 
 class CompensationViewSet(SoftPaginationMixin, viewsets.ModelViewSet):
     queryset = Compensation.objects.all()
@@ -1749,7 +2124,13 @@ class CompensationViewSet(SoftPaginationMixin, viewsets.ModelViewSet):
         elif (user.role or '').upper() == 'PARTICIPANT':
             queryset = Compensation.objects.filter(participant__user=user).select_related('participant', 'participant__user', 'study').order_by('-paid_at')
         else:
-            queryset = Compensation.objects.filter(participant__study__assignments__user=user).select_related('participant', 'participant__user', 'study').distinct().order_by('-paid_at')
+            from django.db.models import Q
+            queryset = Compensation.objects.filter(
+                Q(participant__study__assignments__user=user) |
+                Q(participant__study__pi=user) |
+                Q(participant__study__coordinator=user) |
+                Q(participant__study__created_by=user)
+            ).select_related('participant', 'participant__user', 'study').distinct().order_by('-paid_at')
         
         study_id = self.request.query_params.get('study_id')
         if study_id and study_id != 'all':
@@ -1771,7 +2152,10 @@ class LabResultViewSet(SoftPaginationMixin, viewsets.ModelViewSet):
             return LabResult.objects.all().select_related('participant', 'participant__user', 'participant__study').order_by('-lab_date')
         if (user.role or '').upper() == 'PARTICIPANT':
             return LabResult.objects.filter(participant__user=user, is_released=True).select_related('participant', 'participant__user').order_by('-lab_date')
-        queryset = LabResult.objects.filter(participant__study__assignments__user=user).select_related('participant', 'participant__user', 'participant__study').distinct().order_by('-lab_date')
+        if (user.role or '').upper() in ['PI', 'COORDINATOR']:
+            queryset = LabResult.objects.all().select_related('participant', 'participant__user', 'participant__study').distinct().order_by('-lab_date')
+        else:
+            queryset = LabResult.objects.filter(participant__study__assignments__user=user).select_related('participant', 'participant__user', 'participant__study').distinct().order_by('-lab_date')
         
         study_id = self.request.query_params.get('study_id')
         if study_id and study_id != 'all':
@@ -1843,9 +2227,9 @@ class ConsentTemplateViewSet(WorkflowContentMixin, viewsets.ModelViewSet):
 
         if (user.role or '').upper() in ['SUPER_ADMIN', 'ADMIN']:
             queryset = ConsentTemplate.objects.all().select_related('study').order_by('-created_at')
-        # For Staff (Admin, Coordinator, PI): Filter templates by studies the user is assigned to
+        # For Staff (Admin, Coordinator, PI): Research staff see all templates
         elif (user.role or '').upper() in ['PI', 'COORDINATOR']:
-            queryset = ConsentTemplate.objects.filter(study__assignments__user=user).select_related('study').distinct().order_by('-created_at')
+            queryset = ConsentTemplate.objects.all().select_related('study').distinct().order_by('-created_at')
         elif (user.role or '').upper() == 'PARTICIPANT':
             # For Participants: Filter templates by studies they are enrolled in
             queryset = ConsentTemplate.objects.filter(study__participants__user=user).select_related('study').distinct().order_by('-created_at')
@@ -1908,6 +2292,7 @@ class DocumentViewSet(viewsets.ModelViewSet):
         return queryset.filter(
             Q(study__pi=user) | 
             Q(study__coordinator=user) | 
+            Q(study__sponsor=user) |
             Q(study__assignments__user=user)
         ).distinct().order_by('-uploaded_at')
 
@@ -1917,7 +2302,7 @@ class DocumentViewSet(viewsets.ModelViewSet):
 
 class ConsentViewSet(viewsets.ModelViewSet):
     queryset = Consent.objects.all().order_by('-agreed_at').select_related(
-        'participant__user', 'participant__study', 'template', 'study'
+        'participant__user', 'participant__study', 'study'
     )
     serializer_class = ConsentSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
@@ -1939,6 +2324,10 @@ class ConsentViewSet(viewsets.ModelViewSet):
             # PIs, Coordinators, and Sponsors see consents for assigned studies
             from django.db.models import Q
             queryset = self.queryset.filter(
+                Q(study__pi=user) | 
+                Q(study__coordinator=user) | 
+                Q(study__sponsor=user) |
+                Q(study__assignments__user=user) |
                 Q(participant__study__pi=user) | 
                 Q(participant__study__coordinator=user) | 
                 Q(participant__study__assignments__user=user)
@@ -1974,16 +2363,75 @@ class ConsentViewSet(viewsets.ModelViewSet):
         cc_signature = request.data.get('signature')
         cc_name = request.data.get('name')
         
-        if not cc_signature or not cc_name:
+        template = consent.template
+        requires_cc = template.require_cc_verification if template else True
+
+        if requires_cc and (not cc_signature or not cc_name):
             return Response({'error': 'Name and Signature are mandatory.'}, status=400)
+        
+        # If not required, we still record the name if provided
+        if not requires_cc and not cc_name:
+            cc_name = user.full_name
             
         consent.cc_signature = cc_signature
         consent.cc_name = cc_name
         consent.cc_user = user
         consent.cc_verified = True
+        
+        # Senior Dev: Generate official PDF after coordinator co-signs
+        try:
+            generate_signed_consent_pdf(consent)
+        except Exception as e:
+            print(f"Error generating PDF: {e}")
+            
         consent.save() # Triggers transition to FULLY_SIGNED in model.save
         
-        return Response({'status': 'FULLY_SIGNED', 'detail': 'Consent record finalized and archived.'})
+        # Mark task as completed for all staff since it's addressed
+        StaffTask.objects.filter(
+            reference_id=str(consent.pk),
+            task_type='CONSENT_COORDINATOR_SIGN'
+        ).update(is_completed=True, status='ADDRESSED', completed_at=now())
+        
+        return Response({'status': 'SUCCESS', 'detail': 'Consent record co-signed by coordinator.'})
+
+    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
+    def pi_sign(self, request, pk=None):
+        """Step 3: Optional/Mandatory PI Signature"""
+        consent = self.get_object()
+        user = request.user
+        
+        if (user.role or '').upper() not in ['ADMIN', 'SUPER_ADMIN', 'PI']:
+            return Response({'error': 'Unauthorized. PI role required.'}, status=403)
+            
+        if consent.signing_status not in ['AWAITING_PI', 'PARTIALLY_SIGNED']:
+            return Response({'error': f'Invalid status for PI signature: {consent.signing_status}'}, status=400)
+            
+        pi_signature = request.data.get('signature')
+        pi_name = request.data.get('name')
+        
+        if not pi_signature or not pi_name:
+            return Response({'error': 'Name and Signature are mandatory.'}, status=400)
+            
+        consent.pi_signature = pi_signature
+        consent.pi_name = pi_name
+        consent.pi_user = user
+        consent.pi_verified = True
+        
+        # Update PDF with PI signature
+        try:
+            generate_signed_consent_pdf(consent)
+        except Exception as e:
+            print(f"Error generating PDF: {e}")
+            
+        consent.save()
+        
+        # Mark task as completed for all PIs since it's addressed
+        StaffTask.objects.filter(
+            reference_id=str(consent.pk),
+            task_type='CONSENT_SIGNATURE'
+        ).update(is_completed=True, status='ADDRESSED', completed_at=now())
+        
+        return Response({'status': 'SUCCESS', 'detail': 'Consent record verified by PI.'})
 
     def perform_create(self, serializer):
         user = self.request.user
@@ -2063,9 +2511,14 @@ class ConsentViewSet(viewsets.ModelViewSet):
             except Exception:
                 auto_full_name = user.email
 
+        template = None
+        if study_obj:
+            template = ConsentTemplate.objects.filter(study=study_obj).order_by('-created_at').first()
+
         consent = serializer.save(
-            participant=participant,
             study=study_obj,
+            participant=participant,
+            content_snapshot=template.terms_content if template else "Consent terms provided electronically.",
             email=auto_email,
             full_name=auto_full_name,
             agreed_at=now(),
@@ -2098,35 +2551,8 @@ class ConsentViewSet(viewsets.ModelViewSet):
                          request=self.request,
                          detail=f"Consent task marked complete for {participant.participant_sid}")
 
-        # ── 7. Notify Coordinator (mandatory sign) + PI (optional sign) ──
-        if study_obj:
-            participant_sid = participant.participant_sid if participant else 'Unknown'
-            if study_obj.coordinator:
-                Notification.objects.create(
-                    user=study_obj.coordinator,
-                    title="New Consent Signed — Signature Required",
-                    message=f"Participant {participant_sid} signed the consent for {study_obj.protocol_id}. Your co-signature is required to finalize.",
-                    type="INFO"
-                )
-                StaffTask.objects.get_or_create(
-                    user=study_obj.coordinator,
-                    study=study_obj,
-                    task_type="CONSENT_SIGNATURE",
-                    reference_id=str(consent.pk),
-                    defaults={
-                        'title': "Co-Sign Consent Form",
-                        'description': f"Participant {participant_sid} signed the consent for {study_obj.protocol_id}. Review and co-sign to finalize.",
-                    }
-                )
-            if study_obj.pi:
-                Notification.objects.create(
-                    user=study_obj.pi,
-                    title="New Consent Signed — Review Requested",
-                    message=f"Participant {participant_sid} signed the consent for {study_obj.protocol_id}. PI signature is optional per protocol.",
-                    type="INFO"
-                )
-
-
+        # Note: Notification and StaffTask creation for Coordinator and PI
+        # are handled inside Consent.save() automatically to ensure consistency.
 
     @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
     def verify(self, request, pk=None):
@@ -2271,15 +2697,20 @@ class DailyMedicationLogViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
+        valid_participant_ids = set(Participant.objects.values_list('id', flat=True))
+
         if (user.role or '').upper() in ['ADMIN', 'SUPER_ADMIN']:
-            return DailyMedicationLog.objects.all()
+            return DailyMedicationLog.objects.filter(participant_id__in=valid_participant_ids)
         if (user.role or '').upper() == 'PARTICIPANT':
-            return DailyMedicationLog.objects.filter(participant__user=user)
+            return DailyMedicationLog.objects.filter(participant__user=user, participant_id__in=valid_participant_ids)
+        if (user.role or '').upper() == 'COORDINATOR':
+            return DailyMedicationLog.objects.filter(participant_id__in=valid_participant_ids)
         from django.db.models import Q
         return DailyMedicationLog.objects.filter(
             Q(participant__study__pi=user) | 
             Q(participant__study__coordinator=user) | 
-            Q(participant__study__assignments__user=user)
+            Q(participant__study__assignments__user=user),
+            participant_id__in=valid_participant_ids
         )
 
     def perform_create(self, serializer):
@@ -2381,7 +2812,11 @@ class AssignedFormViewSet(viewsets.ModelViewSet):
             return AssignedForm.objects.all().order_by('-created_at')
         if (user.role or '').upper() == 'PARTICIPANT':
             return AssignedForm.objects.filter(participant__user=user).order_by('-created_at')
-        # PIs/Coordinators see forms for their assigned studies
+        # PIs/Coordinators see all forms as research staff
+        if (user.role or '').upper() in ['PI', 'COORDINATOR']:
+            return AssignedForm.objects.all().order_by('-created_at')
+            
+        # Sponsors see forms for their assigned studies
         from django.db.models import Q
         return AssignedForm.objects.filter(
             Q(study__pi=user) | 
@@ -2599,11 +3034,18 @@ class ParticipantTaskViewSet(viewsets.ModelViewSet):
             # Bulk create staff notifications
             staff_tasks = []
             for task in overdue_tasks:
-                 # Logic for StaffTask creation
-                 staff_user = task.participant.study.coordinator or task.participant.study.pi
-                 if staff_user:
+                 if task.participant.study.coordinator:
                      staff_tasks.append(StaffTask(
-                         user=staff_user,
+                         user=task.participant.study.coordinator,
+                         study=task.participant.study,
+                         title=f"ALERT: Task Overdue for {task.participant.participant_sid}",
+                         description=f"Task '{task.task.title}' reached its deadline and has been locked.",
+                         task_type='OVERDUE_ALERT',
+                         reference_id=str(task.id)
+                     ))
+                 if task.participant.study.pi:
+                     staff_tasks.append(StaffTask(
+                         user=task.participant.study.pi,
                          study=task.participant.study,
                          title=f"ALERT: Task Overdue for {task.participant.participant_sid}",
                          description=f"Task '{task.task.title}' reached its deadline and has been locked.",
@@ -2619,6 +3061,27 @@ class ParticipantTaskViewSet(viewsets.ModelViewSet):
             participant__user=user,
             participant__status__in=visible_statuses
         ).order_by('due_date')
+
+    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
+    def send_reminder(self, request, pk=None):
+        """Allows PI/Coordinator to send a reminder for a specific task."""
+        user = request.user
+        if (user.role or '').upper() not in ['ADMIN', 'SUPER_ADMIN', 'COORDINATOR', 'PI']:
+            return Response({'error': 'Unauthorized to send reminders.'}, status=status.HTTP_403_FORBIDDEN)
+            
+        task = self.get_object()
+        if task.status == 'COMPLETED':
+            return Response({'error': 'Task already completed.'}, status=status.HTTP_400_BAD_REQUEST)
+            
+        from .models import Notification
+        Notification.objects.create(
+            user=task.participant.user,
+            title=f"Reminder: {task.task.title}",
+            message=f"Please complete your task '{task.task.title}' for study {task.participant.study.protocol_id} as soon as possible.",
+            type="REMINDER"
+        )
+        
+        return Response({'status': 'reminder_sent', 'message': f'Reminder sent to participant {task.participant.participant_sid}.'})
 
     @action(detail=False, methods=['post'], permission_classes=[permissions.IsAuthenticated])
     def lock_overdue_tasks(self, request):
@@ -2803,47 +3266,87 @@ class InvitationViewSet(viewsets.ModelViewSet):
             return Invitation.objects.all().order_by('-created_at')
         return Invitation.objects.filter(invited_by=user).order_by('-created_at')
 
-    def perform_create(self, serializer):
-        # Auto-set invited_by and handle expiry
-        expires = now() + datetime.timedelta(days=7)
-        import uuid
-        token = str(uuid.uuid4())
-        
-        # Fallback for organization if missing
-        org = self.request.data.get('organization') or getattr(self.request.user, 'organization', None) or getattr(self.request.user, 'affiliation', 'MusB')
-        
-        invitation = serializer.save(
-            invited_by=self.request.user,
-            organization=org,
-            expires_at=expires,
-            token=token
-        )
+    def create(self, request, *args, **kwargs):
+        try:
+            serializer = self.get_serializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
 
-        # Send email in background thread — don't block the API response (was causing 4.5s delay)
-        def _send_invite_email():
-            try:
-                from django.conf import settings as django_settings
-                import urllib.parse
-                frontend_url = getattr(django_settings, 'FRONTEND_URL', 'http://localhost:5173')
-                invitee_email = invitation.email or ''
-                invitee_role = invitation.role or 'Staff'
-                invitee_org = invitation.organization or 'MusB Research'
-                qs = urllib.parse.urlencode({'token': token, 'email': invitee_email, 'role': invitee_role, 'org': invitee_org})
-                accept_link = f"{frontend_url}/auth/accept-invitation?{qs}"
+            expires = now() + datetime.timedelta(days=7)
+            import uuid
+            token = str(uuid.uuid4())
+
+            org = request.data.get('organization') or getattr(request.user, 'organization', None) or getattr(request.user, 'affiliation', 'MusB') or 'MusB'
+
+            invitation = serializer.save(
+                invited_by=request.user,
+                organization=org,
+                expires_at=expires,
+                token=token
+            )
+
+            invitee_email = invitation.email or ''
+            invitee_role = invitation.role or 'Staff'
+            invitee_org = invitation.organization or 'MusB Research'
+
+            f_name = request.data.get('first_name', '')
+            l_name = request.data.get('last_name', '')
+            if f_name or l_name:
+                invitee_name = f"{f_name} {l_name}".strip()
+            else:
                 invitee_name = invitee_email.split('@')[0].replace('.', ' ').replace('_', ' ').title()
-                from .utils.email_utils import send_musb_system_email
-                send_musb_system_email(
-                    user_email=invitee_email,
-                    user_name=invitee_name,
-                    mode='INVITE',
-                    secret_data=accept_link,
-                )
-            except Exception as exc:
-                import logging
-                logging.getLogger(__name__).error(f"Invitation email delivery failed for token {token}: {exc}")
 
-        import threading
-        threading.Thread(target=_send_invite_email, daemon=True).start()
+            study_name = None
+            study_title = None
+            if invitation.study_ids and len(invitation.study_ids) > 0:
+                try:
+                    from .models import Study
+                    val = invitation.study_ids[0]
+                    std = Study.objects.filter(protocol_id=val).first()
+                    if not std:
+                        std = Study.objects.filter(id=val).first()
+                    if std:
+                        study_name = std.title
+                        study_title = std.full_title or std.description or ""
+                except Exception:
+                    pass
+
+            from django.conf import settings as django_settings
+            import urllib.parse
+            frontend_url = getattr(django_settings, 'FRONTEND_URL', 'https://musbhealth.com')
+
+            qs = urllib.parse.urlencode({'token': token, 'email': invitee_email, 'role': invitee_role, 'org': invitee_org})
+            accept_link = f"{frontend_url}/auth/accept-invitation?{qs}"
+
+            def _send_invite_email():
+                try:
+                    from .utils.email_utils import send_musb_system_email
+                    send_musb_system_email(
+                        user_email=invitee_email,
+                        user_name=invitee_name,
+                        mode='INVITE',
+                        secret_data=accept_link,
+                        study_name=study_name,
+                        study_title=study_title,
+                        role=invitee_role,
+                    )
+                except Exception as exc:
+                    import logging
+                    logging.getLogger(__name__).error(f"Invitation email delivery failed for token {token}: {exc}")
+
+            import threading
+            threading.Thread(target=_send_invite_email, daemon=True).start()
+
+            headers = self.get_success_headers(serializer.data)
+            res = Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+            res["Access-Control-Allow-Origin"] = "*"
+            return res
+
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).exception("InvitationViewSet create exception")
+            res = Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+            res["Access-Control-Allow-Origin"] = "*"
+            return res
 
 
 
@@ -2905,9 +3408,32 @@ class StaffTaskViewSet(viewsets.ModelViewSet):
         user = self.request.user
         if not user.is_authenticated:
             return StaffTask.objects.none()
-        if (user.role or '').upper() in ['ADMIN', 'SUPER_ADMIN']:
+            
+        role = (getattr(user, 'role', '') or '').upper()
+        if role in ['ADMIN', 'SUPER_ADMIN']:
             return StaffTask.objects.all().select_related('user', 'study').order_by('-created_at')
-        return StaffTask.objects.filter(user=user).select_related('user', 'study').order_by('-created_at')
+            
+        from django.db.models import Q
+        
+        # User sees tasks assigned explicitly to them, OR tasks with NO user assigned but belonging to their studies
+        # Any PI assigned to a study can see CONSENT_SIGNATURE tasks for that study
+        return StaffTask.objects.filter(
+            Q(user=user) | 
+            (Q(user__isnull=True) & (
+                Q(study__created_by=user) |
+                Q(study__pi=user) |
+                Q(study__coordinator=user) |
+                Q(study__assignments__user=user)
+            )) |
+            (Q(task_type='CONSENT_SIGNATURE') & (
+                Q(study__pi=user) | 
+                (Q(study__assignments__user=user) & Q(study__assignments__role__icontains='PI'))
+            )) |
+            (Q(task_type='CONSENT_COORDINATOR_SIGN') & (
+                Q(study__coordinator=user) | 
+                (Q(study__assignments__user=user) & Q(study__assignments__role__icontains='COORDINATOR'))
+            ))
+        ).select_related('user', 'study').distinct().order_by('-created_at')
 
     @action(detail=True, methods=['post'])
     def complete(self, request, pk=None):
@@ -3293,7 +3819,7 @@ class StudyInquiryViewSet(viewsets.ModelViewSet):
         AuditLog.log('DELETE_RECORD', user_email=request.user.email, request=request, detail=f"Study inquiry record deleted.")
         return super().destroy(request, *args, **kwargs)
 
-    @action(detail=False, methods=['post'], permission_classes=[permissions.IsAuthenticated])
+    @action(detail=False, methods=['post'], permission_classes=[permissions.IsAuthenticated], url_path='reject-all-delete')
     def reject_all_delete(self, request):
         """Allows super admin to reject and delete all inquiries."""
         if (request.user.role or '').upper() not in ['SUPER_ADMIN']:
@@ -3364,6 +3890,18 @@ class ClinicalConversationViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
     pagination_class = None
 
+    def get_object(self):
+        import bson
+        pk = self.kwargs.get('pk')
+        if bson.ObjectId.is_valid(pk):
+            try:
+                obj = ClinicalConversation.objects.get(id=pk)
+                self.check_object_permissions(self.request, obj)
+                return obj
+            except ClinicalConversation.DoesNotExist:
+                pass
+        return super().get_object()
+
     def get_serializer_class(self):
         if self.action == 'list':
             return ClinicalConversationBriefSerializer
@@ -3375,17 +3913,12 @@ class ClinicalConversationViewSet(viewsets.ModelViewSet):
         if not user.is_authenticated:
             return ClinicalConversation.objects.none()
         if (user.role or '').upper() in ['SUPER_ADMIN', 'ADMIN']:
-            queryset = ClinicalConversation.objects.all().order_by('-last_updated')
+            queryset = ClinicalConversation.objects.filter(study__isnull=False, participant__isnull=False).order_by('-last_updated')
         elif (user.role or '').upper() == 'PARTICIPANT':
-            queryset = ClinicalConversation.objects.filter(participant__user=user).order_by('-last_updated')
+            queryset = ClinicalConversation.objects.filter(participant__user=user, study__isnull=False).order_by('-last_updated')
         else:
-            # PIs and Coordinators see conversations related to their assigned studies
-            from django.db.models import Q
-            queryset = ClinicalConversation.objects.filter(
-                Q(study__pi=user) | 
-                Q(study__coordinator=user) | 
-                Q(study__assignments__user=user)
-            ).distinct().order_by('-last_updated')
+            # PIs and Coordinators see all conversations as research staff
+            queryset = ClinicalConversation.objects.filter(study__isnull=False, participant__isnull=False).order_by('-last_updated')
         
         study_id = self.request.query_params.get('study_id')
         if study_id and study_id != 'all':
@@ -3411,11 +3944,34 @@ class ClinicalConversationViewSet(viewsets.ModelViewSet):
             participant = Participant.objects.filter(user=user, study_id=study_id).first()
             
         if not participant:
+            # Further fallback: grab any participant for this user
+            participant = Participant.objects.filter(user=user).first()
+
+        if not participant:
             # Further fallback: grab the first active enrollment for this user
-            participant = Participant.objects.filter(user=user).exclude(
+            participant = Participant.objects.exclude(
                 status__in=['DROPPED', 'INELIGIBLE', 'COMPLETED']
-            ).first()
+            ).filter(user=user).first()
             
+        if not participant:
+            # Creation fallback
+            study = None
+            if study_id:
+                import bson
+                if bson.ObjectId.is_valid(study_id):
+                    study = Study.objects.filter(id=study_id).first()
+                else:
+                    study = Study.objects.filter(protocol_id=study_id).first()
+            if not study:
+                study = Study.objects.first()
+            if study:
+                participant = Participant.objects.create(
+                    user=user,
+                    study=study,
+                    participant_sid=f"PART-{user.id[:8].upper() if hasattr(user, 'id') and user.id else 'NEW'}",
+                    status='ACTIVE'
+                )
+                
         if not participant:
             from rest_framework.exceptions import ValidationError
             raise ValidationError({'participant': 'No active enrollment or valid participant found for this conversation.'})
@@ -3500,12 +4056,15 @@ class ParticipantHelpRequestView(APIView):
             except Exception as e:
                 import logging
                 logging.getLogger(__name__).warning(f"Failed to auto-resolve study: {e}")
+
+        # Import notification utility once for all paths
+        from .utils.resend_utils import send_help_request_notification
+
         # If study_id is still missing, we send to a default admin email
         if not study_id:
             if not action_title:
                 return Response({'error': 'Action title is required.'}, status=status.HTTP_400_BAD_REQUEST)
             
-            from .utils.resend_utils import send_help_request_notification
             send_help_request_notification.delay(
                 study_title="UNASSIGNED STUDY",
                 participant_name=user.decrypted_name,
@@ -3608,6 +4167,27 @@ class QuestionnaireTemplateViewSet(viewsets.ModelViewSet):
     def list(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
 
+    def perform_create(self, serializer):
+        user = self.request.user
+        pdf_file = self.request.FILES.get('pdf_file')
+        name = self.request.data.get('name')
+        if not name and pdf_file:
+            name = pdf_file.name.rsplit('.', 1)[0]
+        # Ensure pdf_file is passed explicitly to handle potential sanitizer stripping
+        serializer.save(created_by=user, name=name or "Untitled Questionnaire", pdf_file=pdf_file)
+        from .utils.cache_utils import invalidate_cache
+        invalidate_cache("questionnaire_templates")
+
+    def perform_update(self, serializer):
+        super().perform_update(serializer)
+        from .utils.cache_utils import invalidate_cache
+        invalidate_cache("questionnaire_templates")
+
+    def perform_destroy(self, instance):
+        super().perform_destroy(instance)
+        from .utils.cache_utils import invalidate_cache
+        invalidate_cache("questionnaire_templates")
+
     def get_serializer_class(self):
         if self.action == 'list':
             return QuestionnaireTemplateBriefSerializer
@@ -3669,95 +4249,126 @@ class QuestionnaireTemplateViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['get'])
     def extract_text(self, request, pk=None):
+        """
+        Extracts and structures text from an uploaded PDF/DOCX clinical document.
+        Returns a fully structured JSON schema ready for form rendering.
+        """
         template = self.get_object()
         content, error = self._get_pdf_content(template)
 
         if not content:
+            if template.json_structure:
+                js = template.json_structure
+                sections = js.get('sections', [])
+                formatted_sections = []
+                for s in sections:
+                    title = s.get('name', s.get('title', 'General'))
+                    fields = []
+                    for q in s.get('questions', []):
+                        options = []
+                        scale = js.get('response_format', {}).get('scale', [])
+                        if scale and isinstance(scale, list):
+                            options = [f"{opt['value']} = {opt['label']}" for opt in scale if 'value' in opt and 'label' in opt]
+                        
+                        fields.append({
+                            'type': 'choice' if options else 'short_text',
+                            'label': q.get('text', ''),
+                            'required': True,
+                            'placeholder': 'Select an option...' if options else 'Enter your answer...',
+                            'options': options
+                        })
+                    formatted_sections.append({
+                        'title': title,
+                        'fields': fields
+                    })
+                
+                if not formatted_sections:
+                    root_questions = js.get('questions', [])
+                    if root_questions:
+                        fields = []
+                        for q in root_questions:
+                            fields.append({
+                                'type': 'short_text',
+                                'label': q.get('text', ''),
+                                'required': True,
+                                'placeholder': 'Enter your answer...'
+                            })
+                        formatted_sections.append({
+                            'title': 'General',
+                            'fields': fields
+                        })
+
+                return Response({
+                    'document_type': 'questionnaire',
+                    'sections': formatted_sections,
+                    'lines': [js.get('description', ''), js.get('instructions', '')]
+                })
             return Response({'error': f'Retrieval failed: {error}'}, status=400)
 
-        if not content.startswith(b'%PDF'):
-            return Response({'error': 'File is not a valid PDF header'}, status=400)
+        is_pdf  = content.startswith(b'%PDF')
+        is_docx = content.startswith(b'PK\x03\x04')
+
+        if not is_pdf and not is_docx:
+            return Response({'error': 'File is not a valid PDF or DOCX document.'}, status=400)
 
         try:
-            import pypdf, io, re, tempfile, os
-            from pypdf.errors import PdfStreamError
-            
-            # 1. Byte-level Signature Guard
-            if not content.startswith(b'%PDF'):
-                idx = content.find(b'%PDF')
-                if idx != -1:
-                    content = content[idx:]
-                else:
-                    return Response({'error': 'Source file did not contain a valid PDF signature.'}, status=400)
-
+            import io, tempfile, os
             raw_text = ""
-            
-            # 2. Dual-Path Reading (Memory -> TempFile Fallback)
-            # Sometimes pypdf on Windows has issues with io.BytesIO if the bytes are slightly malformed
-            try:
-                reader = pypdf.PdfReader(io.BytesIO(content))
-                for page in reader.pages:
-                    text = page.extract_text()
-                    if text: raw_text += text + "\n"
-            except (PdfStreamError, Exception) as pe:
-                logger.debug("Memory-based PDF parse failed, trying TempFile: %s", pe)
-                with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as tmp:
-                    tmp.write(content)
-                    tmp_path = tmp.name
-                
+
+            # Extract raw text from file
+            if is_pdf:
+                import pypdf
+                from pypdf.errors import PdfStreamError
                 try:
-                    reader = pypdf.PdfReader(tmp_path)
+                    reader = pypdf.PdfReader(io.BytesIO(content))
                     for page in reader.pages:
                         text = page.extract_text()
-                        if text: raw_text += text + "\n"
-                finally:
-                    if os.path.exists(tmp_path):
-                        os.remove(tmp_path)
-            
-            if not raw_text.strip():
-                 return Response({
-                     'lines': [], 
-                     'message': 'The PDF extraction returned no text. This usually means the file is a scanned image (requires OCR) or uses non-standard fonts.'
-                 })
+                        if text:
+                            raw_text += text + "\n"
+                except (PdfStreamError, Exception):
+                    with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as tmp:
+                        tmp.write(content)
+                        tmp_path = tmp.name
+                    try:
+                        reader = pypdf.PdfReader(tmp_path)
+                        for page in reader.pages:
+                            text = page.extract_text()
+                            if text:
+                                raw_text += text + "\n"
+                    finally:
+                        if os.path.exists(tmp_path):
+                            os.remove(tmp_path)
 
-            # Smart Sentence Reconstructor
-            raw_lines = [l.strip() for l in raw_text.split('\n') if l.strip()]
-            final_lines = []
-            current_buffer = ""
+            elif is_docx:
+                import docx
+                doc = docx.Document(io.BytesIO(content))
+                for para in doc.paragraphs:
+                    if para.text:
+                        raw_text += para.text + "\n"
+                for table in doc.tables:
+                    headers = [c.text.strip() for c in table.rows[0].cells if c.text.strip()]
+                    if headers:
+                        raw_text += "\t".join(headers) + "\n"
+                    for row in table.rows[1:]:
+                        row_text = "\t".join(c.text.strip() for c in row.cells)
+                        if row_text.strip():
+                            raw_text += row_text + "\n"
 
-            for line in raw_lines:
-                is_marker = re.match(r'^(\d+[\.\)]?|[a-g][\.\)]|•|\-)\s', line.lower())
-                is_multi_score = re.search(r'\d\s+[A-Za-z]+\s+\d\s+[A-Za-z]+', line)
-                
-                if (is_marker or is_multi_score) and current_buffer:
-                    final_lines.append(current_buffer.strip())
-                    current_buffer = line
-                elif not current_buffer:
-                    current_buffer = line
-                else:
-                    if re.search(r'[\?\!]$', current_buffer.strip()):
-                        final_lines.append(current_buffer.strip())
-                        current_buffer = line
-                    elif re.search(r'[\.\:]$', current_buffer.strip()) and not re.search(r'(No\.|Vol\.|Dr\.)$', current_buffer.strip()):
-                         final_lines.append(current_buffer.strip())
-                         current_buffer = line
-                    else:
-                        current_buffer += " " + line
             
-            if current_buffer: final_lines.append(current_buffer.strip())
-            final_lines = [l for l in final_lines if len(l) > 3 and not l.startswith('©')]
-            return Response({'lines': final_lines})
+            # Run the advanced extractor
+            from .utils.pdf_extractor import extract_schema
+            result = extract_schema(raw_text)
+            return Response(result)
+
         except Exception as e:
-            return Response({'error': str(e)}, status=500)
+            import traceback
+            return Response({'error': str(e), 'trace': traceback.format_exc()[-1000:]}, status=500)
 
-    def perform_create(self, serializer):
-        user = self.request.user
-        pdf_file = self.request.FILES.get('pdf_file')
-        name = self.request.data.get('name')
-        if not name and pdf_file:
-            name = pdf_file.name.rsplit('.', 1)[0]
-        # Ensure pdf_file is passed explicitly to handle potential sanitizer stripping
-        serializer.save(created_by=user, name=name or "Untitled Questionnaire", pdf_file=pdf_file)
+
+
+
+
+
 
 class StudyQuestionnaireViewSet(viewsets.ModelViewSet):
     queryset = StudyQuestionnaire.objects.all()
@@ -3784,7 +4395,42 @@ class QuestionnaireScheduleInstanceViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
     pagination_class = None
 
+    def get_queryset(self):
+        user = self.request.user
+        qs = self.queryset
+        study_id = self.request.query_params.get('study_id')
+        import bson
+        if study_id:
+            if bson.ObjectId.is_valid(study_id):
+                qs = qs.filter(study_questionnaire__study_id=study_id)
+            else:
+                qs = qs.filter(study_questionnaire__study__protocol_id=study_id)
+        
+        participant_id = self.request.query_params.get('participant_id')
+        if participant_id:
+            if bson.ObjectId.is_valid(participant_id):
+                qs = qs.filter(participant_id=participant_id)
+            else:
+                qs = qs.filter(participant__participant_sid=participant_id)
+
+        role = (user.role or '').upper()
+        if role in ['ADMIN', 'SUPER_ADMIN']:
+            return qs.order_by('scheduled_date')
+        if role == 'PARTICIPANT':
+            return qs.filter(participant__user=user).order_by('scheduled_date')
+            
+        # For coordinators and PIs, let them see all for studies they are part of
+        # unless filtered by query params
+        from django.db.models import Q
+        return qs.filter(
+            Q(study_questionnaire__study__pi=user) | 
+            Q(study_questionnaire__study__coordinator=user) |
+            Q(study_questionnaire__study__created_by=user) |
+            Q(study_questionnaire__study__assignments__user=user)
+        ).distinct().order_by('scheduled_date')
+
     def get_serializer_class(self):
+
         if self.action == 'list':
             return QuestionnaireScheduleInstanceBriefSerializer
         return QuestionnaireScheduleInstanceSerializer
@@ -3798,26 +4444,147 @@ class QuestionnaireScheduleInstanceViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
     def submit_responses(self, request, pk=None):
         instance = self.get_object()
+        
+        # Enforce lock on already completed or late submissions
+        if instance.status in ['COMPLETED', 'LATE']:
+            return Response({'error': 'This clinical instrument is locked and cannot be edited.'}, status=status.HTTP_400_BAD_REQUEST)
+            
         responses = request.data.get('responses', {})
         signature = request.data.get('signature')
+        clinical_score = request.data.get('clinical_score')
         
         # If it's a PDF mode, signature is mandatory
         if instance.study_questionnaire.mode == 'PDF' and not signature:
             return Response({'error': 'Signature required for this instrument.'}, status=status.HTTP_400_BAD_REQUEST)
         
         instance.response_data = responses
+        if clinical_score is not None:
+            instance.clinical_score = clinical_score
+            
         if signature:
             instance.participant_signature = signature
             instance.participant_signed_at = timezone.now()
             
-        instance.status = 'COMPLETED'
-        instance.completed_at = timezone.now()
+        # Determine status (COMPLETED or LATE)
+        now = timezone.now()
+        if instance.window_close_at and now > instance.window_close_at:
+            instance.status = 'LATE'
+            diff = now - instance.window_close_at
+            instance.lateness_minutes = int(diff.total_seconds() / 60)
+        else:
+            instance.status = 'COMPLETED'
+            
+        instance.completed_at = now
         instance.save()
         
+        # Clear participant dashboard cache so submitted task transitions to Completed immediately
+        from .utils.cache_utils import invalidate_cache
+        invalidate_cache("participant_dashboard", user_id=str(instance.participant.user_id))
+        
         # Log to Audit
-        AuditLog.log('SUBMIT_INSTRUMENT', user_email=request.user.email, request=request, detail=f"Submitted {instance.schedule_name} for Study {instance.participant.study.protocol_id}")
+        schedule_name = getattr(instance.study_questionnaire, 'schedule_name', '') or instance.study_questionnaire.template.name
+        AuditLog.log('SUBMIT_INSTRUMENT', user_email=request.user.email, request=request, detail=f"Submitted {schedule_name} for Study {instance.participant.study.protocol_id}")
         
         return Response({'status': 'submitted', 'completed_at': instance.completed_at})
+
+    @action(detail=True, methods=['get'], permission_classes=[permissions.IsAuthenticated])
+    def export_data(self, request, pk=None):
+        """Export the response data as CSV or PDF."""
+        instance = self.get_object()
+        format_type = request.query_params.get('format', 'csv').lower()
+        
+        responses = instance.response_data or {}
+        template = instance.study_questionnaire.template
+        name = template.name
+        participant_id = instance.participant.participant_sid
+        
+        if format_type == 'pdf':
+            from reportlab.lib.pagesizes import letter
+            from reportlab.pdfgen import canvas
+            from io import BytesIO
+            from django.http import HttpResponse
+
+            buffer = BytesIO()
+            p = canvas.Canvas(buffer, pagesize=letter)
+            width, height = letter
+            
+            # Header
+            p.setFont("Helvetica-Bold", 16)
+            p.drawString(50, height - 50, f"Instrument: {name}")
+            p.setFont("Helvetica", 12)
+            p.drawString(50, height - 70, f"Participant: {participant_id}")
+            p.drawString(50, height - 85, f"Completed At: {instance.completed_at}")
+            
+            p.line(50, height - 95, width - 50, height - 95)
+            
+            y = height - 120
+            p.setFont("Helvetica-Bold", 10)
+            p.drawString(50, y, "Question")
+            p.drawString(400, y, "Response")
+            p.line(50, y - 5, width - 50, y - 5)
+            y -= 25
+            
+            p.setFont("Helvetica", 10)
+            for key, val in responses.items():
+                if y < 50:
+                    p.showPage()
+                    y = height - 50
+                    p.setFont("Helvetica", 10)
+                
+                # Attempt to find the question label from JSON structure
+                label = key
+                if template.json_structure and 'questions' in template.json_structure:
+                    for q in template.json_structure['questions']:
+                        if q.get('id') == key:
+                            label = q.get('label', key)
+                            break
+                        # Handle matrix row keys
+                        if '_r' in key and key.split('_r')[0] == q.get('id'):
+                            ri = int(key.split('_r')[1])
+                            if q.get('rows') and len(q.get('rows')) > ri:
+                                label = f"{q.get('label')} - {q['rows'][ri]}"
+                                break
+                                
+                p.drawString(50, y, str(label)[:70])
+                p.drawString(400, y, str(val))
+                y -= 20
+                
+            p.showPage()
+            p.save()
+            
+            buffer.seek(0)
+            response = HttpResponse(buffer, content_type='application/pdf')
+            filename = f"Results_{participant_id}_{name.replace(' ', '_')}.pdf"
+            response['Content-Disposition'] = f'attachment; filename="{filename}"'
+            return response
+            
+        else:
+            # Default to CSV
+            import csv
+            from django.http import HttpResponse
+            
+            response = HttpResponse(content_type='text/csv')
+            filename = f"Results_{participant_id}_{name.replace(' ', '_')}.csv"
+            response['Content-Disposition'] = f'attachment; filename="{filename}"'
+            
+            writer = csv.writer(response)
+            writer.writerow(['Question ID', 'Question Label', 'Response'])
+            
+            for key, val in responses.items():
+                label = key
+                if template.json_structure and 'questions' in template.json_structure:
+                    for q in template.json_structure['questions']:
+                        if q.get('id') == key:
+                            label = q.get('label', key)
+                            break
+                        if '_r' in key and key.split('_r')[0] == q.get('id'):
+                            ri = int(key.split('_r')[1])
+                            if q.get('rows') and len(q.get('rows')) > ri:
+                                label = f"{q.get('label')} - {q['rows'][ri]}"
+                                break
+                writer.writerow([key, label, val])
+                
+            return response
 
     @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
     def sign_staff(self, request, pk=None):
@@ -3844,8 +4611,18 @@ class QuestionnaireScheduleInstanceViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
     def save_draft(self, request, pk=None):
         instance = self.get_object()
+        
+        # Enforce lock on already completed or late submissions
+        if instance.status in ['COMPLETED', 'LATE']:
+            return Response({'error': 'This clinical instrument is locked and cannot be edited.'}, status=status.HTTP_400_BAD_REQUEST)
+            
         responses = request.data.get('responses')
         instance.response_data = responses
+        
+        # Transition status from PENDING to IN_PROGRESS
+        if instance.status == 'PENDING':
+            instance.status = 'IN_PROGRESS'
+            
         instance.save()
         return Response({'status': 'draft_saved'})
 
@@ -4146,9 +4923,13 @@ class StudyKitViewSet(viewsets.ModelViewSet):
             
         return Response({'status': 'RECEIVED', 'participant_status': 'ACTIVE'})
 
+import io
+import zipfile
+import xml.etree.ElementTree as ET
+
 class StudyConsentExtractView(APIView):
     """
-    AI Extraction helper: Reads an uploaded PDF and returns raw text content
+    AI Extraction helper: Reads an uploaded PDF, Word, or Image file and returns raw text content
     to assist coordinators in populating study consent fields.
     """
     parser_classes = (parsers.MultiPartParser, parsers.FormParser)
@@ -4159,18 +4940,145 @@ class StudyConsentExtractView(APIView):
         if not file_obj:
             return Response({"error": "No file uploaded"}, status=status.HTTP_400_BAD_REQUEST)
         
+        header = b""
         try:
-            reader = PdfReader(file_obj)
-            text = ""
-            for page in reader.pages:
-                extracted = page.extract_text()
-                if extracted:
-                    text += extracted + "\n\n"
-            
+            header = file_obj.read(4)
+            file_obj.seek(0)
+        except Exception:
+            pass
+
+        filename = file_obj.name.lower()
+        text = ""
+        page_count = 1
+
+        try:
+            if header == b"PK\x03\x04" or filename.endswith('.docx') or filename.endswith('.doc'):
+                try:
+                    with zipfile.ZipFile(file_obj) as z:
+                        xml_content = z.read('word/document.xml')
+                        tree = ET.fromstring(xml_content)
+                        ns = {'w': 'http://schemas.openxmlformats.org/wordprocessingml/2006/main'}
+                        paragraphs = tree.findall('.//w:p', ns)
+                        extracted_lines = []
+                        for p in paragraphs:
+                            text_elements = p.findall('.//w:t', ns)
+                            p_text = ''.join(node.text for node in text_elements if node.text)
+                            if p_text:
+                                extracted_lines.append(p_text)
+                        text = '\n\n'.join(extracted_lines)
+                except Exception as e:
+                    logger.error(f"Docx Extraction failed: {str(e)}")
+                    try:
+                        file_obj.seek(0)
+                        with zipfile.ZipFile(file_obj) as z:
+                            xml_content = z.read('word/document.xml')
+                            tree = ET.fromstring(xml_content)
+                            ns = {'w': 'http://schemas.openxmlformats.org/wordprocessingml/2006/main'}
+                            text_elements = tree.findall('.//w:t', ns)
+                            text = ''.join(node.text for node in text_elements if node.text)
+                    except Exception as fallback_err:
+                        logger.error(f"Docx Fallback failed: {str(fallback_err)}")
+                        text = f"Extracted word file successfully, but no text found inside. Error: {str(e)}"
+            elif filename.endswith(('.jpg', '.jpeg', '.png')):
+                try:
+                    from PIL import Image
+                    img = Image.open(file_obj)
+                    import pytesseract
+                    text = pytesseract.image_to_string(img)
+                except Exception:
+                    text = f"File {file_obj.name} uploaded successfully as an image."
+            elif filename.endswith('.txt'):
+                try:
+                    text = file_obj.read().decode('utf-8', errors='ignore')
+                except Exception:
+                    text = f"Text file {file_obj.name} read successfully."
+            else:
+                try:
+                    reader = PdfReader(file_obj)
+                    text = ""
+                    for page in reader.pages:
+                        extracted = page.extract_text()
+                        if extracted:
+                            text += extracted + "\n\n"
+                    page_count = len(reader.pages)
+                except Exception as pdf_err:
+                    logger.error(f"PDF extraction failed, trying fallback as Word/Zip: {str(pdf_err)}")
+                    try:
+                        file_obj.seek(0)
+                        with zipfile.ZipFile(file_obj) as z:
+                            xml_content = z.read('word/document.xml')
+                            tree = ET.fromstring(xml_content)
+                            ns = {'w': 'http://schemas.openxmlformats.org/wordprocessingml/2006/main'}
+                            paragraphs = tree.findall('.//w:p', ns)
+                            extracted_lines = []
+                            for p in paragraphs:
+                                text_elements = p.findall('.//w:t', ns)
+                                p_text = ''.join(node.text for node in text_elements if node.text)
+                                if p_text:
+                                    extracted_lines.append(p_text)
+                            text = '\n\n'.join(extracted_lines)
+                    except Exception:
+                        raise pdf_err
+
             return Response({
                 "text": text.strip(),
-                "page_count": len(reader.pages)
+                "page_count": page_count
             })
         except Exception as e:
-            logger.error(f"PDF Extraction failed: {str(e)}")
+            logger.error(f"File extraction failed: {str(e)}")
             return Response({"error": f"Failed to extract text: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['POST'])
+@permission_classes([IsAdminUser])
+def test_smtp_connection(request):
+    """
+    Secure admin-only endpoint to verify SMTP configuration and delivery.
+    """
+    target_email = request.data.get('email')
+    if not target_email:
+        return Response({'error': 'Recipient email is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        backend = settings.EMAIL_BACKEND
+        host = getattr(settings, 'EMAIL_HOST', 'N/A')
+        user = getattr(settings, 'EMAIL_HOST_USER', 'N/A')
+        
+        logger.info(f"[SMTP-TEST] Attempting to send test email to {target_email} via {host}")
+        
+        subject = ' MusB Research SMTP Test'
+        message = (
+            f"This is a test email from the MusB Research Platform.\n\n"
+            f"Configuration Details:\n"
+            f"- Backend: {backend}\n"
+            f"- Host: {host}\n"
+            f"- User: {user}\n"
+            f"- Timestamp: {logging.time.strftime('%Y-%m-%d %H:%M:%S')}\n\n"
+            f"If you received this, your Gmail SMTP production setup is WORKING."
+        )
+        
+        send_mail(
+            subject=subject,
+            message=message,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[target_email],
+            fail_silently=False,
+        )
+        
+        return Response({
+            'message': 'Test email sent successfully',
+            'details': {
+                'backend': backend,
+                'host': host,
+                'user': user,
+                'recipient': target_email
+            }
+        })
+        
+    except Exception as e:
+        logger.error(f"[SMTP-TEST] Failed to send test email: {str(e)}", exc_info=True)
+        return Response({
+            'error': 'SMTP connection failed',
+            'details': str(e),
+            'backend': settings.EMAIL_BACKEND
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+

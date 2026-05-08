@@ -256,7 +256,9 @@ BASE_ORIGINS = [
     "http://localhost:5174",
     "http://127.0.0.1:5174",
     "http://localhost:3000",
-    "http://127.0.0.1:3000"
+    "http://127.0.0.1:3000",
+    "http://0.0.0.0:5173",
+    "http://0.0.0.0:3000"
 ]
 
 # ── Production origins that are ALWAYS allowed (hardcoded guarantee) ──────────
@@ -270,9 +272,10 @@ GUARANTEED_PROD_ORIGINS = [
 ]
 
 if DEBUG:
-    CORS_ALLOW_ALL_ORIGINS = True
+    # When CORS_ALLOW_CREDENTIALS is True, CORS_ALLOW_ALL_ORIGINS must be False
+    CORS_ALLOW_ALL_ORIGINS = False
     CORS_ALLOWED_ORIGINS = BASE_ORIGINS
-    CSRF_TRUSTED_ORIGINS = ["http://localhost:5173", "http://127.0.0.1:5173", "http://0.0.0.0:5173"] + BASE_ORIGINS
+    CSRF_TRUSTED_ORIGINS = BASE_ORIGINS
     # Ensure local development uses the correct Vite port
     FRONTEND_URL = os.getenv('FRONTEND_URL', "http://localhost:5173")
 else:
@@ -305,9 +308,9 @@ DEFAULT_AUTO_FIELD = 'django_mongodb_backend.fields.ObjectIdAutoField'
 #  Reads from .env: SMTP_EMAIL, SMTP_PASSWORD, SMTP_HOST, SMTP_PORT
 #  Falls back to console backend only when no credentials are configured.
 # ─────────────────────────────────────────────────────────────────────────────
-_smtp_email    = os.getenv('SMTP_EMAIL', '')
-_smtp_password = os.getenv('SMTP_PASSWORD', '')
-_smtp_host     = os.getenv('SMTP_HOST', 'smtp.gmail.com')
+_smtp_email    = os.getenv('SMTP_EMAIL', '').strip()
+_smtp_password = os.getenv('SMTP_PASSWORD', '').strip()
+_smtp_host     = os.getenv('SMTP_HOST', 'smtp.gmail.com').strip()
 _smtp_port     = int(os.getenv('SMTP_PORT', 587))
 
 if _smtp_email and _smtp_password:
@@ -321,9 +324,20 @@ if _smtp_email and _smtp_password:
     DEFAULT_FROM_EMAIL  = f'MusB Research <{_smtp_email}>'
     SMTP_EMAIL          = _smtp_email   # expose for email_utils.py
 else:
-    # Console fallback — no credentials configured
+    if not DEBUG:
+        # Prevent silent failures on production
+        raise ValueError(
+            "CRITICAL: SMTP_EMAIL and SMTP_PASSWORD environment variables are missing! "
+            "Email delivery (Invitations, OTP, Resets) will FAIL. "
+            "Please configure them in Render environment variables."
+        )
+    # Console fallback — only for local development
     EMAIL_BACKEND      = 'django.core.mail.backends.console.EmailBackend'
     DEFAULT_FROM_EMAIL = os.getenv('ADMIN_EMAIL', 'info@musbresearch.com')
+    SMTP_EMAIL         = None
+
+# Resend Configuration (Used as high-performance delivery option)
+RESEND_API_KEY = os.getenv('RESEND_API_KEY', '').strip()
 
 # Production Security Settings
 if not DEBUG:
@@ -339,9 +353,15 @@ if not DEBUG:
     SECURE_HSTS_SECONDS = 31536000
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
+    # Allow Google Identity Services popups to communicate with the parent window
+    SECURE_CROSS_ORIGIN_OPENER_POLICY = 'same-origin-allow-popups'
     # Crucial for cross-domain auth (musbhealth.com -> onrender.com)
     CSRF_COOKIE_SAMESITE = 'None'
     SESSION_COOKIE_SAMESITE = 'None'
+    CSRF_COOKIE_HTTPONLY = True
+    SESSION_COOKIE_HTTPONLY = True
+    CSRF_COOKIE_SECURE = True
+    SESSION_COOKIE_SECURE = True
 else:
     # Development security
     CSRF_COOKIE_HTTPONLY = True

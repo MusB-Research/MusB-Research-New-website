@@ -521,11 +521,7 @@ def check_email(request):
             'type': 'USER',
             'role': role_label,
             'message': 'This email is already registered in our database.',
-            'options': [
-                {'id': 'LOGIN', 'label': 'Login to your account'},
-                {'id': 'RESET_PASSWORD', 'label': 'Reset your password'},
-                {'id': 'FIND_ROLE', 'label': f'Continue as {role_label}'}
-            ]
+            'options': []
         })
 
     # Check for pending invitation
@@ -534,12 +530,9 @@ def check_email(request):
         return Response({
             'exists': True,
             'type': 'INVITATION',
-            'role': invitation.role.upper(),
+            'role': (getattr(invitation, 'role', '') or '').upper(),
             'message': f'You have a pending invitation as a {invitation.role}.',
-            'options': [
-                {'id': 'ACCEPT_INVITATION', 'label': 'Accept your invitation'},
-                {'id': 'LOGIN', 'label': 'Login if you have another account'}
-            ]
+            'options': []
         })
 
     return Response({

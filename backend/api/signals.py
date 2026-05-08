@@ -37,42 +37,74 @@ def notify_participant_on_visit_completion(sender, instance, created, **kwargs):
 def alert_staff_on_log_submission(sender, instance, created, **kwargs):
     """
     Real-time alert for coordinators and PIs when participants submit daily logs.
+    Only fires when a log is FIRST finalized (created as non-draft, or transitions
+    from draft → final). Deduplicates within the same day to prevent spam.
     """
-    # Only alert when the log is NOT a draft and is newly submitted (or transitioned from draft)
-    # We'll use created OR a check on draft status changing
-    if not instance.is_draft:
-        participant = instance.participant
-        study = participant.study
-        
-        # Determine notification type based on content
-        notif_type = "INFO"
-        notif_title = "New Daily Log Entry"
-        if instance.noticed_side_effects:
-            notif_type = "WARNING"
-            notif_title = "⚠️ Adverse Event Reported"
-        
-        msg = f"Subject {participant.participant_sid} submitted a daily log for {instance.date.strftime('%b %d')}."
-        if instance.noticed_side_effects:
-            msg += f" WARNING: Side effects reported ({instance.severity})."
+    if instance.is_draft:
+        return  # Never alert on drafts
 
-        # Notify Study Coordinator
-        if study.coordinator:
-            Notification.objects.create(
-                user=study.coordinator,
-                title=notif_title,
-                message=msg,
-                type=notif_type,
-                link=f"/dashboard/coordinator/participants/{participant.id}/logs"
-            )
+    participant = instance.participant
+    study = getattr(participant, 'study', None)
+    if not study:
+        return
+
+    sid = participant.participant_sid or 'Unknown'
+    date_str = instance.date.strftime('%b %d, %Y')
+
+    # Deduplication: skip if a notification for this participant/date was already sent today
+    from django.utils.timezone import now
+    today_start = now().replace(hour=0, minute=0, second=0, microsecond=0)
+    already_notified = Notification.objects.filter(
+        title__icontains=sid,
+        message__icontains=date_str,
+        created_at__gte=today_start
+    ).exists()
+    if already_notified and not instance.noticed_side_effects:
+        return  # Suppress duplicate for normal re-saves; always send AE alerts
+
+    # Determine notification type based on content
+    is_ae = instance.noticed_side_effects
+    severity = (instance.severity or '').upper()
+    is_urgent = is_ae and severity in ['MODERATE', 'SEVERE']
+
+    notif_type = "WARNING" if is_ae else "INFO"
+    notif_title = (
+        f"{'🚨 URGENT: ' if is_urgent else '⚠️ '}Adverse Event — {sid}"
+        if is_ae else
+        f"📋 Daily Log Submitted — {sid}"
+    )
+    msg = f"Participant {sid} submitted their daily log for {date_str}."
+    if is_ae:
+        msg += f"\n⚠️ Side effects reported (Severity: {severity or 'unspecified'})."
+        if instance.side_effect_description:
+            msg += f" \"{instance.side_effect_description[:200]}\""
+
+    staff_team = study.get_all_staff_users()
+    
+    for staff_user in staff_team:
+        try:
+            role = (getattr(staff_user, 'role', '') or '').upper()
+            link = f"/dashboard/pi/participants/{participant.id}/logs" if role == 'PI' else f"/dashboard/coordinator/participants/{participant.id}/logs"
             
-        # Notify Study PI
-        if study.pi:
             Notification.objects.create(
-                user=study.pi,
+                user=staff_user,
                 title=notif_title,
                 message=msg,
                 type=notif_type,
+                link=link
             )
+            from .models import StaffTask
+            StaffTask.objects.create(
+                user=staff_user,
+                study=study,
+                title=notif_title,
+                description=msg,
+                task_type='LOG_REVIEW',
+                reference_id=str(instance.id),
+                status='NEW'
+            )
+        except Exception as e:
+            print(f"[signal] Notification error for {staff_user}: {e}")
             
 @receiver(post_save, sender=Participant)
 def trigger_cache_refresh_on_participant_change(sender, instance, **kwargs):

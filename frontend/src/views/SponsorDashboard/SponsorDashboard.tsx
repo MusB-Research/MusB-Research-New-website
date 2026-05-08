@@ -146,21 +146,49 @@ export default function SponsorDashboard() {
       const reportsData = await apiFetch<any[]>('/api/progress-reports/?limit=50', fetchOpts);
       const allReports = reportsData || [];
 
-      const mapped = (studiesData || []).map((d: any) => ({
-        ...d,
-        id: d.protocol_id || `ID-${d.pk}`,
-        enrollment: { current: d.actual_randomized || 0, target: d.target_randomized || d.target_screened || 100 },
-        lastUpdated: 'Recently updated',
-        kpis: d.kpis || { enrolled: d.actual_randomized || 0, targetEnrolled: d.target_randomized || 100, completed: d.actual_completed || 0, targetCompleted: d.target_completed || 90 },
-        status: d.status === 'PAUSED' ? 'Under Review' : d.status === 'RECRUITING' ? 'Recruiting' : d.status === 'ACTIVE' ? 'Active' : d.status,
-        reports: allReports.filter((r: any) => r.study_protocol === d.protocol_id).map((r: any) => ({
-          id: r.id,
-          name: r.name,
-          date: r.report_date,
-          status: r.status,
-          type: r.report_type_display
-        }))
-      }));
+      const mapped = (studiesData || []).map((d: any) => {
+        const pis = Array.isArray(d.pis) ? d.pis : [];
+        const coords = Array.isArray(d.coordinators) ? d.coordinators : [];
+        const studyTeam = [
+          ...pis.map((pi: any) => ({ name: pi.full_name || pi.email || 'PI', role: 'Principal Investigator' })),
+          ...coords.map((c: any) => ({ name: c.full_name || c.email || 'Coordinator', role: 'Study Coordinator' }))
+        ];
+        if (studyTeam.length === 0) studyTeam.push({ name: 'Pending Assignment', role: 'TBD' });
+
+        return {
+          ...d,
+          id: d.protocol_id || `ID-${d.pk}`,
+          title: d.title || 'Untitled Protocol',
+          startDate: d.start_date || 'TBD',
+          endDate: d.end_date || 'TBD',
+          studyType: d.study_type || 'Clinical Trial',
+          researchArea: d.condition || d.primary_indication || 'General',
+          irbStatus: d.irb_status || 'APPROVED',
+          pi: pis.length > 0 ? (pis[0].full_name || pis[0].email) : 'Pending Assignment',
+          site: d.site_name || d.site || 'Primary Clinical Site',
+          team: studyTeam,
+          documents: d.documents || [],
+          milestones: d.milestones || [
+            { status: 'completed', label: 'Protocol Finalized', date: d.start_date || 'Recently' },
+            { status: 'pending', label: 'First Patient In', date: 'TBD' }
+          ],
+          enrollmentHistory: d.enrollmentHistory || [
+            { month: 'Start', count: 0 },
+            { month: 'Current', count: d.actual_randomized || d.actual_screened || 0 }
+          ],
+          enrollment: { current: d.actual_randomized || d.actual_screened || 0, target: d.target_randomized || d.target_screened || 100 },
+          lastUpdated: 'Recently updated',
+          kpis: d.kpis || { enrolled: d.actual_randomized || 0, targetEnrolled: d.target_randomized || d.target_screened || 100, completed: d.actual_completed || 0, targetCompleted: d.target_completed || 90 },
+          status: d.status === 'PAUSED' ? 'Under Review' : d.status === 'RECRUITING' ? 'Recruiting' : d.status === 'ACTIVE' ? 'Active' : d.status,
+          reports: allReports.filter((r: any) => r.study_protocol === d.protocol_id).map((r: any) => ({
+            id: r.id,
+            name: r.name,
+            date: r.report_date,
+            status: r.status,
+            type: r.report_type_display
+          }))
+        };
+      });
       setProtocols(mapped);
       setTeam(teamData || []);
       setInquiries(inquiriesData || []);

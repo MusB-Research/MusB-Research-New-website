@@ -10,7 +10,8 @@ import {
     X,
     Filter,
     Upload,
-    Download
+    Download,
+    Bell
 } from 'lucide-react';
 import { authFetch, API } from '../../../utils/auth';
 import { COLORS, ConsentTemplate, ConsentRecord, AuditEntry } from './ConsentConstants';
@@ -60,6 +61,11 @@ export default function ConsentModule({ selectedStudyId, preloadedStudies }: { s
 
     const [toasts, setToasts] = useState<{ id: string, type: string, message: string }[]>([]);
     const [confirmModal, setConfirmModal] = useState<{ message: string, onConfirm: () => void, type?: string, confirmLabel?: string } | null>(null);
+    
+    // Role-based state
+    const [activeRole, setActiveRole] = useState<'participant' | 'coordinator' | 'pi' | 'super-admin'>('coordinator');
+    const [activeSubTab, setActiveSubTab] = useState<'pending' | 'paper' | 'archive'>('pending');
+    const [participantSubTab, setParticipantSubTab] = useState<'flow' | 'lar' | 'after-signing'>('after-signing');
 
     // Derived Data
     const activeConsent = useMemo(() => consents.find(c => c.id === activeConsentId), [consents, activeConsentId]);
@@ -116,6 +122,31 @@ export default function ConsentModule({ selectedStudyId, preloadedStudies }: { s
         setToasts(prev => [...prev.slice(-2), { id, message, type }]);
         setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 3000);
     }, []);
+
+    const handleSendReminder = async (participantId: string) => {
+        try {
+            // Find the task for this participant of type CONSENT
+            const taskRes = await authFetch(`${API}/api/participant-tasks/?participant=${participantId}&task_type=CONSENT`);
+            if (taskRes.ok) {
+                const tasks = await taskRes.json();
+                const pendingTask = tasks.find((t: any) => t.status === 'PENDING' || t.status === 'IN_PROGRESS');
+                if (pendingTask) {
+                    const res = await authFetch(`${API}/api/participant-tasks/${pendingTask.id}/send_reminder/`, {
+                        method: 'POST'
+                    });
+                    if (res.ok) {
+                        addToast('Reminder sent successfully', 'success');
+                    } else {
+                        addToast('Failed to send reminder', 'error');
+                    }
+                } else {
+                    addToast('No pending consent task found for this participant', 'warning');
+                }
+            }
+        } catch (err) {
+            addToast('Error sending reminder', 'error');
+        }
+    };
 
     const handleUpload = async () => {
         if (!uploadForm.file) {
@@ -179,7 +210,7 @@ export default function ConsentModule({ selectedStudyId, preloadedStudies }: { s
                 addToast('Protocol record initialized in secure vault', 'success');
             } else {
                 const err = await res.json();
-                addToast(err.detail || 'Failed to initialize registry record', 'error');
+                addToast(err.error || err.detail || 'Failed to initialize registry record', 'error');
             }
         } catch (err) {
             console.error("Upload failed:", err);
@@ -251,7 +282,7 @@ export default function ConsentModule({ selectedStudyId, preloadedStudies }: { s
                 }
             } else {
                 const err = await res.json();
-                addToast(err.detail || 'Verification sync failed', 'error');
+                addToast(err.error || err.detail || 'Verification sync failed', 'error');
             }
         } catch (err) {
             console.error("Verification failed:", err);
@@ -291,10 +322,9 @@ export default function ConsentModule({ selectedStudyId, preloadedStudies }: { s
         </div>
     );
 
-    // --- NEW ROLE-BASED STATE ---
-    const [activeRole, setActiveRole] = useState<'participant' | 'coordinator' | 'pi' | 'super-admin'>('coordinator');
-    const [activeSubTab, setActiveSubTab] = useState<'pending' | 'paper' | 'archive'>('pending');
-    const [participantSubTab, setParticipantSubTab] = useState<'flow' | 'lar' | 'after-signing'>('after-signing');
+    // --- HOOK ORDER STABILIZED ---
+    // All hooks moved to the top of the component to prevent reconciliation errors during loading states.
+    // Removed redundant hooks from after early return
 
     return (
         <div className="flex flex-col h-full bg-[#0B101B] overflow-hidden">
@@ -512,7 +542,7 @@ export default function ConsentModule({ selectedStudyId, preloadedStudies }: { s
                                 <div className="space-y-4">
                                     <div className="p-8 bg-white/5 border border-white/10 rounded-3xl">
                                         <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-6">Awaiting Coordinator Co-Signature</p>
-                                        {consentRecords.filter(r => r.signing_status === 'AWAITING_COORDINATOR').map(record => (
+                                        {consentRecords.filter(r => r.signing_status === 'PARTIALLY_SIGNED').map(record => (
                                             <div key={record.id} className="flex items-center justify-between p-6 bg-white/5 border border-white/10 rounded-2xl">
                                                 <div className="flex items-center gap-4">
                                                     <div className="w-12 h-12 rounded-xl bg-indigo-500/20 flex items-center justify-center text-indigo-400 font-bold">
@@ -524,12 +554,15 @@ export default function ConsentModule({ selectedStudyId, preloadedStudies }: { s
                                                     </div>
                                                 </div>
                                                 <div className="flex items-center gap-3">
+                                                    <button onClick={() => handleSendReminder((record as any).participant)} className="px-4 py-3 border border-orange-500/20 rounded-xl text-[10px] font-black text-orange-400 uppercase tracking-widest hover:bg-orange-500/5 flex items-center gap-2">
+                                                        <Bell size={14} /> Send Reminder
+                                                    </button>
                                                     <button onClick={() => { setActiveRecordId(record.id); setActiveView('pi-verify'); }} className="px-6 py-3 border border-white/20 rounded-xl text-[10px] font-black text-white uppercase tracking-widest hover:bg-white/5">Review form</button>
                                                     <button onClick={() => { setActiveRecordId(record.id); setActiveView('pi-verify'); }} className="px-6 py-3 bg-white/10 rounded-xl text-[10px] font-black text-white uppercase tracking-widest hover:bg-white/20">Co-sign now</button>
                                                 </div>
                                             </div>
                                         ))}
-                                        {consentRecords.filter(r => r.signing_status === 'AWAITING_COORDINATOR').length === 0 && (
+                                        {consentRecords.filter(r => r.signing_status === 'PARTIALLY_SIGNED').length === 0 && (
                                             <div className="py-20 text-center text-slate-500 italic">No pending co-signatures</div>
                                         )}
                                     </div>
@@ -641,32 +674,28 @@ export default function ConsentModule({ selectedStudyId, preloadedStudies }: { s
                         <div>
                             <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4">Consent Requiring PI Attention</p>
                             <div className="space-y-3">
-                                {[
-                                    { name: 'Maria Johnson', detail: 'participant has signed', sub: 'Awaiting coordinator co-signature', tag: 'ICF-BTB-2026-MJ-001', type: 'CO-SIGN' },
-                                    { name: 'Anika Patel', detail: 'LAR consent (parent)', sub: 'Coordinator co-signed • Awaiting PI acknowledgment', tag: '', type: 'ACK' }
-                                ].map(item => (
-                                    <div key={item.name} className="flex items-center justify-between p-6 bg-white/5 border border-white/10 rounded-3xl">
+                                {consentRecords.filter(r => r.signing_status === 'AWAITING_PI').map(record => (
+                                    <div key={record.id} className="flex items-center justify-between p-6 bg-white/5 border border-white/10 rounded-3xl">
                                         <div className="flex items-center gap-4">
                                             <div className="w-12 h-12 rounded-full bg-indigo-500/20 flex items-center justify-center text-indigo-400 font-bold">
-                                                {item.name.split(' ').map(n => n[0]).join('')}
+                                                {record.decrypted_name?.split(' ').map((n: any) => n[0]).join('') || 'U'}
                                             </div>
                                             <div>
-                                                <h4 className="text-white font-bold">{item.name} — <span className="text-slate-400 font-normal italic">{item.detail}</span></h4>
-                                                <p className="text-slate-500 text-[10px]">{item.sub} {item.tag && <span className="ml-2 font-mono text-[9px] px-1.5 py-0.5 bg-white/5 rounded border border-white/10">{item.tag}</span>}</p>
+                                                <h4 className="text-white font-bold">{record.decrypted_name} — <span className="text-slate-400 font-normal italic">Coordinator co-signed</span></h4>
+                                                <p className="text-slate-500 text-[10px]">{record.study_title} <span className="ml-2 font-mono text-[9px] px-1.5 py-0.5 bg-white/5 rounded border border-white/10">{record.protocol_id}</span></p>
                                             </div>
                                         </div>
                                         <div className="flex items-center gap-3">
-                                            {item.type === 'CO-SIGN' ? (
-                                                <>
-                                                    <button className="px-6 py-3 bg-white/10 rounded-xl text-[10px] font-black text-white uppercase tracking-widest hover:bg-white/20">Co-sign as PI</button>
-                                                    <button className="px-6 py-3 border border-white/10 rounded-xl text-[10px] font-black text-slate-400 uppercase tracking-widest hover:text-white">Return to coordinator</button>
-                                                </>
-                                            ) : (
-                                                <button className="px-8 py-3 bg-white/10 rounded-xl text-[10px] font-black text-white uppercase tracking-widest hover:bg-white/20">Acknowledge</button>
-                                            )}
+                                            <button onClick={() => handleSendReminder((record as any).participant)} className="px-4 py-3 border border-orange-500/20 rounded-xl text-[10px] font-black text-orange-400 uppercase tracking-widest hover:bg-orange-500/5 flex items-center gap-2">
+                                                <Bell size={14} /> Send Reminder
+                                            </button>
+                                            <button onClick={() => { setActiveRecordId(record.id); setActiveView('pi-verify'); }} className="px-6 py-3 bg-white/10 rounded-xl text-[10px] font-black text-white uppercase tracking-widest hover:bg-white/20">Co-sign as PI</button>
                                         </div>
                                     </div>
                                 ))}
+                                {consentRecords.filter(r => r.signing_status === 'AWAITING_PI').length === 0 && (
+                                    <div className="py-10 text-center text-slate-500 italic text-sm">No consents awaiting PI signature</div>
+                                )}
                             </div>
                         </div>
 

@@ -52,5 +52,8 @@ urlpatterns = [
     # RBAC Approvals
     path('admin/approvals/', admin_users.get_pending_approvals, name='get_pending_approvals'),
     path('admin/approvals/<str:request_id>/<str:action>/', admin_users.process_approval, name='process_approval'),
+    
+    # Unified Invitation Verification
+    path('invitations/verify/', registration.verify_invitation, name='verify_invitation'),
 ]
 

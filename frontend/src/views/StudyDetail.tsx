@@ -12,9 +12,11 @@ import {
     Lock,
     Search,
     Stethoscope,
-    Users
+    Users,
+    MapPin
 } from 'lucide-react';
 import { fetchStudies, Study } from '../data/studies';
+import { MarkdownText } from '../components/shared/MarkdownText';
 import { motion } from 'framer-motion';
 import { authFetch, getRole, API } from '../utils/auth';
 import { Skeleton } from './Participant/SharedComponents';
@@ -219,95 +221,79 @@ export default function StudyDetail() {
                                 </div>
                                 <div className="p-6 bg-white/5 rounded-3xl border border-white/5 backdrop-blur-md">
                                     <span className="text-[10px] font-black text-[#00ADEF] uppercase tracking-[0.3em] mb-2 block">Brief Summary</span>
-                                    <p className="text-xl md:text-2xl text-slate-300 font-bold leading-snug">
-                                        {customContent ? customContent.description : study.description}
-                                    </p>
+                                    <div className="text-xl md:text-2xl text-slate-300 font-bold leading-snug">
+                                        <MarkdownText text={customContent ? customContent.description : study.description} />
+                                    </div>
                                 </div>
                             </motion.div>
                         </div>
-
-                        {/* Overview Card */}
-                        {(customContent || study.overview) && (
-                            <motion.section
-                                initial={{ opacity: 0, y: 30 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: 0.2 }}
-                                className="bg-[#0f172a]/40 backdrop-blur-[40px] rounded-[3.5rem] p-10 md:p-14 border border-white/10 shadow-2xl relative overflow-hidden group"
-                            >
-                                <div className="absolute top-0 right-0 w-64 h-64 bg-[#00ADEF]/5 blur-[80px] rounded-full -mr-20 -mt-20"></div>
-
-                                <div className="relative z-10 space-y-8">
-                                    <h2 className="text-3xl font-black text-white uppercase italic tracking-tight flex items-center gap-4">
-                                        <div className="w-10 h-10 rounded-full bg-[#00ADEF]/10 flex items-center justify-center border border-[#00ADEF]/20">
-                                            <Info className="w-5 h-5 text-[#00ADEF]" />
-                                        </div>
+                        {/* Detailed Study Sections */}
+                        <div className="grid md:grid-cols-2 gap-8">
+                            {/* Study Overview */}
+                            {(customContent?.overviewBullets || study.overview) && (
+                                <motion.div
+                                    initial={{ opacity: 0, y: 20 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: 0.2 }}
+                                    className="p-10 bg-slate-900/30 rounded-[3rem] border border-white/5 space-y-6"
+                                >
+                                    <h3 className="text-xl font-black text-white uppercase italic tracking-tight flex items-center gap-3">
+                                        <Info className="w-5 h-5 text-[#00ADEF]" />
                                         Study Overview
-                                    </h2>
-                                    {customContent ? (
-                                        <div className="space-y-4">
-                                            {customContent.overviewBullets.map((bullet: string, idx: number) => (
-                                                <div key={idx} className="flex gap-4 group/item">
-                                                    <div className="w-1.5 h-1.5 rounded-full bg-[#00ADEF] mt-3 shrink-0 shadow-[0_0_10px_rgba(0,173,239,0.5)]" />
-                                                    <span className="text-slate-300 text-xl leading-relaxed font-medium">{bullet}</span>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    ) : (
-                                        <div className="space-y-4">
-                                            {study.overview.split('\n').filter(line => line.trim()).map((line, idx) => (
-                                                <div key={idx} className="flex gap-4 group/item">
-                                                    <div className="w-1.5 h-1.5 rounded-full bg-[#00ADEF] mt-3 shrink-0 shadow-[0_0_10px_rgba(0,173,239,0.5)]" />
-                                                    <span className="text-slate-300 text-xl leading-relaxed font-medium">
-                                                        {line.trim().startsWith('*') ? line.trim().substring(1).trim() : line.trim()}
-                                                    </span>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )}
-                                </div>
-                            </motion.section>
-                        )}
+                                    </h3>
+                                    <ul className="space-y-4">
+                                        {customContent?.overviewBullets ? (
+                                            customContent.overviewBullets.map((bullet: string, idx: number) => (
+                                                <li key={idx} className="flex gap-4 text-slate-300 leading-relaxed font-medium">
+                                                    <span className="text-[#00ADEF] font-bold shrink-0">•</span>
+                                                    {bullet}
+                                                </li>
+                                            ))
+                                        ) : (
+                                            ((study as any).eligibility || '').split('\n').filter(Boolean).map((line: string, idx: number) => (
+                                                <li key={idx} className="flex gap-4 text-slate-300 leading-relaxed font-medium">
+                                                    <span className="text-[#00ADEF] font-bold shrink-0">•</span>
+                                                    <MarkdownText text={line.replace(/^[•\-\*]\s*/, '')} />
+                                                </li>
+                                            ))
+                                        )}
+                                    </ul>
+                                </motion.div>
+                            )}
 
-                        {/* Benefits Section */}
-                        {(customContent || study.benefit) && (
-                            <motion.section
-                                initial={{ opacity: 0, y: 30 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: 0.3 }}
-                                className="bg-[#0f172a]/40 backdrop-blur-[40px] rounded-[3.5rem] p-10 md:p-14 border border-white/10 shadow-2xl relative overflow-hidden group"
-                            >
-                                <div className="absolute top-0 right-0 w-64 h-64 bg-[#00ADEF]/5 blur-[80px] rounded-full -mr-20 -mt-20"></div>
-                                <div className="relative z-10 space-y-8">
-                                    <h2 className="text-3xl font-black text-white uppercase italic tracking-tight flex items-center gap-4">
-                                        <div className="w-10 h-10 rounded-full bg-[#00ADEF]/10 flex items-center justify-center border border-[#00ADEF]/20">
-                                            <CheckCircle2 className="w-5 h-5 text-[#00ADEF]" />
-                                        </div>
+                            {/* Benefits */}
+                            {(customContent?.benefitsBullets || (study as any).benefit) && (
+                                <motion.div
+                                    initial={{ opacity: 0, y: 20 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: 0.3 }}
+                                    className="p-10 bg-[#00ADEF]/5 rounded-[3rem] border border-[#00ADEF]/10 space-y-6"
+                                >
+                                    <h3 className="text-xl font-black text-white uppercase italic tracking-tight flex items-center gap-3">
+                                        <CheckCircle2 className="w-5 h-5 text-emerald-400" />
                                         Benefits for Participants
-                                    </h2>
-                                    {customContent ? (
-                                        <div className="space-y-4">
-                                            {customContent.benefitsBullets.map((bullet: string, idx: number) => (
-                                                <div key={idx} className="flex gap-4 group/item">
-                                                    <div className="w-1.5 h-1.5 rounded-full bg-[#00ADEF] mt-3 shrink-0 shadow-[0_0_10px_rgba(0,173,239,0.5)]" />
-                                                    <span className="text-slate-300 text-xl leading-relaxed font-medium">{bullet}</span>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    ) : (
-                                        <div className="space-y-4">
-                                            {study.benefit.split('\n').filter(line => line.trim()).map((line, idx) => (
-                                                <div key={idx} className="flex gap-4 group/item">
-                                                    <div className="w-1.5 h-1.5 rounded-full bg-[#00ADEF] mt-3 shrink-0 shadow-[0_0_10px_rgba(0,173,239,0.5)]" />
-                                                    <span className="text-slate-300 text-xl leading-relaxed font-medium">
-                                                        {line.trim().startsWith('*') ? line.trim().substring(1).trim() : line.trim()}
-                                                    </span>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )}
-                                </div>
-                            </motion.section>
-                        )}
+                                    </h3>
+                                    <ul className="space-y-4">
+                                        {customContent?.benefitsBullets ? (
+                                            customContent.benefitsBullets.map((bullet: string, idx: number) => (
+                                                <li key={idx} className="flex gap-4 text-slate-300 leading-relaxed font-medium">
+                                                    <span className="text-emerald-400 font-bold shrink-0">•</span>
+                                                    {bullet}
+                                                </li>
+                                            ))
+                                        ) : (
+                                            ((study as any).benefit || '').split('\n').filter(Boolean).map((line: string, idx: number) => (
+                                                <li key={idx} className="flex gap-4 text-slate-300 leading-relaxed font-medium">
+                                                    <span className="text-emerald-400 font-bold shrink-0">•</span>
+                                                    <MarkdownText text={line.replace(/^[•\-\*]\s*/, '')} />
+                                                </li>
+                                            ))
+                                        )}
+                                    </ul>
+                                </motion.div>
+                            )}
+                        </div>
+
 
                         {/* Investigator Section */}
                         {study.pi_details && (
@@ -369,9 +355,9 @@ export default function StudyDetail() {
                                         </div>
                                         Community Participation Message
                                     </h2>
-                                    <p className="text-slate-300 text-xl leading-relaxed font-medium">
-                                        {customContent ? customContent.ctaText : study.participation_message}
-                                    </p>
+                                    <div className="text-slate-300 text-xl leading-relaxed font-medium">
+                                        <MarkdownText text={customContent ? customContent.ctaText : study.participation_message} />
+                                    </div>
                                 </div>
                             </motion.section>
                         )}
@@ -420,14 +406,23 @@ export default function StudyDetail() {
                             )}
 
                             <div className="flex items-center justify-center gap-6 pt-6 border-t border-white/5 w-full relative z-10">
-                                <div className="flex flex-col items-center gap-1">
-                                    <Clock className="w-4 h-4 text-[#00ADEF]/60" />
-                                    <span className="text-[13px] font-black uppercase tracking-[0.1em] text-slate-500">{study.duration.split('(')[0].trim()}</span>
+                                <div className="flex flex-col items-center gap-1 group/item">
+                                    <Clock className="w-4 h-4 text-[#00ADEF]/60 group-hover/item:text-[#00ADEF] transition-colors" />
+                                    <span className="text-[11px] font-black uppercase tracking-[0.1em] text-slate-500 group-hover/item:text-slate-300 transition-colors">{study.duration.split('(')[0].trim()}</span>
                                 </div>
                                 <div className="w-[1px] h-6 bg-white/5"></div>
-                                <div className="flex flex-col items-center gap-1">
-                                    <Lock className="w-4 h-4 text-emerald-400/60" />
-                                    <span className="text-[13px] font-black uppercase tracking-[0.1em] text-slate-500">Privacy Protected</span>
+                                <div className="flex flex-col items-center gap-1 group/item">
+                                    <MapPin className="w-4 h-4 text-amber-500/60 group-hover/item:text-amber-500 transition-colors" />
+                                    <span className="text-[11px] font-black uppercase tracking-[0.1em] text-slate-500 group-hover/item:text-slate-300 transition-colors">
+                                        {study.countries && study.countries.length > 0 
+                                            ? (study.countries.length === 1 ? study.countries[0] : `${study.countries.length} Regions`)
+                                            : 'Global'}
+                                    </span>
+                                </div>
+                                <div className="w-[1px] h-6 bg-white/5"></div>
+                                <div className="flex flex-col items-center gap-1 group/item">
+                                    <Lock className="w-4 h-4 text-emerald-400/60 group-hover/item:text-emerald-400 transition-colors" />
+                                    <span className="text-[11px] font-black uppercase tracking-[0.1em] text-slate-500 group-hover/item:text-slate-300 transition-colors">Privacy Protected</span>
                                 </div>
                             </div>
                         </motion.div>
