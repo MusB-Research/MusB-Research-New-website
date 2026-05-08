@@ -25,6 +25,7 @@ ClinicalAuditLog, PIIRevealLog,
 )
 
 import logging
+import requests
 
 logger = logging.getLogger(__name__)
 # from .views import smtp_test - Removed due to circular import
@@ -5082,3 +5083,20 @@ def test_smtp_connection(request):
             'backend': settings.EMAIL_BACKEND
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+
+class ZipLookupView(APIView):
+    """
+    Proxy for zippopotam.us to bypass frontend CSP restrictions.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, country, zip):
+        url = f"https://api.zippopotam.us/{country}/{zip}"
+        try:
+            response = requests.get(url, timeout=5)
+            if response.status_code == 200:
+                return Response(response.json())
+            return Response({"error": "ZIP code not found"}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            logger.error(f"ZIP lookup failed: {e}")
+            return Response({"error": "Service unavailable"}, status=status.HTTP_503_SERVICE_UNAVAILABLE)

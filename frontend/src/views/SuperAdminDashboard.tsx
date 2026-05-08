@@ -2265,7 +2265,7 @@ export default function SuperAdminDashboard() {
         try {
           await Promise.all(regions.map(async (region) => {
             try {
-              const response = await fetch(`https://api.zippopotam.us/${region.code}/${zip}`);
+              const response = await authFetch(`${API}/api/zip-lookup/${region.code}/${zip}/`);
               if (response.ok) {
                 const data = await response.json();
                 if (data.places) {
