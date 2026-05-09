@@ -188,7 +188,7 @@ def admin_create_user(request):
             logger.info(f"Magic link created for {email}")
             
             # Resolve admin user to ensure it's not a lazy object
-            if hasattr(admin_user, '_wrapped') if hasattr(admin_user, '_wrapped') else False:
+            if hasattr(admin_user, '_wrapped'):
                 admin_user = admin_user._wrapped
             
             # Atomic Creation
@@ -223,8 +223,9 @@ def admin_create_user(request):
                 profile_image=profile_image,
                 cv_file=cv_file,
                 zip_code=request.data.get('zip_code') or None,
-                country=request.data.get('country') or None,
-                state=request.data.get('state') or None
+                city=request.data.get('city') or None,
+                state=request.data.get('state') or None,
+                country=request.data.get('country') or None
             )
             logger.info(f"User object created in DB: {new_user.email} (ID: {new_user.id})")
             
@@ -253,11 +254,12 @@ def admin_create_user(request):
             
             # Notify Super Admins
             super_admins = User.objects.filter(role='SUPER_ADMIN', is_active=True)
+            admin_name = getattr(admin_user, 'full_name', None) or getattr(admin_user, 'email', 'An administrator')
             for sa in super_admins:
                 Notification.objects.create(
                     user=sa,
                     title="New Personnel Invitation",
-                    message=f"{admin_user.full_name} has invited {first_name} {last_name} as a {role}.",
+                    message=f"{admin_name} has invited {first_name} {last_name} as a {role}.",
                     type='INFO',
                     link='/dashboard/super-admin/all-users'
                 )
@@ -358,11 +360,15 @@ def admin_create_user(request):
         import traceback
         error_trace = traceback.format_exc()
         logger.exception(f"admin_create_user critical failure: {str(e)}")
-        # PROD DIAGNOSTIC: Temporarily expose trace to user to identify Render crash point
-        return Response({
+        
+        # PROD DIAGNOSTIC: Ensure CORS is handled even on crash so user can see details
+        res = Response({
             'error': f'Finalization failed: {str(e)}',
-            'details': error_trace
+            'details': error_trace,
+            'hint': 'Check if all required fields are provided and server storage is writable.'
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        res["Access-Control-Allow-Origin"] = "*"
+        return res
 
 @api_view(['POST'])
 def admin_resend_credentials(request, user_id):

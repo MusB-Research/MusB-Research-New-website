@@ -2340,17 +2340,21 @@ export default function SuperAdminDashboard() {
         formData.append('role', newUser.role);
         formData.append('is_mellow_member', String(newUser.isMellowMember));
         
-        if (newUser.lat) formData.append('lat', String(newUser.lat));
-        if (newUser.lng) formData.append('lng', String(newUser.lng));
-        if (newUser.organization && newUser.organization.trim()) formData.append('organization', newUser.organization);
-        if (newUser.bio && newUser.bio.trim()) formData.append('bio', newUser.bio);
-        if (newUser.zipCode && newUser.zipCode.trim()) formData.append('zip_code', newUser.zipCode);
-        if (newUser.country && newUser.country.trim()) formData.append('country', newUser.country);
-        if (newUser.state && newUser.state.trim()) formData.append('state', newUser.state);
-        if (newUser.pronouns && newUser.pronouns.trim()) formData.append('pronouns', newUser.pronouns);
-        if (newUser.linkedinUrl && newUser.linkedinUrl.trim()) formData.append('linkedin_url', newUser.linkedinUrl);
-        if (newUser.websiteUrl && newUser.websiteUrl.trim()) formData.append('institute_url', newUser.websiteUrl);
-        if (newUser.qualifications && newUser.qualifications.trim()) formData.append('qualifications', newUser.qualifications);
+        // Consortium & Location Data
+        if (newUser.lat !== undefined && newUser.lat !== null) formData.append('lat', String(newUser.lat));
+        if (newUser.lng !== undefined && newUser.lng !== null) formData.append('lng', String(newUser.lng));
+        if (newUser.zipCode?.trim()) formData.append('zip_code', newUser.zipCode.trim());
+        if (newUser.city?.trim()) formData.append('city', newUser.city.trim());
+        if (newUser.state?.trim()) formData.append('state', newUser.state.trim());
+        if (newUser.country?.trim()) formData.append('country', newUser.country.trim());
+        
+        if (newUser.organization?.trim()) formData.append('organization', newUser.organization.trim());
+        if (newUser.bio?.trim()) formData.append('bio', newUser.bio.trim());
+        if (newUser.pronouns?.trim()) formData.append('pronouns', newUser.pronouns.trim());
+        if (newUser.linkedinUrl?.trim()) formData.append('linkedin_url', newUser.linkedinUrl.trim());
+        if (newUser.websiteUrl?.trim()) formData.append('institute_url', newUser.websiteUrl.trim());
+        if (newUser.qualifications?.trim()) formData.append('qualifications', newUser.qualifications.trim());
+
         if (profileImageFile) formData.append('profile_image', profileImageFile);
         if (cvFile) formData.append('cv_file', cvFile);
 
