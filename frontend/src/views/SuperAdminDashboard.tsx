@@ -2368,7 +2368,7 @@ export default function SuperAdminDashboard() {
           const data = await res.json();
           addToast(`Initialization complete. Credentials dispatched to ${newUser.email}`, "success");
           setModals({ ...modals, createUser: false });
-          setNewUser({ firstName: '', middleName: '', lastName: '', email: '', role: creationRole ? creationRole.toUpperCase() : 'PI', lat: '', lng: '', organization: '', bio: '', zipCode: '', country: '', state: '', isMellowMember: false, pronouns: '', linkedinUrl: '', websiteUrl: '', qualifications: '' });
+          setNewUser({ firstName: '', middleName: '', lastName: '', email: '', role: creationRole ? creationRole.toUpperCase() : 'PI', lat: '', lng: '', organization: '', bio: '', zipCode: '', city: '', country: '', state: '', isMellowMember: false, pronouns: '', linkedinUrl: '', websiteUrl: '', qualifications: '' });
           setProfileImageFile(null);
           setCvFile(null);
           // Pass true as second argument to fetchData to skip cache and get the new user immediately
