@@ -2215,6 +2215,7 @@ export default function SuperAdminDashboard() {
       organization: '',
       bio: '',
       zipCode: '',
+      city: '',
       country: '',
       state: '',
       isMellowMember: currentPage === 'MELLOW_INVESTIGATORS',
@@ -2239,8 +2240,8 @@ export default function SuperAdminDashboard() {
           setLocationOptions([]);
           // Only reset if fields actually have values to avoid re-render cascades
           setNewUser(prev => {
-            if (prev.state || prev.country || prev.lat || prev.lng) {
-              return { ...prev, state: '', country: '', lat: '', lng: '' };
+            if (prev.state || prev.country || prev.lat || prev.lng || prev.city) {
+              return { ...prev, state: '', country: '', lat: '', lng: '', city: '' };
             }
             return prev;
           });
@@ -2290,13 +2291,14 @@ export default function SuperAdminDashboard() {
             const loc = results[0];
             setNewUser(prev => ({
               ...prev,
+              city: loc.placeName,
               state: loc.state,
               country: loc.country,
               lat: loc.lat,
               lng: loc.lng
             }));
           } else if (results.length === 0) {
-            setNewUser(prev => ({ ...prev, state: '', country: '', lat: '', lng: '' }));
+            setNewUser(prev => ({ ...prev, city: '', state: '', country: '', lat: '', lng: '' }));
           }
         } finally {
           setIsLookingUp(false);
@@ -2503,7 +2505,14 @@ export default function SuperAdminDashboard() {
                                 key={idx}
                                 type="button"
                                 onClick={() => {
-                                  setNewUser(prev => ({ ...prev, state: loc.state, country: loc.country, lat: loc.lat, lng: loc.lng }));
+                                  setNewUser(prev => ({ 
+                                    ...prev, 
+                                    city: loc.placeName,
+                                    state: loc.state, 
+                                    country: loc.country, 
+                                    lat: loc.lat, 
+                                    lng: loc.lng 
+                                  }));
                                   setLocationOptions([]);
                                 }}
                                 className="w-full text-left px-4 py-3 hover:bg-white/5 transition-colors border-b border-white/[0.02] last:border-0"
