@@ -13,6 +13,7 @@ import string
 import secrets
 import logging
 from ..models import User, AuditLog, MagicLink
+from ..security import decrypt_data
 from ..utils import send_mail_premium, generate_token
 from api.views import IsAdminOrCoordinator
 
@@ -663,7 +664,7 @@ def get_mellow_investigators(request):
             'email': u.email,
             'bio': u.bio or "Clinical Investigator specializing in multi-center research protocols.",
             'profile_picture': u.profile_image.url if u.profile_image else (u.profile_picture or None),
-            'qualifications': u.qualifications or "MD, PhD",
+            'qualifications': decrypt_data(u.qualifications) if u.qualifications else "MD, PhD",
             'pronouns': u.pronouns or None,
             'linkedin': u.linkedin_url or None,
             'website': u.institute_url or None,

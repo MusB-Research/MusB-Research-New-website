@@ -304,7 +304,7 @@ export default function InvestigatorsMap() {
                             initial={{ opacity: 0, scale: 0.95, y: 20 }}
                             animate={{ opacity: 1, scale: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                            className="absolute inset-x-4 bottom-4 md:inset-x-auto md:bottom-auto md:top-8 md:right-8 md:w-[480px] max-h-[calc(100%-4rem)] bg-slate-950/90 backdrop-blur-3xl border border-white/10 rounded-[2.5rem] shadow-[0_25px_80px_rgba(0,0,0,0.5)] z-30 overflow-y-auto custom-scrollbar"
+                            className="absolute inset-x-4 bottom-4 md:inset-x-auto md:bottom-auto md:top-8 md:right-8 md:w-[560px] max-h-[calc(100%-4rem)] bg-slate-950/90 backdrop-blur-3xl border border-white/10 rounded-[2.5rem] shadow-[0_25px_80px_rgba(0,0,0,0.5)] z-30 overflow-y-auto custom-scrollbar"
                         >
                             {/* Premium Header Accent */}
                             <div className="h-1.5 w-full bg-gradient-to-r from-cyan-600 via-blue-600 to-indigo-600 rounded-t-[2.5rem]" />
@@ -312,7 +312,7 @@ export default function InvestigatorsMap() {
                             <div className="p-8 md:p-10 space-y-10">
                                 <button 
                                     onClick={() => setSelectedInvestigator(null)} 
-                                    className="text-slate-500 hover:text-white p-2 absolute top-8 right-8 transition-colors bg-white/5 rounded-full backdrop-blur-md"
+                                    className="text-slate-500 hover:text-white p-2 absolute top-8 right-8 transition-colors bg-white/5 rounded-full backdrop-blur-md z-40"
                                 >
                                     <X className="w-5 h-5" />
                                 </button>
@@ -341,9 +341,9 @@ export default function InvestigatorsMap() {
                                         </div>
                                     </div>
 
-                                    <div className="space-y-5 flex-1">
-                                        <div className="space-y-3">
-                                            <h3 className="text-3xl md:text-4xl font-serif text-white tracking-tight leading-tight">
+                                    <div className="space-y-5 flex-1 min-w-0">
+                                        <div className="space-y-3 pr-12">
+                                            <h3 className="text-3xl md:text-4xl font-serif text-white tracking-tight leading-tight break-words">
                                                 {(() => {
                                                     const prefix = selectedInvestigator.pronouns || 'Dr.';
                                                     const name = selectedInvestigator.name;
