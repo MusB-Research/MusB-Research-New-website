@@ -201,7 +201,7 @@ def send_resend_email(to_email, subject, html_content):
             err_msg = str(api_err).lower()
             if "domain is not verified" in err_msg:
                 logger.warning(f"Domain not verified, attempting testing domain for {to_email}")
-                params["from"] = "onboarding@resend.dev"
+                params["from"] = "info@musbresearch.com"
                 try:
                     resend.Emails.send(params)
                     return True

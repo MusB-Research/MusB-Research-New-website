@@ -24,7 +24,7 @@ export const deleteCookie = (name: string) => {
 const _apiCache = new Map<string, { data: any; expiry: number }>();
 const CACHE_DURATION = 5000; // 5 seconds default cache for repeating GETs
 
-export const API = (import.meta as any).env?.VITE_API_URL || ((import.meta as any).env?.PROD ? 'https://musb-research-new-website.onrender.com' : 'http://localhost:8003');
+export const API = (import.meta as any).env?.VITE_API_URL || ((import.meta as any).env?.PROD ? 'https://musb-research-new-website-hk4k.onrender.com' : 'http://localhost:8003');
 
 interface User {
     id: string;

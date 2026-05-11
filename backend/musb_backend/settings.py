@@ -57,7 +57,7 @@ if os.getenv('RENDER'):
 # Frontend URL used for generating email links
 FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:5173')
 
-ALLOWED_HOSTS = [h.strip() for h in os.getenv('DJANGO_ALLOWED_HOSTS', 'localhost,127.0.0.1,musb-backend.onrender.com,musb-research-new-website.onrender.com').split(',') if h.strip()]
+ALLOWED_HOSTS = [h.strip() for h in os.getenv('DJANGO_ALLOWED_HOSTS', 'localhost,127.0.0.1,musb-research-new-website-hk4k.onrender.com').split(',') if h.strip()]
 if DEBUG:
     ALLOWED_HOSTS = ['*']
 
@@ -267,8 +267,7 @@ GUARANTEED_PROD_ORIGINS = [
     "https://musbhealth.com",
     "https://www.musbhealth.com",
     "https://musbresearchnewwebsite.vercel.app",
-    "https://musb-research-new-website.onrender.com",
-    "https://musb-backend.onrender.com",
+    "https://musb-research-new-website-hk4k.onrender.com",
 ]
 
 if DEBUG:
@@ -333,7 +332,7 @@ else:
         )
     # Console fallback — only for local development
     EMAIL_BACKEND      = 'django.core.mail.backends.console.EmailBackend'
-    DEFAULT_FROM_EMAIL = os.getenv('ADMIN_EMAIL', 'info@musbresearch.com')
+    DEFAULT_FROM_EMAIL = 'info@musbresearch.com'
     SMTP_EMAIL         = None
 
 # Resend Configuration (Used as high-performance delivery option)

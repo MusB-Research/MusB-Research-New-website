@@ -92,7 +92,7 @@ class SubmissionCreateView(generics.CreateAPIView):
                 </div>
                 """
                 safe_resend_send({
-                    "from": "MusB Research <onboarding@resend.dev>",
+                    "from": "MusB Research <info@musbresearch.com>",
                     "to": ["info@musbresearch.com"],
                     "subject": f"[FALLBACK] Contact Form: {name}",
                     "text": strip_tags(fallback_html)
@@ -274,7 +274,7 @@ Phone: {submission.phone or 'Not Provided'}
         # 3. Send emails — this block NEVER causes a 500, all failures are caught
         try:
             from api.utils.resend_utils import safe_resend_send
-            from_email = 'MusB Research <onboarding@resend.dev>'
+            from_email = 'MusB Research <info@musbresearch.com>'
             
             # ONLY send to info@musbresearch.com as requested
             recipients = ["info@musbresearch.com"]

@@ -345,12 +345,10 @@ export default function InvestigatorsMap() {
                                         <div className="space-y-3 pr-12">
                                             <h3 className="text-3xl md:text-4xl font-serif text-white tracking-tight leading-tight break-words">
                                                 {(() => {
-                                                    const prefix = selectedInvestigator.pronouns || 'Dr.';
-                                                    const name = selectedInvestigator.name;
-                                                    // Avoid double prefix if name already starts with the pronoun
-                                                    if (name.startsWith(prefix)) return name;
-                                                    if (name.startsWith('Dr.') || name.startsWith('Prof.') || name.startsWith('Mr.') || name.startsWith('Mrs.') || name.startsWith('Ms.')) return name;
-                                                    return `${prefix} ${name}`;
+                                                    const prefix = (selectedInvestigator.pronouns || 'Dr.').trim();
+                                                    // Clean existing titles from the name to avoid duplication
+                                                    const cleanName = selectedInvestigator.name.replace(/^(Dr\.|Prof\.|Mr\.|Mrs\.|Ms\.)\s+/i, '').trim();
+                                                    return `${prefix} ${cleanName}`;
                                                 })()}
                                             </h3>
                                             
@@ -382,7 +380,15 @@ export default function InvestigatorsMap() {
                                 {/* About Section — Summary + Specializations */}
                                 <div className="pt-10 border-t border-white/5 space-y-6">
                                     <div className="flex items-center gap-6">
-                                        <h4 className="text-xl font-serif text-white whitespace-nowrap">About Dr. {selectedInvestigator.name.split(' ').pop()}</h4>
+                                        <h4 className="text-xl font-serif text-white whitespace-nowrap">
+                                            {(() => {
+                                                const prefix = (selectedInvestigator.pronouns || 'Dr.').trim();
+                                                // Clean existing titles and get last name
+                                                const cleanName = selectedInvestigator.name.replace(/^(Dr\.|Prof\.|Mr\.|Mrs\.|Ms\.)\s+/i, '').trim();
+                                                const lastName = cleanName.split(/\s+/).pop();
+                                                return `About ${prefix} ${lastName}`;
+                                            })()}
+                                        </h4>
                                         <div className="h-px w-full bg-gradient-to-r from-white/10 to-transparent" />
                                     </div>
 
