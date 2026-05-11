@@ -199,7 +199,7 @@ export default function VisitsModule({ selectedStudyId, preloadedParticipants, p
         action_taken: ''
     });
 
-    const apiUrl = API || 'http://localhost:8000';
+    const apiUrl = API || 'http://localhost:8003';
 
     // ─── DATA LOADING ────────────────────────────────────────────────────────
     const loadData = useCallback(async () => {
@@ -417,11 +417,13 @@ export default function VisitsModule({ selectedStudyId, preloadedParticipants, p
                 if (onRefresh) onRefresh();
                 else loadData();
             } else {
-                alert("Protocol Sync Error: Failed to persist visit data.");
+                const errBody = await visitResp.json().catch(() => ({}));
+                console.error("Clinical Backend Error:", errBody);
+                alert(`Scheduling Failure: ${errBody.detail || errBody.error || 'The server rejected the clinical record.'}`);
             }
         } catch (err) {
-            console.error("Clinical Scheduling Failure:", err);
-            alert("Network interference detected during scheduling.");
+            console.error("Critical Connection Failure:", err);
+            alert("Connection error: Unable to reach clinical server. Please verify network status.");
         }
     };
 
@@ -594,9 +596,9 @@ export default function VisitsModule({ selectedStudyId, preloadedParticipants, p
             {/* Overlays */}
 
             {/* Header Bar: Responsive Stacking */}
-            <div className="flex-shrink-0 px-4 md:px-6 py-2.5 bg-[#0B101B] border-b border-white/10 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
-                <div className="flex items-center justify-between lg:justify-start gap-4 md:gap-8">
-                    <h2 className="text-sm md:text-lg font-black text-white tracking-widest uppercase italic">VISITS Oversight</h2>
+            <div className="flex-shrink-0 px-4 md:px-6 py-2 bg-[#0B101B] border-b border-white/10 flex flex-col lg:flex-row lg:items-center justify-between gap-2">
+                <div className="flex items-center justify-between lg:justify-start gap-4 md:gap-6">
+                    <h2 className="text-xs md:text-sm font-black text-white tracking-widest uppercase italic">VISITS Oversight</h2>
                     <div className="flex bg-white/5 p-0.5 rounded-xl border border-white/10 shrink-0">
                         {(['Timeline', 'Calendar'] as const).map(mode => (
                             <button key={mode} onClick={() => setViewMode(mode)} className={`px-3 md:px-4 py-1 rounded-lg text-[10px] md:text-xs font-black tracking-widest transition-all ${viewMode === mode ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20' : 'text-slate-500 hover:text-white'}`}>
@@ -607,9 +609,9 @@ export default function VisitsModule({ selectedStudyId, preloadedParticipants, p
                 </div>
 
                 <div className="flex items-center gap-2 md:gap-3 overflow-x-auto pb-1 md:pb-0 scrollbar-hide">
-                    <div className="relative w-full md:w-64">
+                    <div className="relative w-full md:w-56">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-500" />
-                        <input type="text" placeholder="Filter Subjects..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-xl pl-9 pr-4 py-1.5 text-[12px] text-white outline-none focus:border-indigo-500/50 transition-all placeholder:text-slate-600" />
+                        <input type="text" placeholder="Filter Subjects..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg pl-9 pr-4 py-1.5 text-[11px] text-white outline-none focus:border-indigo-500/50 transition-all placeholder:text-slate-600" />
                     </div>
                     {/* Action buttons visible across all screens */}
                     <div className="flex items-center gap-2 flex-wrap">
@@ -686,14 +688,14 @@ export default function VisitsModule({ selectedStudyId, preloadedParticipants, p
                                             setSelectedParticipantId(p.id);
                                             setMobileView('TIMELINE');
                                         }} 
-                                        className={`w-full text-left p-3 rounded-xl border transition-all ${selectedParticipantId === p.id ? 'bg-indigo-600/10 border-indigo-500/40 shadow-lg shadow-indigo-500/5' : 'bg-transparent border-transparent hover:bg-white/[0.03]'}`}
+                                        className={`w-full text-left p-3 rounded-xl border transition-all duration-200 ${selectedParticipantId === p.id ? 'bg-indigo-600/10 border-indigo-500/40 shadow-xl shadow-indigo-500/5 scale-[1.02]' : 'bg-transparent border-transparent hover:bg-white/[0.04]'}`}
                                     >
                                         <div className="flex items-center justify-between mb-1">
                                             <span className="text-[12px] font-black text-white italic tracking-tighter uppercase">{p.participant_sid}</span>
-                                            <div className={`w-1.5 h-1.5 rounded-full ${p.status === 'Active' ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-slate-600'}`} />
+                                            <div className={`w-1.5 h-1.5 rounded-full ${p.status === 'Active' ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]' : 'bg-slate-600'}`} />
                                         </div>
-                                        <p className="text-[13px] font-bold text-slate-300 truncate mb-0.5">{p.name}</p>
-                                        <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest truncate">
+                                        <p className="text-[13px] font-black text-slate-100 truncate mb-0.5">{p.name}</p>
+                                        <p className="text-[9px] text-slate-500 font-black uppercase tracking-widest truncate">
                                             <span className="text-indigo-400 italic">[{p.protocol_id}]</span> {p.study}
                                         </p>
                                     </button>
@@ -723,24 +725,24 @@ export default function VisitsModule({ selectedStudyId, preloadedParticipants, p
                                     </button>
 
                                     {/* Subject Header */}
-                                    <div className="mb-3 p-3 bg-white/[0.01] border border-white/5 rounded-xl">
+                                    <div className="mb-2 p-2.5 bg-white/[0.01] border border-white/5 rounded-xl">
                                         <div className="flex items-start justify-between">
                                             <div className="min-w-0 flex-1">
-                                                <h3 className="text-lg md:text-xl font-black text-white mb-1 uppercase italic tracking-tighter truncate">{selectedParticipant.name}</h3>
+                                                <h3 className="text-base md:text-lg font-black text-white mb-0.5 uppercase italic tracking-tighter truncate">{selectedParticipant.name}</h3>
                                                 <div className="flex flex-wrap items-center gap-2">
-                                                    <span className="px-2 py-0.5 bg-white/5 rounded-md text-[9px] font-black text-blue-400 uppercase tracking-widest italic border border-white/10">
+                                                    <span className="px-1.5 py-0.5 bg-white/5 rounded-md text-[8px] font-black text-blue-400 uppercase tracking-widest italic border border-white/10">
                                                         SID: {selectedParticipant.participant_sid}
                                                     </span>
-                                                    <p className="text-[9px] text-slate-500 font-black uppercase tracking-widest truncate">
+                                                    <p className="text-[8px] text-slate-500 font-black uppercase tracking-widest truncate">
                                                         {selectedParticipant.study}
                                                     </p>
                                                 </div>
                                             </div>
                                             <button 
                                                 onClick={() => setMobileView('DETAILS')}
-                                                className="lg:hidden p-2 bg-blue-500/10 rounded-lg text-blue-400"
+                                                className="lg:hidden p-1.5 bg-blue-500/10 rounded-lg text-blue-400"
                                             >
-                                                <MoreVertical className="w-4 h-4" />
+                                                < MoreVertical className="w-3.5 h-3.5" />
                                             </button>
                                         </div>
                                     </div>
@@ -783,14 +785,14 @@ export default function VisitsModule({ selectedStudyId, preloadedParticipants, p
                                                         setSelectedVisitId(v.id);
                                                         setMobileView('DETAILS');
                                                     }} 
-                                                    className="flex flex-col items-center gap-2 w-24 group flex-none min-w-[80px] text-center"
+                                                    className="flex flex-col items-center gap-3 w-32 group flex-none min-w-[100px] text-center"
                                                 >
-                                                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center border transition-all duration-300 ${v.id === selectedVisitId ? 'bg-blue-600 border-blue-400 scale-110 shadow-xl shadow-blue-500/20' : 'bg-[#0B101B] border-white/5 group-hover:border-white/20'}`}>
-                                                        {v.status === 'Completed' ? <Check className="w-4 h-4 text-emerald-400" /> : <div className={`w-1.5 h-1.5 rounded-full ${v.status === 'Scheduled' ? 'bg-blue-400' : 'bg-slate-700'}`} />}
+                                                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center border-2 transition-all duration-300 ${v.id === selectedVisitId ? 'bg-blue-600 border-blue-400 scale-110 shadow-2xl shadow-blue-500/40' : 'bg-[#0B101B] border-white/10 group-hover:border-white/30 hover:scale-105'}`}>
+                                                        {v.status === 'Completed' ? <Check className="w-6 h-6 text-emerald-400" /> : <div className={`w-2 h-2 rounded-full ${v.status === 'Scheduled' ? 'bg-blue-400 shadow-[0_0_10px_rgba(96,165,250,0.5)]' : 'bg-slate-700'}`} />}
                                                     </div>
                                                     <div className="text-center group-hover:scale-105 transition-transform">
-                                                        <p className="text-[10px] text-white font-black uppercase italic tracking-tighter truncate w-full px-1">{v.name}</p>
-                                                        <p className="text-[8px] text-slate-500 font-bold tracking-widest uppercase mt-0.5">
+                                                        <p className="text-[11px] text-white font-black uppercase italic tracking-tighter truncate w-full px-1">{v.name}</p>
+                                                        <p className="text-[9px] text-slate-500 font-black tracking-widest uppercase mt-1">
                                                             {v.scheduledDate ? new Date(v.scheduledDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : 'PENDING'}
                                                         </p>
                                                     </div>
@@ -839,9 +841,9 @@ export default function VisitsModule({ selectedStudyId, preloadedParticipants, p
                                                 {selectedVisit.status}
                                             </span>
                                         </div>
-                                        <div className="flex gap-2">
+                                        <div className="flex gap-3">
                                             <button onClick={handleSaveVitals}
-                                                className="flex-1 py-2 bg-blue-600 text-white rounded-lg text-[9px] font-black uppercase tracking-[0.2em] italic hover:scale-[1.02] active:scale-95 transition-all shadow-lg shadow-blue-600/20"
+                                                className="flex-1 py-4 bg-blue-600 text-white rounded-xl text-[10px] font-black uppercase tracking-[0.2em] italic hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-blue-600/40"
                                              >
                                                 Sync Metrics
                                             </button>
@@ -1011,7 +1013,7 @@ export default function VisitsModule({ selectedStudyId, preloadedParticipants, p
                 {isScheduleOpen && (
                     <>
                         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsScheduleOpen(false)} className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100]" />
-                        <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-[500px] bg-[#1e293b] border border-white/10 rounded-2xl z-[101] p-6 md:p-8 shadow-2xl overflow-hidden">
+                        <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-[650px] bg-[#1e293b] border border-white/10 rounded-2xl z-[101] p-6 md:p-8 shadow-2xl overflow-hidden">
                             <div className="flex items-center justify-between mb-5">
                                 <div>
                                     <h3 className="text-lg font-black text-white uppercase italic tracking-tighter">Schedule <span className="text-blue-400">Clinical Visit</span></h3>
@@ -1172,7 +1174,7 @@ export default function VisitsModule({ selectedStudyId, preloadedParticipants, p
                 {isProblemModalOpen && (
                     <>
                         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsProblemModalOpen(false)} className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100]" />
-                        <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-[500px] bg-[#1e293b] border border-white/10 rounded-2xl z-[101] p-6 md:p-8 shadow-2xl overflow-hidden">
+                        <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-[650px] bg-[#1e293b] border border-white/10 rounded-2xl z-[101] p-6 md:p-8 shadow-2xl overflow-hidden">
                             <div className="flex items-center justify-between mb-6">
                                 <div className="flex items-center gap-3">
                                     <ShieldAlert className="w-6 h-6 text-red-500" />

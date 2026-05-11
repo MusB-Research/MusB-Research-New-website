@@ -25,6 +25,7 @@ const WhyChooseUs = lazy(() => import('./views/WhyChooseUs'));
 const Capabilities = lazy(() => import('./views/Capabilities'));
 const MellowConsortium = lazy(() => import('./views/MellowConsortium'));
 const SignIn = lazy(() => import('./views/auth/SignIn'));
+const GoogleCallback = lazy(() => import('./views/auth/GoogleCallback'));
 const SuperAdminSignIn = lazy(() => import('./views/auth/SuperAdminSignIn'));
 const StudyDetail = lazy(() => import('./views/StudyDetail'));
 const StudyScreener = lazy(() => import('./views/StudyScreener'));
@@ -82,7 +83,7 @@ function AppContent() {
         const pingProduction = async () => {
             try {
                 // Ping the specific production health endpoint the user provided
-                const apiUrl = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https://musb-research-new-website.onrender.com' : 'http://localhost:8000');
+                const apiUrl = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https://musb-research-new-website-hk4k.onrender.com' : 'http://localhost:8003');
                 const res = await fetch(`${apiUrl}/api/health/`);
                 if (res.ok) console.log('✅ GLOBAL_NODE_SYNC: PRODUCTION_WAKE_SUCCESS');
             } catch (e) {
@@ -137,6 +138,7 @@ function AppContent() {
                         <Route path="/mellow-consortium" element={<MellowConsortium />} />
                         <Route path="/support" element={<Support />} />
                         <Route path="/signin" element={<SignIn />} />
+                        <Route path="/auth/google-callback" element={<GoogleCallback />} />
                         <Route path="/mainframe/restricted-auth" element={<SuperAdminSignIn />} />
                         <Route path="/studies/:id" element={<StudyDetail />} />
                         <Route path="/studies/:id/screener" element={<StudyScreener />} />
@@ -161,6 +163,7 @@ function AppContent() {
                         <Route path="/reset-password" element={<ResetPassword />} />
                         <Route path="/auth/profile-setup" element={<ProfileSetup />} />
                         <Route path="/auth/accept-invitation" element={<AcceptInvitation />} />
+                        <Route path="/setup-credentials" element={<AcceptInvitation />} />
                     </Routes>
                 </Suspense>
             </Layout>

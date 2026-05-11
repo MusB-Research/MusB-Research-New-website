@@ -604,8 +604,8 @@ export default function CCC_SubjectReviewModule({
                                     isApproving={isApproving}
                                 />
                             )}
-                            {activeTab === 'Screening Review' && <EligibilityAudit participant={processedParticipant} screeningNotes={screeningNotes} setScreeningNotes={setScreeningNotes} logAction={logAction} />}
-                            {activeTab === 'Outcomes' && <ClinicalOutcomes participant={processedParticipant} />}
+                            {activeTab === 'Screening Review' && <EligibilityAudit participant={processedParticipant} screeningNotes={screeningNotes} setScreeningNotes={setScreeningNotes} logAction={logAction} onUpdateParticipant={setParticipant} />}
+                            {activeTab === 'Outcomes' && <ClinicalOutcomes participant={processedParticipant} onUpdateParticipant={setParticipant} />}
                             {activeTab === 'Safety' && <SafetySignals participant={processedParticipant} />}
                             {activeTab === 'Core Diagnostics' && <LabParameters participant={processedParticipant} />}
                             {activeTab === 'Artifacts' && <DocumentRegistry participant={processedParticipant} />}

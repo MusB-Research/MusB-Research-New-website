@@ -183,7 +183,7 @@ class UserSerializer(SanitizedModelSerializer):
             'id', 'email', 'full_name', 'decrypted_name', 'decrypted_phone', 'decrypted_address',
             'decrypted_npi', 'decrypted_qualifications',
             'role', 'phone_number', 'mobile_number',
-            'profile_picture', 'password', 'last_login_formatted', 'date_joined_formatted',
+            'profile_picture', 'profile_image', 'password', 'last_login_formatted', 'date_joined_formatted',
             'full_address', 'city', 'state', 'zip_code', 'country', 'place_of_origin',
             'date_of_birth', 'age', 'gender', 'has_active_enrollment',
             'medical_licence', 'medical_licence_expiry', 'insurance_certificate', 'insurance_expiry',
@@ -192,7 +192,7 @@ class UserSerializer(SanitizedModelSerializer):
             'must_change_password', 'profile_completed', 'is_screener_completed', 'is_active', 'timezone',
             'status', 'affiliation', 'assigned_studies', 'created_by',
             'first_name', 'last_name', 'google_auth',
-            'is_mellow_member', 'lat', 'lng', 'organization'
+            'is_mellow_member', 'lat', 'lng', 'organization', 'bio'
         ]
 
     def validate_status(self, value):
@@ -485,6 +485,27 @@ class StudySerializer(SanitizedModelSerializer):
             if 'extractedConsentText' in data:
                 data['consent_content'] = data.pop('extractedConsentText')
 
+            # --- Map Date Fields (Frontend camelCase -> Backend snake_case) ---
+            if 'startDate' in data and not data.get('start_date'):
+                data['start_date'] = data.pop('startDate')
+            if 'endDate' in data and not data.get('end_date'):
+                data['end_date'] = data.pop('endDate')
+
+            # --- Map Sponsor (Frontend 'sponsor' -> Backend 'sponsor_id' or 'sponsor_org_id') ---
+            if 'sponsor' in data:
+                val = data.get('sponsor')
+                if val:
+                    import bson
+                    if bson.ObjectId.is_valid(val):
+                        # Check if it's an organization or a user
+                        if SponsorOrganization.objects.filter(id=val).exists():
+                            data['sponsor_org_id'] = val
+                        elif User.objects.filter(id=val).exists():
+                            data['sponsor_id'] = val
+                    else:
+                        # Fallback to name
+                        data['sponsor_name'] = val
+
             # Parse JSON strings for JSONFields
             json_fields = [
                 'screener_config', 'reward_config', 'timeline', 'tags', 'privacy_standards', 
@@ -518,11 +539,26 @@ class StudySerializer(SanitizedModelSerializer):
                         val = [val]
                     else:
                         val = []
-                # Ensure it's a clean list of strings (PKs)
+                # Ensure it's a clean list of ObjectIds for MongoDB
                 if isinstance(val, list):
-                    data[id_field] = [str(v) for v in val if v]
+                    import bson
+                    cleaned_ids = []
+                    for v in val:
+                        if v:
+                            v_str = str(v)
+                            if bson.ObjectId.is_valid(v_str):
+                                cleaned_ids.append(bson.ObjectId(v_str))
+                            else:
+                                cleaned_ids.append(v_str)
+                    data[id_field] = cleaned_ids
                 else:
                     data.pop(id_field, None)
+
+            # Robust mapping for sponsor_org_id if arriving as string
+            if 'sponsor_org_id' in data and isinstance(data['sponsor_org_id'], str):
+                import bson
+                if bson.ObjectId.is_valid(data['sponsor_org_id']):
+                    data['sponsor_org_id'] = bson.ObjectId(data['sponsor_org_id'])
 
             # Strip frontend helper fields
             data = {k: v for k, v in data.items() if k not in FRONTEND_ONLY_FIELDS}
@@ -604,13 +640,35 @@ class StudySerializer(SanitizedModelSerializer):
                 if not t_id: continue
                 
                 existing_q_ids.add(str(t_id))
+                defaults = {}
+                if 'mode' in q_data:
+                    defaults['mode'] = q_data['mode']
+                
+                # Safe mapping for repeat_type
+                freq = q_data.get('frequency') or q_data.get('repeat_type')
+                if freq in ['DAILY', 'WEEKLY', 'MONTHLY', 'CUSTOM']:
+                    defaults['repeat_type'] = freq
+                elif freq == 'One time only':
+                    defaults['repeat_type'] = 'CUSTOM'
+                    defaults['repeat_count'] = 1
+
+                if 'frequency_interval' in q_data:
+                    try: defaults['frequency_interval'] = int(q_data['frequency_interval'])
+                    except: pass
+                if 'frequency_unit' in q_data:
+                    defaults['frequency_unit'] = q_data['frequency_unit']
+                if 'repeat_count' in q_data:
+                    try: defaults['repeat_count'] = int(q_data['repeat_count'])
+                    except: pass
+                if 'schedule_name' in q_data:
+                    defaults['schedule_name'] = q_data['schedule_name']
+                if 'allow_late_submission' in q_data:
+                    defaults['allow_late_submission'] = bool(q_data['allow_late_submission'])
+
                 StudyQuestionnaire.objects.update_or_create(
                     study=instance,
                     template_id=t_id,
-                    defaults={
-                        'frequency': q_data.get('frequency', 'One time only'),
-                        'is_active': q_data.get('is_active', True)
-                    }
+                    defaults=defaults
                 )
             # Remove instruments no longer selected
             instance.study_questionnaires.exclude(template_id__in=existing_q_ids).delete()
@@ -625,16 +683,51 @@ class StudySerializer(SanitizedModelSerializer):
 
 class StudyBriefSerializer(SanitizedModelSerializer):
     """High-Performance serializer for study lists/grids."""
+    enrollment_count = serializers.SerializerMethodField()
+    compliance_rate = serializers.SerializerMethodField()
+
+    def get_enrollment_count(self, obj):
+        return obj.participants.count()
+
+    def get_compliance_rate(self, obj):
+        # Calculate compliance across all participants and tasks
+        # This is a broad estimate for the study directory
+        try:
+            instances = QuestionnaireScheduleInstance.objects.filter(participant__study=obj)
+            total = instances.count()
+            if total == 0: return 0
+            completed = instances.filter(status__in=['COMPLETED', 'LATE']).count()
+            return round((completed / total) * 100, 1)
+        except Exception:
+            return 0
+
     class Meta:
         model = Study
         fields = [
             'id', 'title', 'protocol_id', 'sponsor_name', 'study_type', 'status', 'stage',
             'created_at', 'updated_at', 'primary_indication', 'condition', 'phase',
-            'is_archived', 'approval_status', 'consent_content', 'screener_config'
+            'is_archived', 'approval_status', 'consent_content', 'screener_config',
+            'enrollment_count', 'compliance_rate', 'sponsor_id', 'sponsor_org_id'
         ]
+
+    def to_representation(self, instance):
+        ret = super().to_representation(instance)
+        # Include personnel IDs for UI consistency and to prevent data loss in auto-saves
+        try:
+            all_assignments = instance.assignments.all()
+            ret['pi_ids'] = [str(a.user_id) for a in all_assignments if a.role == 'PI']
+            ret['coordinator_ids'] = [str(a.user_id) for a in all_assignments if a.role == 'COORDINATOR']
+            ret['sponsor_ids'] = [str(a.user_id) for a in all_assignments if a.role == 'SPONSOR_ADMIN']
+        except:
+            ret['pi_ids'] = []
+            ret['coordinator_ids'] = []
+            ret['sponsor_ids'] = []
+        return ret
 
 class PublicStudySerializer(SanitizedModelSerializer):
     """Lighter version for discovery page to boost performance"""
+    pi_details = serializers.SerializerMethodField()
+
     class Meta:
         model = Study
         fields = [
@@ -643,9 +736,22 @@ class PublicStudySerializer(SanitizedModelSerializer):
             'tags', 'created_at', 'screener_config',
             'overview', 'benefit', 'participation_message',
             'require_participant_sig', 'require_cc_verification', 
-            'require_pi_signoff', 'require_lar', 'consent_content', 'countries'
+            'require_pi_signoff', 'require_lar', 'consent_content', 'countries',
+            'pi_details'
         ]
         ordering = ['created_at']
+
+    def get_pi_details(self, obj):
+        pi = obj.pi
+        if pi:
+            request = self.context.get('request')
+            return {
+                'name': pi.full_name or f"{pi.first_name} {pi.last_name}",
+                'profile_picture': request.build_absolute_uri(pi.profile_image.url) if request and pi.profile_image else (pi.profile_picture or None),
+                'qualifications': pi.qualifications or "MD, PhD",
+                'bio': pi.bio or "Principal Investigator"
+            }
+        return None
 
 class InterventionArmSerializer(SanitizedModelSerializer):
     class Meta:
@@ -693,6 +799,9 @@ class VisitSerializer(SanitizedModelSerializer):
             'pi_approved', 'locked', 'scheduled_by', 'scheduled_by_details',
             'updated_by', 'updated_by_details', 'pi_details', 'coordinator_details'
         ]
+        extra_kwargs = {
+            'notes': {'write_only': True, 'required': False}
+        }
 
     def to_representation(self, instance):
         ret = super().to_representation(instance)

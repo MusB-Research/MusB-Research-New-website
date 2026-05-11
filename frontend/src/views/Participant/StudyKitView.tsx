@@ -75,7 +75,7 @@ const StudyKitView = ({ onAction, study, kits: initialKits = [], isLoading = fal
     const fetchKits = async () => {
         setInternalLoading(true);
         try {
-            const apiUrl = API || 'http://localhost:8000';
+            const apiUrl = API || 'http://localhost:8003';
             const resp = await authFetch(`${apiUrl}/api/kits/`);
             if (resp.ok) {
                 const data = await resp.json();
@@ -120,7 +120,7 @@ const StudyKitView = ({ onAction, study, kits: initialKits = [], isLoading = fal
         }
 
         try {
-            const apiUrl = API || 'http://localhost:8000';
+            const apiUrl = API || 'http://localhost:8003';
             const resp = await authFetch(`${apiUrl}/api/kits/${kitId}/${actionName}/`, {
                 method: 'POST',
                 body: JSON.stringify(extraData)

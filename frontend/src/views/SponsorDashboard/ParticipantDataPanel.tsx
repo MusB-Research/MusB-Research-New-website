@@ -91,7 +91,7 @@ export default function ParticipantDataPanel({ protocols, addToast, windowWidth,
 
   const fetchDataForStudy = async (studyId: string) => {
     try {
-      const apiUrl = API || 'http://localhost:8000';
+      const apiUrl = API || 'http://localhost:8003';
       // Fetch de-identified participant data for this specific study
       const res = await authFetch(`${apiUrl}/api/participants/?study_id=${studyId}`);
       if (res.ok) {

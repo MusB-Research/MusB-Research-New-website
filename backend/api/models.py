@@ -800,6 +800,7 @@ class QuestionnaireScheduleInstance(BaseMongoModel):
     
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING', db_index=True)
     completed_at = models.DateTimeField(null=True, blank=True)
+    clinical_score = models.IntegerField(null=True, blank=True, help_text="Total calculated score for this instrument")
     lateness_minutes = models.IntegerField(default=0, help_text="Minutes submitted after window_close_at")
     
     response_data = models.JSONField(default=dict, blank=True)
@@ -825,11 +826,23 @@ class QuestionnaireScheduleInstance(BaseMongoModel):
         super().save(*args, **kwargs)
         
         # Trigger PDF generation on completion if it's a PDF-mode instrument
-        if self.status == 'COMPLETED' and not self.signed_pdf:
+        if self.status in ['COMPLETED', 'LATE'] and not self.signed_pdf:
             from .utils.pdf_utils import generate_signed_questionnaire_pdf
             try:
                 generate_signed_questionnaire_pdf(self)
                 super().save(update_fields=['signed_pdf'])
+                
+                # Maintain Audit Trail Parity between status change and file creation
+                ClinicalAuditLog.log(
+                    action='INSTRUMENT_DOCUMENT_GENERATED',
+                    participant=self.participant,
+                    details={
+                        'instrument_instance_id': str(self.id),
+                        'instrument_name': self.study_questionnaire.template.name if self.study_questionnaire else "Unknown",
+                        'completion_status': self.status,
+                        'generation_timestamp': timezone.now().isoformat()
+                    }
+                )
             except Exception as e:
                 print(f"Instrument PDF Generation Error: {e}")
 
@@ -1063,6 +1076,7 @@ class Consent(BaseMongoModel):
     timezone_detected = models.CharField(max_length=100, blank=True)
     
     signed_pdf = models.FileField(upload_to='signed_consents/', null=True, blank=True)
+    content_snapshot = models.TextField(blank=True, help_text="Exact text of the consent terms at time of participant signing.")
     is_valid = models.BooleanField(default=True)
     
     # Metadata for the signed event

@@ -53,7 +53,7 @@ export default function TeamManagementPanel({ addToast }: any) {
     }
     
     try {
-      const apiUrl = API || 'http://localhost:8000';
+      const apiUrl = API || 'http://localhost:8003';
       const res = await authFetch(`${apiUrl}/api/auth/list-team-members/`);
       if (res.ok) {
         const serverData = await res.json();
@@ -104,7 +104,7 @@ export default function TeamManagementPanel({ addToast }: any) {
 
     // Fire backend request in background
     try {
-      const apiUrl = API || 'http://localhost:8000';
+      const apiUrl = API || 'http://localhost:8003';
       const res = await authFetch(`${apiUrl}/api/auth/invite-team-member/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -125,7 +125,7 @@ export default function TeamManagementPanel({ addToast }: any) {
   const handleResend = async (invitationId: string) => {
     setInviting(true);
     try {
-      const apiUrl = API || 'http://localhost:8000';
+      const apiUrl = API || 'http://localhost:8003';
       const res = await authFetch(`${apiUrl}/api/auth/resend-invitation/${invitationId}/`, {
         method: 'POST'
       });

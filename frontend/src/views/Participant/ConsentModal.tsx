@@ -26,7 +26,7 @@ const STEPS = [
 
 // ─── Read Document Sub-Component ───────────────────────────────────────────────
 const ReadDocumentStep = ({
-    fileUrl, hasFileUrl, termsContent, study,
+    fileUrl, hasFileUrl, termsContent, study, template,
     docAcknowledged, setDocAcknowledged,
     docTimerDone, setDocTimerDone,
     onBack, onNext
@@ -93,8 +93,8 @@ const ReadDocumentStep = ({
                         }}
                         className="h-full overflow-y-auto p-6"
                     >
-                        <h3 className="text-base font-bold text-[#1A2B49] uppercase mb-4 text-center">{study?.title}</h3>
-                        <div className="text-sm text-[#1A2B49] leading-relaxed whitespace-pre-wrap font-medium">
+                        <h3 className="text-base font-black text-[#1A2B49] uppercase mb-4 text-center">{template?.title || study?.title}</h3>
+                        <div className="text-sm text-slate-900 leading-relaxed whitespace-pre-wrap font-bold">
                             {termsContent || 'No document content available. Please contact your study coordinator.'}
                         </div>
                     </div>
@@ -112,11 +112,11 @@ const ReadDocumentStep = ({
                         {docAcknowledged && <CheckCircle2 className="w-3.5 h-3.5 text-white" />}
                     </div>
                     <div className="min-w-0">
-                        <p className={`text-[11px] font-bold uppercase tracking-widest leading-relaxed ${docTimerDone ? 'text-[#1A2B49]' : 'text-[#B0BCCF]'}`}>
+                        <p className={`text-[11px] font-black uppercase tracking-widest leading-relaxed ${docTimerDone ? 'text-[#1A2B49]' : 'text-slate-600'}`}>
                             I confirm that I have read and understood the complete informed consent document and voluntarily agree to participate in this clinical research study.
                         </p>
                         {!docTimerDone && (
-                            <p className="text-[10px] text-amber-600 font-bold mt-0.5">Please scroll to the bottom of the document to enable checkbox</p>
+                            <p className="text-[10px] text-amber-600 font-black mt-0.5 uppercase tracking-wider">Please scroll to the bottom of the document to enable checkbox</p>
                         )}
                     </div>
                 </label>
@@ -372,7 +372,7 @@ const ConsentModal = ({ isOpen, onClose, onComplete, study, template, userProfil
                             <FileText className="w-4.5 h-4.5" />
                         </div>
                         <div>
-                            <h3 className="text-base font-bold text-[#1A2B49] uppercase tracking-tight leading-none">Informed Consent</h3>
+                            <h3 className="text-base font-black text-[#1A2B49] uppercase tracking-tight leading-none">{template?.title || 'Informed Consent Form'}</h3>
                             <p className="text-[10px] font-bold text-[#5F6F89] uppercase tracking-widest mt-0.5">Secure eConsent System · {template?.version ? `v${template.version}` : 'Latest'}</p>
                         </div>
                     </div>
@@ -421,9 +421,9 @@ const ConsentModal = ({ isOpen, onClose, onComplete, study, template, userProfil
                                 {/* Terms summary */}
                                 <div className="flex-1 bg-[#F8FBFF] rounded-2xl border border-[#E3ECF5] p-6 flex flex-col items-center justify-center text-center">
                                     <ShieldCheck className="w-12 h-12 text-[#1E88E5] mb-4 opacity-50" />
-                                    <h4 className="text-base font-bold text-[#1A2B49] mb-2 uppercase tracking-wide">Ready to Review</h4>
-                                    <p className="text-sm text-[#5F6F89] leading-relaxed max-w-lg font-medium">
-                                        You are about to review the Informed Consent document for <strong className="text-[#1A2B49]">{study?.title || 'this study'}</strong>. 
+                                    <h4 className="text-base font-black text-[#1A2B49] mb-2 uppercase tracking-wide">Ready to Review</h4>
+                                    <p className="text-sm text-slate-800 leading-relaxed max-w-lg font-bold">
+                                        You are about to review the <strong className="text-blue-600 font-black">{template?.title || 'Informed Consent Form'}</strong> for <strong className="text-[#1A2B49] font-black">{study?.title || 'this study'}</strong>. 
                                         Please proceed to the next step to read the full terms and conditions of your participation. 
                                         A complete review and acknowledgement of the document is required before you can digitally sign and submit your consent.
                                     </p>
@@ -449,6 +449,7 @@ const ConsentModal = ({ isOpen, onClose, onComplete, study, template, userProfil
                                 hasFileUrl={hasFileUrl}
                                 termsContent={termsContent}
                                 study={study}
+                                template={template}
                                 docAcknowledged={docAcknowledged}
                                 setDocAcknowledged={setDocAcknowledged}
                                 docTimerDone={docTimerDone}

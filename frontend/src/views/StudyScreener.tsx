@@ -221,16 +221,17 @@ export default function StudyScreener() {
         if (val.length >= 5) {
             setIsLocating(true);
             try {
-                const res = await fetch(`https://nominatim.openstreetmap.org/search?postalcode=${val}&format=jsonv2&addressdetails=1`);
-                if (res.ok) {
-                    const data = await res.json();
-                    if (data?.[0]) {
-                        const addr = data[0].address;
+                // Use backend proxy to avoid CSP issues
+                const response = await authFetch(`${API}/api/zip-lookup/us/${val}/`);
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.places?.[0]) {
+                        const p = data.places[0];
                         setFormData(prev => ({ 
                             ...prev, 
-                            city: addr.city || addr.town || addr.village || '', 
-                            state: addr.state || '',
-                            country: addr.country || 'United States'
+                            city: p['place name'] || '', 
+                            state: p['state'] || '',
+                            country: 'United States'
                         }));
                     }
                 }

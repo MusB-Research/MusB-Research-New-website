@@ -8,7 +8,7 @@ import {
 import { authFetch, API } from '../../utils/auth';
 import { getMediaUrl } from '../../utils/media';
 
-const API_URL = API || 'http://localhost:8000';
+const API_URL = API || 'http://localhost:8003';
 
 // ── WebP converter ──────────────────────────────────────────────────────────
 async function convertToWebP(file: File): Promise<File> {

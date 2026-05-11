@@ -99,7 +99,7 @@ def send_newsletter_update(subject: str, html_content: str, text_content: Option
         try:
             params = {
                 "from": settings.DEFAULT_FROM_EMAIL,
-                "to": ["noreply@musbresearch.com"], # Required TO field
+                "to": ["info@musbresearch.com"], # Required TO field
                 "bcc": chunk,
                 "subject": subject,
                 "html": html_content,
@@ -133,7 +133,7 @@ def send_welcome_email(to_email: str):
         # Admin Notification
         admin_text = f"NEW NEWSLETTER SUBSCRIBER\n=========================\nEmail: {to_email}\nTimestamp: {now().strftime('%Y-%m-%d %H:%M:%S')} UTC"
         safe_resend_send({
-            "from": "MusB Inquiry <onboarding@resend.dev>",
+            "from": "MusB Inquiry <info@musbresearch.com>",
             "to": ["info@musbresearch.com"],
             "subject": f"New Newsletter Subscriber: {to_email}",
             "text": admin_text
@@ -173,7 +173,7 @@ Resume Link:
         
         subject = f"Alert: New Career Application - {candidate.name}"
         return safe_resend_send({
-            "from": "MusB Careers <onboarding@resend.dev>",
+            "from": "MusB Careers <info@musbresearch.com>",
             "to": ["info@musbresearch.com"],
             "subject": subject,
             "text": text_content
@@ -207,7 +207,7 @@ NDA Agreed: {"Yes" if b_req.nda_agreed else "No"}
 """
         
         params = {
-            "from": "MusB Downloads <onboarding@resend.dev>",
+            "from": "MusB Downloads <info@musbresearch.com>",
             "to": ["info@musbresearch.com"],
             "subject": subject,
             "text": text_content,
@@ -355,7 +355,7 @@ Sponsor User: {inquiry_data.get('sponsor_email', 'Unknown')}
     try:
         # Send as Plain Text Only as requested for the Admin
         return safe_resend_send({
-            "from": "MusB Study Inquiry <onboarding@resend.dev>",
+            "from": "MusB Study Inquiry <info@musbresearch.com>",
             "to": [target_email],
             "subject": subject,
             "text": text_content
@@ -447,7 +447,7 @@ Submitted on {inquiry.created_at.strftime('%Y-%m-%d %H:%M:%S')} UTC
     try:
         # 1. Admin ONLY Notification (Strict Plain Text)
         return safe_resend_send({
-            "from": "MusB Facility Inquiry <onboarding@resend.dev>",
+            "from": "MusB Facility Inquiry <info@musbresearch.com>",
             "to": [admin_recipient],
             "subject": subject,
             "text": text_content
@@ -521,7 +521,7 @@ View Dashboard: https://musbresearch.com/admin
 """
 
     params = {
-        "from": "MusB Alerts <onboarding@resend.dev>",
+        "from": "MusB Alerts <info@musbresearch.com>",
         "to": recipients,
         "subject": subject,
         "text": text_content
@@ -608,7 +608,7 @@ Submitted on {inquiry.created_at.strftime('%Y-%m-%d %H:%M:%S')} UTC
     try:
         # 1. Send Admin Notification (Plain Text for reliability)
         safe_resend_send({
-            "from": "MusB Partnership <onboarding@resend.dev>",
+            "from": "MusB Partnership <info@musbresearch.com>",
             "to": [admin_recipient],
             "subject": subject,
             "text": text_content
@@ -616,7 +616,7 @@ Submitted on {inquiry.created_at.strftime('%Y-%m-%d %H:%M:%S')} UTC
 
         # 2. Send Inquirer Confirmation (Branded HTML)
         safe_resend_send({
-            "from": "MusB Research <onboarding@resend.dev>",
+            "from": "MusB Research <info@musbresearch.com>",
             "to": [inquiry.email],
             "subject": confirmation_subject,
             "html": confirmation_html

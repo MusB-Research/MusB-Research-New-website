@@ -133,9 +133,17 @@ export default function Layout({ children }: LayoutProps) {
                             target="_blank"
                             rel="noopener noreferrer"
                             className="flex-shrink-0 flex items-center gap-3 group"
+                            aria-label="MusB Research Home"
                         >
                             <div className="h-14 md:h-[4.2rem] bg-black backdrop-blur-md rounded-2xl shadow-xl border border-black group-hover:scale-105 transition-all duration-300 flex items-center justify-center overflow-hidden">
-                                <img src="/logo.jpg" alt="MusB™ Research" className="h-full w-auto object-contain brightness-100" />
+                                <img 
+                                    src="/logo.jpg" 
+                                    alt="MusB™ Research Logo" 
+                                    className="h-full w-auto object-contain brightness-100" 
+                                    width="474" 
+                                    height="164"
+                                    fetchPriority="high"
+                                />
                             </div>
                         </a>
 
@@ -244,8 +252,9 @@ export default function Layout({ children }: LayoutProps) {
                                         </Link>
                                         <button
                                             onClick={() => { clearToken(); window.location.href = "/"; }}
-className="w-[38px] h-[38px] rounded-full border-[1.5px] border-slate-200 flex items-center justify-center text-slate-600 hover:text-slate-900 hover:border-slate-300 hover:bg-slate-50 transition-all shrink-0 ml-1"
+                                            className="w-[38px] h-[38px] rounded-full border-[1.5px] border-slate-200 flex items-center justify-center text-slate-600 hover:text-slate-900 hover:border-slate-300 hover:bg-slate-50 transition-all shrink-0 ml-1"
                                             title="Logout"
+                                            aria-label="Logout"
                                         >
                                             <LogOut className="w-[18px] h-[18px] translate-x-[1px]" strokeWidth={2} />
                                         </button>
@@ -258,6 +267,7 @@ className="w-[38px] h-[38px] rounded-full border-[1.5px] border-slate-200 flex i
                         <button
                             className="xl:hidden p-2 md:p-3 text-slate-900 hover:text-cyan-600 bg-slate-100 rounded-lg border border-slate-200"
                             onClick={() => setIsMenuOpen(!isMenuOpen)}
+                            aria-label={isMenuOpen ? "Close menu" : "Open menu"}
                         >
                             {isMenuOpen ? <X className="w-5 h-5 md:w-6 md:h-6" /> : <Menu className="w-5 h-5 md:w-6 md:h-6" />}
                         </button>
@@ -385,9 +395,16 @@ className="w-[38px] h-[38px] rounded-full border-[1.5px] border-slate-200 flex i
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-x-6 gap-y-16 mb-20">
                         {/* Branding & Contact */}
                         <div className="lg:col-span-3 space-y-10">
-                            <Link to="/" className="inline-block group">
+                             <Link to="/" className="inline-block group" aria-label="MusB Research Home">
                                 <div className="h-24 bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 group-hover:border-cyan-500/30 transition-all duration-500 flex items-center justify-center shadow-2xl overflow-hidden">
-                                    <img src="/logo.jpg" alt="MusB™ Research" className="h-full w-auto object-contain brightness-110 contrast-125" />
+                                    <img 
+                                        src="/logo.jpg" 
+                                        alt="MusB™ Research Logo" 
+                                        className="h-full w-auto object-contain brightness-110 contrast-125" 
+                                        width="276"
+                                        height="96"
+                                        loading="lazy"
+                                    />
                                 </div>
                             </Link>
                             <div className="space-y-6">
@@ -417,7 +434,7 @@ className="w-[38px] h-[38px] rounded-full border-[1.5px] border-slate-200 flex i
                         {/* Solutions & Socials */}
                         <div className="lg:col-span-3 flex flex-col gap-16">
                             <div className="space-y-8">
-                                <h4 className="text-white font-black uppercase tracking-[0.25em] text-[14px]">Solutions</h4>
+                                <h3 className="text-white font-black uppercase tracking-[0.25em] text-[14px]">Solutions</h3>
                                 <ul className="space-y-4">
                                     {[
                                         { label: 'For Businesses', path: '/support' },
@@ -435,20 +452,20 @@ className="w-[38px] h-[38px] rounded-full border-[1.5px] border-slate-200 flex i
                             </div>
 
                             <div className="space-y-8">
-                                <h4 className="text-white font-black uppercase tracking-[0.25em] text-[12px]">Join The Community</h4>
+                                <h3 className="text-white font-black uppercase tracking-[0.25em] text-[12px]">Join The Community</h3>
                                 <div className="flex flex-wrap gap-3">
                                     {[
-                                        { icon: Youtube, url: 'https://youtube.com/@MusB-v5n' },
-                                        { icon: Facebook, url: 'https://www.facebook.com/profile.php?id=61579407750169' },
-                                        { icon: Instagram, url: 'https://www.instagram.com/musbresearch/' },
-                                        { icon: Linkedin, url: 'https://www.linkedin.com/company/musb-res/' },
+                                        { icon: Youtube, url: 'https://youtube.com/@MusB-v5n', label: 'YouTube' },
+                                        { icon: Facebook, url: 'https://www.facebook.com/profile.php?id=61579407750169', label: 'Facebook' },
+                                        { icon: Instagram, url: 'https://www.instagram.com/musbresearch/', label: 'Instagram' },
+                                        { icon: Linkedin, url: 'https://www.linkedin.com/company/musb-res/', label: 'LinkedIn' },
                                         {
                                             icon: (props: any) => (
                                                 <svg viewBox="0 0 24 24" fill="currentColor" {...props}>
                                                     <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
                                                 </svg>
                                             ),
-                                            url: 'https://wa.me/17275050452'
+                                            label: 'WhatsApp'
                                         }
                                     ].map((social, sid) => (
                                         <a
@@ -457,6 +474,7 @@ className="w-[38px] h-[38px] rounded-full border-[1.5px] border-slate-200 flex i
                                             target="_blank"
                                             rel="noopener noreferrer"
                                             className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-slate-500 hover:bg-cyan-500 hover:text-slate-900 transition-all duration-300 group"
+                                            aria-label={social.label}
                                         >
                                             {(() => {
                                                 const Icon = social.icon;
@@ -470,7 +488,7 @@ className="w-[38px] h-[38px] rounded-full border-[1.5px] border-slate-200 flex i
 
                         {/* MusB Group */}
                         <div className="lg:col-span-2 space-y-8">
-                            <h4 className="text-white font-black uppercase tracking-[0.25em] text-[14px]">MusB Group</h4>
+                            <h3 className="text-white font-black uppercase tracking-[0.25em] text-[14px]">MusB Group</h3>
                             <ul className="space-y-4">
                                 {[
                                     { label: 'About Us', path: '/about' },
@@ -492,7 +510,7 @@ className="w-[38px] h-[38px] rounded-full border-[1.5px] border-slate-200 flex i
                             <div className="p-8 rounded-[2.5rem] bg-[#0c1221]/80 backdrop-blur-xl border border-white/10 relative overflow-hidden group/card shadow-2xl">
                                 <div className="absolute -top-20 -right-20 w-40 h-40 bg-cyan-500/10 blur-[80px] rounded-full group-hover/card:bg-cyan-500/20 transition-all duration-700"></div>
 
-                                <h4 className="text-white font-black uppercase tracking-[0.2em] text-[12px] mb-8">Get Our Newsletters</h4>
+                                <h3 className="text-white font-black uppercase tracking-[0.2em] text-[12px] mb-8">Get Our Newsletters</h3>
 
                                 <div className="space-y-8">
                                     <div className="space-y-4">
@@ -527,6 +545,7 @@ className="w-[38px] h-[38px] rounded-full border-[1.5px] border-slate-200 flex i
                                                 onClick={handleSubscribe}
                                                 disabled={newsletterStatus === 'loading' || newsletterStatus === 'success'}
                                                 className="group/btn h-12 w-12 mr-1 rounded-xl bg-cyan-500 flex items-center justify-center text-slate-950 hover:bg-white transition-all duration-300 disabled:opacity-50 shadow-lg shadow-cyan-500/20"
+                                                aria-label="Subscribe to newsletter"
                                             >
                                                 {newsletterStatus === 'loading' ? (
                                                     <Loader2 className="w-5 h-5 animate-spin" />

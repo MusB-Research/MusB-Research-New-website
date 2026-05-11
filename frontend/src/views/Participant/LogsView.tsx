@@ -438,7 +438,7 @@ const LogDetailModal = ({ log, onClose }: { log: any; onClose: () => void }) => 
 // --- MAIN COMPONENT ---
 
 const LogsView = ({ study, onAction, preselectedDate, preselectedLog, defaultViewMode = 'FORM', initialLogs = [] }: { study?: any; onAction?: (title: string, task?: any) => void; preselectedDate?: string | null; preselectedLog?: any; defaultViewMode?: 'FORM' | 'HISTORY', initialLogs?: any[] }) => {
-    const apiUrl = API || 'http://localhost:8000';
+    const apiUrl = API || 'http://localhost:8003';
 
     // UI Toggle
     const [viewMode, setViewMode] = useState<'FORM' | 'HISTORY'>(defaultViewMode || (initialLogs.length > 0 ? 'HISTORY' : 'FORM'));

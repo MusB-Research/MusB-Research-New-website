@@ -26,7 +26,7 @@ export const TeamCard: React.FC<TeamCardProps> = ({
 
     return (
         <tr className="hover:bg-white/[0.03] transition-all group relative">
-            <td className="px-6 py-6">
+            <td className="px-6 py-3.5">
                 <div className="flex items-center gap-4">
                     <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/5 flex items-center justify-center transition-all group-hover:border-blue-500/30 group-hover:bg-blue-500/10 shrink-0">
                         <User size={20} className="text-slate-500 group-hover:text-blue-400" />
@@ -37,7 +37,7 @@ export const TeamCard: React.FC<TeamCardProps> = ({
                     </div>
                 </div>
             </td>
-            <td className="px-6 py-6">
+            <td className="px-6 py-3.5">
                 <div className="flex items-center gap-2">
                     <div className="text-sm font-black text-slate-300 uppercase tracking-widest leading-none">{member.role}</div>
                     {isMusB ? (
@@ -52,14 +52,14 @@ export const TeamCard: React.FC<TeamCardProps> = ({
                 </div>
                 {member.expertise && <div className="text-[11px] text-slate-500 mt-2 font-bold uppercase tracking-wider opacity-60 leading-none">{member.expertise}</div>}
             </td>
-            <td className="px-6 py-6">
+            <td className="px-6 py-3.5">
                 <div className="flex flex-wrap gap-2">
                     {member.assignedStudies.length > 0 ? member.assignedStudies.map(s => (
                         <span key={s} className="px-2.5 py-1 rounded-md bg-white/5 border border-white/5 text-[10px] font-black text-slate-400 uppercase tracking-widest">{s}</span>
                     )) : <span className="text-[11px] text-slate-600 font-black uppercase tracking-widest opacity-60">no assignments</span>}
                 </div>
             </td>
-            <td className="px-6 py-6">
+            <td className="px-6 py-3.5">
                 <span className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-[0.2em] border ${
                     member.status === 'Active' 
                     ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' 
@@ -70,7 +70,7 @@ export const TeamCard: React.FC<TeamCardProps> = ({
                     {member.status}
                 </span>
             </td>
-            <td className="px-6 py-8 text-right">
+            <td className="px-6 py-4 text-right">
                 <div className="flex justify-end gap-3 position-relative">
                     {!isMusB ? (
                         <div className="relative">

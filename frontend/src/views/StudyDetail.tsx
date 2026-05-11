@@ -12,6 +12,7 @@ import {
     Lock,
     Search,
     Stethoscope,
+    Users,
     MapPin
 } from 'lucide-react';
 import { fetchStudies, Study } from '../data/studies';
@@ -293,6 +294,50 @@ export default function StudyDetail() {
                             )}
                         </div>
 
+
+                        {/* Investigator Section */}
+                        {study.pi_details && (
+                            <motion.section
+                                initial={{ opacity: 0, y: 30 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.4 }}
+                                className="bg-[#0f172a]/40 backdrop-blur-[40px] rounded-[3.5rem] p-10 md:p-14 border border-white/10 shadow-2xl relative overflow-hidden group"
+                            >
+                                <div className="absolute top-0 right-0 w-64 h-64 bg-[#00ADEF]/5 blur-[80px] rounded-full -mr-20 -mt-20"></div>
+                                <div className="relative z-10 space-y-8">
+                                    <h2 className="text-2xl font-black text-white uppercase italic tracking-tight flex items-center gap-4">
+                                        <div className="w-10 h-10 rounded-full bg-[#00ADEF]/10 flex items-center justify-center border border-[#00ADEF]/20">
+                                            <Stethoscope className="w-5 h-5 text-[#00ADEF]" />
+                                        </div>
+                                        Principal Investigator
+                                    </h2>
+                                    <div className="flex flex-col md:flex-row items-center gap-10 p-8 rounded-[2.5rem] bg-white/[0.02] border border-white/5 group/pi hover:bg-white/[0.04] transition-all">
+                                        <div className="w-40 h-40 rounded-[2.5rem] bg-slate-950 border border-white/10 overflow-hidden shrink-0 shadow-2xl relative group-hover/pi:scale-105 transition-transform duration-500">
+                                            {study.pi_details.profile_picture ? (
+                                                <img 
+                                                    src={study.pi_details.profile_picture} 
+                                                    alt={study.pi_details.name} 
+                                                    className="w-full h-full object-cover" 
+                                                />
+                                            ) : (
+                                                <div className="w-full h-full flex items-center justify-center text-slate-800">
+                                                    <Users className="w-16 h-16" />
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div className="space-y-4 text-center md:text-left flex-1">
+                                            <div className="space-y-1">
+                                                <h4 className="text-3xl font-black text-white uppercase italic tracking-tight">{study.pi_details.name}</h4>
+                                                <div className="text-[#00ADEF] text-[12px] font-black uppercase tracking-[0.2em]">{study.pi_details.qualifications}</div>
+                                            </div>
+                                            <p className="text-slate-400 text-lg font-medium leading-relaxed max-w-2xl">
+                                                {study.pi_details.bio}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </motion.section>
+                        )}
 
                         {/* Community Impact / CTA Section */}
                         {(customContent || study.participation_message) && (

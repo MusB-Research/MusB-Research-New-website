@@ -84,7 +84,8 @@ export default function Trials() {
                     compensation: s.compensation || "Varies by study",
                     location: s.location || "",
                     countries: Array.isArray(s.countries) ? s.countries : (typeof s.countries === 'string' && s.countries ? s.countries.split(',').map((c: string) => c.trim()) : (s.location ? [s.location] : [])),
-                    tags: [s.trial_model, mappedType].filter(Boolean)
+                    tags: [s.trial_model, mappedType].filter(Boolean),
+                    pi_details: s.pi_details
                 };
             });
 
@@ -243,12 +244,12 @@ export default function Trials() {
                             <div className="absolute inset-0 bg-gradient-to-tr from-cyan-500/20 to-cyan-500/20 rounded-[4rem] blur-3xl"></div>
                             <div className="relative grid grid-cols-2 gap-4">
                                 <div className="space-y-4 pt-12">
-                                    <div className="rounded-[3rem] w-full h-[300px] shadow-2xl border border-white/10 bg-gradient-to-br from-cyan-500/20 to-cyan-500/20"></div>
-                                    <div className="rounded-[3rem] w-full h-[200px] shadow-2xl border border-white/10 bg-gradient-to-tr from-cyan-500/20 to-cyan-500/20"></div>
+                                    <img src="/patient_1.webp" alt="Study Participant" className="rounded-[3rem] w-full h-[300px] object-cover shadow-2xl border border-white/10 hover:scale-105 transition-transform duration-700" />
+                                    <img src="/patient_2.webp" alt="Study Participant" className="rounded-[3rem] w-full h-[200px] object-cover shadow-2xl border border-white/10 hover:scale-105 transition-transform duration-700" />
                                 </div>
                                 <div className="space-y-4">
-                                    <div className="rounded-[3rem] w-full h-[200px] shadow-2xl border border-white/10 bg-gradient-to-br from-cyan-500/20 to-cyan-500/20"></div>
-                                    <div className="rounded-[3rem] w-full h-[300px] shadow-2xl border border-white/10 bg-gradient-to-tr from-cyan-500/20 to-cyan-500/20"></div>
+                                    <img src="/patient_3.webp" alt="Study Participant" className="rounded-[3rem] w-full h-[200px] object-cover shadow-2xl border border-white/10 hover:scale-105 transition-transform duration-700" />
+                                    <img src="/patient_4.webp" alt="Study Participant" className="rounded-[3rem] w-full h-[300px] object-cover shadow-2xl border border-white/10 hover:scale-105 transition-transform duration-700" />
                                 </div>
                             </div>
                         </div>

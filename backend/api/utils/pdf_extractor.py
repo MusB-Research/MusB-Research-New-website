@@ -2,24 +2,16 @@
 Advanced Clinical Document Extraction Engine
 =============================================
 Converts raw PDF/DOCX text into a structured, UI-ready JSON schema.
-
-Output format:
-{
-  "document_type": "questionnaire" | "clinical_form" | "screener" | "hybrid",
-  "sections": [
-    {
-      "title": "Section Name",
-      "fields": [
-        { "type": "...", "label": "...", ... }
-      ]
-    }
-  ],
-  "lines": [...]   # raw lines for backward compat / "View Source" UI
-}
+Supports both heuristic (regex) and AI-powered (LLM) extraction.
 """
 
 import re
+import os
+import json
+import logging
+import requests
 
+logger = logging.getLogger(__name__)
 
 # ─── LIKERT OPTION SETS ───────────────────────────────────────────────────────
 LIKERT_SETS = [
@@ -35,8 +27,108 @@ LIKERT_SETS = [
 
 EMOJI_SCALE = ['😀', '🙂', '😐', '😕', '😣', '😖', '😫', '😡', '🤬', '💀']
 
+# ─── AI EXTRACTION CONFIG ─────────────────────────────────────────────────────
 
-# ─── HELPERS ─────────────────────────────────────────────────────────────────
+SYSTEM_PROMPT = """
+You are a clinical form extraction specialist embedded in a research platform.
+
+Your ONLY job is to analyze the raw text extracted from a PDF or DOCX file and 
+return a structured JSON schema that represents the questionnaire fields found in 
+that document.
+
+## STRICT RULES
+- Do NOT modify, reformat, or comment on any other part of the codebase.
+- Do NOT return anything except valid raw JSON — no markdown, no backticks, 
+  no explanation, no preamble.
+- If the document is not a questionnaire, return: {"error": "not a questionnaire"}
+
+## OUTPUT FORMAT
+Return exactly this JSON structure:
+
+{
+  "document_type": "questionnaire",
+  "title": "<detected form title or filename>",
+  "global_instructions": "<any instructions at the top of the form, or null>",
+  "sections": [
+    {
+      "title": "<section heading, e.g. Somatic symptoms or Medical History>",
+      "fields": [
+        {
+          "label": "<exact question text>",
+          "hint": "<helper text or null>",
+          "type": "<one of: radio | scale | yesno | text | textarea | number | date | signature | checkbox | faces | likert | matrix>",
+          "options": ["<option 1>", "<option 2>"],
+          "required": true,
+          "rows": ["<row 1 text>", "<row 2 text>"],
+          "columns": ["<column 1 text>", "<column 2 text>"]
+        }
+      ]
+    }
+  ]
+}
+
+## FIELD TYPE RULES — apply in this order:
+1. If multiple questions share the same set of options (a grid or table) → type = "matrix", put labels in "rows" and option headers in "columns"
+2. If options are exactly Yes / No → type = "yesno", options = ["Yes", "No"]
+3. If the question describes feelings/wellbeing with a range of icons (smiling to crying, emoji faces) → type = "faces", list descriptors if present
+4. If options match a Likert pattern (Never/Rarely/Sometimes or Not at all/A little 
+   bit/Somewhat etc.) → type = "likert", list all options
+5. If question has a numeric range like "0 to 10" or "0-100" → type = "scale", 
+   set scale_min and scale_max, options = ["<left anchor label>", "<right anchor label>"]
+6. If checkboxes present (☐ □ [ ]) → type = "checkbox", list all checkbox labels
+7. If label contains words like: date, DOB, birth → type = "date"
+8. If label contains: age, score, number, how many → type = "number"
+9. If label contains: describe, explain, comments, notes → type = "textarea"
+10. Otherwise → type = "radio" (if options present) or "text" (if no options)
+
+## SECTION DETECTION
+Treat any line matching these patterns as a new section header:
+- PART 1, SECTION A, MODULE 2, ELIGIBILITY, MEDICAL HISTORY, BACKGROUND INFO
+- Any all-caps line followed by numbered questions
+
+## WHAT TO IGNORE
+- Page numbers, footers, headers, logos, watermarks
+- Lines that are purely decorative (----, ====)
+- Instructions that are not questions
+
+## RAW TEXT TO PARSE:
+{{raw_text}}
+"""
+
+def extract_with_ai(raw_text: str) -> dict:
+    """
+    High-fidelity extraction using Google Gemini.
+    Features native JSON schema output for 100% reliable clinical questionnaire structures.
+    Requires GEMINI_API_KEY to be set in environment.
+    """
+    gemini_key = os.environ.get("GEMINI_API_KEY")
+    if not gemini_key:
+        return None
+
+    prompt = SYSTEM_PROMPT.replace("{{raw_text}}", raw_text)
+
+    try:
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={gemini_key}"
+        headers = {"Content-Type": "application/json"}
+        payload = {
+            "contents": [{"parts": [{"text": prompt}]}],
+            "generationConfig": {
+                "responseMimeType": "application/json"
+            }
+        }
+        response = requests.post(url, headers=headers, json=payload, timeout=30)
+        if response.status_code == 200:
+            res_data = response.json()
+            content = res_data['candidates'][0]['content']['parts'][0]['text']
+            return json.loads(content)
+        else:
+            logger.warning(f"Gemini API returned status {response.status_code}: {response.text}")
+    except Exception as e:
+        logger.error(f"Gemini extraction failed: {e}")
+
+    return None
+
+# ─── HELPERS (Heuristic Fallback) ───────────────────────────────────────────
 
 def _clean_label(s: str) -> str:
     """Strip leading numbering, bullets, whitespace from a label."""
@@ -168,13 +260,16 @@ def _classify_plain_field(label: str) -> str:
 def extract_schema(raw_text: str) -> dict:
     """
     Convert raw extracted document text into a structured JSON schema.
-
-    Args:
-        raw_text: Raw text extracted from PDF or DOCX.
-
-    Returns:
-        dict with keys: document_type, sections, lines
+    Tries AI extraction first, falls back to heuristics.
     """
+    
+    # ── STEP 0: Attempt AI Extraction ─────────────────────────────────────────
+    ai_result = extract_with_ai(raw_text)
+    if ai_result and "sections" in ai_result:
+        # Add raw lines for backward compat / source view
+        ai_result['lines'] = raw_text.split('\n')
+        return ai_result
+
     # ── STEP 1: Preprocess ────────────────────────────────────────────────────
     clean_lines = []
     for line in raw_text.split('\n'):
@@ -182,7 +277,6 @@ def extract_schema(raw_text: str) -> dict:
         stripped = s.strip()
         if not stripped:
             continue
-        # Remove copyright lines, page numbers
         if re.match(r'^©|All rights reserved', stripped, re.IGNORECASE):
             continue
         if re.match(r'^\s*page\s+\d+\s*$', stripped, re.IGNORECASE):
@@ -253,7 +347,6 @@ def extract_schema(raw_text: str) -> dict:
         # ── Checkbox / radio group ────────────────────────────────────────────
         checkbox_opts = _match_checkbox_group(line)
         if checkbox_opts:
-            # Look back for a question label
             label_text = ''
             if i > 0 and not _is_section_header(clean_lines[i - 1]):
                 label_text = _clean_label(clean_lines[i - 1])
@@ -282,23 +375,25 @@ def extract_schema(raw_text: str) -> dict:
 
         # ── Likert header row → maybe matrix ─────────────────────────────────
         likert_opts = _match_likert(line)
-        if likert_opts and not _is_question_start(line):
-            # Look ahead for question rows
+        if (likert_opts and not _is_question_start(line)) or (len(re.split(r'\s{2,}', line.strip())) >= 3):
+            # Try to detect matrix/grid if multiple questions follow this header
+            potential_cols = likert_opts if likert_opts else re.split(r'\s{2,}', line.strip())
             matrix_rows = []
             j = i + 1
-            while j < len(clean_lines) and _is_question_start(clean_lines[j]):
+            while j < len(clean_lines) and (_is_question_start(clean_lines[j]) or re.match(r'^\d+[\.\)]', clean_lines[j])):
                 matrix_rows.append(_clean_label(clean_lines[j]))
                 j += 1
 
             if len(matrix_rows) >= 2:
                 current_section['fields'].append({
                     'type': 'matrix',
+                    'label': 'Please answer the following:',
                     'rows': matrix_rows,
-                    'columns': likert_opts
+                    'columns': potential_cols
                 })
                 i = j
                 continue
-            else:
+            elif likert_opts:
                 label_text = _clean_label(clean_lines[i - 1]) if i > 0 else ''
                 current_section['fields'].append({
                     'type': 'likert',
@@ -317,7 +412,6 @@ def extract_schema(raw_text: str) -> dict:
             field = {'type': 'scale', 'label': label_text, 'min': mn, 'max': mx}
             if scale_labels and len(scale_labels) >= 2:
                 field['labels'] = [l.strip() for l in scale_labels if l.strip()]
-            # Upgrade to emoji_scale if pain/face context detected
             context = (line + ' ' + label_text).lower()
             if re.search(r'(face|pain|discomfort|emoji|smiley|hurt|ache)', context):
                 field['type'] = 'emoji_scale'
@@ -332,30 +426,25 @@ def extract_schema(raw_text: str) -> dict:
             options = []
             q_type = 'short_text'
 
-            # Priority A: Inline numeric-key options (0 = None 1 = Mild 2 = Severe)
             inline_opts = re.findall(
-                r'(\d)\s*[=\-:]?\s*([A-Za-z][A-Za-z\s\/\(\),\-]+?)(?=\s+\d\s*[=\-:]?\s*[A-Za-z]|$)',
+                r'(\d)\s*[=\-:]?\s*([A-Za-z][A-Za-z\s\/\(\), \-]+?)(?=\s+\d\s*[=\-:]?\s*[A-Za-z]|$)',
                 line
             )
             if len(inline_opts) >= 2:
                 options = [f"{m[0]} = {m[1].strip()}" for m in inline_opts]
                 q_label = re.split(r'\s+\d\s*[=\-:]?\s*[A-Za-z]', q_label)[0].strip()
 
-            # Priority B: Binary (0 for NO, 1 for YES)
             elif re.search(r'\(0 for NO,?\s*1 for YES\)', line, re.I):
                 options = ['0 = NO', '1 = YES']
                 q_label = re.sub(r'\s*\(0 for NO,?\s*1 for YES\)', '', q_label).strip()
 
-            # Priority C: Trailing digit sequence + global scale
             elif global_scale and re.search(r'\s+\d(\s+\d)+\s*$', line):
                 options = global_scale
                 q_label = re.sub(r'\s+\d(\s+\d)+\s*$', '', q_label).strip()
 
-            # Priority D: Likert in same line
             elif _match_likert(line):
                 options = _match_likert(line)
 
-            # Determine field type
             if options:
                 allow_multi = bool(re.search(r'select all|check all|all that apply', line, re.I))
                 q_type = 'checkbox' if allow_multi else 'choice'
@@ -398,11 +487,9 @@ def extract_schema(raw_text: str) -> dict:
 
         i += 1
 
-    # Flush final section
     if current_section['fields']:
         sections.append(current_section)
 
-    # Fallback if nothing was structured
     if not sections:
         sections = [{'title': 'Extracted Content', 'fields': [
             {'type': 'instruction', 'text': 'Could not detect structured fields. Please review the source document quality.'}

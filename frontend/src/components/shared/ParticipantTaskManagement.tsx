@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, List, Calendar, Clock, Lock, CheckCircle2, AlertCircle, Search, Filter, Shield, User, HelpCircle, ArrowRight, FileText, Activity } from 'lucide-react';
+import { Plus, List, Calendar, Clock, Lock, CheckCircle2, AlertCircle, Search, Filter, Shield, User, HelpCircle, ArrowRight, FileText, Activity, Download, Bell } from 'lucide-react';
 import { authFetch, API } from '../../utils/auth';
 
 interface ParticipantTask {
@@ -151,11 +151,51 @@ export default function ParticipantTaskManagement({ primaryColor = 'indigo', sel
 
     const colorHex = primaryColor === 'blue' ? '#3b82f6' : (primaryColor === 'teal' ? '#14b8a6' : '#6366f1');
 
+    const handleSendReminder = async (taskId: string) => {
+        try {
+            const res = await authFetch(`${API}/api/questionnaire-schedules/${taskId}/send_reminder/`, {
+                method: 'POST'
+            });
+            if (res.ok) {
+                alert("Reminder sent successfully!");
+            } else {
+                const data = await res.json();
+                alert(data.error || "Failed to send reminder.");
+            }
+        } catch (err) {
+            console.error(err);
+            alert("Error sending reminder.");
+        }
+    };
+
     const filteredTasks = tasks.filter(t => 
         t.participant_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         t.protocol_id?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         t.title?.toLowerCase().includes(searchQuery.toLowerCase())
     );
+
+    const studyWiseStats = React.useMemo(() => {
+        const groups: Record<string, { protocol: string; title: string; completed: number; pending: number; total: number }> = {};
+        tasks.forEach(t => {
+            const key = `${t.protocol_id || 'GENERAL'}-${t.title}`;
+            if (!groups[key]) {
+                groups[key] = {
+                    protocol: t.protocol_id || 'GENERAL',
+                    title: t.title,
+                    completed: 0,
+                    pending: 0,
+                    total: 0
+                };
+            }
+            groups[key].total += 1;
+            if (t.status === 'COMPLETED') {
+                groups[key].completed += 1;
+            } else {
+                groups[key].pending += 1;
+            }
+        });
+        return Object.values(groups);
+    }, [tasks]);
 
     return (
         <div className="space-y-6">
@@ -182,21 +222,57 @@ export default function ParticipantTaskManagement({ primaryColor = 'indigo', sel
                 <>
                     <div className={`grid ${isMobile ? 'grid-cols-1' : (isTablet ? 'grid-cols-2' : 'grid-cols-4')} gap-6`}>
                          {[
-                            { label: 'Active', count: tasks.filter(t => t.status !== 'COMPLETED').length, icon: List, color: 'cyan' },
-                            { label: 'Overdue', count: tasks.filter(t => t.status === 'OVERDUE').length, icon: AlertCircle, color: 'red' },
-                            { label: 'Locked', count: tasks.filter(t => t.status === 'LOCKED' && !t.title?.toUpperCase().includes('DAILY MEDICINE LOG')).length, icon: Lock, color: 'amber' },
-                            { label: 'Completion Rate', count: `${Math.round((tasks.filter(t => t.status === 'COMPLETED').length / (tasks.length || 1)) * 100)}%`, icon: CheckCircle2, color: 'emerald' }
+                            { label: 'In Progress', count: tasks.filter(t => t.status !== 'COMPLETED').length, icon: List, color: 'cyan' },
+                            { label: 'Late', count: tasks.filter(t => t.status === 'OVERDUE').length, icon: AlertCircle, color: 'red' },
+                            { label: 'Completed & Locked', count: tasks.filter(t => t.status === 'COMPLETED' || t.status === 'LOCKED').length, icon: Lock, color: 'amber' },
+                            { label: 'Submission Rate', count: `${Math.round((tasks.filter(t => t.status === 'COMPLETED').length / (tasks.length || 1)) * 100)}%`, icon: CheckCircle2, color: 'emerald' }
                          ].map((stat, i) => (
                             <div key={i} className="bg-[#0B1222]/60 backdrop-blur-md border border-white/5 p-6 rounded-[2rem] hover:border-white/10 transition-all shadow-lg group">
                                 <div className="flex items-center gap-3 mb-4">
                                     <div className={`w-8 h-8 rounded-lg bg-${stat.color}-500/10 flex items-center justify-center`}>
                                         <stat.icon className={`w-4 h-4 text-${stat.color}-400`} />
                                     </div>
-                                    <span className="text-[11px] font-black text-slate-500 uppercase tracking-widest">{stat.label}</span>
+                                    <span className="text-[12px] font-black text-slate-500 uppercase tracking-widest">{stat.label}</span>
                                 </div>
-                                <div className="text-3xl font-black text-white italic tracking-tighter leading-none group-hover:scale-105 transition-transform">{stat.count}</div>
+                                <div className="text-4xl font-black text-white italic tracking-tighter leading-none group-hover:scale-105 transition-transform">{stat.count}</div>
                             </div>
                          ))}
+                    </div>
+
+                    {/* Study-Wise Progress Summary */}
+                    <div className="bg-[#0B1222]/40 backdrop-blur-md border border-white/5 rounded-[2rem] p-6 space-y-4">
+                        <div className="flex items-center gap-2 pb-2 border-b border-white/5">
+                            <Activity className="w-4 h-4 text-slate-400" />
+                            <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest">Study-Wise Task Progress</h3>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {studyWiseStats.length === 0 ? (
+                                <p className="text-xs text-slate-500 italic">No task submissions recorded yet.</p>
+                            ) : (
+                                studyWiseStats.map((stat, i) => {
+                                    const percent = Math.round((stat.completed / stat.total) * 100);
+                                    return (
+                                        <div key={i} className="bg-white/[0.02] border border-white/5 p-4 rounded-xl flex flex-col justify-between gap-3 hover:border-white/10 transition-all">
+                                            <div className="flex items-start justify-between gap-2">
+                                                <div>
+                                                    <span className="text-[10px] font-black text-blue-400 uppercase tracking-wider">{stat.protocol}</span>
+                                                    <h4 className="text-sm font-black text-white uppercase mt-0.5">{stat.title}</h4>
+                                                </div>
+                                                <span className="text-xs font-black text-emerald-400">{percent}% Done</span>
+                                            </div>
+                                            <div className="flex items-center justify-between text-[11px] font-bold text-slate-500">
+                                                <span>Completed: <strong className="text-white">{stat.completed}</strong></span>
+                                                <span>Pending: <strong className="text-white">{stat.pending}</strong></span>
+                                                <span>Total Patients: <strong className="text-white">{stat.total}</strong></span>
+                                            </div>
+                                            <div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden">
+                                                <div className="h-full bg-emerald-500 rounded-full transition-all duration-500" style={{ width: `${percent}%` }} />
+                                            </div>
+                                        </div>
+                                    );
+                                })
+                            )}
+                        </div>
                     </div>
 
                     <div className="bg-[#0a101f]/80 backdrop-blur-xl border border-white/5 rounded-[2.5rem] overflow-hidden shadow-2xl">
@@ -351,6 +427,30 @@ export default function ParticipantTaskManagement({ primaryColor = 'indigo', sel
                                                     </td>
                                                     <td className="px-8 py-6 text-right">
                                                          <div className="flex items-center justify-end gap-3">
+                                                            {task.status === 'COMPLETED' && (
+                                                                <>
+                                                                    <button 
+                                                                        onClick={() => window.open(`${API}/api/questionnaire-schedules/${task.id}/export_data/?format=pdf`, '_blank')}
+                                                                        className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-lg flex items-center gap-2"
+                                                                    >
+                                                                        <Download className="w-3.5 h-3.5" /> PDF
+                                                                    </button>
+                                                                    <button 
+                                                                        onClick={() => window.open(`${API}/api/questionnaire-schedules/${task.id}/export_data/?format=csv`, '_blank')}
+                                                                        className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-lg flex items-center gap-2"
+                                                                    >
+                                                                        <Download className="w-3.5 h-3.5" /> CSV
+                                                                    </button>
+                                                                </>
+                                                            )}
+                                                            {task.status === 'PENDING' && (
+                                                                <button 
+                                                                    onClick={() => handleSendReminder(task.id)}
+                                                                    className="px-4 py-2 bg-rose-600/10 hover:bg-rose-600/20 text-rose-400 border border-rose-500/20 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2"
+                                                                >
+                                                                    <Bell className="w-3.5 h-3.5" /> Remind
+                                                                </button>
+                                                            )}
                                                             {task.title?.toUpperCase().includes('DAILY MEDICINE LOG') && (
                                                                 <button 
                                                                     onClick={() => alert(`Opening Log Entry Terminal for ${task.participant_name}`)}
@@ -364,12 +464,6 @@ export default function ParticipantTaskManagement({ primaryColor = 'indigo', sel
                                                                 className="p-3 bg-white/5 border border-white/10 text-slate-400 hover:text-white rounded-[1.25rem] transition-all shadow-lg hover:bg-white/10"
                                                             >
                                                                 <Shield className="w-4 h-4" />
-                                                            </button>
-                                                            <button 
-                                                                onClick={() => alert(`Granting extension for ${task.title}.`)}
-                                                                className={`px-8 py-3 ${primaryColor === 'blue' ? 'bg-blue-600 hover:bg-blue-500 shadow-blue-900/40' : 'bg-cyan-600 hover:bg-cyan-500 shadow-cyan-900/40'} text-white rounded-[1.25rem] text-[11px] font-black uppercase tracking-widest transition-all shadow-xl hover:scale-[1.03]`}
-                                                            >
-                                                                Extend
                                                             </button>
                                                         </div>
                                                     </td>

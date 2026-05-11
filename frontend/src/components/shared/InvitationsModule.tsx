@@ -78,7 +78,8 @@ export default function InvitationsModule({ allStudies = [] }: InvitationsModule
             const checkRes = await fetch(`${API}/api/auth/check-email/`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email: inviteForm.email })
+                body: JSON.stringify({ email: inviteForm.email }),
+                credentials: 'include'
             });
 
             if (checkRes.ok) {

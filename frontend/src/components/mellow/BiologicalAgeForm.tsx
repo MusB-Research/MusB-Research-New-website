@@ -54,24 +54,29 @@ export default function BiologicalAgeForm({ isOpen, onClose }: BiologicalAgeForm
 
         try {
             const apiUrl = import.meta.env.VITE_API_URL || '';
+            const formDataToSubmit = new FormData();
+            
+            formDataToSubmit.append('name', `${formData.firstName} ${formData.lastName}`);
+            formDataToSubmit.append('email', formData.email);
+            formDataToSubmit.append('phone', formData.phone);
+            formDataToSubmit.append('company', formData.companyName);
+            formDataToSubmit.append('message', "Request for Biological Age Analysis / Testing Contact");
+            
+            const metadata = {
+                source: 'BIOLOGICAL_AGE_INQUIRY',
+                formData: {
+                    ...formData.values,
+                    reportReady: hasReport ? 'Yes' : 'No',
+                    company: formData.companyName
+                },
+                timestamp: new Date().toISOString()
+            };
+            
+            formDataToSubmit.append('metadata', JSON.stringify(metadata));
+
             const response = await fetch(`${apiUrl}/api/contact/submit/`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    name: `${formData.firstName} ${formData.lastName}`,
-                    email: formData.email,
-                    phone: formData.phone,
-                    message: "Request for Biological Age Analysis / Testing Contact",
-                    metadata: {
-                        source: 'BIOLOGICAL_AGE_INQUIRY',
-                        hasReport: hasReport,
-                        biomarkers: formData.values,
-                        company: formData.companyName,
-                        timestamp: new Date().toISOString()
-                    }
-                }),
+                body: formDataToSubmit,
             });
 
             if (!response.ok) throw new Error('Failed to submit inquiry');
@@ -108,7 +113,7 @@ export default function BiologicalAgeForm({ isOpen, onClose }: BiologicalAgeForm
                         <div className="absolute top-0 right-0 w-64 h-64 bg-blue-600/10 blur-[100px] pointer-events-none" />
                         <div className="absolute bottom-0 left-0 w-64 h-64 bg-cyan-500/5 blur-[100px] pointer-events-none" />
                         
-                        <button onClick={onClose} className="absolute top-8 right-8 text-slate-500 hover:text-white z-20">
+                        <button onClick={onClose} className="absolute top-8 right-8 text-slate-500 hover:text-white z-[30] transition-colors">
                             <X className="w-6 h-6" />
                         </button>
 

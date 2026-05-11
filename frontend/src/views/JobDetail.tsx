@@ -16,7 +16,7 @@ import { JobOpening } from '@/types';
 import SEO from '@/components/SEO';
 
 
-const API_ROOT = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const API_ROOT = import.meta.env.VITE_API_URL || 'http://localhost:8003';
 
 export default function JobDetail() {
     const { id } = useParams<{ id: string }>();

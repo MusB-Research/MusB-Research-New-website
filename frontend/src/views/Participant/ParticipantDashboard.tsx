@@ -135,7 +135,7 @@ export default function ParticipantDashboard() {
                 // For this demo, we simulate success after 2 seconds
                 setTimeout(async () => {
                     try {
-                        const apiUrl = API || 'http://localhost:8000';
+                        const apiUrl = API || 'http://localhost:8003';
                         await authFetch(`${apiUrl}/api/auth/save-wearable-token/`, {
                             method: 'POST',
                             body: JSON.stringify({
@@ -152,7 +152,7 @@ export default function ParticipantDashboard() {
                 }, 2000);
             } else if (platform === 'apple') {
                 // Apple Health (usually via Bridge or WebHID, mock for demo)
-                const apiUrl = API || 'http://localhost:8000';
+                const apiUrl = API || 'http://localhost:8003';
                 await authFetch(`${apiUrl}/api/auth/save-wearable-token/`, {
                     method: 'POST',
                     body: JSON.stringify({ platform: 'apple', access_token: 'apple_health_linked' })
@@ -474,11 +474,12 @@ export default function ParticipantDashboard() {
 
         // 4. Questionnaire Injection
         fetchedQues.forEach((q: any) => {
+            const qName = q.questionnaire_details?.schedule_name || q.questionnaire_details?.template_details?.name || q.schedule_name || 'Questionnaire';
             fetchedTasks.push({
                 id: `qs-${q.id}`,
                 study: sId,
                 participant: pId,
-                title: q.schedule_name || q.template_details?.name || 'Questionnaire',
+                title: qName,
                 status: q.status || 'PENDING',
                 due_date: q.scheduled_date || q.created_at,
                 visit_name: 'Instrumentation',
@@ -486,7 +487,7 @@ export default function ParticipantDashboard() {
                 estimated_time: '10 min',
                 task_type: 'QUESTIONNAIRE',
                 q_data: q,
-                task_details: { task_type: 'QUESTIONNAIRE', description: `Please complete the ${q.schedule_name} instrument.` }
+                task_details: { task_type: 'QUESTIONNAIRE', description: `Please complete the ${qName} instrument.` }
             });
         });
 
@@ -497,7 +498,7 @@ export default function ParticipantDashboard() {
 
     // Lazy load clinical data when user navigates to tabs
     const loadClinicalData = async () => {
-        const apiUrl = API || 'http://localhost:8000';
+        const apiUrl = API || 'http://localhost:8003';
         const pSid = activeParticipant?.participant_sid;
         if (!pSid || !activeStudy) return;
 
@@ -513,7 +514,7 @@ export default function ParticipantDashboard() {
     // ──────────────── UNIFIED DASHBOARD LOADER (LAZY LOADING) ────────────────
     useEffect(() => {
         const loadDashboard = async (isSilent = false) => {
-            const apiUrl = API || 'http://localhost:8000';
+            const apiUrl = API || 'http://localhost:8003';
             if (isFetchingRef.current) return;
             
             try {
@@ -1332,7 +1333,7 @@ export default function ParticipantDashboard() {
             const afId = activeSignatureTask?.assigned_form;
             if (!afId) throw new Error("No assignment ID found");
 
-            const apiUrl = API || 'http://localhost:8000';
+            const apiUrl = API || 'http://localhost:8003';
             const response = await authFetch(`${apiUrl}/api/assigned-forms/${afId}/sign_participant/`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },

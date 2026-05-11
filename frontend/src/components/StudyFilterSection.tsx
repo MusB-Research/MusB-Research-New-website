@@ -67,6 +67,7 @@ export default function StudyFilterSection() {
                                 value={selectedCondition}
                                 onChange={(e) => setSelectedCondition(e.target.value as any)}
                                 className="appearance-none bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl px-4 py-3 pr-10 text-slate-200 font-bold focus:ring-2 focus:ring-cyan-500 cursor-pointer outline-none transition-all w-full md:w-44 text-sm"
+                                aria-label="Filter by Condition"
                             >
                                 <option value="All" className="bg-slate-900 text-white">All Conditions</option>
                                 {dynamicConditions.map(c => (
@@ -81,6 +82,7 @@ export default function StudyFilterSection() {
                                 value={selectedType}
                                 onChange={(e) => setSelectedType(e.target.value as any)}
                                 className="appearance-none bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl px-4 py-3 pr-10 text-slate-200 font-bold focus:ring-2 focus:ring-cyan-500 cursor-pointer outline-none transition-all w-full md:w-44 text-sm"
+                                aria-label="Filter by Study Type"
                             >
                                 <option value="All" className="bg-slate-900 text-white">All Study Types</option>
                                 <option value="Paid Studies" className="bg-slate-900 text-white">Paid Studies</option>
@@ -94,6 +96,7 @@ export default function StudyFilterSection() {
                                 value={selectedStatus}
                                 onChange={(e) => setSelectedStatus(e.target.value as any)}
                                 className="appearance-none bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl px-4 py-3 pr-10 text-slate-200 font-bold focus:ring-2 focus:ring-cyan-500 cursor-pointer outline-none transition-all w-full md:w-44 text-sm"
+                                aria-label="Filter by Status"
                             >
                                 <option value="All" className="bg-slate-900 text-white">All Status</option>
                                 <option value="Currently Recruiting" className="bg-slate-900 text-white">Currently Recruiting</option>

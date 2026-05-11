@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://www.musbhealth.com/sitemap.xml

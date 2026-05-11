@@ -311,6 +311,55 @@ def _build_otp_html(name: str, otp: str) -> str:
 </html>"""
 
 
+def _build_reminder_html(name: str, tasks: list, study_name: str) -> str:
+    """Build the HTML body for task reminders."""
+    task_items = "".join([f'<li style="margin-bottom:8px;color:#1E293B;"><strong>{t["title"]}</strong> (Due: {t["due_date"]})</li>' for t in tasks])
+    
+    return f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+</head>
+<body style="margin:0;padding:24px;background-color:#F8FAFC;font-family:sans-serif;">
+  <div style="max-width:600px;margin:0 auto;background:#fff;border-radius:16px;padding:32px;border:1px solid #E2E8F0;">
+    <h2 style="color:#1E3A8A;margin-top:0;">Gentle Reminder: Pending Tasks</h2>
+    <p style="color:#475569;">Hello {name}, you have pending activities for the <strong>{study_name}</strong> study:</p>
+    <ul style="padding-left:20px;">
+      {task_items}
+    </ul>
+    <p style="color:#475569;margin-top:24px;">Please log in to your participant portal to complete these tasks at your earliest convenience.</p>
+    <div style="text-align:center;margin-top:32px;">
+      <a href="https://musbresearch.com/dashboard/participant" style="background:#2563EB;color:#fff;padding:12px 24px;text-decoration:none;border-radius:8px;font-weight:bold;">Open Portal</a>
+    </div>
+  </div>
+</body>
+</html>"""
+
+
+def send_reminder_email(user_email: str, user_name: str, study_name: str, tasks: list) -> bool:
+    """Send a task reminder email."""
+    try:
+        subject = f"Reminder: Pending tasks for {study_name}"
+        html_message = _build_reminder_html(user_name, tasks, study_name)
+        plain_message = f"Hello {user_name}, you have {len(tasks)} pending tasks for {study_name}. Please log in to complete them."
+        
+        from_email = f"MusB Research <{getattr(settings, 'SMTP_EMAIL', 'noreplymusbresearch@gmail.com')}>"
+        
+        send_mail(
+            subject=subject,
+            message=plain_message,
+            from_email=from_email,
+            recipient_list=[user_email],
+            html_message=html_message,
+            fail_silently=False,
+        )
+        return True
+    except Exception as e:
+        logger.error(f"Failed to send reminder to {user_email}: {e}")
+        return False
+
+
 def send_musb_system_email(
     user_email: str,
     user_name: str,
@@ -369,18 +418,48 @@ def send_musb_system_email(
 
         from_email = f"MusB Research <{getattr(settings, 'SMTP_EMAIL', None) or getattr(settings, 'EMAIL_HOST_USER', 'noreplymusbresearch@gmail.com')}>"
         
-        send_mail(
-            subject=subject,
-            message=plain_message,
-            from_email=from_email,
-            recipient_list=[user_email],
-            html_message=html_message,
-            fail_silently=False,
-        )
-        logger.info(f"[EMAIL] {mode} sent to {user_email}")
-        return True
+        # ─────────────────────────────────────────────────────────
+        # PRODUCTION DELIVERY OPTIMIZATION
+        # ─────────────────────────────────────────────────────────
+        resend_key = getattr(settings, 'RESEND_API_KEY', None)
+        if resend_key:
+            try:
+                import resend
+                resend.api_key = resend_key
+                resend.Emails.send({
+                    "from": from_email,
+                    "to": [user_email],
+                    "subject": subject,
+                    "html": html_message
+                })
+                logger.info(f"[EMAIL-RESEND] {mode} sent to {user_email}")
+                return True
+            except Exception as res_err:
+                logger.error(f"[EMAIL-RESEND] Failed, falling back to SMTP: {res_err}")
+
+        # Fallback to standard SMTP
+        try:
+            logger.info(f"[EMAIL-SMTP] Attempting delivery to {user_email} via {settings.EMAIL_HOST}")
+            send_mail(
+                subject=subject,
+                message=plain_message,
+                from_email=from_email,
+                recipient_list=[user_email],
+                html_message=html_message,
+                fail_silently=False,
+            )
+            logger.info(f"[EMAIL-SMTP] SUCCESS: {mode} sent to {user_email}")
+            return True
+        except Exception as smtp_err:
+            logger.error(f"[EMAIL-SMTP] CRITICAL FAILURE: Could not deliver {mode} to {user_email}.")
+            logger.error(f"SMTP Error Details: {str(smtp_err)}")
+            # Log specific hints for Gmail SMTP
+            if "AuthenticationFailed" in str(smtp_err) or "535" in str(smtp_err):
+                logger.error("HINT: Gmail SMTP Authentication failed. Verify SMTP_EMAIL and SMTP_PASSWORD (App Password required).")
+            elif "ConnectionRefused" in str(smtp_err):
+                logger.error(f"HINT: Could not connect to SMTP host {settings.EMAIL_HOST}:{settings.EMAIL_PORT}. Check network/firewall.")
+            return False
 
     except Exception as e:
-        logger.error(f"[EMAIL] Failed to send {mode} to {user_email}: {e}")
+        logger.error(f"send_musb_system_email: Unexpected error: {str(e)}", exc_info=True)
         return False
-

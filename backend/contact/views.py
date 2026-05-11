@@ -50,9 +50,12 @@ class InquiryTypeListView(generics.ListAPIView):
     def list(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
 
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
+
 class SubmissionCreateView(generics.CreateAPIView):
     serializer_class = SubmissionSerializer
     permission_classes = [permissions.AllowAny]
+    parser_classes = [JSONParser, MultiPartParser, FormParser]
 
     def create(self, request, *args, **kwargs):
         """Override to return clean JSON errors instead of Django HTML 500 pages."""
@@ -89,7 +92,7 @@ class SubmissionCreateView(generics.CreateAPIView):
                 </div>
                 """
                 safe_resend_send({
-                    "from": "MusB Research <onboarding@resend.dev>",
+                    "from": "MusB Research <info@musbresearch.com>",
                     "to": ["info@musbresearch.com"],
                     "subject": f"[FALLBACK] Contact Form: {name}",
                     "text": strip_tags(fallback_html)
@@ -122,10 +125,30 @@ class SubmissionCreateView(generics.CreateAPIView):
             for key, value in form_data.items():
                 if not value or key in ['cvConsent']: continue
                 label = ''.join([' ' + c if c.isupper() else c for c in key]).strip().capitalize()
-                if key == 'trialsInLast30Days': label = "Trials In Last 30 Days"
-                if key == 'healthConditions': 
-                    label = "Health Conditions"
-                    if isinstance(value, list): value = ", ".join(value)
+                
+                # Custom label mappings for medical acronyms and specific fields
+                label_map = {
+                    'trialsInLast30Days': "Trials In Last 30 Days",
+                    'healthConditions': "Health Conditions",
+                    'albumin': "Albumin",
+                    'creatinine': "Creatinine",
+                    'glucose': "Glucose",
+                    'crp': "CRP (C-reactive Protein)",
+                    'lymphocyte': "Lymphocyte",
+                    'mcv': "MCV (Mean Cell Volume)",
+                    'rdw': "RDW (Red Cell Dist Width)",
+                    'alp': "ALP (Alkaline Phosphatase)",
+                    'wbc': "WBC (White Blood Cells)",
+                    'age': "Age",
+                    'reportReady': "Report Ready",
+                    'company': "Company / Institution",
+                }
+                
+                if key in label_map:
+                    label = label_map[key]
+                
+                if key == 'healthConditions' and isinstance(value, list):
+                    value = ", ".join(value)
                 
                 data_text += f"{label}: {value}\n"
                 data_content += f"""
@@ -136,8 +159,17 @@ class SubmissionCreateView(generics.CreateAPIView):
                 """
 
         # Decide on headers and subjects based on whether this is a screener or regular inquiry
-        header_title = "MusB Clinical Screening" if is_screener else "MusB Research Inquiry"
-        admin_subject = f"Alert: New { 'Screening [' + outcome + ']' if is_screener else 'Inquiry' } - {submission.name}"
+        source = metadata.get('source', '')
+        if source == 'BIOLOGICAL_AGE_INQUIRY':
+            header_title = "Biological Age Analysis Request"
+        elif is_screener:
+            header_title = "MusB Clinical Screening"
+        else:
+            header_title = "MusB Research Inquiry"
+        if source == 'BIOLOGICAL_AGE_INQUIRY':
+            admin_subject = f"Alert: Biological Age Request - {submission.name}"
+        else:
+            admin_subject = f"Alert: New { 'Screening [' + outcome + ']' if is_screener else 'Inquiry' } - {submission.name}"
 
         # Structured Plain Text Notification
         admin_text = f"""
@@ -242,7 +274,7 @@ Phone: {submission.phone or 'Not Provided'}
         # 3. Send emails — this block NEVER causes a 500, all failures are caught
         try:
             from api.utils.resend_utils import safe_resend_send
-            from_email = 'MusB Research <onboarding@resend.dev>'
+            from_email = 'MusB Research <info@musbresearch.com>'
             
             # ONLY send to info@musbresearch.com as requested
             recipients = ["info@musbresearch.com"]

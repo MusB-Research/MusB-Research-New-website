@@ -58,6 +58,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     
     phone_number = models.CharField(max_length=20, blank=True, null=True)
     profile_picture = models.URLField(max_length=1024, blank=True, null=True)
+    profile_image = models.ImageField(upload_to='profiles/', null=True, blank=True)
     
     # Security & 2FA
     must_change_password = models.BooleanField(default=False)
@@ -98,6 +99,10 @@ class User(AbstractBaseUser, PermissionsMixin):
     lng = models.FloatField(null=True, blank=True)
     is_mellow_member = models.BooleanField(default=False)
     bio = models.TextField(blank=True, null=True)
+    pronouns = models.CharField(max_length=20, blank=True, null=True)  # Mr., Mrs., Dr., Prof., etc.
+    linkedin_url = models.URLField(max_length=1024, blank=True, null=True)
+    institute_url = models.URLField(max_length=1024, blank=True, null=True)
+    cv_file = models.FileField(upload_to='cvs/', null=True, blank=True)
     
     # Mandatory Profile Data (Cont.)
     date_of_birth = models.DateField(null=True, blank=True)
@@ -278,6 +283,7 @@ class AuditLog(models.Model):
         ('VIEW_DATA',              'View Data'),
         ('EXPORT_DATA',            'Export Data'),
         ('SYSTEM_CONFIG_CHANGE',   'System Config Change'),
+        ('USER_CREATION_FAILED',   'User Creation Failed'),
     ]
     user_email = models.CharField(max_length=255, null=True, blank=True)   # nullable for failed unknown logins (e.g. User IDs)
     action = models.CharField(max_length=30, choices=ACTION_CHOICES)

@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle, XCircle, Clock, Search, Filter, ShieldCheck, Loader2, Megaphone, Calendar, Briefcase, Eye, AlertCircle, FileText, Sparkles } from 'lucide-react';
 import { authFetch , API } from '../../utils/auth';
 
-const API_URL = API || 'http://localhost:8000';
+const API_URL = API || 'http://localhost:8003';
 
 export default function WorkflowModerationPanel() {
     const [activeTab, setActiveTab] = useState<'news' | 'events' | 'studies' | 'partnerships' | 'publications' | 'education'>('news');
@@ -45,7 +45,7 @@ export default function WorkflowModerationPanel() {
                 fetchPendingContent(); // refresh
             } else {
                 const err = await res.json();
-                alert(`Action failed: ${err.detail || 'Insufficient permissions'}`);
+                alert(`Action failed: ${err.error || err.detail || 'Insufficient permissions'}`);
             }
         } catch (error) {
             console.error(error);

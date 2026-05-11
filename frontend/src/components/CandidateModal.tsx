@@ -52,7 +52,7 @@ export default function CandidateModal({ isOpen, onClose }: CandidateModalProps)
 
         try {
             // Note: Use standard API_URL locally or in production
-            const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+            const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8003';
             const response = await fetch(`${API_URL}/api/apply/`, {
                 method: 'POST',
                 body: data,

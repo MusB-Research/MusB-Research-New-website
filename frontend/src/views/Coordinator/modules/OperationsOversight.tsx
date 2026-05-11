@@ -30,6 +30,7 @@ interface OversightModuleProps {
     stats: Stats;
     currentTime: Date;
     visits: Visit[];
+    tasks?: any[];
     onLaunch: () => void;
     onNavigate: (id: string) => void;
     isAdmin?: boolean;
@@ -69,7 +70,8 @@ export const OperationsOversight: React.FC<OversightModuleProps> = ({
     });
 
     const getVisitsForDay = (date: Date) => {
-        return visits.filter(v => {
+        return (visits || []).filter(v => {
+            if (!v.scheduled_date) return false;
             const vDate = new Date(v.scheduled_date);
             return vDate.getDate() === date.getDate() &&
                 vDate.getMonth() === date.getMonth() &&
@@ -250,7 +252,7 @@ export const OperationsOversight: React.FC<OversightModuleProps> = ({
                     </div>
                     <div className="bg-[#0B101B]/50 backdrop-blur-2xl border border-white/5 rounded-[3rem] overflow-hidden shadow-2xl flex flex-col flex-1 h-full min-h-[360px] justify-between">
                         <div className="divide-y divide-white/5 overflow-y-auto custom-scrollbar flex-1">
-                            {visits.filter(v => v.status === 'SCHEDULED' || v.status === 'PENDING').sort((a, b) => new Date(a.scheduled_date).getTime() - new Date(b.scheduled_date).getTime()).slice(0, 6).map((v, i) => (
+                            {(visits || []).filter(v => v.status === 'SCHEDULED' || v.status === 'PENDING').sort((a, b) => new Date(a.scheduled_date).getTime() - new Date(b.scheduled_date).getTime()).slice(0, 6).map((v, i) => (
                                 <div
                                     key={i}
                                     className="p-8 hover:bg-white/[0.04] transition-all cursor-pointer group relative overflow-hidden"
@@ -276,7 +278,7 @@ export const OperationsOversight: React.FC<OversightModuleProps> = ({
                                     </div>
                                 </div>
                             ))}
-                            {visits.length === 0 && (
+                            {(visits || []).length === 0 && (
                                 <div className="p-16 text-center text-slate-600 text-xs italic uppercase tracking-widest opacity-50">No priority visits in queue</div>
                             )}
                         </div>

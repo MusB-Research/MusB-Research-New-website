@@ -80,7 +80,7 @@ export default function InquireStudyModal({ isOpen, onClose }: Props) {
     setIsLoading(true);
     try {
       // Simulate real logic as requested
-      const response = await authFetch(`${API || 'http://localhost:8000'}/api/studies/`, {
+      const response = await authFetch(`${API || 'http://localhost:8003'}/api/studies/`, {
         method: 'POST',
         body: JSON.stringify({
           title: form.title,

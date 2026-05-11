@@ -199,10 +199,18 @@ const Support: React.FC = () => {
 
                             {/* Right Visual */}
                             <div className="relative group hidden lg:block lg:w-4/5 lg:justify-self-end mt-12 lg:mt-16">
-                                <div className="relative z-10 rounded-[3rem] overflow-hidden border border-white/10 shadow-[0_50px_100px_-20px_rgba(0,0,0,0.5)] transform transition-transform duration-700">
-                                    <div className="w-full aspect-square lg:aspect-[4.5/5] bg-gradient-to-br from-cyan-500/20 to-indigo-500/20 transition-all duration-700"></div>
-                                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent opacity-60"></div>
-                                    <div className="absolute bottom-12 left-12 right-12 space-y-2">
+                                    <div className="w-full aspect-square lg:aspect-[4.5/5] relative overflow-hidden bg-slate-900 rounded-[3rem]">
+                                        <video 
+                                            src="/for_business_video.mp4" 
+                                            className="w-full h-full object-cover scale-[1.7] origin-center" 
+                                            autoPlay 
+                                            loop 
+                                            muted 
+                                            playsInline
+                                        />
+                                        <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent opacity-80 z-10"></div>
+                                    </div>
+                                    <div className="absolute bottom-12 left-12 right-12 space-y-2 z-20">
                                         <p className="text-cyan-400 font-black text-[12px] uppercase tracking-[0.4em]">Integrated Research</p>
                                         <h3 className="text-white text-3xl font-black uppercase tracking-tight leading-none italic">
                                             Bench to Bedside.<br />
@@ -213,7 +221,6 @@ const Support: React.FC = () => {
                                 {/* Decorative Elements */}
                                 <div className="absolute -top-12 -right-12 w-64 h-64 bg-cyan-500/10 blur-[100px] rounded-full animate-pulse"></div>
                                 <div className="absolute -bottom-12 -left-12 w-48 h-48 bg-indigo-600/10 blur-[80px] rounded-full delay-700 animate-pulse"></div>
-                            </div>
                         </div>
                     </div>
                 </section>

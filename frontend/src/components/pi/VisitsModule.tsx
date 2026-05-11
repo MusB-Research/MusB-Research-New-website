@@ -113,7 +113,7 @@ export default function VisitsModule({ selectedStudyId }: { selectedStudyId?: st
         action_taken: ''
     });
 
-    const apiUrl = API || 'http://localhost:8000';
+    const apiUrl = API || 'http://localhost:8003';
 
     const loadInitialData = React.useCallback(async () => {
         setIsLoading(true);

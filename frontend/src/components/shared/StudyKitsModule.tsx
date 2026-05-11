@@ -261,7 +261,7 @@ export default function StudyKitsModule({ selectedStudyId, preloadedStudies, pre
                 }
             } else {
                 const err = await res.json();
-                alert(err.detail || "Failed to assign kit.");
+                alert(err.error || err.detail || "Failed to assign kit.");
             }
         } catch (err) {
             console.error("Error assigning kit:", err);

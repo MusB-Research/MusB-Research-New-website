@@ -105,7 +105,7 @@ const MessagesView = ({
 
             setIsLoadingDetails(true);
             try {
-                const apiUrl = API || 'http://localhost:8000';
+                const apiUrl = API || 'http://localhost:8003';
                 const res = await authFetch(`${apiUrl}/api/clinical-conversations/${selectedThreadId}/`);
                 if (res.ok) {
                     const data = await res.json();
@@ -206,7 +206,7 @@ const MessagesView = ({
         if (!targetThreadId) return;
 
         try {
-            const apiUrl = API || 'http://localhost:8000';
+            const apiUrl = API || 'http://localhost:8003';
             const formData = new FormData();
             formData.append('text', messageInput);
             formData.append('tag', 'GENERAL');
@@ -253,7 +253,7 @@ const MessagesView = ({
                         <button
                             onClick={async () => {
                                 try {
-                                    const apiUrl = API || 'http://localhost:8000';
+                                    const apiUrl = API || 'http://localhost:8003';
                                     const studyId = study?.id || study?._id?.$oid || study?._id || '';
                                     const res = await authFetch(`${apiUrl}/api/clinical-conversations/`, {
                                         method: 'POST',

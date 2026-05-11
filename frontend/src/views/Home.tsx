@@ -16,6 +16,7 @@ const decodeHTML = (html: string) => {
 const slides = [
     {
         id: 1,
+        bgImage: "/home_page_hero section.webp",
         headline: "Your Trusted Partner in R&D Excellence",
         subtext: [
             "Comprehensive solutions from early screening to clinical studies",
@@ -27,6 +28,7 @@ const slides = [
     },
     {
         id: 2,
+        bgImage: "/home_page_hero section.webp",
         headline: "Advancing Global Health Through Innovation",
         subtext: [
             "Pioneering breakthrough discoveries in musculoskeletal biology",
@@ -1501,6 +1503,18 @@ export default function Home() {
                                     className={`absolute inset-0 transition-all duration-1000 ease-in-out ${isActive ? 'opacity-100 z-10' : 'opacity-0 z-0'
                                         }`}
                                 >
+                                    {/* Background Image Layer */}
+                                    <div className="absolute inset-0 z-0 overflow-hidden">
+                                        <img 
+                                            src={slide.bgImage} 
+                                            alt="" 
+                                            className={`w-full h-full object-cover transition-transform duration-[10000ms] ease-linear ${isActive ? 'scale-110' : 'scale-100'}`}
+                                        />
+                                        <div className="absolute inset-0 bg-slate-950/40"></div>
+                                        <div className="absolute inset-0 bg-gradient-to-b from-slate-950/80 via-transparent to-slate-950/90"></div>
+                                        <div className="absolute inset-0 bg-gradient-to-r from-slate-950/60 via-transparent to-slate-950/60"></div>
+                                    </div>
+
                                     <div className={`relative z-10 h-full max-w-[1800px] mx-auto px-6 md:px-12 w-full flex flex-col items-center justify-start lg:justify-center pt-36 pb-48 md:pt-48 lg:pt-32 md:pb-12 transform transition-all duration-1000 ${isActive ? 'scale-100 -translate-y-6 md:-translate-y-8 lg:-translate-y-12' : 'scale-95 translate-y-12'}`}>
 
 
@@ -1818,11 +1832,16 @@ export default function Home() {
                                 <div className="relative animate-fade-in-up stagger-1 h-[500px] rounded-[4rem] overflow-hidden group">
                                     <div className="absolute inset-0 bg-gradient-to-tr from-cyan-500/30 to-cyan-500/30 blur-[80px] z-0"></div>
                                     <div className="relative w-full h-full bg-white/5 backdrop-blur-xl border border-white/10 rounded-[4rem] p-4 overflow-hidden shadow-2xl z-10 transition-all duration-700">
-                                        <div className="w-full h-full rounded-[3.5rem] overflow-hidden relative bg-gradient-to-br from-cyan-500/20 to-transparent">
-                                            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(6,182,212,0.15)_0%,transparent_70%)] animate-pulse"></div>
+                                        <div className="w-full h-full rounded-[3.5rem] overflow-hidden relative bg-slate-950/20">
+                                            <img 
+                                                src="/Why_to_choose_Musbresearch.webp" 
+                                                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" 
+                                                alt="Why Choose MusB Research"
+                                            />
+                                            <div className="absolute inset-0 bg-gradient-to-t from-slate-950/40 via-transparent to-transparent"></div>
                                         </div>
                                         <div className="absolute inset-x-8 bottom-8 p-10 rounded-3xl bg-slate-950/80 backdrop-blur-md border border-white/10 space-y-3 transform group-hover:-translate-y-2 transition-transform duration-700 z-20">
-                                            <h4 className="text-white font-black text-xl md:text-2xl uppercase tracking-wider">Mission-Driven Innovation</h4>
+                                            <h3 className="text-white font-black text-xl md:text-2xl uppercase tracking-wider">Mission-Driven Innovation</h3>
                                             <p className="text-slate-400 text-lg font-medium">Empowering brands with credible scientific substantiation.</p>
                                         </div>
                                     </div>
@@ -1920,7 +1939,7 @@ export default function Home() {
                                                                         <Activity className="w-5 h-5" />}
                                             </div>
                                             <div className="space-y-2">
-                                                <h4 className="text-white font-black group-hover:text-cyan-400 transition-colors uppercase text-lg md:text-xl tracking-tight leading-tight">{fac.name}</h4>
+                                                <h3 className="text-white font-black group-hover:text-cyan-400 transition-colors uppercase text-lg md:text-xl tracking-tight leading-tight">{fac.name}</h3>
                                                 <p className="text-slate-400 text-sm md:text-base leading-relaxed font-medium">{fac.description}</p>
                                             </div>
                                         </div>
@@ -1939,7 +1958,9 @@ export default function Home() {
                                     <img 
                                         src="/facility_image.webp" 
                                         alt="MusB Research Facility" 
-                                        className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-100 group-hover:scale-110 transition-all duration-1000"
+                                        className="absolute inset-0 w-full h-full object-cover object-top opacity-80 group-hover:opacity-100 group-hover:scale-110 transition-all duration-1000"
+                                        width="800"
+                                        height="800"
                                     />
                                     <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-transparent opacity-80"></div>
                                 </div>

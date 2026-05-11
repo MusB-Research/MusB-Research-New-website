@@ -1,8 +1,10 @@
+from django.db import models, transaction
 from django.db.models import Q
 from bson import ObjectId
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, permission_classes, parser_classes
 from rest_framework.response import Response
-from rest_framework import status, permissions
+from rest_framework import status, permissions, parsers
+from rest_framework.parsers import MultiPartParser, FormParser
 from django.utils.timezone import now
 from django.utils.crypto import get_random_string
 from django.conf import settings
@@ -10,9 +12,17 @@ import random
 import string
 import secrets
 import logging
-from ..models import User, AuditLog
-from ..utils import send_mail_premium
+from ..models import User, AuditLog, MagicLink
+from ..security import decrypt_data
+from ..utils import send_mail_premium, generate_token
 from api.views import IsAdminOrCoordinator
+
+def to_bool(val):
+    """Converts truthy strings/values to boolean."""
+    if isinstance(val, bool): return val
+    if isinstance(val, str):
+        return val.lower() in ('true', '1', 'yes', 'on')
+    return bool(val)
 
 logger = logging.getLogger(__name__)
 
@@ -68,6 +78,7 @@ def generate_unique_username(first_name, last_name):
     return f"{base}.{get_random_string(6)}"
 
 @api_view(['POST'])
+@parser_classes([MultiPartParser, FormParser])
 def admin_create_user(request):
     """
     Enhanced Super Admin onboarding flow.
@@ -76,37 +87,45 @@ def admin_create_user(request):
     try:
         admin_user = request.user
         if not admin_user or not admin_user.is_authenticated or (getattr(admin_user, 'role', '') or '').upper() not in ['SUPER_ADMIN', 'ADMIN', 'PI', 'COORDINATOR', 'SPONSOR']:
-            res = Response({'error': 'Unauthorized access.'}, status=status.HTTP_403_FORBIDDEN)
-            res["Access-Control-Allow-Origin"] = "*"
-            return res
+            return Response({'error': 'Unauthorized access.'}, status=status.HTTP_403_FORBIDDEN)
 
         # 1. Extraction
-        email       = request.data.get('email', '').strip().lower()
-        first_name  = request.data.get('first_name', '').strip()
-        middle_name = request.data.get('middle_name', '').strip() or None
-        last_name   = request.data.get('last_name', '').strip()
-        role_input  = request.data.get('role', '').strip()
+        email       = (request.data.get('email') or '').strip().lower()
+        first_name  = (request.data.get('first_name') or '').strip()
+        middle_name = (request.data.get('middle_name') or '').strip() or None
+        last_name   = (request.data.get('last_name') or '').strip()
+        role_input  = (request.data.get('role') or '').strip()
         lat         = request.data.get('lat')
         lng         = request.data.get('lng')
+        
         # Safely convert lat/lng to float
         try:
-            lat = float(lat) if lat is not None else None
+            lat = float(lat) if lat and str(lat).strip() else None
         except (ValueError, TypeError):
             lat = None
         try:
-            lng = float(lng) if lng is not None else None
+            lng = float(lng) if lng and str(lng).strip() else None
         except (ValueError, TypeError):
             lng = None
-        is_mellow   = request.data.get('is_mellow_member', False)
+            
+        is_mellow   = to_bool(request.data.get('is_mellow_member', False))
         org         = (request.data.get('organization') or '').strip() or None
         bio         = (request.data.get('bio') or '').strip() or None
+        pronouns    = (request.data.get('pronouns') or '').strip() or None
+        linkedin_url = (request.data.get('linkedin_url') or '').strip() or None
+        institute_url = (request.data.get('institute_url') or '').strip() or None
+        qualifications = (request.data.get('qualifications') or '').strip() or None
+        profile_image = request.FILES.get('profile_image')
+        cv_file     = request.FILES.get('cv_file')
         
+        logger.info(f"Onboarding request for {email} (Role: {role_input}) by {admin_user.email}")
+
         # 2. Validation
         if not all([email, first_name, last_name, role_input]):
-            logger.warning(f"Validation failed for user creation by {admin_user.email}. Missing fields: {[f for f in ['email', 'first_name', 'last_name', 'role'] if not request.data.get(f)]}")
-            res = Response({'error': 'First Name, Last Name, Email, and Role are mandatory.'}, status=status.HTTP_400_BAD_REQUEST)
-            res["Access-Control-Allow-Origin"] = "*"
-            return res
+            missing = [f for f in ['email', 'first_name', 'last_name', 'role'] if not (request.data.get(f) or '').strip()]
+            err_msg = f"Missing mandatory fields: {', '.join(missing)}"
+            logger.warning(f"Validation failed for user creation by {admin_user.email}. {err_msg}")
+            return Response({'error': 'First Name, Last Name, Email, and Role are mandatory.'}, status=status.HTTP_400_BAD_REQUEST)
         
         # Find matching role in choices regardless of case
         role = None
@@ -116,19 +135,26 @@ def admin_create_user(request):
         
         if not role:
             logger.warning(f"Invalid role requested: {role_input} by {admin_user.email}")
-            res = Response({'error': f'Invalid role. Allowed: {", ".join([r[1] for r in User.ROLE_CHOICES])}'}, status=status.HTTP_400_BAD_REQUEST)
-            res["Access-Control-Allow-Origin"] = "*"
-            return res
+            return Response({'error': f'Invalid role. Allowed: {", ".join([r[1] for r in User.ROLE_CHOICES])}'}, status=status.HTTP_400_BAD_REQUEST)
 
         # 3. RBAC Permission Check
         if not check_permission(admin_user, role):
-            res = Response({'error': 'You do not have permission to create this type of account.'}, status=status.HTTP_403_FORBIDDEN)
-            res["Access-Control-Allow-Origin"] = "*"
-            return res
+            return Response({'error': 'You do not have permission to create this type of account.'}, status=status.HTTP_403_FORBIDDEN)
 
         existing_user = User.objects.filter(email=email).first()
         if existing_user:
-            res = Response({
+            # If user is already registered, check if we can just re-invite them
+            if (existing_user.status or '').upper() == 'PENDING':
+                return Response({
+                    'message': 'This user already has a pending invitation. You can resend their credentials from the dashboard.',
+                    'username': existing_user.username,
+                    'user_id': str(existing_user.id),
+                    'id': str(existing_user.id),
+                    'email': existing_user.email,
+                    'status': 'PENDING'
+                }, status=status.HTTP_200_OK)
+
+            return Response({
                 'error': 'This email is already registered on the platform.',
                 'existing_user': {
                     'name': f"{existing_user.first_name} {existing_user.last_name}",
@@ -138,84 +164,90 @@ def admin_create_user(request):
                     'status': existing_user.status
                 }
             }, status=status.HTTP_400_BAD_REQUEST)
-            res["Access-Control-Allow-Origin"] = "*"
-            return res
 
-        # Generation
+        # 4. Affiliation logic
+        affiliation = 'MUSB' # Default
+        status_val = 'PENDING' # Default for invited users
+        
+        if (getattr(admin_user, 'role', '') or '').upper() == 'PI' and (getattr(admin_user, 'affiliation', '') or '').upper() == 'ONSITE':
+            affiliation = 'ONSITE'
+        elif to_bool(request.data.get('is_onsite_hire')):
+             affiliation = 'ONSITE'
+
+        # 5. Generation
         username = generate_unique_username(first_name, last_name)
         temp_password = generate_secure_password(14)
         study_id = request.data.get('study_id')
+        if study_id and not str(study_id).strip():
+            study_id = None
         
-        # 5. Create Magic Link for Seamless First Login
-        from ..utils import generate_token
-        from ..models import MagicLink
-        invite_token = generate_token()
-        MagicLink.objects.create(email=email, token=invite_token)
-        
+        logger.info(f"Starting atomic transaction for user creation: {email}")
+        with transaction.atomic():
+            # Create Magic Link for Seamless First Login
+            invite_token = generate_token()
+            MagicLink.objects.create(email=email, token=invite_token)
+            logger.info(f"Magic link created for {email}")
+            
+            # Resolve admin user to ensure it's not a lazy object
+            if hasattr(admin_user, '_wrapped'):
+                admin_user = admin_user._wrapped
+            
+            # Atomic Creation
+            logger.info(f"Executing create_user for {email}")
+            new_user = User.objects.create_user(
+                email=email,
+                password=temp_password,
+                first_name=first_name,
+                middle_name=middle_name,
+                last_name=last_name,
+                full_name=f"{first_name} {last_name}".strip(),
+                role=role,
+                affiliation=affiliation,
+                status=status_val,
+                username=username,
+                must_change_password=True,
+                profile_completed=False,
+                created_by=admin_user,
+                invited_by=admin_user,
+                invited_in_study=study_id,
+                is_active=True,
+                # Consortium Data
+                lat=lat,
+                lng=lng,
+                is_mellow_member=is_mellow,
+                organization=org,
+                bio=bio,
+                pronouns=pronouns,
+                linkedin_url=linkedin_url,
+                institute_url=institute_url,
+                qualifications=qualifications,
+                profile_image=profile_image,
+                cv_file=cv_file,
+                zip_code=request.data.get('zip_code') or None,
+                city=request.data.get('city') or None,
+                state=request.data.get('state') or None,
+                country=request.data.get('country') or None
+            )
+            logger.info(f"User object created in DB: {new_user.email} (ID: {new_user.id})")
+            
+            # Approval Request for Onsite Team Members
+            if status_val == 'PENDING' and affiliation == 'ONSITE':
+                from ..models import ApprovalRequest
+                ApprovalRequest.objects.create(
+                    requested_by=admin_user,
+                    target_user=new_user,
+                    status='pending'
+                )
+
         # Determine correct login URL based on role
         frontend_base = getattr(settings, 'FRONTEND_URL', 'https://musbhealth.com')
         if role.lower() == 'super_admin':
             login_url = f"{frontend_base.rstrip('/')}/mainframe/restricted-auth?token={invite_token}"
         else:
-            login_url = f"{frontend_base.rstrip('/')}/signin?token={invite_token}"
+            login_url = f"{frontend_base.rstrip('/')}/auth/accept-invitation?token={invite_token}"
 
-        # 4. Atomic Creation
-        # Rule 1.1: HOW AFFILIATION IS DETERMINED
-        affiliation = 'MUSB' # Default
-        status_val = 'PENDING' # Default for MusB invited users
-        
-        # Onsite PI adds team members -> inherit onsite, set pending
-        if admin_user.role == 'pi' and admin_user.affiliation.upper() == 'ONSITE':
-            affiliation = 'ONSITE'
-            # Rule 6: Onsite PI team member requests ALWAYS go through Super Admin approval
-            if role == 'team_member':
-                status_val = 'PENDING'
-            
-        # Explicit override for onsite PIs if flag provided (e.g., from study assignment flow)
-        elif request.data.get('is_onsite_hire'):
-             affiliation = 'ONSITE'
-             if role == 'team_member':
-                 status_val = 'PENDING'
-
-        # New user creation
-        new_user = User.objects.create_user(
-            email=email,
-            password=temp_password,
-            first_name=first_name,
-            middle_name=middle_name,
-            last_name=last_name,
-            full_name=f"{first_name} {last_name}".strip(),
-            role=role,
-            affiliation=affiliation,
-            status=status_val,
-            username=username,
-            must_change_password=True,
-            profile_completed=False,
-            created_by=admin_user,
-            invited_by=admin_user,
-            invited_in_study=study_id,
-            is_active=True,
-            # Consortium Data
-            lat=lat,
-            lng=lng,
-            is_mellow_member=is_mellow,
-            organization=org,
-            bio=bio,
-            zip_code=request.data.get('zip_code') or None,
-            country=request.data.get('country') or None,
-            state=request.data.get('state') or None
-        )
-        
-        # 4.1 Approval Request for Onsite Team Members
-        if status_val == 'PENDING':
-            from ..models import ApprovalRequest
-            ApprovalRequest.objects.create(
-                requested_by=admin_user,
-                target_user=new_user,
-                status='pending'
-            )
-        
-        # 4.2 TRIGGER NOTIFICATIONS
+        # 6. TRIGGER NOTIFICATIONS
+        logger.info(f"Triggering notifications for {email}")
         try:
             from django.apps import apps
             Notification = apps.get_model('api', 'Notification')
@@ -223,32 +255,36 @@ def admin_create_user(request):
             
             # Notify Super Admins
             super_admins = User.objects.filter(role='SUPER_ADMIN', is_active=True)
+            admin_name = getattr(admin_user, 'full_name', None) or getattr(admin_user, 'email', 'An administrator')
             for sa in super_admins:
                 Notification.objects.create(
                     user=sa,
                     title="New Personnel Invitation",
-                    message=f"{admin_user.full_name} has invited {first_name} {last_name} as a {role}.",
+                    message=f"{admin_name} has invited {first_name} {last_name} as a {role}.",
                     type='INFO',
                     link='/dashboard/super-admin/all-users'
                 )
 
             # If study context provided, notify PIs and Coordinators of that study
             if study_id:
-                target_study = Study.objects.filter(Q(protocol_id=study_id) | Q(id=study_id)).first()
+                target_study = None
+                try:
+                    target_study = Study.objects.filter(Q(protocol_id=study_id) | Q(id=study_id)).first()
+                except Exception as study_err:
+                    logger.warning(f"Study lookup failed for ID {study_id}: {study_err}")
+                
                 if target_study:
-                    # Collect all staff associated with this study
                     recipients = set()
                     if target_study.pi: recipients.add(target_study.pi)
                     if target_study.coordinator: recipients.add(target_study.coordinator)
                     
-                    # Also check for multiple PIs/Coordinators if the model supports it
                     if hasattr(target_study, 'assigned_pis'):
-                        for pi in target_study.assigned_pis.all(): recipients.add(pi)
+                        for p in target_study.assigned_pis.all(): recipients.add(p)
                     if hasattr(target_study, 'assigned_coordinators'):
-                        for coord in target_study.assigned_coordinators.all(): recipients.add(coord)
+                        for c in target_study.assigned_coordinators.all(): recipients.add(c)
                     
                     for r in recipients:
-                        if r.id != admin_user.id: # Don't notify the inviter themselves
+                        if r.id != admin_user.id:
                             Notification.objects.create(
                                 user=r,
                                 title="Study Team Update",
@@ -259,7 +295,8 @@ def admin_create_user(request):
         except Exception as notify_err:
             logger.error(f"Notification trigger failed: {str(notify_err)}")
 
-        # 5. Email Delivery Logic
+        # 7. Email Delivery Logic
+        logger.info(f"Preparing email for {email} (Role: {role})")
         subject_map = {
             'pi': 'Your PI Coordinator Account Has Been Created',
             'coordinator': 'Your PI Coordinator Account Has Been Created',
@@ -270,9 +307,6 @@ def admin_create_user(request):
         
         subject = subject_map.get(role.lower(), 'Account Created — MusB Research')
         
-        from ..utils import send_mail_premium
-        
-        # Personalized body based on role
         body_content = f"""
         Hello <strong>{first_name}</strong>,<br><br>
         You have been invited by {admin_user.full_name} to join the MusB Research platform as a <strong>{role.upper()}</strong>. 
@@ -301,8 +335,6 @@ def admin_create_user(request):
             logger.info(f"Onboarding email sent to {email}")
         else:
             logger.warning(f"Email delivery failed for {email} (User ID: {new_user.id})")
-            # We keep the account as per rule 1 (rollback is secondary option), 
-            # so the admin can "Resend" from dashboard.
             
         AuditLog.log(
             action='ACCOUNT_CREATED',
@@ -311,7 +343,7 @@ def admin_create_user(request):
             detail=f'Created {role} account for {email}. Email sent: {email_sent}'
         )
         
-        res = Response({
+        return Response({
             'message': 'User created successfully.',
             'username': username,
             'email_sent': email_sent,
@@ -324,12 +356,18 @@ def admin_create_user(request):
             'status': (new_user.status or 'PENDING').upper(),
             'invitation_status': 'Accepted' if (new_user.status or '').upper() == 'ACTIVE' else 'Pending',
         }, status=status.HTTP_201_CREATED)
-        res["Access-Control-Allow-Origin"] = "*"
-        return res
 
     except Exception as e:
-        logger.exception(f"admin_create_user unhandled error: {str(e)}")
-        res = Response({'error': f'Server error: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        import traceback
+        error_trace = traceback.format_exc()
+        logger.exception(f"admin_create_user critical failure: {str(e)}")
+        
+        # PROD DIAGNOSTIC: Ensure CORS is handled even on crash so user can see details
+        res = Response({
+            'error': f'Finalization failed: {str(e)}',
+            'details': error_trace,
+            'hint': 'Check if all required fields are provided and server storage is writable.'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         res["Access-Control-Allow-Origin"] = "*"
         return res
 
@@ -592,7 +630,13 @@ def get_mellow_investigators(request):
     Public view to fetch investigators for the Mellow Consortium map.
     Returns only users flagged with is_mellow_member=True.
     """
-    investigators = User.objects.filter(is_mellow_member=True, role='PI', is_active=True)
+    investigators = User.objects.filter(
+        is_mellow_member=True, 
+        role='PI', 
+        is_active=True,
+        lat__isnull=False,
+        lng__isnull=False
+    )
     
     # One pin per investigator - no grouping
     # If two share exact coordinates, offset slightly so pins don't stack
@@ -619,8 +663,12 @@ def get_mellow_investigators(request):
             'name': u.full_name or f"{u.first_name} {u.last_name}",
             'email': u.email,
             'bio': u.bio or "Clinical Investigator specializing in multi-center research protocols.",
-            'profile_picture': u.profile_picture or None,
-            'qualifications': u.qualifications or "MD, PhD",
+            'profile_picture': u.profile_image.url if u.profile_image else (u.profile_picture or None),
+            'qualifications': decrypt_data(u.qualifications) if u.qualifications else "MD, PhD",
+            'pronouns': u.pronouns or None,
+            'linkedin': u.linkedin_url or None,
+            'website': u.institute_url or None,
+            'cv_url': u.cv_file.url if u.cv_file else None,
             'is_active': u.is_active
         }
         

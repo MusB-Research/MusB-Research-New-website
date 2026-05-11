@@ -57,7 +57,7 @@ export default function ParticipantsManagement({ allParticipants = [], allStudie
     // Basic toggle logic: if ACTIVE -> INACTIVE, if anything else -> ACTIVE
     const newStatus = p.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
     setUpdatingId(p.internal_id);
-    const apiUrl = API || 'http://localhost:8000';
+    const apiUrl = API || 'http://localhost:8003';
     
     try {
       const res = await authFetch(`${apiUrl}/api/participants/${p.internal_id}/`, {

@@ -5,7 +5,7 @@ import {
     Plus, Save, Layout, FileText, List, Calendar,
     X, AlertCircle, ChevronDown, MousePointer2,
     Settings2, Trash2, LayoutGrid, Type,
-    ChevronLeft, ChevronRight, Database, Boxes, Rocket, Eye, Terminal, CheckCircle2, AlertTriangle, Upload
+    ChevronLeft, ChevronRight, Database, Boxes, Rocket, Eye, Terminal, CheckCircle2, AlertTriangle, Upload, Sparkles
 } from 'lucide-react';
 import { authFetch, API } from '../../utils/auth';
 
@@ -540,23 +540,23 @@ export default function ScreenerBuilder({
                         <h3 className="text-[11px] font-black text-slate-500 tracking-widest mb-6 uppercase">Toolbox</h3>
                         <div className="space-y-3">
                             {[
-                                { type: 'short_text', icon: Type, label: 'Text Input' },
-                                { type: 'choice', icon: List, label: 'Single Choice' },
-                                { type: 'dropdown', icon: ChevronDown, label: 'Dropdown' },
-                                { type: 'date', icon: Calendar, label: 'Date' }
+                                { type: 'short_text', icon: Type, label: 'Text Input', color: 'text-blue-400', bg: 'group-hover:bg-blue-500/20', border: 'group-hover:border-blue-500/30' },
+                                { type: 'choice', icon: List, label: 'Single Choice', color: 'text-indigo-400', bg: 'group-hover:bg-indigo-500/20', border: 'group-hover:border-indigo-500/30' },
+                                { type: 'dropdown', icon: ChevronDown, label: 'Dropdown', color: 'text-purple-400', bg: 'group-hover:bg-purple-500/20', border: 'group-hover:border-purple-500/30' },
+                                { type: 'date', icon: Calendar, label: 'Date', color: 'text-amber-400', bg: 'group-hover:bg-amber-500/20', border: 'group-hover:border-amber-500/30' }
                             ].map((item) => (
                                 <button
                                     key={item.type}
                                     onClick={() => addQuestion(item.type as any)}
-                                    className="w-full flex items-center justify-between p-5 bg-white/5 border border-white/5 rounded-2xl hover:border-pink-500/30 hover:bg-pink-500/5 transition-all group"
+                                    className={`w-full flex items-center justify-between p-5 bg-white/5 border border-white/5 rounded-2xl transition-all group ${item.border}`}
                                 >
                                     <div className="flex items-center gap-4">
-                                        <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center group-hover:bg-pink-500/20 group-hover:text-pink-400 transition-all">
-                                            <item.icon className="w-5 h-5 opacity-60 group-hover:opacity-100" />
+                                        <div className={`w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center transition-all ${item.bg} ${item.color.replace('text-', 'bg-').replace('400', '500/5')}`}>
+                                            <item.icon className={`w-5 h-5 opacity-60 group-hover:opacity-100 transition-all ${item.color}`} />
                                         </div>
-                                        <span className="text-[11px] font-black text-slate-400 tracking-widest group-hover:text-white transition-all">{item.label}</span>
+                                        <span className="text-[11px] font-black text-slate-400 tracking-widest group-hover:text-white transition-all uppercase">{item.label}</span>
                                     </div>
-                                    <Plus className="w-4 h-4 text-slate-700 group-hover:text-pink-500" />
+                                    <Plus className={`w-4 h-4 text-slate-700 transition-all ${item.color.replace('text-', 'group-hover:text-')}`} />
                                 </button>
                             ))}
                         </div>
@@ -573,9 +573,9 @@ export default function ScreenerBuilder({
                                         <div className="w-8 h-8 border-4 border-pink-500 border-t-transparent rounded-full animate-spin" />
                                     </div>
                                 )}
-                                <Upload className="w-7 h-7 text-pink-500 mb-4" />
-                                <span className="text-[12px] font-black text-white uppercase italic">Upload Doc</span>
-                                <span className="text-[9px] text-pink-500/60 font-bold uppercase mt-2">AI Extraction</span>
+                                <Upload className="w-7 h-7 text-pink-500 mb-4 group-hover:scale-110 transition-transform" />
+                                <span className="text-[12px] font-black text-white uppercase italic">Upload Protocol</span>
+                                <span className="text-[9px] text-pink-500/60 font-bold uppercase mt-2">AI Auto-Extraction</span>
                             </button>
                         </div>
                     </div>
@@ -585,10 +585,26 @@ export default function ScreenerBuilder({
                     <div className="min-h-[600px] border-2 border-dashed border-white/5 rounded-[3rem] p-10 flex flex-col items-center bg-black/20">
                         <AnimatePresence>
                             {questions.length === 0 ? (
-                                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex-1 flex flex-col items-center justify-center text-center">
-                                    <LayoutGrid className="w-12 h-12 text-slate-700 mb-6" />
-                                    <h3 className="text-xl font-black text-white italic">No questions yet</h3>
-                                </motion.div>
+                                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex-1 flex flex-col items-center justify-center text-center max-w-md mx-auto pt-20">
+                                     <div className="w-24 h-24 rounded-[2rem] bg-white/5 border border-white/5 flex items-center justify-center relative group group-hover:scale-110 transition-all duration-500 mb-8">
+                                         <div className="absolute inset-0 bg-pink-500/20 blur-3xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
+                                         <LayoutGrid className="w-10 h-10 text-slate-700 group-hover:text-pink-500 transition-colors relative z-10" />
+                                         <div className="absolute -bottom-2 -right-2 w-8 h-8 rounded-full bg-pink-500 flex items-center justify-center shadow-lg shadow-pink-500/50">
+                                             <Plus className="w-4 h-4 text-white" />
+                                         </div>
+                                     </div>
+                                     <div className="space-y-3">
+                                         <h4 className="text-2xl font-black text-white italic tracking-tighter uppercase">Canvas is Empty</h4>
+                                         <p className="text-[11px] font-bold text-slate-500 uppercase tracking-[0.2em] leading-relaxed">
+                                             Your eligibility questionnaire starts here.<br />
+                                             Pick a field from the toolbox on the left to add your first question.
+                                         </p>
+                                     </div>
+                                     <div className="mt-8 flex items-center gap-3 px-6 py-3 bg-white/5 border border-white/5 rounded-full opacity-40 italic">
+                                         <Sparkles className="w-3.5 h-3.5 text-pink-500" />
+                                         <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">AI Extraction available below</span>
+                                     </div>
+                                 </motion.div>
                             ) : (
                                 <div className="w-full space-y-4 max-w-4xl">
                                     {questions.map((q, idx) => (
@@ -604,14 +620,16 @@ export default function ScreenerBuilder({
                                                     {(idx + 1).toString().padStart(2, '0')}
                                                 </div>
                                                 <div className="flex-1 space-y-6">
-                                                    <div className="flex items-center justify-between">
-                                                         <input
-                                                             value={String(q?.label || '')}
-                                                             onChange={(e) => updateQuestion(q.id, { label: e.target.value })}
-                                                             placeholder="Type question here..."
-                                                             className="w-full bg-transparent text-lg font-bold text-white outline-none border-b border-white/5 focus:border-pink-500/50 pb-2"
-                                                         />
-                                                         <div className="flex items-center gap-2 ml-4">
+                                                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                                         <div className="flex-1">
+                                                             <input
+                                                                 value={String(q?.label || '')}
+                                                                 onChange={(e) => updateQuestion(q.id, { label: e.target.value })}
+                                                                 placeholder="Type question here..."
+                                                                 className="w-full bg-transparent text-lg font-bold text-white outline-none border-b border-white/5 focus:border-pink-500/50 pb-2"
+                                                             />
+                                                         </div>
+                                                         <div className="flex items-center gap-2 shrink-0">
                                                               <button
                                                                  onClick={() => updateQuestion(q.id, { required: !q.required })}
                                                                  className={`text-[9px] font-black px-3 py-1.5 rounded-lg border ${q.required ? 'bg-pink-500/10 border-pink-500/30 text-pink-500' : 'bg-white/5 border-white/5 text-slate-500'}`}
@@ -619,46 +637,87 @@ export default function ScreenerBuilder({
                                                                   {q.required ? 'Required' : 'Optional'}
                                                               </button>
                                                               <span className="text-[9px] font-black text-slate-500 px-3 py-1.5 bg-white/5 rounded-lg border border-white/5 uppercase">
-                                                                  {String(q?.type || 'short_text')}
+                                                                  {String(q?.type || 'short_text').replace('_', ' ')}
                                                               </span>
-                                                              {q.allow_multiple && (
-                                                                  <span className="text-[9px] font-black bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 px-3 py-1.5 rounded-lg uppercase">
-                                                                      Multi-Select
-                                                                  </span>
-                                                              )}
                                                               {(q.type === 'choice' || q.type === 'dropdown') && (
                                                                   <button
                                                                       onClick={() => updateQuestion(q.id, { allow_multiple: !q.allow_multiple })}
                                                                       className={`text-[9px] font-black px-3 py-1.5 rounded-lg border transition-all ${q.allow_multiple ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' : 'bg-white/5 border-white/5 text-slate-500 hover:border-emerald-500/30'}`}
                                                                   >
-                                                                      {q.allow_multiple ? 'Multi-Select On' : 'Multi-Select Off'}
+                                                                      {q.allow_multiple ? 'Multi-On' : 'Multi-Off'}
                                                                   </button>
                                                               )}
                                                          </div>
                                                      </div>
+
+                                                     {q.type === 'short_text' && (
+                                                         <div className="space-y-4">
+                                                             <div className="flex items-center justify-between">
+                                                                 <div className="flex items-center gap-2">
+                                                                    <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
+                                                                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Input Preview</span>
+                                                                 </div>
+                                                                 <div className="flex items-center gap-2 bg-white/5 px-3 py-1.5 rounded-lg border border-white/5 group/placeholder hover:border-blue-500/30 transition-all">
+                                                                     <span className="text-[9px] text-slate-500 font-black uppercase whitespace-nowrap">Placeholder:</span>
+                                                                     <input 
+                                                                         value={q.placeholder || ''} 
+                                                                         onChange={(e) => updateQuestion(q.id, { placeholder: e.target.value })}
+                                                                         className="bg-transparent text-[10px] text-blue-400 font-bold outline-none w-32 placeholder:text-slate-700"
+                                                                         placeholder="Edit placeholder..."
+                                                                     />
+                                                                 </div>
+                                                             </div>
+                                                             <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-6 transition-all hover:bg-white/[0.04] group/input">
+                                                                 <input 
+                                                                     type="text"
+                                                                     placeholder={q.placeholder || "User types here..."}
+                                                                     className="w-full bg-[#0B101B] border border-white/10 rounded-xl px-5 py-4 text-slate-300 text-sm outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/20 transition-all shadow-inner group-hover/input:border-blue-500/30"
+                                                                 />
+                                                             </div>
+                                                         </div>
+                                                     )}
+
+                                                     {q.type === 'date' && (
+                                                         <div className="space-y-4">
+                                                             <div className="flex items-center justify-between">
+                                                                 <div className="flex items-center gap-2">
+                                                                    <div className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                                                                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Date Selection Preview</span>
+                                                                 </div>
+                                                             </div>
+                                                             <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-6 transition-all hover:bg-white/[0.04] group/date">
+                                                                 <div className="relative">
+                                                                    <input 
+                                                                        type="date"
+                                                                        className="w-full bg-[#0B101B] border border-white/10 rounded-xl px-5 py-4 text-slate-300 text-sm outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/20 transition-all shadow-inner [color-scheme:dark] group-hover/date:border-amber-500/30"
+                                                                    />
+                                                                 </div>
+                                                             </div>
+                                                         </div>
+                                                     )}
+
                                                      {(q.type === 'choice' || q.type === 'dropdown') && (
                                                          <div className="space-y-3 bg-white/[0.02] p-6 rounded-2xl border border-white/5">
                                                              <div className="flex items-center justify-between">
-                                                                 <span className="text-[10px] font-bold text-slate-500 uppercase">Choices</span>
-                                                                 <button onClick={() => updateQuestion(q.id, { options: [...(q.options || []), `New Choice`] })} className="text-[10px] font-bold text-pink-500 uppercase">+ Add</button>
+                                                                 <span className="text-[10px] font-bold text-slate-500 uppercase">Choices Configuration</span>
+                                                                 <button onClick={() => updateQuestion(q.id, { options: [...(q.options || []), `New Choice`] })} className="text-[10px] font-bold text-pink-500 uppercase hover:text-pink-400 transition-colors">+ Add Option</button>
                                                              </div>
-                                                             <div className="grid grid-cols-2 gap-3">
+                                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                                                  {q.options?.map((opt, oIdx) => {
-                                                                     // Guard: ensure opt is always a string before rendering
                                                                      const optStr = typeof opt === 'string' ? opt : (opt as any)?.label ?? String(opt ?? '');
                                                                      return (
-                                                                     <div key={oIdx} className="flex items-center gap-2 bg-white/5 border border-white/5 rounded-xl px-4 py-2">
-                                                                         <input
-                                                                             value={optStr}
-                                                                             onChange={(e) => {
-                                                                                 const newOpts = [...(q.options || [])].map(o => typeof o === 'string' ? o : (o as any)?.label ?? String(o ?? ''));
-                                                                                 newOpts[oIdx] = e.target.value;
-                                                                                 updateQuestion(q.id, { options: newOpts });
-                                                                             }}
-                                                                             className="bg-transparent text-xs text-slate-300 outline-none flex-1"
-                                                                         />
-                                                                         <button onClick={() => updateQuestion(q.id, { options: q.options?.filter((_, i) => i !== oIdx) })} className="text-slate-600 hover:text-pink-500"><X className="w-3 h-3" /></button>
-                                                                     </div>
+                                                                         <div key={oIdx} className="flex items-center gap-2 bg-white/5 border border-white/5 rounded-xl px-4 py-2 group/opt">
+                                                                             <input
+                                                                                 value={optStr}
+                                                                                 onChange={(e) => {
+                                                                                     const newOpts = [...(q.options || [])].map(o => typeof o === 'string' ? o : (o as any)?.label ?? String(o ?? ''));
+                                                                                     newOpts[oIdx] = e.target.value;
+                                                                                     updateQuestion(q.id, { options: newOpts });
+                                                                                 }}
+                                                                                 className="bg-transparent text-xs text-slate-300 outline-none flex-1"
+                                                                             />
+                                                                             <button onClick={() => updateQuestion(q.id, { options: q.options?.filter((_, i) => i !== oIdx) })} className="text-slate-600 hover:text-pink-500 opacity-0 group-hover/opt:opacity-100 transition-opacity"><X className="w-3 h-3" /></button>
+                                                                         </div>
                                                                      );
                                                                  })}
                                                              </div>

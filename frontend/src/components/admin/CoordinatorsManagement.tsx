@@ -53,7 +53,7 @@ export default function CoordinatorsManagement({ allUsers = [], allStudies = [],
     const isCurrentlyActive = coord.status === 'Active';
     const newStatus = isCurrentlyActive ? 'Suspended' : 'Verified';
     setUpdatingId(coord.id);
-    const apiUrl = API || 'http://localhost:8000';
+    const apiUrl = API || 'http://localhost:8003';
     
     try {
       const res = await authFetch(`${apiUrl}/api/users/${coord.id}/`, {

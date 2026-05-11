@@ -1406,5 +1406,6 @@ export default function DashboardPanel({ protocols, team, inquiries, setProtocol
       </div>
     </>
   );
-}
+}
+
 

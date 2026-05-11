@@ -76,7 +76,7 @@ const HARDCODED_CATEGORIES: CareerCategory[] = [
 ];
 
 
-const API_ROOT = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const API_ROOT = import.meta.env.VITE_API_URL || 'http://localhost:8003';
 
 export default function Careers() {
     const [activeDept, setActiveDept] = useState<string>('All');

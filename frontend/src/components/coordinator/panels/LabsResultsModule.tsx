@@ -43,7 +43,7 @@ export default function LabsResultsModule({ selectedStudyId, preloadedStudies, i
     const [selectedSample, setSelectedSample] = useState<LabSample | null>(null);
     const [isReRunning, setIsReRunning] = useState(false);
     
-    const apiUrl = API || 'http://localhost:8000';
+    const apiUrl = API || 'http://localhost:8003';
 
     const [windowWidth, setWindowWidth] = useState(window.innerWidth);
     const isMobile = windowWidth < 768;
