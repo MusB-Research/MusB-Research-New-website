@@ -192,28 +192,28 @@ def check_staff_sla():
 
 
 
-@shared_task(bind=True, max_retries=3)
-def send_email_task(self, user_email, user_name, mode, secret_data, 
-                    study_name=None, study_title=None, role=None, expires_in_days=7):
-    """
-    Async email sending — never blocks API responses
-    """
-    try:
-        from .utils.email_utils import send_musb_system_email
-        result = send_musb_system_email(
-            user_email=user_email,
-            user_name=user_name,
-            mode=mode,
-            secret_data=secret_data,
-            study_name=study_name,
-            study_title=study_title,
-            role=role,
-            expires_in_days=expires_in_days,
-        )
-        return result
-    except Exception as exc:
-        # Retry up to 3 times with 60 second delay
-        raise self.retry(exc=exc, countdown=60)
+# @shared_task(bind=True, max_retries=3)
+# def send_email_task(self, user_email, user_name, mode, secret_data, 
+#                     study_name=None, study_title=None, role=None, expires_in_days=7):
+#     """
+#     Async email sending — never blocks API responses
+#     """
+#     try:
+#         from .utils.email_utils import send_musb_system_email
+#         result = send_musb_system_email(
+#             user_email=user_email,
+#             user_name=user_name,
+#             mode=mode,
+#             secret_data=secret_data,
+#             study_name=study_name,
+#             study_title=study_title,
+#             role=role,
+#             expires_in_days=expires_in_days,
+#         )
+#         return result
+#     except Exception as exc:
+#         # Retry up to 3 times with 60 second delay
+#         raise self.retry(exc=exc, countdown=60)
 
 
 @shared_task(bind=True, max_retries=2)
