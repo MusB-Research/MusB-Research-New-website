@@ -164,3 +164,44 @@ def check_staff_sla():
             
     logger.info(f"SLA Escalation complete: Marked {count} staff tasks as OVERDUE.")
     return count
+
+
+@shared_task(bind=True, max_retries=3)
+def send_email_task(self, user_email, user_name, mode, secret_data, 
+                    study_name=None, study_title=None, role=None, expires_in_days=7):
+    """
+    Async email sending — never blocks API responses
+    """
+    try:
+        from .utils.email_utils import send_musb_system_email
+        result = send_musb_system_email(
+            user_email=user_email,
+            user_name=user_name,
+            mode=mode,
+            secret_data=secret_data,
+            study_name=study_name,
+            study_title=study_title,
+            role=role,
+            expires_in_days=expires_in_days,
+        )
+        return result
+    except Exception as exc:
+        # Retry up to 3 times with 60 second delay
+        raise self.retry(exc=exc, countdown=60)
+
+
+@shared_task(bind=True, max_retries=2)
+def generate_consent_pdf_task(self, consent_id):
+    """
+    Async PDF generation — never blocks API responses
+    """
+    try:
+        from .models import Consent
+        from .utils.pdf_utils import generate_signed_consent_pdf
+        consent = Consent.objects.get(pk=consent_id)
+        generate_signed_consent_pdf(consent)
+        logger.info(f"PDF generated for consent {consent_id}")
+    except Consent.DoesNotExist:
+        logger.error(f"Consent {consent_id} not found for PDF generation")
+    except Exception as exc:
+        raise self.retry(exc=exc, countdown=30)

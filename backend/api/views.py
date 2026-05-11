@@ -3057,8 +3057,8 @@ class InvitationViewSet(viewsets.ModelViewSet):
 
             def _send_invite_email():
                 try:
-                    from .utils.email_utils import send_musb_system_email
-                    send_musb_system_email(
+                    from api.tasks import send_email_task
+                    send_email_task.delay(
                         user_email=invitee_email,
                         user_name=invitee_name,
                         mode='INVITE',
@@ -3069,10 +3069,47 @@ class InvitationViewSet(viewsets.ModelViewSet):
                     )
                 except Exception as exc:
                     import logging
-                    logging.getLogger(__name__).error(f"Invitation email delivery failed for token {token}: {exc}")
+                    logging.getLogger(__name__).error(
+                        f"Invitation email delivery failed for token {token}: {exc}"
+                    )
 
-            import threading
-            threading.Thread(target=_send_invite_email, daemon=True).start()
+            # def _send_invite_email():
+            #     try:
+            #         from .utils.email_utils import send_musb_system_email
+            #         from api.tasks import send_email_task
+            #         send_email_task.delay(
+            #             user_email=user.email,
+            #             user_name=user.full_name,
+            #             mode='INVITE',
+            #             secret_data=invite_link,
+            #             study_name=study.title,
+            #             role=role
+            #         )
+
+                    # send_musb_system_email(
+                    #     user_email=invitee_email,
+                    #     user_name=invitee_name,
+                    #     mode='INVITE',
+                    #     secret_data=accept_link,
+                    #     study_name=study_name,
+                    #     study_title=study_title,
+                    #     role=invitee_role,
+                    # )
+                # except Exception as exc:
+                #     import logging
+                #     logging.getLogger(__name__).error(f"Invitation email delivery failed for token {token}: {exc}")
+
+            # import threading
+            # threading.Thread(target=_send_invite_email, daemon=True).start()
+
+            # FIXED — using Celery
+            from api.tasks import send_email_task
+            send_email_task.delay(
+                user_email=user_instance.email,
+                user_name=user_instance.decrypted_name or user_instance.email,
+                mode='INVITE',
+                secret_data=reset_link,
+            )
 
             headers = self.get_success_headers(serializer.data)
             res = Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)

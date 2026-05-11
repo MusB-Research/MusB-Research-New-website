@@ -27,16 +27,16 @@ except ImportError:
 
 # Patch Django Model hash to fix "Model instances without primary key value are unhashable"
 # This is required for Django 6.x with MongoDB backends during migration/setup
-import django.db.models as django_models
-def _safe_model_hash(self):
-    pk = getattr(self, 'pk', None)
-    if pk is None:
-        return id(self)
-    try:
-        return hash(str(pk))
-    except Exception:
-        return id(self)
-django_models.Model.__hash__ = _safe_model_hash
+# import django.db.models as django_models
+# def _safe_model_hash(self):
+#     pk = getattr(self, 'pk', None)
+#     if pk is None:
+#         return id(self)
+#     try:
+#         return hash(str(pk))
+#     except Exception:
+#         return id(self)
+# django_models.Model.__hash__ = _safe_model_hash
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -350,8 +350,8 @@ else:
     CSRF_COOKIE_HTTPONLY = True
     SESSION_COOKIE_HTTPONLY = True
     # Ensure local development allows cross-port cookies for auth
-    CSRF_COOKIE_SAMESITE = 'None'
-    SESSION_COOKIE_SAMESITE = 'None'
+    CSRF_COOKIE_SAMESITE = 'Lax'
+    SESSION_COOKIE_SAMESITE = 'Lax'
     CSRF_COOKIE_SECURE = False
     SESSION_COOKIE_SECURE = False
 
@@ -389,3 +389,24 @@ import warnings
 warnings.filterwarnings('ignore', category=DeprecationWarning, module='mongodb')
 warnings.filterwarnings('ignore', category=DeprecationWarning, module='django_mongodb_backend')
 warnings.filterwarnings('ignore', category=RuntimeWarning, module='django.db.models.fields')
+
+
+# settings.py
+
+# Stop Django from syncing permissions to MongoDB
+# We use our own role-based system anyway (role field on User model)
+# This eliminates the need for the bulk_create patch entirely
+# AUTH_PERMISSION_SYNC = False
+
+# Disconnect the post_migrate signal that tries to create permissions
+# Add this at the bottom of settings.py
+from django.db.models.signals import post_migrate
+
+def disable_permission_creation(sender, **kwargs):
+    pass  # do nothing instead of creating permissions
+
+# This runs once when Django starts
+import django.contrib.auth.management
+post_migrate.disconnect(
+    django.contrib.auth.management.create_permissions
+)
