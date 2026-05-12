@@ -36,7 +36,7 @@ export default function StudyConsent() {
             setIsLoading(true);
             try {
                 // 1. Fetch Study
-                const sResponse = await fetch(`${API}/api/public-studies/${id}/`);
+                const sResponse = await authFetch(`${API}/api/public-studies/${id}/`);
                 if (!sResponse.ok) throw new Error('Study not found');
                 const sData = await sResponse.json();
                 setStudy(sData);

@@ -81,13 +81,29 @@ function AppContent() {
         hasPung.current = true;
 
         const pingProduction = async () => {
-            try {
-                // Ping the specific production health endpoint the user provided
-                const apiUrl = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https://musbresearchwebsite.onrender.com' : 'http://localhost:8000');
-                const res = await fetch(`${apiUrl}/api/health/`);
-                if (res.ok) console.log('✅ GLOBAL_NODE_SYNC: PRODUCTION_WAKE_SUCCESS');
-            } catch (e) {
-                console.warn('⚠️ GLOBAL_NODE_SYNC: ASYNC_PENDING');
+            const apiUrl = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https://musbresearchwebsite.onrender.com' : 'http://localhost:8000');
+            
+            // Retry health ping to handle Render cold starts
+            const MAX_RETRIES = 4;
+            for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+                try {
+                    const res = await fetch(`${apiUrl}/api/health/`);
+                    if (res.ok) {
+                        console.log('✅ GLOBAL_NODE_SYNC: PRODUCTION_WAKE_SUCCESS');
+                        // Signal that backend is ready for other components
+                        window.dispatchEvent(new CustomEvent('backend-ready'));
+                        return;
+                    }
+                } catch (e) {
+                    if (attempt < MAX_RETRIES) {
+                        console.warn(`⏳ Backend warming up... retry ${attempt + 1}/${MAX_RETRIES}`);
+                        await new Promise(resolve => setTimeout(resolve, 2000 * (attempt + 1)));
+                    } else {
+                        console.warn('⚠️ GLOBAL_NODE_SYNC: ASYNC_PENDING');
+                        // Still dispatch so components don't wait forever
+                        window.dispatchEvent(new CustomEvent('backend-ready'));
+                    }
+                }
             }
         };
 

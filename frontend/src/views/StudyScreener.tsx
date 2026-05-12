@@ -196,7 +196,7 @@ export default function StudyScreener() {
         const initialize = async () => {
             setIsLoading(true);
             try {
-                const res = await fetch(`${API}/api/public-studies/${id}/`);
+                const res = await authFetch(`${API}/api/public-studies/${id}/`);
                 if (res.ok) {
                     const data = await res.json();
                     setStudy(data);
@@ -374,14 +374,13 @@ export default function StudyScreener() {
         setError(null);
         try {
             const detectedTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-            const res = await fetch(`${API}/api/auth/google-login/`, {
+            const res = await authFetch(`${API}/api/auth/google-login/`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     credential: response.credential,
                     timezone: detectedTimezone
-                }),
-                credentials: 'include'
+                })
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || 'Google login failed');

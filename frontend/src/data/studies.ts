@@ -36,9 +36,26 @@ export interface Study {
 export const fetchStudies = async (): Promise<Study[]> => {
     try {
         const url = `${API || 'http://localhost:8003'}/api/public-studies/`;
-        const response = await fetch(url);
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+        
+        // Retry logic for Render cold starts
+        let response: Response | null = null;
+        const MAX_RETRIES = 3;
+        for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+            try {
+                response = await fetch(url);
+                break; // Success, exit retry loop
+            } catch (fetchError) {
+                if (attempt < MAX_RETRIES && fetchError instanceof TypeError) {
+                    console.warn(`Failed to fetch studies, retrying (${attempt + 1}/${MAX_RETRIES})...`);
+                    await new Promise(resolve => setTimeout(resolve, 2000 * (attempt + 1)));
+                    continue;
+                }
+                throw fetchError;
+            }
+        }
+        
+        if (!response || !response.ok) {
+            throw new Error(`HTTP error! status: ${response?.status}`);
         }
         const data = await response.json();
         

@@ -200,43 +200,58 @@ export async function authFetch(url: string, options: any = {}) {
     // Wrap the actual fetch in a promise to track it if it's cacheable
     const performFetch = async (): Promise<Response> => {
         let response: Response;
-        try {
-            response = await fetch(fullUrl, { 
-                credentials: 'include', 
-                ...options, 
-                headers 
-            });
-            
-            if (response.status === 401 && getRefreshToken()) {
-                if (!_refreshPromise) {
-                    _refreshPromise = tryRefresh().finally(() => {
-                        _refreshPromise = null;
+        const MAX_RETRIES = 2;
+        let lastError: any;
+        
+        for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+            try {
+                response = await fetch(fullUrl, { 
+                    credentials: 'include', 
+                    ...options, 
+                    headers 
+                });
+                
+                if (response.status === 401 && getRefreshToken()) {
+                    if (!_refreshPromise) {
+                        _refreshPromise = tryRefresh().finally(() => {
+                            _refreshPromise = null;
+                        });
+                    }
+
+                    const refreshed = await _refreshPromise;
+                    if (refreshed) {
+                        const newAccessToken = getAccessToken();
+                        const retryHeaders = { ...headers, 'Authorization': `Bearer ${newAccessToken}` };
+                        response = await fetch(fullUrl, { credentials: 'include', ...options, headers: retryHeaders });
+                    } else {
+                        performLogout();
+                    }
+                }
+
+                if (isCacheable && response!.ok) {
+                    _apiCache.set(fullUrl, {
+                        data: response!.clone(),
+                        expiry: Date.now() + CACHE_DURATION
                     });
                 }
-
-                const refreshed = await _refreshPromise;
-                if (refreshed) {
-                    const newAccessToken = getAccessToken();
-                    const retryHeaders = { ...headers, 'Authorization': `Bearer ${newAccessToken}` };
-                    response = await fetch(fullUrl, { credentials: 'include', ...options, headers: retryHeaders });
-                } else {
-                    performLogout();
+                return response!;
+            } catch (error) {
+                lastError = error;
+                // Only retry on network-level failures (TypeError: Failed to fetch)
+                // These occur during Render cold starts when the backend is sleeping
+                if (attempt < MAX_RETRIES && error instanceof TypeError) {
+                    console.warn(`Fetch API cannot load ${fullUrl}. Retrying (${attempt + 1}/${MAX_RETRIES})...`);
+                    await new Promise(resolve => setTimeout(resolve, 2000 * (attempt + 1)));
+                    continue;
                 }
+                console.error(`Fetch error at ${fullUrl}:`, error);
+                throw error;
+            } finally {
+                if (isCacheable) _inflightFetches.delete(fullUrl);
             }
-
-            if (isCacheable && response.ok) {
-                _apiCache.set(fullUrl, {
-                    data: response.clone(),
-                    expiry: Date.now() + CACHE_DURATION
-                });
-            }
-            return response;
-        } catch (error) {
-            console.error(`Fetch error at ${fullUrl}:`, error);
-            throw error;
-        } finally {
-            if (isCacheable) _inflightFetches.delete(fullUrl);
         }
+        
+        throw lastError;
     };
 
     if (isCacheable) {

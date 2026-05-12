@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Mail, User, ShieldCheck, ArrowRight, Lock, Key, CheckCircle2, AlertCircle, ChevronLeft, LogIn, PhoneCall, Eye, EyeOff } from 'lucide-react';
 import ReCAPTCHA from 'react-google-recaptcha';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { saveToken, saveUser, isLoggedIn, getRole, API } from '../../utils/auth';
+import { saveToken, saveUser, isLoggedIn, getRole, API, authFetch } from '../../utils/auth';
 
 type AuthMode = 'LOGIN' | 'REGISTER' | 'FORGOT';
 type AuthStep = 'INFO' | 'OTP' | 'PASSWORD' | 'SUCCESS';
@@ -132,11 +132,10 @@ export default function SignIn() {
         setError(null);
         try {
             // Senior Dev Pro-tip: Check if email exists before sending OTP
-            const checkRes = await fetch(`${API}/api/auth/check-email/`, {
+            const checkRes = await authFetch(`${API}/api/auth/check-email/`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email }),
-                credentials: 'include'
+                body: JSON.stringify({ email })
             });
             
             if (checkRes.ok) {
@@ -148,7 +147,7 @@ export default function SignIn() {
                 }
             }
 
-            const response = await fetch(`${API}/api/auth/request-otp/`, {
+            const response = await authFetch(`${API}/api/auth/request-otp/`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email, captcha: captchaToken })
@@ -170,7 +169,7 @@ export default function SignIn() {
         setIsLoading(true);
         setError(null);
         try {
-            const response = await fetch(`${API}/api/auth/verify-otp/`, {
+            const response = await authFetch(`${API}/api/auth/verify-otp/`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email, otp: otp.join('') })
@@ -224,7 +223,7 @@ export default function SignIn() {
             // Senior Dev Pro-tip: Automatically detect timezone for global support
             const detectedTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
-            const response = await fetch(`${API}/api/auth/register/`, {
+            const response = await authFetch(`${API}/api/auth/register/`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -279,11 +278,10 @@ export default function SignIn() {
         setIsLoading(true);
         setError(null);
         try {
-            const response = await fetch(`${API}/api/auth/forgot-password/`, {
+            const response = await authFetch(`${API}/api/auth/forgot-password/`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email }),
-                credentials: 'include'
+                body: JSON.stringify({ email })
             });
             const data = await response.json();
             if (!response.ok) throw new Error(data.error || 'Failed to send reset link');
@@ -307,11 +305,10 @@ export default function SignIn() {
         setError(null);
         try {
             const detectedTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-            const response = await fetch(`${API}/api/auth/login/`, {
+            const response = await authFetch(`${API}/api/auth/login/`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, password, timezone: detectedTimezone }),
-                credentials: 'include'
+                body: JSON.stringify({ email, password, timezone: detectedTimezone })
             });
 
             const contentType = response.headers.get("content-type");

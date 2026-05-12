@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { API, saveToken, saveUser } from '../../utils/auth';
+import { API, saveToken, saveUser, authFetch } from '../../utils/auth';
 import PageLoader from '../../components/PageLoader';
 
 const GoogleCallback = () => {
@@ -30,11 +30,10 @@ const GoogleCallback = () => {
 
         const processCredential = async (credential: string) => {
             try {
-                const response = await fetch(`${API}/api/auth/google-login/`, {
+                const response = await authFetch(`${API}/api/auth/google-login/`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ credential, timezone: Intl.DateTimeFormat().resolvedOptions().timeZone }),
-                    credentials: 'include'
+                    body: JSON.stringify({ credential, timezone: Intl.DateTimeFormat().resolvedOptions().timeZone })
                 });
 
                 const data = await response.json();
