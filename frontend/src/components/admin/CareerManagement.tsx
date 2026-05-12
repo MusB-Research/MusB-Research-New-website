@@ -27,7 +27,7 @@ interface JobPosting {
   expiry_date: string;
 }
 
-const API_ROOT = API || 'http://localhost:8003';
+const API_ROOT = API; // Centralized URL from utils/auth.ts
 
 export default function CareerManagement() {
   const [jobs, setJobs] = useState<JobPosting[]>([]);

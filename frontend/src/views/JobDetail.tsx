@@ -13,10 +13,11 @@ import {
     Timer
 } from 'lucide-react';
 import { JobOpening } from '@/types';
+import { authFetch, API } from '../utils/auth';
 import SEO from '@/components/SEO';
 
 
-const API_ROOT = import.meta.env.VITE_API_URL || 'http://localhost:8003';
+// API root is now handled by the centralized API constant in utils/auth.ts
 
 export default function JobDetail() {
     const { id } = useParams<{ id: string }>();
@@ -27,7 +28,7 @@ export default function JobDetail() {
         const fetchJob = async () => {
             if (!id) return;
             try {
-                const res = await fetch(`${API_ROOT}/api/careers/public/job/${id}/`);
+                const res = await authFetch(`${API}/api/careers/public/job/${id}/`);
                 if (res.ok) {
                     const data = await res.json();
                     setJob({

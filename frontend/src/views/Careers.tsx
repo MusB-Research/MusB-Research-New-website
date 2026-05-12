@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { JobOpening, CareerCategory } from '@/types';
+import { authFetch, API } from '../utils/auth';
 import SEO from '@/components/SEO';
 
 
@@ -76,7 +77,7 @@ const HARDCODED_CATEGORIES: CareerCategory[] = [
 ];
 
 
-const API_ROOT = import.meta.env.VITE_API_URL || 'http://localhost:8003';
+// API root is now handled by the centralized API constant in utils/auth.ts
 
 export default function Careers() {
     const [activeDept, setActiveDept] = useState<string>('All');
@@ -87,7 +88,7 @@ export default function Careers() {
 
     const fetchJobs = async () => {
         try {
-            const res = await fetch(`${API_ROOT}/api/careers/public/active/?_t=${Date.now()}`);
+            const res = await authFetch(`${API}/api/careers/public/active/?_t=${Date.now()}`);
             if (res.ok) {
                 const data = await res.json();
                 setJobOpenings(data.map((j: any) => ({

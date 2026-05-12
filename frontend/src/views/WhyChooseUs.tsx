@@ -143,8 +143,13 @@ export default function WhyChooseUs() {
                         <div className="relative animate-fade-in-up stagger-1 h-[500px] rounded-[4rem] overflow-hidden group">
                             <div className="absolute inset-0 bg-gradient-to-tr from-cyan-500/30 to-indigo-500/30 rounded-[4rem] blur-[80px] z-0"></div>
                             <div className="relative w-full h-full bg-white/5 backdrop-blur-xl border border-white/10 rounded-[4rem] p-4 overflow-hidden shadow-2xl z-10 transition-all duration-700">
-                                <div className="w-full h-full rounded-[3.5rem] overflow-hidden relative bg-gradient-to-br from-cyan-500/20 to-transparent">
-                                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(6,182,212,0.15)_0%,transparent_70%)] animate-pulse"></div>
+                                <div className="w-full h-full rounded-[3.5rem] overflow-hidden relative bg-slate-950/20">
+                                    <img 
+                                        src="/Why_to_choose_Musbresearch.webp" 
+                                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" 
+                                        alt="Why Choose MusB Research"
+                                    />
+                                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950/40 via-transparent to-transparent"></div>
                                 </div>
                                 <div className="absolute inset-x-8 bottom-8 p-10 rounded-3xl bg-slate-950/80 backdrop-blur-md border border-white/10 space-y-3 transform group-hover:-translate-y-2 transition-transform duration-700 z-20">
                                     <h4 className="text-white font-black text-xl md:text-2xl uppercase tracking-wider">Mission-Driven Innovation</h4>

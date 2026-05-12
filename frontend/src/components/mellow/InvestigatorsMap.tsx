@@ -377,80 +377,6 @@ export default function InvestigatorsMap() {
                                     </div>
                                 </div>
 
-                                {/* About Section — Summary + Specializations */}
-                                <div className="pt-10 border-t border-white/5 space-y-6">
-                                    <div className="flex items-center gap-6">
-                                        <h4 className="text-xl font-serif text-white whitespace-nowrap">
-                                            {(() => {
-                                                const prefix = (selectedInvestigator.pronouns || 'Dr.').trim();
-                                                // Clean existing titles and get last name
-                                                const cleanName = selectedInvestigator.name.replace(/^(Dr\.|Prof\.|Mr\.|Mrs\.|Ms\.)\s+/i, '').trim();
-                                                const lastName = cleanName.split(/\s+/).pop();
-                                                return `About ${prefix} ${lastName}`;
-                                            })()}
-                                        </h4>
-                                        <div className="h-px w-full bg-gradient-to-r from-white/10 to-transparent" />
-                                    </div>
-
-                                    {/* Short Summary — first two sentences */}
-                                    <p className="text-slate-400 text-sm leading-relaxed">
-                                        {selectedInvestigator.bio.split(/(?<=[.!?])\s+/).slice(0, 2).join(' ')}
-                                    </p>
-
-                                    {/* Extracted Specializations as bullet points */}
-                                    {(() => {
-                                        const bioText = selectedInvestigator.bio.toLowerCase();
-                                        const keywords = [
-                                            'internal medicine', 'endocrinology', 'geriatrics', 'diabetes',
-                                            'metabolism', 'rehabilitation', 'cardiology', 'oncology',
-                                            'neurology', 'psychiatry', 'surgery', 'pediatrics',
-                                            'immunology', 'rheumatology', 'nephrology', 'pulmonology',
-                                            'clinical research', 'multi-center research', 'pharmacology',
-                                            'growth hormone', 'aging', 'hormone replacement', 'clinical trials',
-                                            'biomarkers', 'genomics', 'epidemiology', 'public health',
-                                            'rehabilitation medicine', 'preventive medicine'
-                                        ];
-                                        const found = keywords.filter(k => bioText.includes(k));
-                                        const specializations = found.length > 0 
-                                            ? found.slice(0, 5).map(s => s.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' '))
-                                            : (selectedInvestigator.qualifications || 'Internal Medicine, Endocrinology, Geriatrics').split(',').map(s => s.trim());
-                                        
-                                        return specializations.length > 0 ? (
-                                            <div className="space-y-3">
-                                                <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Key Specializations</span>
-                                                <div className="grid grid-cols-1 gap-2">
-                                                    {specializations.map((spec, idx) => (
-                                                        <div key={idx} className="flex items-center gap-3 group">
-                                                            <div className="w-1.5 h-1.5 rounded-full bg-cyan-500 shrink-0 group-hover:shadow-[0_0_8px_rgba(6,182,212,0.6)] transition-shadow" />
-                                                            <span className="text-slate-300 text-sm font-medium">{spec}</span>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        ) : null;
-                                    })()}
-
-                                    {/* Expandable Full Bio */}
-                                    <div className="relative">
-                                        <div className={`text-slate-500 text-sm leading-relaxed ${!isBioExpanded ? 'hidden' : ''} transition-all duration-700`}>
-                                            {selectedInvestigator.bio}
-                                        </div>
-                                        
-                                        <button 
-                                            onClick={() => setIsBioExpanded(!isBioExpanded)}
-                                            className="mt-2 flex items-center gap-2 text-xs font-black text-cyan-400 hover:text-cyan-300 transition-colors uppercase tracking-[0.2em] group"
-                                        >
-                                            {isBioExpanded ? 'Minimize Profile' : 'Expand Full Bio'} 
-                                            <motion.div
-                                                animate={{ rotate: isBioExpanded ? 180 : 0, x: isBioExpanded ? 0 : 4 }}
-                                                className="shrink-0"
-                                            >
-                                                <ChevronRight className="w-4 h-4 rotate-90 text-cyan-500" />
-                                            </motion.div>
-                                        </button>
-                                    </div>
-                                </div>
-
                                 {/* Links Section — LinkedIn, Website, CV */}
                                 <div className="pt-10 border-t border-white/5 space-y-4">
                                     <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Connect & Resources</span>
@@ -523,6 +449,80 @@ export default function InvestigatorsMap() {
                                                 </div>
                                             </div>
                                         )}
+                                    </div>
+                                </div>
+
+                                {/* About Section — Summary + Specializations */}
+                                <div className="pt-10 border-t border-white/5 space-y-6">
+                                    <div className="flex items-center gap-6">
+                                        <h4 className="text-xl font-serif text-white whitespace-nowrap">
+                                            {(() => {
+                                                const prefix = (selectedInvestigator.pronouns || 'Dr.').trim();
+                                                // Clean existing titles and get last name
+                                                const cleanName = selectedInvestigator.name.replace(/^(Dr\.|Prof\.|Mr\.|Mrs\.|Ms\.)\s+/i, '').trim();
+                                                const lastName = cleanName.split(/\s+/).pop();
+                                                return `About ${prefix} ${lastName}`;
+                                            })()}
+                                        </h4>
+                                        <div className="h-px w-full bg-gradient-to-r from-white/10 to-transparent" />
+                                    </div>
+
+                                    {/* Short Summary — first two sentences */}
+                                    <p className="text-slate-400 text-sm leading-relaxed">
+                                        {selectedInvestigator.bio.split(/(?<=[.!?])\s+/).slice(0, 2).join(' ')}
+                                    </p>
+
+                                    {/* Extracted Specializations as bullet points */}
+                                    {(() => {
+                                        const bioText = selectedInvestigator.bio.toLowerCase();
+                                        const keywords = [
+                                            'internal medicine', 'endocrinology', 'geriatrics', 'diabetes',
+                                            'metabolism', 'rehabilitation', 'cardiology', 'oncology',
+                                            'neurology', 'psychiatry', 'surgery', 'pediatrics',
+                                            'immunology', 'rheumatology', 'nephrology', 'pulmonology',
+                                            'clinical research', 'multi-center research', 'pharmacology',
+                                            'growth hormone', 'aging', 'hormone replacement', 'clinical trials',
+                                            'biomarkers', 'genomics', 'epidemiology', 'public health',
+                                            'rehabilitation medicine', 'preventive medicine'
+                                        ];
+                                        const found = keywords.filter(k => bioText.includes(k));
+                                        const specializations = found.length > 0 
+                                            ? found.slice(0, 5).map(s => s.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' '))
+                                            : (selectedInvestigator.qualifications || 'Internal Medicine, Endocrinology, Geriatrics').split(',').map(s => s.trim());
+                                        
+                                        return specializations.length > 0 ? (
+                                            <div className="space-y-3">
+                                                <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Key Specializations</span>
+                                                <div className="grid grid-cols-1 gap-2">
+                                                    {specializations.map((spec, idx) => (
+                                                        <div key={idx} className="flex items-center gap-3 group">
+                                                            <div className="w-1.5 h-1.5 rounded-full bg-cyan-500 shrink-0 group-hover:shadow-[0_0_8px_rgba(6,182,212,0.6)] transition-shadow" />
+                                                            <span className="text-slate-300 text-sm font-medium">{spec}</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        ) : null;
+                                    })()}
+
+                                    {/* Expandable Full Bio */}
+                                    <div className="relative">
+                                        <div className={`text-slate-500 text-sm leading-relaxed ${!isBioExpanded ? 'hidden' : ''} transition-all duration-700`}>
+                                            {selectedInvestigator.bio}
+                                        </div>
+                                        
+                                        <button 
+                                            onClick={() => setIsBioExpanded(!isBioExpanded)}
+                                            className="mt-2 flex items-center gap-2 text-xs font-black text-cyan-400 hover:text-cyan-300 transition-colors uppercase tracking-[0.2em] group"
+                                        >
+                                            {isBioExpanded ? 'Minimize Profile' : 'Expand Full Bio'} 
+                                            <motion.div
+                                                animate={{ rotate: isBioExpanded ? 180 : 0, x: isBioExpanded ? 0 : 4 }}
+                                                className="shrink-0"
+                                            >
+                                                <ChevronRight className="w-4 h-4 rotate-90 text-cyan-500" />
+                                            </motion.div>
+                                        </button>
                                     </div>
                                 </div>
                             </div>

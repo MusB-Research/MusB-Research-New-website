@@ -26,21 +26,21 @@ const HARDCODED_DATA = {
             one_line_summary: 'Fully equipped for diverse therapeutic studies.',
             description: 'Our clinical research site is designed to handle complex study protocols while ensuring participant safety and data integrity.',
             micro_bullets: ['Phase I-IV capabilities', 'Dedicated monitoring spaces', 'Advanced diagnostic tools', 'Comfortable participant lounges'],
-            image: ''
+            image: '/facilities_2 (2).webp'
         },
         {
             id: 2, pillar: 'Lab', layout: 'ImageLeft', badge_label: 'Testing', title: 'Central Laboratory',
             one_line_summary: 'High-throughput processing and biomarker analysis.',
             description: 'Our central laboratory enables rapid turnaround times and high-precision testing for clinical and translational endpoints.',
             micro_bullets: ['Biochemistry & Hematology', 'Molecular diagnostics', 'Microbiome sequencing prep', 'Strict QA/QC protocols'],
-            image: ''
+            image: '/facilities_3 (1).webp'
         },
         {
             id: 3, pillar: 'Biorepository', layout: 'ImageRight', badge_label: 'Storage', title: 'Secure Biospecimen Storage',
             one_line_summary: 'Long-term preservation of valuable samples.',
             description: 'Our biorepository features continuous temperature monitoring and redundant backup systems to protect the integrity of your biological samples.',
             micro_bullets: ['-80°C and -20°C freezers', 'Liquid nitrogen storage', '24/7 remote monitoring', 'Barcoded inventory management'],
-            image: ''
+            image: '/facilities_4.webp'
         }
     ],
     trust_badges: [

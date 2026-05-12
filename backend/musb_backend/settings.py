@@ -302,7 +302,9 @@ GUARANTEED_PROD_ORIGINS = [
     "https://musbhealth.com",
     "https://www.musbhealth.com",
     "https://musbresearchnewwebsite.vercel.app",
-    "https://musb-research-new-website-hk4k.onrender.com",
+    "https://musb-research-new-website.vercel.app",
+    "https://musb-research-website.vercel.app",
+    "https://musb-research-new-website.onrender.com",
 ]
 
 if DEBUG:
@@ -367,7 +369,7 @@ else:
         )
     # Console fallback — only for local development
     EMAIL_BACKEND      = 'django.core.mail.backends.console.EmailBackend'
-    DEFAULT_FROM_EMAIL = 'info@musbresearch.com'
+    DEFAULT_FROM_EMAIL = 'MusB Research <info@musbresearch.com>'
     SMTP_EMAIL         = None
 
 # Resend Configuration (Used as high-performance delivery option)

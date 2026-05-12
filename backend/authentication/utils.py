@@ -131,9 +131,8 @@ def send_mail_premium(to_email, subject, title, body, button_text=None, button_u
             # Note: From address must be verified in Resend. 
             # Using standard from_email or falling back to verified domain if needed.
             from_email = settings.DEFAULT_FROM_EMAIL
-            if 'noreplymusbresearch@gmail.com' in from_email and not DEBUG:
-                # If using default gmail on prod, Resend might block it unless verified.
-                # However, we assume they set up their domain.
+            if 'info@musbresearch.com' in from_email and not DEBUG:
+                # User has configured their professional domain.
                 pass
 
             resend.Emails.send({
@@ -201,7 +200,7 @@ def send_resend_email(to_email, subject, html_content):
             err_msg = str(api_err).lower()
             if "domain is not verified" in err_msg:
                 logger.warning(f"Domain not verified, attempting testing domain for {to_email}")
-                params["from"] = "info@musbresearch.com"
+                params["from"] = "onboarding@resend.dev"
                 try:
                     resend.Emails.send(params)
                     return True

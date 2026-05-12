@@ -99,7 +99,7 @@ def send_newsletter_update(subject: str, html_content: str, text_content: Option
         try:
             params = {
                 "from": settings.DEFAULT_FROM_EMAIL,
-                "to": ["info@musbresearch.com"], # Required TO field
+                "to": ["noreply@musbresearch.com"], # Required TO field
                 "bcc": chunk,
                 "subject": subject,
                 "html": html_content,
