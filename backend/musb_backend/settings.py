@@ -57,7 +57,7 @@ if os.getenv('RENDER'):
 # Frontend URL used for generating email links
 FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:5173')
 
-ALLOWED_HOSTS = [h.strip() for h in os.getenv('DJANGO_ALLOWED_HOSTS', 'localhost,127.0.0.1,musb-backend.onrender.com,musb-research-new-website.onrender.com,.onrender.com').split(',') if h.strip()]
+ALLOWED_HOSTS = [h.strip() for h in os.getenv('DJANGO_ALLOWED_HOSTS', 'localhost,127.0.0.1,musb-backend.onrender.com,musb-research-new-website.onrender.com,musbresearchwebsite.onrender.com,.onrender.com').split(',') if h.strip()]
 if DEBUG:
     ALLOWED_HOSTS = ['*']
 
@@ -304,7 +304,9 @@ GUARANTEED_PROD_ORIGINS = [
     "https://musbresearchnewwebsite.vercel.app",
     "https://musb-research-new-website.vercel.app",
     "https://musb-research-website.vercel.app",
+    "https://musbresearchwebsite.vercel.app",
     "https://musb-research-new-website.onrender.com",
+    "https://musbresearchwebsite.onrender.com",
 ]
 
 if DEBUG:
