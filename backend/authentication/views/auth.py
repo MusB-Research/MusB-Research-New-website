@@ -77,7 +77,10 @@ def get_user_data_dict(user):
         'profile_incomplete': not user.profile_completed,
         'mobile_number': user.decrypted_phone or '',
         'timezone':     user.timezone or 'UTC',
+        'birth_year':   user.birth_year,
+        'age':          user.age,
     }
+
 
 from django.views.decorators.csrf import csrf_exempt
 

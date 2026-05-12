@@ -444,6 +444,11 @@ class Participant(BaseMongoModel):
         ('REJECTED', 'Rejected / Ineligible'),
     ])
 
+    # Data Retention & Compliance (User Request: Prevent Hard Deletion)
+    is_deleted = models.BooleanField(default=False, db_index=True)
+    deleted_at = models.DateTimeField(null=True, blank=True)
+    is_archived = models.BooleanField(default=False, db_index=True)
+    
     # E-Consent Audit Data (Requirement 3)
     consent_details = models.JSONField(default=dict, blank=True, help_text="Store IP, User Agent, Document Version, and Signature Type")
     randomization_details = models.JSONField(default=dict, blank=True, help_text="Store randomization date, method, and seed if applicable")
@@ -483,79 +488,13 @@ class Participant(BaseMongoModel):
             invalidate_cache("participant_me", user_id=self.user_id)
             invalidate_cache("participant_records_list", user_id=self.user_id)
 
-@receiver(pre_delete, sender=Participant)
-def delete_related_participant_data(sender, instance, **kwargs):
-    """Clean up all related records when a Participant is deleted"""
-    try:
-        from api.models import DailyMedicationLog, Visit, Consent, QuestionnaireScheduleInstance, FormResponse, ParticipantTask, Compensation, LabResult, AssignedForm, ClinicalConversation, AEReport, ClinicalAuditLog, DosingLog
-        
-        # 1. Bulk delete via filter to bypass any queryset delete restrictions
-        DailyMedicationLog.objects.filter(participant=instance).delete()
-        Visit.objects.filter(participant=instance).delete()
-        Consent.objects.filter(participant=instance).delete()
-        QuestionnaireScheduleInstance.objects.filter(participant=instance).delete()
-        FormResponse.objects.filter(participant=instance).delete()
-        ParticipantTask.objects.filter(participant=instance).delete()
-        Compensation.objects.filter(participant=instance).delete()
-        LabResult.objects.filter(participant=instance).delete()
-        AssignedForm.objects.filter(participant=instance).delete()
-        DosingLog.objects.filter(participant=instance).delete()
-        try:
-            ClinicalConversation.objects.filter(participant=instance).delete()
-        except Exception: pass
-        AEReport.objects.filter(participant=instance).delete()
-        ClinicalAuditLog.objects.filter(participant=instance).delete()
-    except Exception: pass
-
-    try:
-        instance.visits.all().delete()
-    except Exception: pass
-    try:
-        instance.consent_records.all().delete()
-    except Exception: pass
-    try:
-        instance.scheduled_questionnaires.all().delete()
-    except Exception: pass
-    try:
-        instance.form_responses.all().delete()
-    except Exception: pass
-    try:
-        instance.assigned_tasks.all().delete()
-    except Exception: pass
-    try:
-        instance.compensation.all().delete()
-    except Exception: pass
-    try:
-        instance.lab_results.all().delete()
-    except Exception: pass
-    try:
-        instance.assigned_forms.all().delete()
-    except Exception: pass
-    try:
-        instance.conversations.all().delete()
-    except Exception: pass
-    try:
-        instance.dosing_logs.all().delete()
-    except Exception: pass
-    try:
-        instance.daily_logs.all().delete()
-    except Exception: pass
-    try:
-        instance.ae_reports.all().delete()
-    except Exception: pass
-    try:
-        instance.clinical_audit_logs.all().delete()
-    except Exception: pass
-    try:
-        from api.models import DataAuditLog
-        DataAuditLog.objects.filter(model_name='Participant', record_id=str(instance.id)).delete()
-    except Exception: pass
-    
-    # Clean up the User record if it has role='PARTICIPANT'
-    try:
-        if instance.user and instance.user.role == 'PARTICIPANT':
-            instance.user.delete()
-    except Exception: pass
+# @receiver(pre_delete, sender=Participant)
+# def delete_related_participant_data(sender, instance, **kwargs):
+#     """
+#     [DISABLED] Ensures absolute data scrubbing for clinical compliance.
+#     USER REQUEST: Do not delete participant data automatically.
+#     """
+#     pass # Logic removed to preserve clinical data integrity and study history.
 
 class ClinicalAuditLog(BaseMongoModel):
     """Protocol Requirement 11: Track all status changes, approvals, and system actions"""
@@ -622,7 +561,7 @@ class Visit(BaseMongoModel):
         ('ONBOARDING', 'Onboarding Call'),
     ]
 
-    participant = models.ForeignKey(Participant, on_delete=models.CASCADE, related_name='visits', db_index=True)
+    participant = models.ForeignKey(Participant, on_delete=models.PROTECT, related_name='visits', db_index=True)
     scheduled_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='scheduled_visits')
     updated_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='updated_visits', help_text="Staff who performed/completed the visit")
     visit_type = models.CharField(max_length=100) # relaxed choices
@@ -692,7 +631,13 @@ class Form(BaseMongoModel):
         return f"{self.title} v{self.version}"
 
 class QuestionnaireTemplate(BaseMongoModel):
+    CATEGORY_CHOICES = [
+        ('SCREENER', 'Screener Form'),
+        ('INSTRUMENT', 'Clinical Instrument / Questionnaire'),
+    ]
     name = models.CharField(max_length=255)
+    category = models.CharField(max_length=20, choices=CATEGORY_CHOICES, default='INSTRUMENT')
+    description = models.TextField(blank=True, default='')
     pdf_file = models.FileField(upload_to='questionnaire_pdfs/', null=True, blank=True)
     json_structure = models.JSONField(default=dict, blank=True)
     placed_fields = models.JSONField(default=list, blank=True, help_text="Coordinates for signatures and data overlay")
@@ -720,6 +665,14 @@ class StudyQuestionnaire(BaseMongoModel):
     end_date = models.DateField(null=True, blank=True)
     relative_to_enrollment = models.BooleanField(default=False, help_text="Calculate dates relative to participant enrollment date")
     
+    WINDOW_PRESET_CHOICES = [
+        ('MORNING', 'Morning (06:00 - 10:00)'),
+        ('NOON', 'Noon (11:00 - 14:00)'),
+        ('EVENING', 'Evening (17:00 - 21:00)'),
+        ('NIGHT', 'Night (22:00 - 05:00)'),
+        ('CUSTOM', 'Custom Times'),
+    ]
+    window_preset = models.CharField(max_length=20, choices=WINDOW_PRESET_CHOICES, default='CUSTOM')
     window_open_time = models.TimeField(null=True, blank=True, help_text="Time of day window opens (e.g. 08:00)")
     window_close_time = models.TimeField(null=True, blank=True, help_text="Time of day window closes (e.g. 20:00)")
     allow_late_submission = models.BooleanField(default=True)
@@ -737,6 +690,24 @@ class StudyQuestionnaire(BaseMongoModel):
 
         # Step 1: Pre-calculate all target dates
         target_dates_map = {}
+        
+        # Resolve preset times
+        open_time = self.window_open_time
+        close_time = self.window_close_time
+        
+        if self.window_preset == 'MORNING':
+            open_time = datetime.strptime('06:00', '%H:%M').time()
+            close_time = datetime.strptime('10:00', '%H:%M').time()
+        elif self.window_preset == 'NOON':
+            open_time = datetime.strptime('11:00', '%H:%M').time()
+            close_time = datetime.strptime('14:00', '%H:%M').time()
+        elif self.window_preset == 'EVENING':
+            open_time = datetime.strptime('17:00', '%H:%M').time()
+            close_time = datetime.strptime('21:00', '%H:%M').time()
+        elif self.window_preset == 'NIGHT':
+            open_time = datetime.strptime('22:00', '%H:%M').time()
+            close_time = datetime.strptime('05:00', '%H:%M').time()
+
         for i in range(self.repeat_count):
             offset_days = 0
             if self.frequency_interval and self.frequency_unit:
@@ -750,8 +721,8 @@ class StudyQuestionnaire(BaseMongoModel):
             
             target_date = base_date + timedelta(days=offset_days)
             target_dates_map[target_date] = {
-                'open': datetime.combine(target_date, self.window_open_time) if self.window_open_time else None,
-                'close': datetime.combine(target_date, self.window_close_time) if self.window_close_time else None
+                'open': datetime.combine(target_date, open_time) if open_time else None,
+                'close': datetime.combine(target_date, close_time) if close_time else None
             }
 
         # Step 2: Fetch existing instances in ONE query
@@ -791,7 +762,7 @@ class QuestionnaireScheduleInstance(BaseMongoModel):
     ]
 
     study_questionnaire = models.ForeignKey(StudyQuestionnaire, on_delete=models.CASCADE, related_name='instances')
-    participant = models.ForeignKey(Participant, on_delete=models.CASCADE, related_name='scheduled_questionnaires')
+    participant = models.ForeignKey(Participant, on_delete=models.PROTECT, related_name='scheduled_questionnaires')
     scheduled_date = models.DateField(db_index=True)
     
     # Precise timing windows
@@ -820,6 +791,13 @@ class QuestionnaireScheduleInstance(BaseMongoModel):
     pi_signed_at = models.DateTimeField(null=True, blank=True)
     
     signed_pdf = models.FileField(upload_to='signed_questionnaires/', null=True, blank=True)
+
+    FILLED_BY_CHOICES = [
+        ('PARTICIPANT', 'Participant'),
+        ('COORDINATOR', 'Coordinator'),
+        ('SYSTEM', 'System Auto-generated'),
+    ]
+    completed_by = models.CharField(max_length=20, choices=FILLED_BY_CHOICES, null=True, blank=True, help_text="Who actually filled out and submitted the data")
 
     def save(self, *args, **kwargs):
         is_new = self._state.adding
@@ -851,7 +829,7 @@ class QuestionnaireScheduleInstance(BaseMongoModel):
 
 class FormResponse(BaseMongoModel):
     form = models.ForeignKey(Form, on_delete=models.CASCADE)
-    participant = models.ForeignKey(Participant, on_delete=models.CASCADE, related_name='form_responses')
+    participant = models.ForeignKey(Participant, on_delete=models.PROTECT, related_name='form_responses')
     visit = models.ForeignKey(Visit, on_delete=models.SET_NULL, null=True, blank=True)
     
     data = models.JSONField(help_text="Stored answers")
@@ -903,7 +881,7 @@ class Task(BaseMongoModel):
 
 class ParticipantTask(BaseMongoModel):
     """Instance of a task assigned to a participant with a specific window"""
-    participant = models.ForeignKey(Participant, on_delete=models.CASCADE, related_name='assigned_tasks', db_index=True)
+    participant = models.ForeignKey(Participant, on_delete=models.PROTECT, related_name='assigned_tasks', db_index=True)
     task = models.ForeignKey(Task, on_delete=models.CASCADE, db_index=True)
     
     due_date = models.DateTimeField()
@@ -1042,7 +1020,7 @@ class ConsentTemplate(BaseMongoModel):
 class Consent(BaseMongoModel):
     """Immutable record of electronic informed consent (eConsent)"""
     study = models.ForeignKey(Study, on_delete=models.CASCADE, related_name='consent_records', db_index=True)
-    participant = models.ForeignKey(Participant, on_delete=models.CASCADE, null=True, blank=True, related_name='consent_records', db_index=True)
+    participant = models.ForeignKey(Participant, on_delete=models.PROTECT, null=True, blank=True, related_name='consent_records', db_index=True)
     
     full_name = models.CharField(max_length=255, verbose_name="Electronic Signature")
     email = models.EmailField()
@@ -1354,7 +1332,7 @@ class Lead(BaseMongoModel):
 class CommunicationLog(BaseMongoModel):
     """Log of all outreach attempts (Calls, Texts, Emails)"""
     COM_TYPES = [('CALL', 'Call'), ('SMS', 'Text Message'), ('EMAIL', 'Email')]
-    participant = models.ForeignKey(Participant, on_delete=models.CASCADE, null=True, blank=True)
+    participant = models.ForeignKey(Participant, on_delete=models.PROTECT, null=True, blank=True)
     lead = models.ForeignKey(Lead, on_delete=models.CASCADE, null=True, blank=True)
     coordinator = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     
@@ -1384,7 +1362,7 @@ class Compensation(BaseMongoModel):
         ('OTHER', 'Other Incentive')
     ]
     
-    participant = models.ForeignKey(Participant, on_delete=models.CASCADE, related_name='compensation')
+    participant = models.ForeignKey(Participant, on_delete=models.PROTECT, related_name='compensation')
     study = models.ForeignKey(Study, on_delete=models.CASCADE, null=True, blank=True, related_name='all_compensations')
     visit = models.ForeignKey(Visit, on_delete=models.SET_NULL, null=True, blank=True)
     task = models.ForeignKey(Task, on_delete=models.SET_NULL, null=True, blank=True)
@@ -1411,7 +1389,7 @@ class Compensation(BaseMongoModel):
 
 class LabResult(BaseMongoModel):
     """Clinical test data uploads"""
-    participant = models.ForeignKey(Participant, on_delete=models.CASCADE, related_name='lab_results', db_index=True)
+    participant = models.ForeignKey(Participant, on_delete=models.PROTECT, related_name='lab_results', db_index=True)
     test_name = models.CharField(max_length=255)
     value = models.CharField(max_length=100)
     units = models.CharField(max_length=50, blank=True)
@@ -1512,7 +1490,7 @@ class NewsletterSubscriber(models.Model):
 
 class AssignedForm(BaseMongoModel):
     """Workflow tracking for multi-signatory forms (Participant -> Coordinator -> PI)"""
-    participant = models.ForeignKey(Participant, on_delete=models.CASCADE, related_name='assigned_forms')
+    participant = models.ForeignKey(Participant, on_delete=models.PROTECT, related_name='assigned_forms')
     form = models.ForeignKey(Form, on_delete=models.CASCADE)
     study = models.ForeignKey(Study, on_delete=models.CASCADE)
     
@@ -1538,6 +1516,13 @@ class AssignedForm(BaseMongoModel):
     # Form Results (Snapshot of the data at time of participant signature)
     data = models.JSONField(default=dict, blank=True, help_text="Stored answers from the form")
     signed_pdf = models.FileField(upload_to='signed_forms/', null=True, blank=True)
+    
+    FILLED_BY_CHOICES = [
+        ('PARTICIPANT', 'Participant'),
+        ('COORDINATOR', 'Coordinator'),
+        ('SYSTEM', 'System Auto-generated'),
+    ]
+    completed_by = models.CharField(max_length=20, choices=FILLED_BY_CHOICES, null=True, blank=True, help_text="Who actually filled out and submitted the data")
     
     due_date = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -1810,7 +1795,7 @@ class StudyInquiry(BaseMongoModel):
         return f"Inquiry: {self.product_name} ({self.legal_name or self.sponsor_user.email if self.sponsor_user else 'Unknown'})"
 
 class ClinicalConversation(BaseMongoModel):
-    participant = models.ForeignKey(Participant, on_delete=models.CASCADE, related_name='conversations')
+    participant = models.ForeignKey(Participant, on_delete=models.PROTECT, related_name='conversations')
     study = models.ForeignKey(Study, on_delete=models.CASCADE, related_name='clinical_conversations')
     
     status = models.CharField(max_length=30, choices=[
@@ -1853,7 +1838,7 @@ class ClinicalMessage(BaseMongoModel):
         ordering = ['created_at']
 
 class DosingLog(BaseMongoModel):
-    participant = models.ForeignKey(Participant, on_delete=models.CASCADE, related_name='dosing_logs')
+    participant = models.ForeignKey(Participant, on_delete=models.PROTECT, related_name='dosing_logs')
     date = models.DateField()
     dose_taken = models.BooleanField(default=True)
     missed_reason = models.CharField(max_length=255, blank=True)
@@ -1878,7 +1863,7 @@ class DailyMedicationLog(BaseMongoModel):
         ('SEVERE', 'Severe'),
     ]
 
-    participant = models.ForeignKey(Participant, on_delete=models.CASCADE, related_name='daily_logs', db_index=True)
+    participant = models.ForeignKey(Participant, on_delete=models.PROTECT, related_name='daily_logs', db_index=True)
     date = models.DateField()
     
     # A. Medicine intake
@@ -1924,7 +1909,7 @@ class DailyMedicationLog(BaseMongoModel):
                 pass
 
 class AEReport(BaseMongoModel):
-    participant = models.ForeignKey(Participant, on_delete=models.CASCADE, related_name='ae_reports')
+    participant = models.ForeignKey(Participant, on_delete=models.PROTECT, related_name='ae_reports')
     description = models.TextField()
     start_date = models.DateTimeField()
     is_ongoing = models.BooleanField(default=True)

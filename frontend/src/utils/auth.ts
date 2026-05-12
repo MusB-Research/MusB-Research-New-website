@@ -94,8 +94,34 @@ export const getUser = (): User | null => {
 export const isLoggedIn = () => !!getAccessToken();
 export const getRole = () => getUser()?.role || '';
 
-export const performLogout = () => {
+export const performLogout = async () => {
+    // 1. Optional: Notify backend to blacklist tokens if possible
+    try {
+        const refreshToken = getRefreshToken();
+        const accessToken = getAccessToken();
+        
+        if (refreshToken || accessToken) {
+            // FIRE AND FORGET: Don't let network failures block local cleanup
+            fetch(`${API}/api/auth/logout/`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    token: accessToken,
+                    refresh: refreshToken 
+                }),
+            }).catch(() => {}); // Silent catch
+        }
+    } catch (error) {
+        console.warn('Backend logout signal failed:', error);
+    }
+
+    // 2. Clear local auth state
     clearAuth();
+    
+    // 3. Notify other tabs
+    authChannel?.postMessage('logout');
+
+    // 4. Force redirect to sign in
     redirectToLogin();
 };
 
@@ -103,7 +129,31 @@ export const redirectToLogin = () => {
     window.location.href = '/signin';
 };
 
-// ── REFRESH SYNCHRONIZATION ──────────────────────────────
+// -- CROSS-TAB SYNCHRONIZATION ----------------------------
+const authChannel = typeof window !== 'undefined' ? new BroadcastChannel('auth_channel') : null;
+
+if (authChannel) {
+    authChannel.onmessage = (event) => {
+        if (event.data === 'logout') {
+            clearAuth();
+            redirectToLogin();
+        }
+    };
+}
+
+// If user logs out in Tab A, Tab B should also redirect to /signin
+if (typeof window !== 'undefined') {
+    window.addEventListener('storage', (event) => {
+        // Trigger logout synchronization if any key auth marker is cleared by another tab
+        if ((event.key === 'access_token' || event.key === 'user' || event.key === 'refresh_token') && !event.newValue) {
+            authChannel?.postMessage('logout');
+            redirectToLogin();
+        }
+    });
+}
+
+
+// -- REFRESH SYNCHRONIZATION ------------------------------
 let _refreshPromise: Promise<boolean> | null = null;
 const _inflightFetches = new Map<string, Promise<Response>>();
 

@@ -226,8 +226,8 @@ def complete_profile(request):
     
     required_fields = [
         'first_name', 'last_name', 'gender', 'full_address', 
-        'city', 'state', 'zip_code', 'country', 
-        'place_of_origin', 'mobile_number', 'date_of_birth', 'age'
+        'city', 'state', 'country', 
+        'place_of_origin', 'mobile_number', 'birth_year', 'age'
     ]
     
     missing: List[str] = []
@@ -279,8 +279,18 @@ def complete_profile(request):
     user.country = data.get('country', user.country)
     user.place_of_origin = data.get('place_of_origin', user.place_of_origin)
     user.phone_number = data.get('mobile_number', user.phone_number)
-    user.date_of_birth = data.get('date_of_birth', user.date_of_birth)
-    user.age = data.get('age', user.age)
+    
+    # Validation for integer fields
+    try:
+        user.birth_year = int(data.get('birth_year', user.birth_year))
+    except (ValueError, TypeError):
+        return Response({'error': 'Birth Year must be a valid integer'}, status=status.HTTP_400_BAD_REQUEST)
+        
+    try:
+        user.age = int(data.get('age', user.age))
+    except (ValueError, TypeError):
+        return Response({'error': 'Age must be a valid integer'}, status=status.HTTP_400_BAD_REQUEST)
+
     
     # Make sure we explicitly set profile_completed to True and status to ACTIVE
     user.profile_completed = True

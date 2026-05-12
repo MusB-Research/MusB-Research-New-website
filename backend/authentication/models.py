@@ -107,6 +107,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     # Mandatory Profile Data (Cont.)
     date_of_birth = models.DateField(null=True, blank=True)
     age = models.IntegerField(null=True, blank=True)
+    birth_year = models.IntegerField(null=True, blank=True)
     
     # Enrollment State for Multiple Applications
     has_active_enrollment = models.BooleanField(default=False) # True if currently active in a study
@@ -274,6 +275,8 @@ class AuditLog(models.Model):
         ('PASSWORD_RESET',         'Password Reset'),
         ('ROLE_CHANGED',           'Role Changed'),
         ('ACCOUNT_CREATED',        'Account Created'),
+        ('ACCOUNT_UPDATED',        'Account Updated'),
+        ('ACCOUNT_DELETED',        'Account Deleted'),
         ('ACCOUNT_DISABLED',       'Account Disabled'),
         ('GOOGLE_LOGIN',           'Google Login'),
         ('RATE_LIMITED',           'Rate Limited'),

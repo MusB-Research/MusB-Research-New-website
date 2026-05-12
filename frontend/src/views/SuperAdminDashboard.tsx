@@ -11,7 +11,7 @@ import {
   LayoutDashboard, Server, Network, Terminal, CheckCircle2, MoreVertical,
   MapPin, Clock, MousePointer2, User as UserIcon, Menu, RefreshCw,
   UserPlus, ShieldAlert, Rocket, ClipboardList, Archive, BookOpen,
-  Power, PowerOff, Upload
+  Power, PowerOff, Upload, TrendingUp
 } from 'lucide-react';
 import NotificationBell from '../components/NotificationBell';
 import LogoutConfirmationModal from '../components/LogoutConfirmationModal';
@@ -724,6 +724,7 @@ export default function SuperAdminDashboard() {
     publications: ''
   });
   const [activities, setActivities] = useState<Activity[]>([]);
+  const [screenerStats, setScreenerStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [toasts, setToasts] = useState<any[]>([]);
 
@@ -802,7 +803,7 @@ export default function SuperAdminDashboard() {
     try {
       const apiUrl = API || 'http://localhost:8003';
       const fetchOpts = { skipCache: isSilent };
-      const [uRes, sRes, pRes, iRes, lRes, fRes, nRes, tmRes] = await Promise.all([
+      const [uRes, sRes, pRes, iRes, lRes, fRes, nRes, tmRes, scRes] = await Promise.all([
         authFetch(`${apiUrl}/api/users/?limit=100`, fetchOpts),
         authFetch(`${apiUrl}/api/studies/?limit=50`, fetchOpts),
         authFetch(`${apiUrl}/api/participants/?limit=100`, fetchOpts),
@@ -811,6 +812,7 @@ export default function SuperAdminDashboard() {
         authFetch(`${apiUrl}/api/facilities-inquiry/?limit=50`, fetchOpts),
         authFetch(`${apiUrl}/api/news/?limit=50`, fetchOpts),
         authFetch(`${apiUrl}/api/team-members/`, fetchOpts),
+        authFetch(`${apiUrl}/api/screener-stats/`, fetchOpts),
       ]);
       if (uRes.ok) {
         const rawData = await uRes.json();
@@ -861,13 +863,11 @@ export default function SuperAdminDashboard() {
       if (tmRes.ok) {
         const raw = await tmRes.json();
         const members = Array.isArray(raw) ? raw : (raw.results || []);
-        console.log("Team members synchronized:", { total: members.length, categories: { 
-          leadership: members.filter((m: any) => m.category === 'leadership').length,
-          advisors: members.filter((m: any) => m.category === 'advisors').length,
-          staff: members.filter((m: any) => m.category === 'staff').length,
-          collaborators: members.filter((m: any) => m.category === 'collaborators').length
-        }});
         setStaffRecords(groupTeamMembers(members));
+      }
+      if (scRes.ok) {
+        const raw = await scRes.json();
+        setScreenerStats(raw);
       }
 
       try {
@@ -1284,6 +1284,14 @@ export default function SuperAdminDashboard() {
           { label: 'Active Studies', value: (studies || []).filter((s: any) => s.status === 'UPCOMING' || s.status === 'RECRUITING' || s.status === 'ACTIVE').length, icon: Activity, color: '#14b8a6', onClick: () => handlePageChange('STUDIES') },
           { label: 'Open Adverse Events', value: 0, icon: ShieldAlert, color: '#ef4444', onClick: () => alert("Adverse Event Monitor: No active high-severity alerts detected in active matrix.") },
           { label: 'Audit Events Today', value: (activities || []).length, icon: FileText, color: '#7c3aed', onClick: () => handlePageChange('AUDIT_LOGS') },
+          { 
+            label: 'Screener Conversion', 
+            value: screenerStats ? `${screenerStats.conversion_rate}%` : '0%', 
+            icon: TrendingUp, 
+            color: '#ec4899', 
+            badge: screenerStats ? `${screenerStats.converted_accounts}/${screenerStats.total_screeners}` : '0/0',
+            onClick: () => handlePageChange('METRICS') 
+          },
         ].map((stat, i) => (
           <div
             key={i}
@@ -3723,7 +3731,7 @@ export default function SuperAdminDashboard() {
       <LogoutConfirmationModal
         isOpen={isLogoutModalOpen}
         onClose={() => setIsLogoutModalOpen(false)}
-        onConfirm={() => { clearToken(); window.location.href = "/mainframe/restricted-auth"; }}
+        onConfirm={() => performLogout()}
       />
 
       <style>{`

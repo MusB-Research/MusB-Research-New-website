@@ -25,22 +25,19 @@ import SEO from '@/components/SEO';
 const customStudyContent: Record<string, any> = {
     'beat the bloat': {
         title: 'Beat the Bloat Study',
-        description: 'A simple, non-invasive study to improve everyday digestive comfort and reduce bloating.',
+        description: 'A paid gut health clinical study enrolling adults now',
         overviewBullets: [
-            'Evaluating a natural formulation targeting bloating, gas, and indigestion',
-            'Focus on common gastrointestinal symptoms in everyday life',
-            'Non-invasive testing using breath-based gas measurements',
-            'No blood draw or complex procedures required',
-            'Short-duration study with minimal time commitment'
+            'Beat the Bloat is a preclinical-to-clinical gut health research study investigates the effects of a natural botanical product on common digestive symptoms including bloating, gas, and general gut discomfort.',
+            'Participants will be carefully monitored throughout the study duration by trained clinical staff. All procedures follow rigorous scientific and ethical standards. The natural product being studied has been selected based on its promising phytochemical profile and preclinical safety data.'
         ],
         benefitsBullets: [
-            'Receive $150 compensation upon completion',
-            'Access to free digestive health assessment',
-            'Try a natural formulation at no cost',
-            'No invasive testing—simple and comfortable participation',
-            'Contribute to improving gut health solutions'
+            'No cost to you — All study materials and monitoring provided free of charge',
+            'Clinically monitored — Your health is tracked by experienced research professionals',
+            '100% natural product — Botanical ingredient with a strong safety profile',
+            'Get paid $150 — Compensation for your time and contribution',
+            'Beyond compensation, your participation directly advances gut health science — contributing to research that may help millions of people living with chronic digestive discomfort.'
         ],
-        ctaText: 'Participate in innovative, community-driven clinical research and take an active role in advancing health science—while gaining valuable insights into your own health.'
+        ctaText: 'Bloating and gut discomfort affect millions of adults — yet too few effective, natural solutions have been rigorously studied. You can change that.\n\nBy joining Beat the Bloat, you\'re not just a participant — you\'re a Research Hero. Your contribution helps build the scientific evidence that supports safe, natural gut health solutions for your community and beyond. This is real science, conducted by real researchers at USF, with your wellbeing at the center.\n\nMusB Research is enrolling adults now. Spots are limited — and your involvement makes a difference.'
     },
     'vital-age': {
         title: 'Vital-Age Study',
@@ -61,24 +58,24 @@ const customStudyContent: Record<string, any> = {
         ],
         ctaText: 'Participate in innovative, community-driven clinical research and take an active role in advancing health science—while gaining valuable insights into your own health.'
     },
-    'sam study': {
+    'sam': {
         title: 'SAM Study (Supporting Active Menopause)',
-        description: 'Improving comfort and quality of life during menopause through natural interventions.',
+        description: 'Evaluating the effectiveness of Ayurvedic herbs in reducing menopausal symptoms.',
         overviewBullets: [
-            'Evaluates a herbal formulation for menopause-related symptoms',
-            'Focus on hot flashes, mood changes, and overall well-being',
-            'Includes hormone-related assessments and symptom tracking',
-            'Designed for women aged 40–65 years',
-            'Supports evidence-based solutions for women’s health'
+            'Randomized, double-blind, placebo-controlled clinical trial evaluating Ashoka Bark and Shatavari.',
+            'Participants receive either a 100 mg daily oral capsule or a placebo for 12 weeks.',
+            'Assesses natural, non-hormonal alternatives to Hormone Replacement Therapy (HRT).',
+            'Includes three clinical visits (baseline, week 6, and week 12) for symptom evaluation and hormone testing.',
+            'Optional vaginal microbiome sampling for additional health insights.'
         ],
         benefitsBullets: [
-            'Receive $300 compensation upon completion',
-            'Access to free hormone testing',
-            'Try a natural menopause-support formulation',
-            'Monitor improvements in symptoms and well-being',
-            'Contribute to advancing women’s health research'
+            'Potential improvement in menopausal symptoms (hot flashes, night sweats, sleep).',
+            'Comprehensive hormonal health insights (FSH and estradiol testing).',
+            'Access to research-based, plant-based menopause interventions.',
+            'Close monitoring by a specialized clinical research team.',
+            'Compensation of $300 upon completion of the study.'
         ],
-        ctaText: 'Participate in innovative, community-driven clinical research and take an active role in advancing health science—while gaining valuable insights into your own health.'
+        ctaText: "Menopause is a natural phase of life, yet many women experience symptoms that significantly impact daily well-being, productivity, and quality of life. Safe and effective non-hormonal options remain limited.\n\nBy participating in this study, you are contributing to important research that aims to expand evidence-based, natural treatment options for women’s health. Your involvement helps generate meaningful data that can guide future care, improve quality of life for women globally, and support the development of accessible alternatives to hormone-based therapies.\n\nYour participation is not only a personal health opportunity — it is a contribution to advancing women’s health research for future generations."
     },
     'renew study': {
         title: 'RENEW Study',
@@ -148,14 +145,23 @@ export default function StudyDetail() {
         );
     }
 
-    const studyKey = Object.keys(customStudyContent).find(key => study.title.toLowerCase().includes(key));
+    const studyTitleNormalized = (study.title || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    const studyKey = Object.keys(customStudyContent).find(key => {
+        const normalizedKey = key.toLowerCase().replace(/[^a-z0-9]/g, '');
+        return normalizedKey === studyTitleNormalized || studyTitleNormalized.includes(normalizedKey) || normalizedKey.includes(studyTitleNormalized);
+    });
     const customContent = studyKey ? customStudyContent[studyKey] : null;
+
+    // Prioritize DB content over hardcoded content
+    const displayTitle = (study.title || '').trim() || (customContent ? customContent.title : '');
+    const displayDescription = (study.description || '').trim() || (customContent ? customContent.description : '');
+    const displayParticipationMsg = (study.participation_message || '').trim() || (customContent ? customContent.ctaText : '');
 
     return (
         <div className="min-h-screen pt-40 pb-24 px-4 md:px-12 bg-transparent text-slate-200">
             <SEO 
-                title={`${customContent ? customContent.title : study.title} | MusB Research Study`}
-                description={customContent ? customContent.description : study.description}
+                title={`${displayTitle} | MusB Research Study`}
+                description={displayDescription}
                 canonical={`https://www.musbhealth.com/studies/${id}`}
             />
             <div className="max-w-7xl mx-auto space-y-16">
@@ -216,13 +222,13 @@ export default function StudyDetail() {
                                         </div>
                                     )}
                                     <h1 className="text-5xl md:text-6xl lg:text-7xl font-black text-white uppercase tracking-tight leading-none">
-                                        {customContent ? customContent.title : study.title}
+                                        {displayTitle}
                                     </h1>
                                 </div>
                                 <div className="p-6 bg-white/5 rounded-3xl border border-white/5 backdrop-blur-md">
                                     <span className="text-[10px] font-black text-[#00ADEF] uppercase tracking-[0.3em] mb-2 block">Brief Summary</span>
                                     <div className="text-xl md:text-2xl text-slate-300 font-bold leading-snug">
-                                        <MarkdownText text={customContent ? customContent.description : study.description} />
+                                        <MarkdownText text={displayDescription} />
                                     </div>
                                 </div>
                             </motion.div>
@@ -230,7 +236,7 @@ export default function StudyDetail() {
                         {/* Detailed Study Sections */}
                         <div className="grid md:grid-cols-2 gap-8">
                             {/* Study Overview */}
-                            {(customContent?.overviewBullets || study.overview) && (
+                            {((study as any).overview || customContent?.overviewBullets) && (
                                 <motion.div
                                     initial={{ opacity: 0, y: 20 }}
                                     animate={{ opacity: 1, y: 0 }}
@@ -242,18 +248,18 @@ export default function StudyDetail() {
                                         Study Overview
                                     </h3>
                                     <ul className="space-y-4">
-                                        {customContent?.overviewBullets ? (
-                                            customContent.overviewBullets.map((bullet: string, idx: number) => (
-                                                <li key={idx} className="flex gap-4 text-slate-300 leading-relaxed font-medium">
-                                                    <span className="text-[#00ADEF] font-bold shrink-0">•</span>
-                                                    {bullet}
-                                                </li>
-                                            ))
-                                        ) : (
-                                            ((study as any).eligibility || '').split('\n').filter(Boolean).map((line: string, idx: number) => (
+                                        {(study as any).overview ? (
+                                            (study as any).overview.split('\n').filter(Boolean).map((line: string, idx: number) => (
                                                 <li key={idx} className="flex gap-4 text-slate-300 leading-relaxed font-medium">
                                                     <span className="text-[#00ADEF] font-bold shrink-0">•</span>
                                                     <MarkdownText text={line.replace(/^[•\-\*]\s*/, '')} />
+                                                </li>
+                                            ))
+                                        ) : (
+                                            customContent?.overviewBullets.map((bullet: string, idx: number) => (
+                                                <li key={idx} className="flex gap-4 text-slate-300 leading-relaxed font-medium">
+                                                    <span className="text-[#00ADEF] font-bold shrink-0">•</span>
+                                                    {bullet}
                                                 </li>
                                             ))
                                         )}
@@ -262,7 +268,7 @@ export default function StudyDetail() {
                             )}
 
                             {/* Benefits */}
-                            {(customContent?.benefitsBullets || (study as any).benefit) && (
+                            {((study as any).benefit || customContent?.benefitsBullets) && (
                                 <motion.div
                                     initial={{ opacity: 0, y: 20 }}
                                     animate={{ opacity: 1, y: 0 }}
@@ -274,18 +280,18 @@ export default function StudyDetail() {
                                         Benefits for Participants
                                     </h3>
                                     <ul className="space-y-4">
-                                        {customContent?.benefitsBullets ? (
-                                            customContent.benefitsBullets.map((bullet: string, idx: number) => (
+                                        {(study as any).benefit ? (
+                                            (study as any).benefit.split('\n').filter(Boolean).map((line: string, idx: number) => (
                                                 <li key={idx} className="flex gap-4 text-slate-300 leading-relaxed font-medium">
                                                     <span className="text-emerald-400 font-bold shrink-0">•</span>
-                                                    {bullet}
+                                                    <MarkdownText text={line.replace(/^[•\-\*]\s*/, '').trim()} />
                                                 </li>
                                             ))
                                         ) : (
-                                            ((study as any).benefit || '').split('\n').filter(Boolean).map((line: string, idx: number) => (
+                                            customContent?.benefitsBullets.map((bullet: string, idx: number) => (
                                                 <li key={idx} className="flex gap-4 text-slate-300 leading-relaxed font-medium">
                                                     <span className="text-emerald-400 font-bold shrink-0">•</span>
-                                                    <MarkdownText text={line.replace(/^[•\-\*]\s*/, '')} />
+                                                    {bullet}
                                                 </li>
                                             ))
                                         )}
@@ -356,7 +362,7 @@ export default function StudyDetail() {
                                         Community Participation Message
                                     </h2>
                                     <div className="text-slate-300 text-xl leading-relaxed font-medium">
-                                        <MarkdownText text={customContent ? customContent.ctaText : study.participation_message} />
+                                        <MarkdownText text={displayParticipationMsg} />
                                     </div>
                                 </div>
                             </motion.section>
@@ -415,7 +421,9 @@ export default function StudyDetail() {
                                     <MapPin className="w-4 h-4 text-amber-500/60 group-hover/item:text-amber-500 transition-colors" />
                                     <span className="text-[11px] font-black uppercase tracking-[0.1em] text-slate-500 group-hover/item:text-slate-300 transition-colors">
                                         {study.countries && study.countries.length > 0 
-                                            ? (study.countries.length === 1 ? study.countries[0] : `${study.countries.length} Regions`)
+                                            ? (study.countries.length === 1 
+                                                ? (study.countries[0] || '').replace(/[\[\]"]/g, '').trim() 
+                                                : `${study.countries.length} Countries`)
                                             : 'Global'}
                                     </span>
                                 </div>

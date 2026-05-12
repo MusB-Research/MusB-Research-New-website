@@ -11,18 +11,21 @@ interface FormSignatureModalProps {
     onComplete: (data: any, signature: string) => void;
     task: any;
     userProfile: any;
+    readonly?: boolean;
 }
 
-const BooleanChoice = ({ value, onChange, label }: any) => (
-    <div className="flex flex-col sm:flex-row sm:items-center gap-8 p-6 bg-white border border-[#E3ECF5] rounded-[24px] hover:border-[#1E88E5]/40 transition-all shadow-sm">
+const BooleanChoice = ({ value, onChange, label, disabled = false }: any) => (
+    <div className={`flex flex-col sm:flex-row sm:items-center gap-8 p-6 bg-white border border-[#E3ECF5] rounded-[24px] hover:border-[#1E88E5]/40 transition-all shadow-sm ${disabled ? 'opacity-60 grayscale' : ''}`}>
         <div className="flex gap-2 p-1.5 bg-[#F8FBFF] border border-[#E3ECF5] rounded-[1.2rem] w-fit shadow-inner shrink-0">
             <button
+                disabled={disabled}
                 onClick={() => onChange(true)}
                 className={`px-10 py-3 rounded-xl text-[13px] font-bold uppercase tracking-widest transition-all ${value === true ? 'bg-[#1E7F4F] text-white shadow-lg' : 'text-[#8A99B3] hover:text-[#5F6F89]'}`}
             >
                 Yes
             </button>
             <button
+                disabled={disabled}
                 onClick={() => onChange(false)}
                 className={`px-10 py-3 rounded-xl text-[13px] font-bold uppercase tracking-widest transition-all ${value === false ? 'bg-rose-600 text-white shadow-lg' : 'text-[#8A99B3] hover:text-[#5F6F89]'}`}
             >
@@ -33,7 +36,7 @@ const BooleanChoice = ({ value, onChange, label }: any) => (
     </div>
 );
 
-const FormSignatureModal = ({ isOpen, onClose, onComplete, task, userProfile }: FormSignatureModalProps) => {
+const FormSignatureModal = ({ isOpen, onClose, onComplete, task, userProfile, readonly = false }: FormSignatureModalProps) => {
     const [step, setStep] = useState(1);
     const [formData, setFormData] = useState<Record<string, any>>({});
     
@@ -160,6 +163,7 @@ const FormSignatureModal = ({ isOpen, onClose, onComplete, task, userProfile }: 
                                                     label={field.label} 
                                                     value={formData[field.id]} 
                                                     onChange={(val: boolean) => setFormData({ ...formData, [field.id]: val })} 
+                                                    disabled={readonly}
                                                 />
                                             ) : (
                                                 <div className="space-y-4 p-8 bg-white border border-[#E3ECF5] rounded-[24px] shadow-sm">
@@ -167,6 +171,7 @@ const FormSignatureModal = ({ isOpen, onClose, onComplete, task, userProfile }: 
                                                     <textarea 
                                                         className="w-full bg-[#F8FBFF] border border-[#E3ECF5] rounded-2xl p-6 text-[#1A2B49] font-bold outline-none focus:border-[#1E88E5] transition-all no-scrollbar shadow-inner"
                                                         rows={3}
+                                                        disabled={readonly}
                                                         value={formData[field.id] || ''}
                                                         onChange={(e) => setFormData({ ...formData, [field.id]: e.target.value })}
                                                         placeholder="Enter clinical details here..."
@@ -231,11 +236,11 @@ const FormSignatureModal = ({ isOpen, onClose, onComplete, task, userProfile }: 
                                                     className="w-full h-full"
                                                     onMouseDown={(e) => { setIsSigning(true); draw(e); }}
                                                     onMouseMove={draw}
-                                                    onMouseUp={() => { setIsSigning(false); setHasSigned(true); }}
+                                                    onMouseUp={() => { if (!readonly) { setIsSigning(false); setHasSigned(true); } }}
                                                     onMouseLeave={() => setIsSigning(false)}
-                                                    onTouchStart={(e) => { setIsSigning(true); draw(e); }}
+                                                    onTouchStart={(e) => { if (!readonly) { setIsSigning(true); draw(e); } }}
                                                     onTouchMove={draw}
-                                                    onTouchEnd={() => { setIsSigning(false); setHasSigned(true); }}
+                                                    onTouchEnd={() => { if (!readonly) { setIsSigning(false); setHasSigned(true); } }}
                                                 />
                                                 {!hasSigned && (
                                                     <div className="absolute inset-0 flex items-center justify-center pointer-events-none">

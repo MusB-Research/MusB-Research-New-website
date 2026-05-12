@@ -43,6 +43,19 @@ class ObjectIdField(serializers.Field):
 
 class SanitizedModelSerializer(serializers.ModelSerializer):
     id = ObjectIdField(read_only=True)
+    
+    def get_field_names(self, declared_fields, info):
+        """
+        Senior Developer optimization:
+        When fields = '__all__' is used, DRF by default only includes model fields.
+        We override this to automatically include any custom fields defined on the serializer class,
+        ensuring that 'fields = "__all__"' is both safe and comprehensive.
+        """
+        expanded_fields = super().get_field_names(declared_fields, info)
+        if getattr(self.Meta, 'fields', None) == '__all__':
+            # Include all declared fields that aren't already in expanded_fields
+            return list(expanded_fields) + [f for f in declared_fields if f not in expanded_fields]
+        return expanded_fields
 
     @staticmethod
     def sanitize_data(data):
@@ -484,6 +497,10 @@ class StudySerializer(SanitizedModelSerializer):
             # Map Consent Text
             if 'extractedConsentText' in data:
                 data['consent_content'] = data.pop('extractedConsentText')
+            
+            # Map Brief Summary
+            if 'briefSummary' in data:
+                data['description'] = data.pop('briefSummary')
 
             # --- Map Date Fields (Frontend camelCase -> Backend snake_case) ---
             if 'startDate' in data and not data.get('start_date'):
@@ -737,7 +754,7 @@ class PublicStudySerializer(SanitizedModelSerializer):
             'overview', 'benefit', 'participation_message',
             'require_participant_sig', 'require_cc_verification', 
             'require_pi_signoff', 'require_lar', 'consent_content', 'countries',
-            'pi_details'
+            'pi_details', 'start_date', 'end_date'
         ]
         ordering = ['created_at']
 
@@ -891,7 +908,7 @@ class AssignedFormSerializer(SanitizedModelSerializer):
 
     class Meta:
         model = AssignedForm
-        fields = ['id', 'study', 'form', 'form_details', 'participant', 'participant_name', 'status', 'participant_signature', 'participant_signed_at', 'coordinator_signature', 'coordinator_signed_at', 'coordinator_user', 'pi_signature', 'pi_signed_at', 'pi_user', 'data', 'signed_pdf', 'signed_pdf_url', 'due_date', 'created_at', 'updated_at']
+        fields = ['id', 'study', 'form', 'form_details', 'participant', 'participant_name', 'status', 'completed_by', 'participant_signature', 'participant_signed_at', 'coordinator_signature', 'coordinator_signed_at', 'coordinator_user', 'pi_signature', 'pi_signed_at', 'pi_user', 'data', 'signed_pdf', 'signed_pdf_url', 'due_date', 'created_at', 'updated_at']
         read_only_fields = ['participant_signed_at', 'coordinator_signed_at', 'pi_signed_at']
 
     def get_signed_pdf_url(self, obj):
@@ -1381,6 +1398,52 @@ class StudyKitSerializer(SanitizedModelSerializer):
         ]
         read_only_fields = ['last_updated', 'created_at']
 
+
+class QuestionnaireTemplateBriefSerializer(SanitizedModelSerializer):
+    used_in_studies = serializers.SerializerMethodField()
+
+    class Meta:
+        model = QuestionnaireTemplate
+        fields = '__all__'
+
+    def get_used_in_studies(self, obj):
+        sqs = getattr(obj, '_prefetched_objects_cache', {}).get('studyquestionnaire_set', None)
+        if sqs is None:
+            from .models import StudyQuestionnaire
+            sqs = StudyQuestionnaire.objects.filter(template=obj).select_related('study')
+        return [
+            {'id': str(sq.study.id), 'title': sq.study.title, 'protocol_id': sq.study.protocol_id}
+            for sq in sqs
+            if sq.study
+        ]
+
+class StudyQuestionnaireSerializer(SanitizedModelSerializer):
+    template_details = QuestionnaireTemplateBriefSerializer(source='template', read_only=True)
+    class Meta:
+        model = StudyQuestionnaire
+        fields = '__all__'
+
+class QuestionnaireScheduleInstanceSerializer(SanitizedModelSerializer):
+    questionnaire_details = StudyQuestionnaireSerializer(source='study_questionnaire', read_only=True)
+    participant_details = serializers.SerializerMethodField()
+    signed_pdf_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = QuestionnaireScheduleInstance
+        fields = '__all__'
+
+    def get_participant_details(self, obj):
+        return {
+            'sid': obj.participant.participant_sid if obj.participant else 'N/A',
+            'name': obj.participant.user.full_name if obj.participant and obj.participant.user else 'Subject'
+        }
+
+    def get_signed_pdf_url(self, obj):
+        if not obj.signed_pdf: return None
+        request = self.context.get('request')
+        if request: return request.build_absolute_uri(obj.signed_pdf.url)
+        return obj.signed_pdf.url
+
 class ParticipantSerializer(SanitizedModelSerializer):
     kits = StudyKitSerializer(many=True, read_only=True)
     tasks = ParticipantTaskSerializer(many=True, read_only=True)
@@ -1397,6 +1460,8 @@ class ParticipantSerializer(SanitizedModelSerializer):
     daily_logs = DailyMedicationLogSerializer(many=True, read_only=True)
     lab_results = LabResultSerializer(many=True, read_only=True)
     consent_records = ConsentSerializer(many=True, read_only=True)
+    scheduled_questionnaires = QuestionnaireScheduleInstanceSerializer(many=True, read_only=True)
+    assigned_forms = AssignedFormSerializer(many=True, read_only=True)
     age = serializers.SerializerMethodField()
     assigned_arm_name = serializers.CharField(source='assigned_arm.name', read_only=True, allow_null=True)
     condition = serializers.CharField(source='study.condition', read_only=True, allow_null=True)
@@ -1447,19 +1512,8 @@ class ParticipantSerializer(SanitizedModelSerializer):
 
     class Meta:
         model = Participant
-        fields = [
-            'id', 'participant_sid', 'participant_status', 'user', 'user_details', 'study', 'study_name', 'protocol_id',
-            'coordinator_name', 'gender', 'dob', 'age', 'status', 'assigned_arm', 'completion_date',
-            'condition', 'study_type', 'eligibility_data',
-            'display_name', 'display_email', 'display_phone', 'display_address',
-            'created_at', 'updated_at', 'reviewed_at', 'reviewed_by', 'reviewer_name',
-            'visits', 'ae_reports', 'daily_logs', 'lab_results', 'consent_records',
-            'kits', 'tasks',
+        fields = '__all__'
 
-            'coordinator_approved', 'coordinator_approved_at', 'coordinator_signature',
-            'pi_approved', 'pi_approved_at', 'pi_signature', 'approval_status',
-            'consent_details', 'randomization_details', 'assigned_arm', 'assigned_arm_name'
-        ]
 
     def validate(self, data):
         """
@@ -1630,24 +1684,6 @@ class QuestionnaireTemplateSerializer(SanitizedModelSerializer):
             if sq.study
         ]
 
-class QuestionnaireTemplateBriefSerializer(SanitizedModelSerializer):
-    used_in_studies = serializers.SerializerMethodField()
-
-    class Meta:
-        model = QuestionnaireTemplate
-        fields = ['id', 'name', 'pdf_file', 'json_structure', 'created_at', 'used_in_studies']
-
-    def get_used_in_studies(self, obj):
-        sqs = getattr(obj, '_prefetched_objects_cache', {}).get('studyquestionnaire_set', None)
-        if sqs is None:
-            from .models import StudyQuestionnaire
-            sqs = StudyQuestionnaire.objects.filter(template=obj).select_related('study')
-        return [
-            {'id': str(sq.study.id), 'title': sq.study.title, 'protocol_id': sq.study.protocol_id}
-            for sq in sqs
-            if sq.study
-        ]
-
 class QuestionnaireScheduleInstanceBriefSerializer(SanitizedModelSerializer):
     """High-Performance light-weight serializer for schedule lists."""
     template_details = serializers.SerializerMethodField()
@@ -1749,33 +1785,6 @@ class SponsorInquirySerializer(SanitizedModelSerializer):
     class Meta:
         model = SponsorInquiry
         fields = '__all__'
-
-class StudyQuestionnaireSerializer(SanitizedModelSerializer):
-    template_details = QuestionnaireTemplateBriefSerializer(source='template', read_only=True)
-    class Meta:
-        model = StudyQuestionnaire
-        fields = '__all__'
-
-class QuestionnaireScheduleInstanceSerializer(SanitizedModelSerializer):
-    questionnaire_details = StudyQuestionnaireSerializer(source='study_questionnaire', read_only=True)
-    participant_details = serializers.SerializerMethodField()
-    signed_pdf_url = serializers.SerializerMethodField()
-
-    class Meta:
-        model = QuestionnaireScheduleInstance
-        fields = '__all__'
-
-    def get_participant_details(self, obj):
-        return {
-            'sid': obj.participant.participant_sid if obj.participant else 'N/A',
-            'name': obj.participant.user.full_name if obj.participant and obj.participant.user else 'Subject'
-        }
-
-    def get_signed_pdf_url(self, obj):
-        if not obj.signed_pdf: return None
-        request = self.context.get('request')
-        if request: return request.build_absolute_uri(obj.signed_pdf.url)
-        return obj.signed_pdf.url
 
 class InvitationSerializer(SanitizedModelSerializer):
     invited_by_name = serializers.CharField(source='invited_by.full_name', read_only=True)

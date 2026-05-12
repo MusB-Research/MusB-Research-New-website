@@ -264,7 +264,7 @@ export const DataExportsModule: React.FC<DataExportsModuleProps> = ({ selectedSt
         if (type === 'yesno' || val === 'Yes' || val === 'No' || val === true || val === false) {
             const isYes = val === 'Yes' || val === true || String(val).toLowerCase() === 'yes';
             return (
-                <span className={`inline-flex items-center rounded-full text-[10px] font-black uppercase tracking-wider ${isMobileCard ? 'px-4 py-2' : 'px-2.5 py-1'} ${isYes ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400' : 'bg-rose-500/10 border border-rose-500/20 text-rose-400'}`}>
+                <span className={`inline-flex items-center rounded-full text-xs font-black uppercase tracking-wider ${isMobileCard ? 'px-4 py-2' : 'px-3 py-1'} ${isYes ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400' : 'bg-rose-500/10 border border-rose-500/20 text-rose-400'}`}>
                     {isYes ? 'Yes' : 'No'}
                 </span>
             );
@@ -284,7 +284,7 @@ export const DataExportsModule: React.FC<DataExportsModuleProps> = ({ selectedSt
             return (
                 <span 
                     title={String(val)}
-                    className={`inline-flex items-center justify-center rounded-[8px] text-[10px] font-black ${isMobileCard ? 'w-10 h-10' : 'w-7 h-7'} ${isNone ? 'bg-slate-500/10 border border-slate-500/20 text-slate-500' : 'bg-blue-500/10 border border-blue-400/40 text-blue-400'} cursor-help transition-all group-hover:scale-110`}
+                    className={`inline-flex items-center justify-center rounded-[8px] text-xs font-black ${isMobileCard ? 'w-12 h-12' : 'w-8 h-8'} ${isNone ? 'bg-slate-500/10 border border-slate-500/20 text-slate-500' : 'bg-blue-500/10 border border-blue-400/40 text-blue-400'} cursor-help transition-all group-hover:scale-110`}
                 >
                     {displayVal}
                 </span>
@@ -294,9 +294,9 @@ export const DataExportsModule: React.FC<DataExportsModuleProps> = ({ selectedSt
         // Range & Slider numeric representations
         if (type === 'number' || type === 'range' || type === 'slider') {
             return (
-                <div className={`flex flex-col items-center gap-1 ${isMobileCard ? 'min-w-[80px]' : 'min-w-[50px]'}`}>
-                    <span className="font-mono text-xs font-bold text-white">{val}</span>
-                    <div className="w-12 h-1 bg-white/10 rounded-full overflow-hidden">
+                <div className={`flex flex-col items-center gap-1 ${isMobileCard ? 'min-w-[100px]' : 'min-w-[60px]'}`}>
+                    <span className="font-mono text-sm font-bold text-white">{val}</span>
+                    <div className="w-16 h-1.5 bg-white/10 rounded-full overflow-hidden">
                         <div 
                             className="h-full bg-blue-500 animate-pulse" 
                             style={{ width: `${Math.min(100, (Number(val) / 10) * 100)}%` }}
@@ -308,113 +308,143 @@ export const DataExportsModule: React.FC<DataExportsModuleProps> = ({ selectedSt
         
         // Standard Text representation
         return (
-            <span className={`font-bold text-slate-300 text-xs truncate ${isMobileCard ? 'max-w-none text-right' : 'max-w-[150px]'}`} title={String(val)}>
+            <span className={`font-bold text-slate-300 text-sm truncate ${isMobileCard ? 'max-w-none text-right' : 'max-w-[180px]'}`} title={String(val)}>
                 {String(val)}
             </span>
         );
     };
 
+    // Group data by participant_id
+    const groupedData = useMemo(() => {
+        const groups: Record<string, { participant_id: string; participant_name: string; study_protocol: string; rows: AggregationRow[] }> = {};
+        
+        templateFilteredData.forEach(row => {
+            const pid = row.participant_id;
+            if (!groups[pid]) {
+                groups[pid] = {
+                    participant_id: pid,
+                    participant_name: row.participant_name || 'N/A',
+                    study_protocol: row.study_protocol,
+                    rows: []
+                };
+            }
+            groups[pid].rows.push(row);
+        });
+
+        // Sort rows within each group by date (newest first)
+        Object.values(groups).forEach(group => {
+            group.rows.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        });
+
+        // Sort groups by the most recent activity in each group
+        return Object.values(groups).sort((a, b) => {
+            const latestA = new Date(a.rows[0].date).getTime();
+            const latestB = new Date(b.rows[0].date).getTime();
+            return latestB - latestA;
+        });
+    }, [templateFilteredData]);
+
     const activeStudy = allStudies.find(s => s.protocol_id === activeStudyId || s.id === activeStudyId);
 
     return (
-        <div className={`space-y-2 ${isMobile ? 'p-1.5' : 'p-2'}`}>
+        <div className={`space-y-4 ${isMobile ? 'p-2' : 'p-4'}`}>
             {/* Header Section */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-2">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h2 className="text-base md:text-lg font-black text-white italic uppercase tracking-tighter shrink-0 flex items-center flex-wrap gap-2 leading-none">
+                    <h2 className="text-xl md:text-2xl font-black text-white italic uppercase tracking-tighter shrink-0 flex items-center flex-wrap gap-3 leading-none">
                         Data <span className="text-blue-400">& Exports</span>
-                        <div className="px-1.5 py-0.5 bg-blue-500/10 border border-blue-500/20 rounded-full">
-                            <span className="text-[7.5px] font-black text-blue-400 uppercase tracking-widest italic">Aggregation Engine</span>
+                        <div className="px-3 py-1 bg-blue-500/10 border border-blue-500/20 rounded-full">
+                            <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest italic">Aggregation Engine</span>
                         </div>
                     </h2>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3">
                     <button 
                         onClick={handleExportXLSX}
-                        className="flex-1 md:flex-none flex items-center justify-center gap-1.5 px-3 py-1.5 bg-white/5 border border-white/10 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-all text-[8.5px] font-black uppercase tracking-widest italic shadow-lg"
+                        className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-slate-400 hover:text-white hover:bg-white/10 transition-all text-xs font-black uppercase tracking-widest italic shadow-lg"
                     >
-                        <Download className="w-3 h-3" />
+                        <Download className="w-4 h-4" />
                         Export Master XLSX
                     </button>
                 </div>
             </div>
 
             {/* Study Selector & Filters */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-1.5 bg-[#0B101B]/50 p-1.5 rounded-lg border border-white/5 shadow-xl">
-                <div className="lg:col-span-4 flex items-center gap-1.5 px-2 py-1.5 bg-white/5 rounded-lg border border-white/10">
-                    <Database className="w-2.5 h-2.5 text-blue-400" />
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 bg-[#0B101B]/50 p-3 rounded-xl border border-white/5 shadow-xl">
+                <div className="lg:col-span-4 flex items-center gap-2 px-3 py-2 bg-white/5 rounded-xl border border-white/10">
+                    <Database className="w-4 h-4 text-blue-400" />
                     <select 
                         value={activeStudyId}
                         onChange={(e) => setActiveStudyId(e.target.value)}
-                        className="bg-transparent text-white text-[8.5px] font-black uppercase tracking-widest outline-none flex-1 appearance-none cursor-pointer"
+                        className="bg-transparent text-white text-xs font-black uppercase tracking-widest outline-none flex-1 appearance-none cursor-pointer"
                     >
                         <option value="all">All Active Studies</option>
                         {allStudies.map(s => (
                             <option key={s.id} value={s.protocol_id || s.id}>{s.protocol_id} - {s.title}</option>
                         ))}
                     </select>
-                    <ChevronDown className="w-2.5 h-2.5 text-slate-500" />
+                    <ChevronDown className="w-4 h-4 text-slate-500" />
                 </div>
 
                 {templates.length > 0 && (
-                    <div className="lg:col-span-4 flex items-center gap-1.5 px-2 py-1.5 bg-white/5 rounded-lg border border-white/10">
-                        <FileText className="w-2.5 h-2.5 text-emerald-400" />
+                    <div className="lg:col-span-4 flex items-center gap-2 px-3 py-2 bg-white/5 rounded-xl border border-white/10">
+                        <FileText className="w-4 h-4 text-emerald-400" />
                         <select 
                             value={selectedTemplateId}
                             onChange={(e) => setSelectedTemplateId(e.target.value)}
-                            className="bg-transparent text-white text-[8.5px] font-black uppercase tracking-widest outline-none flex-1 appearance-none cursor-pointer"
+                            className="bg-transparent text-white text-xs font-black uppercase tracking-widest outline-none flex-1 appearance-none cursor-pointer"
                         >
                             <option value="all">All Instruments</option>
                             {templates.map(t => (
                                 <option key={t.id} value={t.id}>{t.name}</option>
                             ))}
                         </select>
-                        <ChevronDown className="w-2.5 h-2.5 text-slate-500" />
+                        <ChevronDown className="w-4 h-4 text-slate-500" />
                     </div>
                 )}
 
-                <div className="lg:col-span-4 flex items-center gap-1.5 px-2 py-1.5 bg-white/5 rounded-lg border border-white/10">
-                    <Search className="w-2.5 h-2.5 text-slate-500" />
+                <div className="lg:col-span-4 flex items-center gap-2 px-3 py-2 bg-white/5 rounded-xl border border-white/10">
+                    <Search className="w-4 h-4 text-slate-500" />
                     <input 
                         type="text" 
                         placeholder="SEARCH NAME OR ID..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="bg-transparent text-white text-[8.5px] font-black uppercase tracking-widest outline-none flex-1"
+                        className="bg-transparent text-white text-xs font-black uppercase tracking-widest outline-none flex-1"
                     />
                 </div>
             </div>
 
             {/* Main Aggregation Sheet */}
-            <div className="space-y-2">
-                <div className="flex items-center justify-between px-1">
-                    <div className="flex items-center gap-2">
-                        <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
-                        <h3 className="text-[9px] md:text-[10px] font-black text-slate-500 tracking-[0.3em] uppercase italic">
+            <div className="space-y-4">
+                <div className="flex items-center justify-between px-2">
+                    <div className="flex items-center gap-3">
+                        <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+                        <h3 className="text-xs md:text-sm font-black text-slate-500 tracking-[0.3em] uppercase italic">
                             Aggregation Sheet — {activeStudy?.protocol_id || 'Global View'}
                         </h3>
                     </div>
                     {!isMobile && (
-                        <span className="text-[9px] font-black text-slate-600 uppercase tracking-widest italic">
+                        <span className="text-xs font-black text-slate-600 uppercase tracking-widest italic">
                             {templateFilteredData.length} Records found
                         </span>
                     )}
                 </div>
 
                 {isMobile ? (
-                    /* Mobile Card View */
-                    <div className="space-y-4">
+                    /* Mobile Card View (Enhanced Text) */
+                    <div className="space-y-6">
                         {loading ? (
-                            <div className="p-12 text-center bg-[#0B101B] border border-white/5 rounded-[1.5rem]">
-                                <div className="flex flex-col items-center gap-3">
-                                    <div className="w-10 h-10 border-3 border-blue-500/20 border-t-blue-500 rounded-full animate-spin" />
-                                    <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest animate-pulse">Analyzing Clinical Data...</p>
+                            <div className="p-16 text-center bg-[#0B101B] border border-white/5 rounded-[2rem]">
+                                <div className="flex flex-col items-center gap-4">
+                                    <div className="w-12 h-12 border-4 border-blue-500/20 border-t-blue-500 rounded-full animate-spin" />
+                                    <p className="text-sm font-black text-slate-500 uppercase tracking-widest animate-pulse">Analyzing Clinical Data...</p>
                                 </div>
                             </div>
                         ) : templateFilteredData.length === 0 ? (
-                            <div className="p-12 text-center bg-[#0B101B] border border-white/5 rounded-[1.5rem]">
-                                <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest italic">No responses found for this study</p>
+                            <div className="p-16 text-center bg-[#0B101B] border border-white/5 rounded-[2rem]">
+                                <p className="text-sm font-black text-slate-600 uppercase tracking-widest italic">No responses found for this study</p>
                             </div>
                         ) : (
                             templateFilteredData.map((row) => (
@@ -422,26 +452,26 @@ export const DataExportsModule: React.FC<DataExportsModuleProps> = ({ selectedSt
                                     key={row.id}
                                     initial={{ opacity: 0, y: 10 }}
                                     animate={{ opacity: 1, y: 0 }}
-                                    className="bg-[#0B101B] border border-white/5 rounded-[1.5rem] overflow-hidden shadow-xl p-5 space-y-4"
+                                    className="bg-[#0B101B] border border-white/5 rounded-[2rem] overflow-hidden shadow-2xl p-6 space-y-6"
                                 >
-                                    <div className="flex items-center justify-between border-b border-white/5 pb-3">
+                                    <div className="flex items-center justify-between border-b border-white/5 pb-4">
                                         <div>
-                                            <p className="text-[9px] text-blue-400 font-black uppercase tracking-widest italic mb-0.5">{row.participant_id}</p>
-                                            <h4 className="text-[11px] font-black text-white italic uppercase leading-tight">{row.participant_name || 'N/A'}</h4>
-                                            <p className="text-[8px] font-bold text-slate-500 uppercase tracking-widest mt-1">{row.study_protocol}</p>
+                                            <p className="text-xs text-blue-400 font-black uppercase tracking-widest italic mb-1">{row.participant_id}</p>
+                                            <h4 className="text-lg font-black text-white italic uppercase leading-tight">{row.participant_name || 'N/A'}</h4>
+                                            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-2">{row.study_protocol}</p>
                                         </div>
                                         <div className="text-right">
-                                            <p className="text-[9px] text-slate-500 font-black uppercase tracking-widest italic mb-0.5">Visit Date</p>
-                                            <p className="text-[10px] font-bold text-slate-300">{row.date}</p>
+                                            <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest italic mb-1">Visit Date</p>
+                                            <p className="text-sm font-bold text-white">{row.date}</p>
                                         </div>
                                     </div>
 
-                                    <div className="space-y-3">
+                                    <div className="space-y-4">
                                         {dynamicQuestions.map((q, idx) => (
-                                            <div key={q.id} className="flex items-start justify-between gap-3">
+                                            <div key={q.id} className="flex items-start justify-between gap-4">
                                                 <div className="flex flex-col">
-                                                    <span className="text-[9px] text-blue-500 font-black italic">Q{idx + 1}</span>
-                                                    <span className="text-[8px] text-slate-500 font-black uppercase tracking-widest italic leading-tight max-w-[150px]">{q.label}</span>
+                                                    <span className="text-xs text-blue-500 font-black italic">Q{idx + 1}</span>
+                                                    <span className="text-[11px] text-slate-500 font-black uppercase tracking-widest italic leading-tight max-w-[200px]">{q.label}</span>
                                                 </div>
                                                 <div className="flex-1 flex justify-end">
                                                     {renderCellAnswer(q, row.answers[q.id], true)}
@@ -451,22 +481,22 @@ export const DataExportsModule: React.FC<DataExportsModuleProps> = ({ selectedSt
                                     </div>
 
                                     {hasScores && (
-                                        <div className="grid grid-cols-2 gap-2 pt-1">
-                                            <div className="p-2.5 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-center">
-                                                <p className="text-[7px] text-emerald-500/60 font-black uppercase tracking-widest mb-0.5">Somatic</p>
-                                                <p className="text-xs font-black text-emerald-400">{row.scores?.somatic ?? 0}</p>
+                                        <div className="grid grid-cols-2 gap-3 pt-2">
+                                            <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl text-center">
+                                                <p className="text-[8px] text-emerald-500/60 font-black uppercase tracking-widest mb-1">Somatic</p>
+                                                <p className="text-sm font-black text-emerald-400">{row.scores?.somatic ?? 0}</p>
                                             </div>
-                                            <div className="p-2.5 bg-blue-500/10 border border-blue-500/20 rounded-xl text-center">
-                                                <p className="text-[7px] text-blue-500/60 font-black uppercase tracking-widest mb-0.5">Psych</p>
-                                                <p className="text-xs font-black text-blue-400">{row.scores?.psych ?? 0}</p>
+                                            <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-2xl text-center">
+                                                <p className="text-[8px] text-blue-500/60 font-black uppercase tracking-widest mb-1">Psych</p>
+                                                <p className="text-sm font-black text-blue-400">{row.scores?.psych ?? 0}</p>
                                             </div>
-                                            <div className="p-2.5 bg-rose-500/10 border border-rose-500/20 rounded-xl text-center">
-                                                <p className="text-[7px] text-rose-500/60 font-black uppercase tracking-widest mb-0.5">Urogen</p>
-                                                <p className="text-xs font-black text-rose-400">{row.scores?.urogen ?? 0}</p>
+                                            <div className="p-4 bg-rose-500/10 border border-rose-500/20 rounded-2xl text-center">
+                                                <p className="text-[8px] text-rose-500/60 font-black uppercase tracking-widest mb-1">Urogen</p>
+                                                <p className="text-sm font-black text-rose-400">{row.scores?.urogen ?? 0}</p>
                                             </div>
-                                            <div className="p-2.5 bg-amber-500/10 border border-amber-500/20 rounded-xl text-center">
-                                                <p className="text-[7px] text-amber-500/60 font-black uppercase tracking-widest mb-0.5">Total Score</p>
-                                                <p className="text-xs font-black text-amber-400">{row.scores?.total ?? 0}</p>
+                                            <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-2xl text-center">
+                                                <p className="text-[8px] text-amber-500/60 font-black uppercase tracking-widest mb-1">Total Score</p>
+                                                <p className="text-sm font-black text-amber-400">{row.scores?.total ?? 0}</p>
                                             </div>
                                         </div>
                                     )}
@@ -474,9 +504,9 @@ export const DataExportsModule: React.FC<DataExportsModuleProps> = ({ selectedSt
                                     {row.pdf_url && (
                                         <button 
                                             onClick={() => handleDownloadPDF(row.pdf_url!)}
-                                            className="w-full flex items-center justify-center gap-2.5 py-3 bg-white/5 border border-white/10 rounded-xl text-slate-400 hover:text-white hover:bg-white/10 transition-all text-[9px] font-black uppercase tracking-widest italic"
+                                            className="w-full flex items-center justify-center gap-3 py-4 bg-white/5 border border-white/10 rounded-2xl text-slate-400 hover:text-white hover:bg-white/10 transition-all text-xs font-black uppercase tracking-widest italic"
                                         >
-                                            <FileText className="w-3.5 h-3.5" />
+                                            <FileText className="w-4 h-4" />
                                             View Source Instrument
                                         </button>
                                     )}
@@ -485,110 +515,138 @@ export const DataExportsModule: React.FC<DataExportsModuleProps> = ({ selectedSt
                         )}
                     </div>
                 ) : (
-                    /* Tablet & Laptop Table View */
-                    <div className="bg-[#0B101B] border border-white/5 rounded-xl overflow-hidden shadow-xl relative">
+                    /* Tablet & Laptop Grouped Table View */
+                    <div className="bg-[#0B101B] border border-white/5 rounded-xl overflow-hidden shadow-2xl relative">
                         <div className="overflow-x-auto custom-scrollbar">
                             <table 
                                 className="w-full text-left border-collapse table-fixed"
-                                style={{ minWidth: `${Math.max(1000, 320 + dynamicQuestions.length * 50)}px` }}
+                                style={{ minWidth: `${Math.max(1200, 400 + dynamicQuestions.length * 70)}px` }}
                             >
                                 <thead>
-                                    <tr className="text-[8px] font-black uppercase tracking-widest italic">
-                                        <th className="sticky left-0 z-20 px-3 py-2.5 bg-[#e6fcf5] text-[#087f5b] border-r border-[#c3fae8] w-[40px] text-center">
+                                    <tr className="text-[10px] font-black uppercase tracking-widest italic">
+                                        <th className="sticky left-0 z-30 px-4 py-3 bg-[#e6fcf5] text-[#087f5b] border-r border-[#c3fae8] w-[50px] text-center">
                                             <input 
                                                 type="checkbox" 
                                                 checked={templateFilteredData.length > 0 && selectedIds.length === templateFilteredData.length}
                                                 onChange={toggleSelectAll}
-                                                className="w-3 h-3 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 bg-white/10"
+                                                className="w-4 h-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 bg-white/10"
                                             />
                                         </th>
-                                        <th className="sticky left-[40px] z-10 px-3 py-2.5 bg-[#e6fcf5] text-[#087f5b] border-r border-[#c3fae8] w-[140px]">Participant ID</th>
-                                        <th className="px-3 py-2.5 bg-[#e6fcf5] text-[#087f5b] border-r border-[#c3fae8] w-[100px]">Study</th>
-                                        <th className="px-3 py-2.5 bg-[#e6fcf5] text-[#087f5b] border-r border-[#c3fae8] w-[110px]">Completion Date</th>
+                                        <th className="sticky left-[50px] z-20 px-4 py-3 bg-[#e6fcf5] text-[#087f5b] border-r border-[#c3fae8] w-[180px]">Subject Details</th>
+                                        <th className="px-4 py-3 bg-[#e6fcf5] text-[#087f5b] border-r border-[#c3fae8] w-[120px]">Instrument</th>
+                                        <th className="px-4 py-3 bg-[#e6fcf5] text-[#087f5b] border-r border-[#c3fae8] w-[140px]">Visit Date</th>
                                         {dynamicQuestions.map((q, idx) => (
-                                            <th key={q.id} className="px-1 py-2.5 bg-[#e6fcf5] text-[#087f5b] border-r border-[#c3fae8] text-center w-[45px] truncate" title={q.label}>
+                                            <th key={q.id} className="px-2 py-3 bg-[#e6fcf5] text-[#087f5b] border-r border-[#c3fae8] text-center w-[60px] truncate" title={q.label}>
                                                 Q{idx + 1}
                                             </th>
                                         ))}
                                         {hasScores && (
                                             <>
-                                                <th className="px-3 py-2.5 border-r border-white/10 bg-[#065f46] text-white text-center w-[60px] text-[7px] tracking-tighter">Somatic</th>
-                                                <th className="px-3 py-2.5 border-r border-white/10 bg-[#1e40af] text-white text-center w-[60px] text-[7px] tracking-tighter">Psych</th>
-                                                <th className="px-3 py-2.5 border-r border-white/10 bg-[#9a3412] text-white text-center w-[60px] text-[7px] tracking-tighter">Urogen</th>
-                                                <th className="px-3 py-2.5 border-r border-white/10 bg-[#1e293b] text-white text-center w-[65px] text-[7px] tracking-tighter">Total</th>
+                                                <th className="px-4 py-3 border-r border-white/10 bg-[#065f46] text-white text-center w-[70px] text-[9px] tracking-tighter">Somatic</th>
+                                                <th className="px-4 py-3 border-r border-white/10 bg-[#1e40af] text-white text-center w-[70px] text-[9px] tracking-tighter">Psych</th>
+                                                <th className="px-4 py-3 border-r border-white/10 bg-[#9a3412] text-white text-center w-[70px] text-[9px] tracking-tighter">Urogen</th>
+                                                <th className="px-4 py-3 border-r border-white/10 bg-[#1e293b] text-white text-center w-[75px] text-[9px] tracking-tighter">Total</th>
                                             </>
                                         )}
-                                        <th className="px-3 py-2.5 bg-[#e6fcf5] text-[#087f5b] text-right w-[60px]">Actions</th>
+                                        <th className="px-4 py-3 bg-[#e6fcf5] text-[#087f5b] text-right w-[80px]">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {loading ? (
                                         <tr>
-                                            <td colSpan={20} className="px-5 py-24 text-center">
-                                                <div className="flex flex-col items-center gap-3">
-                                                    <div className="w-10 h-10 border-3 border-blue-500/20 border-t-blue-500 rounded-full animate-spin" />
-                                                    <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest animate-pulse">Assembling Clinical Data...</p>
+                                            <td colSpan={40} className="px-6 py-32 text-center">
+                                                <div className="flex flex-col items-center gap-4">
+                                                    <div className="w-12 h-12 border-4 border-blue-500/20 border-t-blue-500 rounded-full animate-spin" />
+                                                    <p className="text-sm font-black text-slate-500 uppercase tracking-widest animate-pulse">Assembling Clinical Data...</p>
                                                 </div>
                                             </td>
                                         </tr>
-                                    ) : templateFilteredData.length === 0 ? (
+                                    ) : groupedData.length === 0 ? (
                                         <tr>
-                                            <td colSpan={20} className="px-5 py-24 text-center">
-                                                <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest italic">No matching records detected in clinical repository</p>
+                                            <td colSpan={40} className="px-6 py-32 text-center">
+                                                <p className="text-sm font-black text-slate-600 uppercase tracking-widest italic">No matching records detected in clinical repository</p>
                                             </td>
                                         </tr>
-                                    ) :                                         templateFilteredData.map((row) => (
-                                            <tr key={row.id} className={`border-b border-white/5 hover:bg-white/[0.015] transition-colors group ${selectedIds.includes(row.id) ? 'bg-blue-500/5' : ''}`}>
-                                                <td className="sticky left-0 z-20 px-3 py-2 border-r border-white/5 bg-[#0B101B]/95 group-hover:bg-[#161C27] text-center shadow-[4px_0_12px_rgba(0,0,0,0.3)]">
-                                                    <input 
-                                                        type="checkbox" 
-                                                        checked={selectedIds.includes(row.id)}
-                                                        onChange={() => toggleSelectRow(row.id)}
-                                                        className="w-3 h-3 rounded border-white/10 text-blue-500 focus:ring-blue-500 bg-white/5"
-                                                    />
-                                                </td>
-                                                <td className="sticky left-[40px] z-10 px-3 py-2 border-r border-white/5 bg-[#0B101B]/95 group-hover:bg-[#161C27] transition-all">
-                                                    <div className="flex flex-col">
-                                                        <span className="font-black text-blue-400 text-[10px] leading-tight">{row.participant_id}</span>
-                                                        <span className="font-bold text-slate-500 text-[8px] uppercase tracking-wider truncate max-w-[120px]">{row.participant_name || 'N/A'}</span>
+                                    ) : groupedData.map((group) => (
+                                        <React.Fragment key={group.participant_id}>
+                                            {/* Participant Group Header Row */}
+                                            <tr className="bg-blue-500/5 border-y border-blue-500/20">
+                                                <td className="sticky left-0 z-20 bg-blue-900/40 border-r border-blue-500/20"></td>
+                                                <td colSpan={40} className="px-4 py-3 sticky left-[50px] z-10 bg-blue-900/10">
+                                                    <div className="flex items-center gap-4">
+                                                        <div className="flex flex-col">
+                                                            <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest italic">Subject Group</span>
+                                                            <span className="text-sm font-black text-white italic uppercase">{group.participant_name} ({group.participant_id})</span>
+                                                        </div>
+                                                        <div className="h-8 w-px bg-white/10 mx-2" />
+                                                        <div className="flex flex-col">
+                                                            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest italic">Protocol</span>
+                                                            <span className="text-xs font-black text-slate-300 uppercase">{group.study_protocol}</span>
+                                                        </div>
+                                                        <div className="ml-auto px-4 py-1.5 bg-blue-500/10 border border-blue-500/20 rounded-full">
+                                                            <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest italic">{group.rows.length} TASKS COMPLETED</span>
+                                                        </div>
                                                     </div>
-                                                </td>
-                                                <td className="px-3 py-2 border-r border-white/5 font-black text-white uppercase text-[9px] text-center">{row.study_protocol}</td>
-                                                <td className="px-3 py-2 border-r border-white/5 text-slate-400 text-[9px] font-bold italic text-center">
-                                                    <div className="flex flex-col items-center">
-                                                        <span className="text-white font-black">{new Date(row.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
-                                                        <span className="text-[7px] text-slate-600 uppercase tracking-tighter">Validated Clinical Record</span>
-                                                    </div>
-                                                </td>
-                                                
-                                                {dynamicQuestions.map((q) => (
-                                                    <td key={q.id} className="px-1 py-2 border-r border-white/5 text-center text-[9px] font-black text-white">
-                                                        {renderCellAnswer(q, row.answers[q.id])}
-                                                    </td>
-                                                ))}
- 
-                                                {hasScores && (
-                                                    <>
-                                                        <td className="px-3 py-2 border-r border-white/5 bg-[#065f46]/10 text-center font-black text-white text-[11px]">{row.scores?.somatic ?? 0}</td>
-                                                        <td className="px-3 py-2 border-r border-white/5 bg-[#1e40af]/10 text-center font-black text-white text-[11px]">{row.scores?.psych ?? 0}</td>
-                                                        <td className="px-3 py-2 border-r border-white/5 bg-[#9a3412]/10 text-center font-black text-white text-[11px]">{row.scores?.urogen ?? 0}</td>
-                                                        <td className="px-3 py-2 border-r border-white/5 bg-white/5 text-center font-black text-white text-[11px]">{row.scores?.total ?? 0}</td>
-                                                    </>
-                                                )}
-                                                
-                                                <td className="px-3 py-2 text-right">
-                                                    {row.pdf_url && (
-                                                        <button 
-                                                            onClick={() => handleDownloadPDF(row.pdf_url!)}
-                                                            className="p-1.5 bg-white/5 border border-white/10 rounded text-slate-500 hover:text-white hover:bg-white/10 transition-all shadow-md active:scale-90"
-                                                            title="Download Signed PDF"
-                                                        >
-                                                            <FileText className="w-3 h-3" />
-                                                        </button>
-                                                    )}
                                                 </td>
                                             </tr>
-                                        ))
+                                            
+                                            {/* Task Rows for this Participant */}
+                                            {group.rows.map((row) => (
+                                                <tr key={row.id} className="border-b border-white/5 hover:bg-white/[0.015] transition-colors group">
+                                                    <td className="sticky left-0 z-20 px-4 py-3 border-r border-white/5 bg-[#0B101B]/95 group-hover:bg-[#161C27] text-center shadow-[4px_0_12px_rgba(0,0,0,0.3)]">
+                                                        <input 
+                                                            type="checkbox" 
+                                                            checked={selectedIds.includes(row.id)}
+                                                            onChange={() => toggleSelectRow(row.id)}
+                                                            className="w-4 h-4 rounded border-white/10 text-blue-500 focus:ring-blue-500 bg-white/5"
+                                                        />
+                                                    </td>
+                                                    <td className="sticky left-[50px] z-10 px-4 py-3 border-r border-white/5 bg-[#0B101B]/95 group-hover:bg-[#161C27] transition-all">
+                                                        <div className="flex flex-col">
+                                                            <span className="font-black text-blue-400 text-xs leading-tight">{row.participant_id}</span>
+                                                            <span className="font-bold text-slate-500 text-[10px] uppercase tracking-wider truncate max-w-[140px]">{row.participant_name || 'N/A'}</span>
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-4 py-3 border-r border-white/5 font-black text-white uppercase text-xs text-center truncate">
+                                                        {row.template_name || 'Instrument'}
+                                                    </td>
+                                                    <td className="px-4 py-3 border-r border-white/5 text-slate-400 text-xs font-bold italic text-center">
+                                                        <div className="flex flex-col items-center">
+                                                            <span className="text-white font-black">{new Date(row.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+                                                            <span className="text-[8px] text-slate-600 uppercase tracking-tighter">Validated Clinical Record</span>
+                                                        </div>
+                                                    </td>
+                                                    
+                                                    {dynamicQuestions.map((q) => (
+                                                        <td key={q.id} className="px-2 py-3 border-r border-white/5 text-center text-xs font-black text-white">
+                                                            {renderCellAnswer(q, row.answers[q.id])}
+                                                        </td>
+                                                    ))}
+                     
+                                                    {hasScores && (
+                                                        <>
+                                                            <td className="px-4 py-3 border-r border-white/5 bg-[#065f46]/10 text-center font-black text-white text-sm">{row.scores?.somatic ?? 0}</td>
+                                                            <td className="px-4 py-3 border-r border-white/5 bg-[#1e40af]/10 text-center font-black text-white text-sm">{row.scores?.psych ?? 0}</td>
+                                                            <td className="px-4 py-3 border-r border-white/5 bg-[#9a3412]/10 text-center font-black text-white text-sm">{row.scores?.urogen ?? 0}</td>
+                                                            <td className="px-4 py-3 border-r border-white/5 bg-white/5 text-center font-black text-white text-sm">{row.scores?.total ?? 0}</td>
+                                                        </>
+                                                    )}
+                                                    
+                                                    <td className="px-4 py-3 text-right">
+                                                        {row.pdf_url && (
+                                                            <button 
+                                                                onClick={() => handleDownloadPDF(row.pdf_url!)}
+                                                                className="p-2 bg-white/5 border border-white/10 rounded-lg text-slate-500 hover:text-white hover:bg-white/10 transition-all shadow-md active:scale-90"
+                                                                title="Download Signed PDF"
+                                                            >
+                                                                <FileText className="w-4 h-4" />
+                                                            </button>
+                                                        )}
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </React.Fragment>
+                                    ))
                                     }
                                 </tbody>
                             </table>
@@ -598,41 +656,41 @@ export const DataExportsModule: React.FC<DataExportsModuleProps> = ({ selectedSt
             </div>
 
             {/* Cross-Study Aggregation Footer */}
-            <div className="space-y-3 pt-4 border-t border-white/5 mt-4">
-                <div className="space-y-0.5">
-                    <h3 className="text-[10px] font-black text-slate-400 tracking-wider uppercase italic">CROSS-STUDY AGGREGATION</h3>
-                    <p className="text-[9px] text-slate-500 font-bold italic">All studies using MRS — combined sheet</p>
+            <div className="space-y-4 pt-6 border-t border-white/5 mt-6">
+                <div className="space-y-1">
+                    <h3 className="text-xs font-black text-slate-400 tracking-wider uppercase italic">CROSS-STUDY AGGREGATION</h3>
+                    <p className="text-[10px] text-slate-500 font-bold italic">All studies using MRS — combined sheet</p>
                 </div>
                 
-                <div className="flex flex-wrap items-center gap-2">
+                <div className="flex flex-wrap items-center gap-3">
                     {allStudies.slice(0, 3).map((s, i) => (
-                        <div key={s.id} className={`px-3 py-1.5 rounded-full border flex items-center gap-2 transition-all ${i === 0 ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : i === 1 ? 'bg-amber-500/10 border-amber-500/20 text-amber-600' : 'bg-white/5 border-white/10 text-slate-500 opacity-60'}`}>
-                            <span className="text-[9px] font-black uppercase tracking-widest italic">
+                        <div key={s.id} className={`px-4 py-2 rounded-full border flex items-center gap-2 transition-all ${i === 0 ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : i === 1 ? 'bg-amber-500/10 border-amber-500/20 text-amber-600' : 'bg-white/5 border-white/10 text-slate-500 opacity-60'}`}>
+                            <span className="text-xs font-black uppercase tracking-widest italic">
                                 {s.protocol_id} — {s.enrollment_count || 0} participants {i === 1 ? '(upcoming)' : i === 2 ? '— MRS not used' : ''}
                             </span>
                         </div>
                     ))}
                 </div>
 
-                <div className="flex flex-wrap items-center gap-3 pt-2">
+                <div className="flex flex-wrap items-center gap-4 pt-4">
                     <button 
                         onClick={handleExportXLSX}
-                        className="px-6 py-2.5 bg-[#1a1f2e] border border-white/10 rounded-xl text-white hover:bg-[#252b3d] hover:border-white/20 transition-all text-[11px] font-black flex items-center gap-3 shadow-xl"
+                        className="px-8 py-3 bg-[#1a1f2e] border border-white/10 rounded-2xl text-white hover:bg-[#252b3d] hover:border-white/20 transition-all text-xs font-black flex items-center gap-3 shadow-2xl"
                     >
-                        Export Excel <ExternalLink className="w-4 h-4 text-slate-400" />
+                        Export Excel <ExternalLink className="w-5 h-5 text-slate-400" />
                     </button>
                     <button 
                         onClick={handleScoreSummaryExport}
-                        className="px-6 py-2.5 bg-[#1a1f2e] border border-white/10 rounded-xl text-white hover:bg-[#252b3d] hover:border-white/20 transition-all text-[11px] font-black flex items-center gap-3 shadow-xl"
+                        className="px-8 py-3 bg-[#1a1f2e] border border-white/10 rounded-2xl text-white hover:bg-[#252b3d] hover:border-white/20 transition-all text-xs font-black flex items-center gap-3 shadow-2xl"
                     >
-                        Score summary <ExternalLink className="w-4 h-4 text-slate-400" />
+                        Score summary <ExternalLink className="w-5 h-5 text-slate-400" />
                     </button>
                     <button 
                         onClick={handleBulkPDFExport}
                         disabled={isExporting}
-                        className={`px-6 py-2.5 bg-[#1a1f2e] border border-white/10 rounded-xl text-white hover:bg-[#252b3d] hover:border-white/20 transition-all text-[11px] font-black flex items-center gap-3 shadow-xl ${isExporting ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        className={`px-8 py-3 bg-[#1a1f2e] border border-white/10 rounded-2xl text-white hover:bg-[#252b3d] hover:border-white/20 transition-all text-xs font-black flex items-center gap-3 shadow-2xl ${isExporting ? 'opacity-50 cursor-not-allowed' : ''}`}
                     >
-                        {isExporting ? 'Preparing ZIP...' : 'Download PDFs (ZIP)'} <ExternalLink className={`w-4 h-4 text-slate-400 ${isExporting ? 'animate-spin' : ''}`} />
+                        {isExporting ? 'Preparing ZIP...' : 'Download PDFs (ZIP)'} <ExternalLink className={`w-5 h-5 text-slate-400 ${isExporting ? 'animate-spin' : ''}`} />
                     </button>
                 </div>
             </div>

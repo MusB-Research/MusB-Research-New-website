@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { User, MapPin, Globe, CheckCircle2, ArrowRight, ArrowLeft, ShieldCheck, Heart, CalendarDays, ChevronLeft, ChevronRight } from 'lucide-react';
+import { User, MapPin, Globe, CheckCircle2, ArrowRight, ArrowLeft, ShieldCheck, Heart, CalendarDays, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import { authFetch, saveToken, saveUser, getUser, API } from '../../utils/auth';
+import { usePostalLookup } from '../../hooks/usePostalLookup';
+
 import { useLocation, useNavigate } from 'react-router-dom';
 
 
@@ -20,9 +22,10 @@ export default function ProfileSetup() {
         country: '',
         place_of_origin: '',
         mobile_number: '',
-        date_of_birth: '',
+        birth_year: '',
         age: ''
     });
+
     const [files, setFiles] = useState<{ [key: string]: File | null }>({
         medical_licence: null,
         insurance_certificate: null,
@@ -33,7 +36,7 @@ export default function ProfileSetup() {
     const navigate = useNavigate();
     const location = useLocation();
 
-    // ── Pre-fill from Screener Data ──────────────────────────────────────
+    // -- Pre-fill from Screener Data --------------------------------------
     React.useEffect(() => {
         const screenerData = (location.state as any)?.screenerData;
         if (screenerData) {
@@ -48,27 +51,61 @@ export default function ProfileSetup() {
                 zip_code: screenerData.zipCode || prev.zip_code,
                 mobile_number: screenerData.phone || prev.mobile_number,
                 full_address: screenerData.location || prev.full_address,
-                age: screenerData.age || prev.age
+                age: screenerData.age || prev.age,
+                birth_year: screenerData.birthYear || prev.birth_year
             }));
+
         }
     }, [location.state]);
 
-    const calculateAge = (dob: string) => {
-        if (!dob) return '';
-        const birthDate = new Date(dob);
-        const today = new Date();
-        let age = today.getFullYear() - birthDate.getFullYear();
-        const m = today.getMonth() - birthDate.getMonth();
-        if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) age--;
-        return age.toString();
+    const handleBirthYearChange = (year: string) => {
+        // Strict integer validation
+        if (year !== '' && !/^\d+$/.test(year)) return;
+        
+        const currentYear = new Date().getFullYear();
+        let calculatedAge = '';
+        
+        if (year && year.length === 4) {
+            const y = parseInt(year);
+            if (y > 1900 && y <= currentYear) {
+                calculatedAge = (currentYear - y).toString();
+            }
+        }
+        
+        setFormData(prev => ({ ...prev, birth_year: year, age: calculatedAge }));
     };
 
-    const handleDOBChange = (dob: string) => {
-        setFormData(prev => ({ ...prev, date_of_birth: dob, age: calculateAge(dob) }));
+    const handleAgeChange = (age: string) => {
+        // Strict integer validation
+        if (age !== '' && !/^\d+$/.test(age)) return;
+        setFormData(prev => ({ ...prev, age }));
     };
+
+
+    const { isLoading: isLocating } = usePostalLookup({
+        zipCode: formData.zip_code,
+        country: formData.country,
+        onSuccess: (res) => {
+            setFormData(prev => ({
+                ...prev,
+                city: res.city || prev.city,
+                state: res.state || prev.state,
+                country: prev.country || res.country
+            }));
+        },
+        onClear: () => {
+            setFormData(prev => ({
+                ...prev,
+                city: '',
+                state: '',
+                country: ''
+            }));
+        }
+    });
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-        setFormData({ ...formData, [e.target.name]: e.target.value });
+        const { name, value } = e.target;
+        setFormData(prev => ({ ...prev, [name]: value }));
     };
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -237,27 +274,34 @@ export default function ProfileSetup() {
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                 <div className="space-y-3 flex flex-col items-start">
-                                    <label className="text-[12px] font-black text-[#555a7a] uppercase tracking-widest italic text-left">Birth Date</label>
+                                    <label className="text-[12px] font-black text-[#555a7a] uppercase tracking-widest italic text-left">Birth Year</label>
                                     <input
-                                        type="date"
-                                        name="date_of_birth"
-                                        value={formData.date_of_birth}
-                                        onChange={(e) => handleDOBChange(e.target.value)}
+                                        type="text"
+                                        name="birth_year"
+                                        maxLength={4}
+                                        value={formData.birth_year}
+                                        onChange={(e) => handleBirthYearChange(e.target.value)}
+                                        placeholder="YYYY (e.g. 1990)"
                                         className="w-full h-[60px] bg-black/40 border border-white/5 rounded-2xl px-6 text-white outline-none focus:border-cyan-500/40 transition-all font-bold"
                                     />
                                 </div>
                                 <div className="space-y-3 flex flex-col items-start">
                                     <label className="text-[12px] font-black text-[#555a7a] uppercase tracking-widest italic text-left">Current Age</label>
                                     <input 
-                                        readOnly 
-                                        value={formData.age} 
-                                        placeholder="Auto-calculated" 
-                                        className="w-full h-[60px] bg-black/20 border border-white/5 rounded-2xl px-6 text-cyan-400 outline-none font-bold" 
+                                        type="text"
+                                        name="age"
+                                        maxLength={3}
+                                        value={formData.age}
+                                        onChange={(e) => handleAgeChange(e.target.value)}
+                                        placeholder="Age" 
+                                        className="w-full h-[60px] bg-black/40 border border-white/5 rounded-2xl px-6 text-white outline-none focus:border-cyan-500/40 transition-all font-bold" 
                                     />
                                 </div>
                             </div>
 
-                            <button onClick={handleNext} disabled={!formData.first_name || !formData.last_name || !formData.gender || !formData.date_of_birth} className="w-full py-6 bg-cyan-500 text-slate-950 rounded-[2rem] font-black text-[12px] uppercase tracking-[0.3em] italic hover:bg-white hover:-translate-y-1 transition-all flex items-center justify-center gap-4 disabled:opacity-50 disabled:hover:translate-y-0 disabled:cursor-not-allowed">
+
+                            <button onClick={handleNext} disabled={!formData.first_name || !formData.last_name || !formData.gender || !formData.birth_year || !formData.age} className="w-full py-6 bg-cyan-500 text-slate-950 rounded-[2rem] font-black text-[12px] uppercase tracking-[0.3em] italic hover:bg-white hover:-translate-y-1 transition-all flex items-center justify-center gap-4 disabled:opacity-50 disabled:hover:translate-y-0 disabled:cursor-not-allowed">
+
                                 Initialize Next Phase <ArrowRight className="w-5 h-5" />
                             </button>
                         </motion.div>
@@ -295,12 +339,19 @@ export default function ProfileSetup() {
 
                                 <div className="grid grid-cols-2 gap-8">
                                     <div className="space-y-3 flex flex-col items-start">
-                                        <label className="text-[12px] font-black text-[#555a7a] uppercase tracking-widest italic text-left">ZIP / PIN Code</label>
-                                        <input name="zip_code" value={formData.zip_code} onChange={handleChange} placeholder="12345" className="w-full h-[60px] bg-black/40 border border-white/5 rounded-2xl px-6 text-white placeholder:text-slate-800 outline-none focus:border-purple-500/40 transition-all font-bold" />
+                                        <label className="text-[12px] font-black text-[#555a7a] uppercase tracking-widest italic text-left">Postal / ZIP Code</label>
+                                        <div className="relative w-full">
+                                            <input name="zip_code" value={formData.zip_code} onChange={handleChange} placeholder="Optional for some countries" className="w-full h-[60px] bg-black/40 border border-white/5 rounded-2xl px-6 text-white placeholder:text-slate-800 outline-none focus:border-purple-500/40 transition-all font-bold pr-12" />
+                                            {isLocating && (
+                                                <div className="absolute right-4 top-1/2 -translate-y-1/2">
+                                                    <Loader2 className="w-5 h-5 text-purple-400 animate-spin" />
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
                                     <div className="space-y-3 flex flex-col items-start">
                                         <label className="text-[12px] font-black text-[#555a7a] uppercase tracking-widest italic text-left">Country</label>
-                                        <input name="country" value={formData.country} onChange={handleChange} placeholder="USA" className="w-full h-[60px] bg-black/40 border border-white/5 rounded-2xl px-6 text-white placeholder:text-slate-800 outline-none focus:border-purple-500/40 transition-all font-bold" />
+                                        <input name="country" value={formData.country} onChange={handleChange} placeholder="e.g. USA, Canada, UK" className="w-full h-[60px] bg-black/40 border border-white/5 rounded-2xl px-6 text-white placeholder:text-slate-800 outline-none focus:border-purple-500/40 transition-all font-bold" />
                                     </div>
                                 </div>
 
@@ -329,7 +380,7 @@ export default function ProfileSetup() {
                                 <button onClick={handleBack} className="flex-1 py-6 bg-white/5 border border-white/5 text-[#555a7a] rounded-[2rem] font-black text-[12px] uppercase tracking-widest hover:bg-white/10 transition-all flex items-center justify-center gap-2">
                                     <ArrowLeft className="w-4 h-4" /> Back to Identity
                                 </button>
-                                <button onClick={isProfessional ? handleNext : handleSubmit} disabled={isLoading || !formData.full_address || !formData.city || !formData.state || !formData.zip_code || !formData.country || !formData.place_of_origin || !formData.mobile_number} className="flex-[2] py-6 bg-purple-600 text-white rounded-[2rem] font-black text-[12px] uppercase tracking-[0.3em] italic shadow-xl shadow-purple-900/40 hover:scale-[1.02] transition-all flex items-center justify-center gap-4 disabled:opacity-50 disabled:hover:scale-100 disabled:cursor-not-allowed">
+                                <button onClick={isProfessional ? handleNext : handleSubmit} disabled={isLoading || !formData.full_address || !formData.city || !formData.state || !formData.country || !formData.place_of_origin || !formData.mobile_number} className="flex-[2] py-6 bg-purple-600 text-white rounded-[2rem] font-black text-[12px] uppercase tracking-[0.3em] italic shadow-xl shadow-purple-900/40 hover:scale-[1.02] transition-all flex items-center justify-center gap-4 disabled:opacity-50 disabled:hover:scale-100 disabled:cursor-not-allowed">
                                     {isProfessional ? (
                                         <>Continue to Credentials <ArrowRight className="w-5 h-5" /></>
                                     ) : (

@@ -27,16 +27,16 @@ except ImportError:
 
 # Patch Django Model hash to fix "Model instances without primary key value are unhashable"
 # This is required for Django 6.x with MongoDB backends during migration/setup
-import django.db.models as django_models
-def _safe_model_hash(self):
-    pk = getattr(self, 'pk', None)
-    if pk is None:
-        return id(self)
-    try:
-        return hash(str(pk))
-    except Exception:
-        return id(self)
-django_models.Model.__hash__ = _safe_model_hash
+# import django.db.models as django_models
+# def _safe_model_hash(self):
+#     pk = getattr(self, 'pk', None)
+#     if pk is None:
+#         return id(self)
+#     try:
+#         return hash(str(pk))
+#     except Exception:
+#         return id(self)
+# django_models.Model.__hash__ = _safe_model_hash
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -57,7 +57,7 @@ if os.getenv('RENDER'):
 # Frontend URL used for generating email links
 FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:5173')
 
-ALLOWED_HOSTS = [h.strip() for h in os.getenv('DJANGO_ALLOWED_HOSTS', 'localhost,127.0.0.1,musb-research-new-website-hk4k.onrender.com').split(',') if h.strip()]
+ALLOWED_HOSTS = [h.strip() for h in os.getenv('DJANGO_ALLOWED_HOSTS', 'localhost,127.0.0.1,musb-backend.onrender.com,musb-research-new-website.onrender.com,.onrender.com').split(',') if h.strip()]
 if DEBUG:
     ALLOWED_HOSTS = ['*']
 
@@ -235,14 +235,49 @@ STATIC_URL = 'static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
-STORAGES = {
-    "default": {
-        "BACKEND": "django.core.files.storage.FileSystemStorage",
-    },
-    "staticfiles": {
-        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
-    },
+# STORAGES = {
+#     "default": {
+#         "BACKEND": "django.core.files.storage.FileSystemStorage",
+#     },
+#     "staticfiles": {
+#         "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+#     },
+# }
+
+# S3 Configuration
+AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID')
+AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
+AWS_STORAGE_BUCKET_NAME = os.getenv('AWS_STORAGE_BUCKET_NAME', 'musb-research-uploads')
+AWS_S3_REGION_NAME = os.getenv('AWS_S3_REGION_NAME', 'us-east-1')
+AWS_DEFAULT_ACL = None  # No public access
+AWS_S3_FILE_OVERWRITE = False
+AWS_QUERYSTRING_AUTH = True  # Signed URLs only
+AWS_S3_SIGNATURE_VERSION = 's3v4'
+AWS_S3_OBJECT_PARAMETERS = {
+    'CacheControl': 'max-age=86400',
 }
+
+# Use S3 in production, local filesystem in development
+if os.getenv('AWS_ACCESS_KEY_ID'):
+    STORAGES = {
+        "default": {
+            "BACKEND": "storages.backends.s3boto3.S3Boto3Storage",
+        },
+        "staticfiles": {
+            "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+        },
+    }
+    MEDIA_URL = f'https://{AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com/'
+else:
+    STORAGES = {
+        "default": {
+            "BACKEND": "django.core.files.storage.FileSystemStorage",
+        },
+        "staticfiles": {
+            "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+        },
+    }
+    MEDIA_URL = '/media/'
 
 # ─────────────────────────────────────────────────────────
 #  CORS & CSRF Configuration (HttpOnly Cookies)
@@ -338,6 +373,10 @@ else:
 # Resend Configuration (Used as high-performance delivery option)
 RESEND_API_KEY = os.getenv('RESEND_API_KEY', '').strip()
 
+# Geoapify Configuration
+GEOAPIFY_API_KEY = os.getenv('GEOAPIFY_API_KEY', '').strip()
+
+
 # Production Security Settings
 if not DEBUG:
     SECURE_BROWSER_XSS_FILTER = True
@@ -366,8 +405,8 @@ else:
     CSRF_COOKIE_HTTPONLY = True
     SESSION_COOKIE_HTTPONLY = True
     # Ensure local development allows cross-port cookies for auth
-    CSRF_COOKIE_SAMESITE = 'None'
-    SESSION_COOKIE_SAMESITE = 'None'
+    CSRF_COOKIE_SAMESITE = 'Lax'
+    SESSION_COOKIE_SAMESITE = 'Lax'
     CSRF_COOKIE_SECURE = False
     SESSION_COOKIE_SECURE = False
 
@@ -405,3 +444,24 @@ import warnings
 warnings.filterwarnings('ignore', category=DeprecationWarning, module='mongodb')
 warnings.filterwarnings('ignore', category=DeprecationWarning, module='django_mongodb_backend')
 warnings.filterwarnings('ignore', category=RuntimeWarning, module='django.db.models.fields')
+
+
+# settings.py
+
+# Stop Django from syncing permissions to MongoDB
+# We use our own role-based system anyway (role field on User model)
+# This eliminates the need for the bulk_create patch entirely
+# AUTH_PERMISSION_SYNC = False
+
+# Disconnect the post_migrate signal that tries to create permissions
+# Add this at the bottom of settings.py
+from django.db.models.signals import post_migrate
+
+def disable_permission_creation(sender, **kwargs):
+    pass  # do nothing instead of creating permissions
+
+# This runs once when Django starts
+import django.contrib.auth.management
+post_migrate.disconnect(
+    django.contrib.auth.management.create_permissions
+)

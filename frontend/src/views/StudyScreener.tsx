@@ -29,18 +29,118 @@ import AnimatedBackground from '../components/AnimatedBackground';
 import { fetchStudies, Study } from '../data/studies';
 import { authFetch, API, getAccessToken, getUser, saveToken, saveUser } from '../utils/auth';
 import { Skeleton } from './Participant/SharedComponents';
+import { usePostalLookup } from '../hooks/usePostalLookup';
 
-const ELIGIBILITY_CRITERIA = [
-    "I am between 18 and 65 years old",
-    "I often experience bloating or gas",
-    "I am not currently pregnant",
-    "I am able to attend 2–3 study visits",
-    "I have not been diagnosed with GERD, IBD, or celiac disease",
-    "I have not taken probiotics or digestive enzymes in the past 2 weeks",
-    "I have not taken antibiotics in the past month",
-    "I do not have major chronic illnesses requiring regular prescription medication",
-    "I am open to trying a natural gut health product as part of a study"
-];
+
+// --- Custom Premium Components ---
+const CustomDropdown = ({ options, value, onChange, placeholder, isMultiple = false }: { options: string[], value: any, onChange: (val: any) => void, placeholder: string, isMultiple?: boolean }) => {
+    const [isOpen, setIsOpen] = useState(false);
+    const containerRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+                setIsOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    // Lift parent card z-index when open to prevent overlapping issues
+    useEffect(() => {
+        if (containerRef.current) {
+            const card = containerRef.current.closest('.rounded-3xl') as HTMLElement;
+            if (card) {
+                if (isOpen) {
+                    card.style.zIndex = '100';
+                    card.style.position = 'relative';
+                } else {
+                    card.style.zIndex = '1';
+                }
+            }
+        }
+    }, [isOpen]);
+
+    const isSelected = (opt: string) => {
+        if (isMultiple) {
+            return Array.isArray(value) && value.includes(opt);
+        }
+        return value === opt;
+    };
+
+    const getDisplayValue = () => {
+        if (isMultiple) {
+            if (!Array.isArray(value) || value.length === 0) return placeholder;
+            if (value.length === 1) return value[0];
+            return `${value.length} options selected`;
+        }
+        return value || placeholder;
+    };
+
+    return (
+        <div className="relative" ref={containerRef}>
+            <button
+                type="button"
+                onClick={() => setIsOpen(!isOpen)}
+                className={`w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-left flex items-center justify-between transition-all hover:border-white/30 ${isOpen ? 'border-white/40 ring-4 ring-white/5' : ''}`}
+            >
+                <span className={`text-sm font-bold ${(isMultiple ? (Array.isArray(value) && value.length > 0) : value) ? 'text-white' : 'text-slate-400'}`}>
+                    {getDisplayValue()}
+                </span>
+                <ChevronDown className={`w-5 h-5 text-slate-500 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
+            </button>
+
+            <AnimatePresence>
+                {isOpen && (
+                    <motion.div
+                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                        transition={{ duration: 0.2, ease: "easeOut" }}
+                        className="absolute z-[110] left-0 right-0 mt-2 bg-[#0A0A0A] border border-white/10 rounded-2xl shadow-[0_25px_60px_rgba(0,0,0,0.8)] overflow-hidden"
+                        style={{ backgroundColor: '#0D0D0D' }}
+                    >
+                        <div className="max-h-[280px] overflow-y-auto py-2">
+                            {options.map((opt) => (
+                                <button
+                                    key={opt}
+                                    type="button"
+                                    onClick={() => {
+                                        onChange(opt);
+                                        if (!isMultiple) setIsOpen(false);
+                                    }}
+                                    className={`w-full px-6 py-4 text-left text-sm font-bold transition-all flex items-center justify-between group ${isSelected(opt) ? 'bg-white text-black' : 'text-white hover:bg-white/10'}`}
+                                >
+                                    <div className="flex items-center gap-3">
+                                        {isMultiple && (
+                                            <div className={`w-4 h-4 rounded border flex items-center justify-center transition-all ${isSelected(opt) ? 'bg-black border-black' : 'border-white/20 group-hover:border-white/40'}`}>
+                                                {isSelected(opt) && <Check className="w-2.5 h-2.5 text-white" />}
+                                            </div>
+                                        )}
+                                        <span>{opt}</span>
+                                    </div>
+                                    {(!isMultiple && isSelected(opt)) && <Check className="w-4 h-4" />}
+                                </button>
+                            ))}
+                        </div>
+                        {isMultiple && (
+                            <div className="p-2 border-t border-white/5 bg-white/5 flex justify-end">
+                                <button 
+                                    onClick={() => setIsOpen(false)}
+                                    className="px-4 py-2 text-[10px] font-black uppercase tracking-widest text-white hover:text-cyan-400 transition-colors"
+                                >
+                                    Done
+                                </button>
+                            </div>
+                        )}
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </div>
+    );
+};
+
 
 export default function StudyScreener() {
     const { id } = useParams();
@@ -51,17 +151,19 @@ export default function StudyScreener() {
     const [isLoading, setIsLoading] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitted, setSubmitted] = useState(false);
+    const [rejectionReasons, setRejectionReasons] = useState<string[]>([]);
     const [error, setError] = useState<string | null>(null);
     const [step, setStep] = useState(1);
 
-    // ── Form State ──────────────────────────────────────────────────────
+    // -- Form State ------------------------------------------------------
     const [formData, setFormData] = useState({
         trialsInLast30Days: '',
         zipCode: '',
         city: '',
         state: '',
-        country: 'United States',
+        country: '',
         firstName: '',
+        middleName: '',
         lastName: '',
         email: '',
         phone: '',
@@ -71,11 +173,18 @@ export default function StudyScreener() {
 
     const [answers, setAnswers] = useState<Record<string, any>>({});
     const [autoFilledFields, setAutoFilledFields] = useState<Set<string>>(new Set());
-    const [isLocating, setIsLocating] = useState(false);
+    const [prefilledData, setPrefilledData] = useState<any>(null);
+
+    const ELIGIBILITY_CRITERIA: string[] = [
+        "Are you between the ages of 18 and 65?",
+        "Do you have a documented history of the condition under study?",
+        "Are you willing to attend all scheduled clinic visits?",
+        "Are you currently taking any excluded medications?",
+    ];
 
     const user = getUser();
 
-    // ── Initialization ──────────────────────────────────────────────────
+    // -- Initialization --------------------------------------------------
     useLayoutEffect(() => {
         if ('scrollRestoration' in window.history) {
             window.history.scrollRestoration = 'manual';
@@ -97,8 +206,9 @@ export default function StudyScreener() {
                         zipCode: '',
                         city: '',
                         state: '',
-                        country: 'United States',
+                        country: '',
                         firstName: '',
+                        middleName: '',
                         lastName: '',
                         email: '',
                         phone: '',
@@ -108,16 +218,30 @@ export default function StudyScreener() {
 
                     // Pre-fill from User Session
                     if (user) {
+                        const fullName = (user.decrypted_name || user.full_name || '').trim();
+                        const nameParts = fullName.split(' ');
+                        
+                        setPrefilledData({
+                            email: user.email || '',
+                            phone: user.decrypted_phone || user.phone_number || '',
+                            firstName: nameParts[0] || '',
+                            lastName: nameParts.length > 1 ? nameParts[nameParts.length - 1] : '',
+                            middleName: nameParts.length > 2 ? nameParts.slice(1, -1).join(' ') : '',
+                            fullName: fullName,
+                            zipCode: user.zip_code || ''
+                        });
+                        
                         initialFormData = {
                             ...initialFormData,
-                            firstName: user.first_name || user.firstName || user.full_name?.split(' ')[0] || '',
-                            lastName: user.last_name || user.lastName || user.full_name?.split(' ').slice(1).join(' ') || '',
+                            firstName: nameParts[0] || '',
+                            middleName: nameParts.length > 2 ? nameParts.slice(1, -1).join(' ') : '',
+                            lastName: nameParts.length > 1 ? nameParts[nameParts.length - 1] : '',
                             email: user.email || '',
-                            phone: user.decrypted_phone || user.phone_number || user.phone || '',
-                            zipCode: user.zip_code || user.zipCode || '',
+                            phone: user.decrypted_phone || user.phone_number || '',
+                            zipCode: user.zip_code || '',
                             city: user.city || '',
                             state: user.state || '',
-                            country: user.country || 'United States'
+                            country: user.country || ''
                         };
                         setFormData(initialFormData);
                     }
@@ -169,7 +293,7 @@ export default function StudyScreener() {
                                         }
                                     }
                                 } else if (label.includes('country')) {
-                                    initialAnswers[qId] = user.country || 'United States';
+                                    initialAnswers[qId] = user.country || '';
                                     filledFields.add(qId);
                                 } else if (label.includes('reside') || label.includes('location')) {
                                     if (user.country || user.city) {
@@ -182,7 +306,7 @@ export default function StudyScreener() {
                         setAnswers(initialAnswers);
                         setAutoFilledFields(filledFields);
                     } else {
-                        ELIGIBILITY_CRITERIA.forEach((_, i) => { initialAnswers[String(i)] = false; });
+                        ELIGIBILITY_CRITERIA.forEach((_: string, i: number) => { initialAnswers[String(i)] = false; });
                         setAnswers(initialAnswers);
                     }
                 } else {
@@ -216,30 +340,32 @@ export default function StudyScreener() {
         });
     };
 
-    const handleZipChange = async (val: string) => {
-        setFormData(prev => ({ ...prev, zipCode: val }));
-        if (val.length >= 5) {
-            setIsLocating(true);
-            try {
-                // Use backend proxy to avoid CSP issues
-                const response = await authFetch(`${API}/api/zip-lookup/us/${val}/`);
-                if (response.ok) {
-                    const data = await response.json();
-                    if (data.places?.[0]) {
-                        const p = data.places[0];
-                        setFormData(prev => ({ 
-                            ...prev, 
-                            city: p['place name'] || '', 
-                            state: p['state'] || '',
-                            country: 'United States'
-                        }));
-                    }
-                }
-            } catch (e) { } finally { setIsLocating(false); }
+    const { isLoading: isLocating, error: lookupError } = usePostalLookup({
+        zipCode: formData.zipCode,
+        country: formData.country,
+        onSuccess: (res) => {
+            setFormData(prev => ({
+                ...prev,
+                city: res.city || prev.city,
+                state: res.state || prev.state,
+                country: prev.country || res.country
+            }));
+        },
+        onClear: () => {
+            setFormData(prev => ({
+                ...prev,
+                city: '',
+                state: '',
+                country: ''
+            }));
         }
+    });
+
+    const handleZipChange = (val: string) => {
+        setFormData(prev => ({ ...prev, zipCode: val }));
     };
 
-    // ── Google Auth ──────────────────────────────────────────────────────
+    // -- Google Auth ------------------------------------------------------
     const googleButtonRef = useRef<HTMLDivElement>(null);
 
     const handleCredentialResponse = async (response: any) => {
@@ -319,7 +445,41 @@ export default function StudyScreener() {
                                            ELIGIBILITY_CRITERIA;
 
             const allAnswered = Object.values(answers).every(v => v !== null && v !== undefined && (Array.isArray(v) ? v.length > 0 : v !== ''));
-            const outcome = allAnswered ? 'ELIGIBLE' : 'MAYBE';
+            
+            // --- ELIGIBILITY RULE ENGINE ---
+            const failures: string[] = [];
+            
+            // Check Step 1 specific rejections
+            if (formData.trialsInLast30Days === 'Yes') {
+                failures.push("Currently participating in another clinical trial (must wait 30 days)");
+            }
+
+            // Check dynamic questions
+            if (Array.isArray(dynamicQuestions)) {
+                dynamicQuestions.forEach((q: any, i: number) => {
+                    const qId = q.id || q.key || String(i);
+                    const answer = answers[qId];
+                    const label = typeof q === 'string' ? q : (q.label || q.placeholder);
+
+                    // Logic: If it's a simple string checkbox, it MUST be true
+                    if (typeof q === 'string') {
+                        if (answer !== true && answer !== 'Yes') {
+                            failures.push(q);
+                        }
+                    } else {
+                        // If config defines an expected_value, use it. 
+                        // Otherwise, for yesno, assume 'Yes' is the positive answer if we want to be strict.
+                        // For now, let's only fail if the config explicitly defines a required answer
+                        if (q.required_value && answer !== q.required_value) {
+                            failures.push(q.rejection_reason || label);
+                        }
+                    }
+                });
+            }
+
+            const outcome = failures.length > 0 ? 'INELIGIBLE' : (allAnswered ? 'ELIGIBLE' : 'MAYBE');
+            setRejectionReasons(failures);
+
             
             // Map index-based checklist results for backward compatibility if needed
             const checklistResults = Array.isArray(dynamicQuestions) ? dynamicQuestions.map((c: any, i: number) => {
@@ -330,7 +490,7 @@ export default function StudyScreener() {
                 };
             }) : [];
 
-            await authFetch(`${API}/api/contact/submit/`, {
+            const response = await authFetch(`${API}/api/contact/submit/`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -341,6 +501,7 @@ export default function StudyScreener() {
                     inquiry_type_slug: 'screening',
                     metadata: {
                         outcome,
+                        rejection_reasons: failures,
                         answers, // Flat object with question IDs as keys
                         formData: {
                             ...formData,
@@ -350,10 +511,34 @@ export default function StudyScreener() {
                 })
             });
 
+            if (!response.ok) {
+                const data = await response.json();
+                if (data.error === 'EXISTS' || data.error === 'DUPLICATE') {
+                    setError(data.detail);
+                    setIsSubmitting(false);
+                    return;
+                }
+                throw new Error(data.error || 'Submission failed');
+            }
+
             setSubmitted(true);
             window.scrollTo({ top: 0, behavior: 'smooth' });
+
+            // Auto-redirect for anonymous users after a short delay
+            if (!user) {
+                setTimeout(() => {
+                    navigate('/signin', { 
+                        state: { 
+                            initialMode: 'REGISTER',
+                            email: formData.email,
+                            name: `${formData.firstName} ${formData.lastName}`.trim()
+                        } 
+                    });
+                }, 3500);
+            }
         } catch (err: any) {
             setError(err.message || 'Submission failed. Please try again.');
+
         } finally {
             setIsSubmitting(false);
         }
@@ -382,12 +567,41 @@ export default function StudyScreener() {
                         <CheckCircle2 className="w-10 h-10" />
                     </div>
                     <div className="space-y-4">
-                        <h2 className="text-3xl font-black text-white uppercase tracking-tight">Form Submitted</h2>
+                        <h2 className="text-3xl font-black text-white uppercase tracking-tight">
+                            {rejectionReasons.length > 0 ? 'Eligibility Update' : 'Form Submitted'}
+                        </h2>
                         <p className="text-slate-400 text-lg leading-relaxed font-medium">
-                            Thank you for your interest in the <span className="text-white">{study.title}</span>. 
-                            Our team will review your information and reach out to you shortly.
+                            {rejectionReasons.length > 0 ? (
+                                <>
+                                    Thank you for your interest in the <span className="text-white">{study.title}</span>. 
+                                    Based on your responses, you do not currently meet all the inclusion criteria for this specific study.
+                                </>
+                            ) : (
+                                <>
+                                    Thank you for your interest in the <span className="text-white">{study.title}</span>. 
+                                    Our team will review your information and reach out to you shortly.
+                                </>
+                            )}
                         </p>
                     </div>
+
+                    {rejectionReasons.length > 0 && (
+                        <div className="p-6 bg-amber-500/5 border border-amber-500/10 rounded-3xl space-y-4 text-left">
+                            <h4 className="text-[10px] font-black text-amber-500 uppercase tracking-widest">Requirements not met:</h4>
+                            <ul className="space-y-2">
+                                {rejectionReasons.map((reason, idx) => (
+                                    <li key={idx} className="flex gap-3 text-sm text-slate-300">
+                                        <span className="text-amber-500">•</span>
+                                        {reason}
+                                    </li>
+                                ))}
+                            </ul>
+                            <p className="pt-2 text-[11px] text-slate-500 italic">
+                                Note: You may still qualify for other ongoing or future studies. We will keep your profile active for relevant opportunities.
+                            </p>
+                        </div>
+                    )}
+
                     <div className="pt-8 flex flex-col gap-6">
                         {user ? (
                             <div className="space-y-6">
@@ -472,14 +686,21 @@ export default function StudyScreener() {
                                 
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="space-y-2">
-                                        <label className="text-xs font-bold text-slate-400">ZIP code</label>
-                                        <input 
-                                            type="text"
-                                            value={formData.zipCode}
-                                            onChange={(e) => handleZipChange(e.target.value)}
-                                            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-white/30 outline-none transition-all"
-                                            placeholder="e.g. 33601"
-                                        />
+                                        <label className="text-xs font-bold text-slate-400">Postal / ZIP code</label>
+                                        <div className="relative">
+                                            <input 
+                                                type="text"
+                                                value={formData.zipCode}
+                                                onChange={(e) => handleZipChange(e.target.value)}
+                                                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-white/30 outline-none transition-all pr-10"
+                                                placeholder="Postal / ZIP Code"
+                                            />
+                                            {isLocating && (
+                                                <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                                                    <Loader2 className="w-4 h-4 text-blue-400 animate-spin" />
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
                                     <div className="space-y-2">
                                         <label className="text-[11px] font-bold text-slate-400">City</label>
@@ -512,8 +733,8 @@ export default function StudyScreener() {
                                         />
                                     </div>
                                 </div>
-                                <p className="text-[11px] text-slate-500 font-medium">
-                                    Location is pre-filled based on your profile. <button onClick={() => setIsLocating(!isLocating)} className="text-blue-400 hover:underline">Update</button>
+                                <p className="text-[11px] text-slate-500 font-medium italic">
+                                    Location is synchronized automatically based on your postal code.
                                 </p>
                             </div>
 
@@ -577,7 +798,7 @@ export default function StudyScreener() {
                                 )}
 
                                 <div className="space-y-4">
-                                    <div className="grid grid-cols-2 gap-4">
+                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                                         <div className="space-y-2">
                                             <label className="text-[11px] font-bold text-slate-400">First name</label>
                                             <input 
@@ -586,6 +807,16 @@ export default function StudyScreener() {
                                                 onChange={(e) => setFormData({...formData, firstName: e.target.value})}
                                                 className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-white/30 outline-none transition-all"
                                                 placeholder="Jane"
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-[11px] font-bold text-slate-400">Middle name</label>
+                                            <input 
+                                                type="text"
+                                                value={formData.middleName}
+                                                onChange={(e) => setFormData({...formData, middleName: e.target.value})}
+                                                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-white/30 outline-none transition-all"
+                                                placeholder="A."
                                             />
                                         </div>
                                         <div className="space-y-2">
@@ -659,88 +890,178 @@ export default function StudyScreener() {
                                 <div className="space-y-4">
                                     <p className="text-[11px] font-black text-slate-500 uppercase tracking-widest">Check all that apply to you:</p>
                                     <div className="space-y-6">
-                                        {(study.screener_config?.questions || study.screener_config?.steps?.find((s: any) => s.type === 'user_input')?.questions || ELIGIBILITY_CRITERIA).map((q: any, i: number) => {
-                                            const qId = q.id || q.key || String(i);
-                                            const isAnswered = Boolean(answers[qId] !== null && answers[qId] !== undefined && (Array.isArray(answers[qId]) ? answers[qId].length > 0 : answers[qId] !== ''));
-                                            const isAutoFilled = Boolean(autoFilledFields?.has?.(qId));
+                                        {(() => {
+                                            const questions = study.screener_config?.questions || 
+                                                             study.screener_config?.steps?.find((s: any) => s.type === 'user_input')?.questions;
                                             
-                                            if (typeof q === 'string') {
-                                                return (
-                                                    <div 
-                                                        key={i}
-                                                        onClick={() => handleAnswerChange(qId, !answers[qId])}
-                                                        className={`p-6 rounded-2xl border transition-all cursor-pointer flex items-center justify-between group ${answers[qId] ? 'bg-white border-white shadow-lg shadow-white/5' : 'bg-transparent border-white/10 hover:border-white/30'}`}
-                                                    >
-                                                        <div className="flex flex-col gap-1">
-                                                            <span className={`text-sm font-bold ${answers[qId] ? 'text-black' : 'text-slate-400 group-hover:text-white'}`}>{q}</span>
-                                                            {isAutoFilled && (
-                                                                <span className="text-[9px] font-black text-blue-500 uppercase tracking-widest flex items-center gap-1">
-                                                                    <ShieldCheck className="w-2.5 h-2.5" /> Pre-filled from profile
-                                                                </span>
-                                                            )}
-                                                        </div>
-                                                        <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${answers[qId] ? 'bg-black border-black' : 'bg-transparent border-white/20'}`}>
-                                                            {answers[qId] && <Check className="w-4 h-4 text-white" />}
-                                                        </div>
-                                                    </div>
-                                                );
+                                            if (questions && questions.length > 0) return questions;
+                                            
+                                            // Dynamic fallback: Use study benefits as verification criteria if no specific screener is defined
+                                            if (study.benefit) {
+                                                return study.benefit.split('\n')
+                                                    .filter((l: string) => l.trim().length > 0)
+                                                    .map((l: string) => l.replace(/^[•\-\*]\s*/, '').trim());
                                             }
 
-                                            return (
-                                                <div key={qId} className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-8 space-y-6 shadow-xl">
-                                                    <div className="flex items-center justify-between">
-                                                        <div className="flex flex-col gap-2">
-                                                            <h3 className="text-xs font-black text-slate-500 uppercase tracking-[0.2em]">{q.label || 'Question'}</h3>
-                                                            {isAutoFilled && (
-                                                                <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest flex items-center gap-1.5">
-                                                                    <ShieldCheck className="w-3 h-3" /> Auto-filled from profile
-                                                                </span>
-                                                            )}
-                                                        </div>
-                                                        {isAnswered && <CheckCircle2 className="w-5 h-5 text-cyan-400" />}
-                                                    </div>
-                                                    
-                                                    <p className="text-lg font-black text-white leading-tight">{q.placeholder || q.label}</p>
+                                            return ["I am interested in participating in this research study"];
+                                        })().map((q: any, i: number) => {
+                                             const qId = q.id || q.key || String(i);
+                                             const isAnswered = Boolean(answers[qId] !== null && answers[qId] !== undefined && (Array.isArray(answers[qId]) ? answers[qId].length > 0 : answers[qId] !== ''));
+                                             const isAutoFilled = Boolean(autoFilledFields?.has?.(qId));
+                                             
+                                             if (typeof q === 'string') {
+                                                 return (
+                                                     <div 
+                                                         key={i}
+                                                         onClick={() => handleAnswerChange(qId, !answers[qId])}
+                                                         className={`p-6 rounded-2xl border transition-all cursor-pointer flex items-center justify-between group ${answers[qId] ? 'bg-white text-black border-white shadow-lg shadow-white/5' : 'bg-transparent border-white/10 hover:border-white/30'}`}
+                                                     >
+                                                         <div className="flex flex-col gap-1">
+                                                             <span className={`text-sm font-bold ${answers[qId] ? 'text-black' : 'text-slate-400 group-hover:text-white'}`}>{q}</span>
+                                                             {isAutoFilled && (
+                                                                 <span className="text-[9px] font-black text-blue-500 uppercase tracking-widest flex items-center gap-1">
+                                                                     <ShieldCheck className="w-2.5 h-2.5" /> Pre-filled from profile
+                                                                 </span>
+                                                             )}
+                                                         </div>
+                                                         <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${answers[qId] ? 'bg-black border-black' : 'bg-transparent border-white/20'}`}>
+                                                             {answers[qId] && <Check className="w-4 h-4 text-white" />}
+                                                         </div>
+                                                     </div>
+                                                 );
+                                             }
 
-                                                    {(q.type === 'yesno' || q.type === 'boolean') && (
-                                                        <div className="grid grid-cols-2 gap-4">
-                                                            <button 
-                                                                onClick={() => handleAnswerChange(qId, 'Yes')}
-                                                                className={`py-4 rounded-2xl border font-black text-xs uppercase tracking-widest transition-all ${answers[qId] === 'Yes' ? 'bg-white text-black border-white shadow-lg' : 'bg-transparent border-white/10 text-white hover:bg-white/5'}`}
-                                                            >
-                                                                Yes
-                                                            </button>
-                                                            <button 
-                                                                onClick={() => handleAnswerChange(qId, 'No')}
-                                                                className={`py-4 rounded-2xl border font-black text-xs uppercase tracking-widest transition-all ${answers[qId] === 'No' ? 'bg-white text-black border-white shadow-lg' : 'bg-transparent border-white/10 text-white hover:bg-white/5'}`}
-                                                            >
-                                                                No
-                                                            </button>
-                                                        </div>
-                                                    )}
+                                             if (q.type === 'header') {
+                                                 return (
+                                                     <div key={qId} className="col-span-full pt-10 pb-4 border-b border-white/10 mb-4">
+                                                         <h3 className="text-2xl font-black text-white uppercase tracking-tighter italic">{q.label}</h3>
+                                                     </div>
+                                                 );
+                                             }
 
-                                                    {(q.type === 'choice' || q.type === 'select' || q.type === 'multiple_choice' || q.type === 'dropdown') && (
-                                                        <div className="flex flex-col gap-3">
-                                                            {(q.options || []).map((opt: string) => {
-                                                                const isSelected = Array.isArray(answers[qId]) ? answers[qId].includes(opt) : answers[qId] === opt;
-                                                                return (
-                                                                    <button 
-                                                                        key={opt}
-                                                                        onClick={() => handleAnswerChange(qId, opt, q.allow_multiple)}
-                                                                        className={`w-full py-4 px-6 rounded-2xl border text-left font-bold text-sm transition-all flex items-center justify-between group ${isSelected ? 'bg-white text-black border-white shadow-lg' : 'bg-transparent border-white/10 text-white hover:bg-white/5'}`}
-                                                                    >
-                                                                        <span>{typeof opt === 'string' ? opt : JSON.stringify(opt)}</span>
-                                                                        <div className={`w-5 h-5 rounded-lg border flex items-center justify-center transition-all ${isSelected ? 'bg-black border-black' : 'bg-white/5 border-white/10 group-hover:border-white/30'}`}>
-                                                                            {isSelected && <Check className="w-3.5 h-3.5 text-white" />}
-                                                                        </div>
-                                                                    </button>
-                                                                );
-                                                            })}
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            );
-                                        })}
+                                             if (q.type === 'description') {
+                                                 return (
+                                                     <div key={qId} className="col-span-full bg-white/5 border border-white/5 rounded-2xl p-6 mb-4">
+                                                         <p className="text-sm font-medium text-slate-400 leading-relaxed italic">{q.label}</p>
+                                                     </div>
+                                                 );
+                                             }
+
+                                             return (
+                                                 <div key={qId} className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-8 space-y-6 shadow-xl">
+                                                     <div className="flex items-center justify-between">
+                                                         <div className="flex flex-col gap-2">
+                                                             <h3 className="text-xs font-black text-slate-500 uppercase tracking-[0.2em]">{q.label || 'Question'}</h3>
+                                                             {isAutoFilled && (
+                                                                 <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest flex items-center gap-1.5">
+                                                                     <ShieldCheck className="w-3 h-3" /> Auto-filled from profile
+                                                                 </span>
+                                                             )}
+                                                         </div>
+                                                         {isAnswered && <CheckCircle2 className="w-5 h-5 text-cyan-400" />}
+                                                     </div>
+                                                     
+                                                     <div className="space-y-4">
+                                                         {/* Input based on type */}
+                                                         {(q.type === 'yesno' || q.type === 'boolean') ? (
+                                                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                                                 <button 
+                                                                     onClick={() => handleAnswerChange(qId, 'Yes')}
+                                                                     className={`py-4 rounded-2xl border font-black text-xs uppercase tracking-widest transition-all ${answers[qId] === 'Yes' ? 'bg-white text-black border-white shadow-lg' : 'bg-transparent border-white/10 text-white hover:bg-white/5'}`}
+                                                                 >
+                                                                     Yes
+                                                                 </button>
+                                                                 <button 
+                                                                     onClick={() => handleAnswerChange(qId, 'No')}
+                                                                     className={`py-4 rounded-2xl border font-black text-xs uppercase tracking-widest transition-all ${answers[qId] === 'No' ? 'bg-white text-black border-white shadow-lg' : 'bg-transparent border-white/10 text-white hover:bg-white/5'}`}
+                                                                 >
+                                                                     No
+                                                                 </button>
+                                                             </div>
+                                                         ) : (q.type === 'choice' || q.type === 'select' || q.type === 'multiple_choice' || q.type === 'dropdown' || q.type === 'radio') ? (
+                                                             <div className="flex flex-col gap-3">
+                                                                 <CustomDropdown 
+                                                                     options={q.options || []}
+                                                                     value={answers[qId]}
+                                                                     onChange={(val) => handleAnswerChange(qId, val, q.allow_multiple)}
+                                                                     placeholder={q.placeholder || (q.allow_multiple ? "Select multiple..." : "Select an option...")}
+                                                                     isMultiple={q.allow_multiple}
+                                                                 />
+                                                             </div>
+                                                         ) : q.type === 'number' ? (
+                                                             <input 
+                                                                type="number"
+                                                                value={answers[qId] || ''}
+                                                                onChange={(e) => handleAnswerChange(qId, e.target.value)}
+                                                                placeholder={q.placeholder || "Enter number..."}
+                                                                className="w-full bg-white/10 border border-white/20 rounded-2xl px-6 py-5 text-white text-lg font-black outline-none focus:border-cyan-500/50 focus:bg-white/15 transition-all shadow-inner"
+                                                             />
+                                                         ) : q.type === 'date' ? (
+                                                             <input 
+                                                                type="date"
+                                                                value={answers[qId] || ''}
+                                                                onChange={(e) => handleAnswerChange(qId, e.target.value)}
+                                                                className="w-full bg-white/10 border border-white/20 rounded-2xl px-6 py-5 text-white text-lg font-black outline-none focus:border-cyan-500/50 focus:bg-white/15 transition-all [color-scheme:dark]"
+                                                             />
+                                                         ) : q.type === 'scale' ? (
+                                                             <div className="space-y-6">
+                                                                 <div className="relative h-2 bg-white/10 rounded-full">
+                                                                     <input 
+                                                                        type="range"
+                                                                        min={q.scale_min || 0}
+                                                                        max={q.scale_max || 10}
+                                                                        value={answers[qId] || 0}
+                                                                        onChange={(e) => handleAnswerChange(qId, e.target.value)}
+                                                                        className="absolute inset-0 w-full opacity-0 cursor-pointer z-10"
+                                                                     />
+                                                                     <div 
+                                                                        className="absolute h-full bg-cyan-400 rounded-full transition-all"
+                                                                        style={{ width: `${((Number(answers[qId]) || 0) - (q.scale_min || 0)) / ((q.scale_max || 10) - (q.scale_min || 0)) * 100}%` }}
+                                                                     />
+                                                                     <div 
+                                                                        className="absolute w-6 h-6 bg-white rounded-full shadow-xl -mt-2 transition-all border-4 border-cyan-500"
+                                                                        style={{ left: `calc(${((Number(answers[qId]) || 0) - (q.scale_min || 0)) / ((q.scale_max || 10) - (q.scale_min || 0)) * 100}% - 12px)` }}
+                                                                     />
+                                                                 </div>
+                                                                 <div className="flex justify-between items-center">
+                                                                     <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{q.options?.[0] || 'Min'}</span>
+                                                                     <span className="text-xl font-black text-cyan-400 italic">Value: {answers[qId] || 0}</span>
+                                                                     <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{q.options?.[1] || 'Max'}</span>
+                                                                 </div>
+                                                             </div>
+                                                         ) : q.type === 'faces' ? (
+                                                             <div className="flex justify-between items-center px-4">
+                                                                 {[
+                                                                     { e: '😢', v: '1', l: 'Very Poor' },
+                                                                     { e: '😕', v: '2', l: 'Poor' },
+                                                                     { e: '😐', v: '3', l: 'Fair' },
+                                                                     { e: '🙂', v: '4', l: 'Good' },
+                                                                     { e: '😊', v: '5', l: 'Excellent' }
+                                                                 ].map((f) => (
+                                                                     <button 
+                                                                        key={f.v}
+                                                                        onClick={() => handleAnswerChange(qId, f.v)}
+                                                                        className="flex flex-col items-center gap-3 group/face"
+                                                                     >
+                                                                         <span className={`text-4xl transition-all duration-300 transform group-hover/face:scale-125 ${answers[qId] === f.v ? 'grayscale-0 scale-125' : 'grayscale opacity-30'}`}>{f.e}</span>
+                                                                         <span className={`text-[8px] font-black uppercase tracking-widest transition-colors ${answers[qId] === f.v ? 'text-cyan-400' : 'text-slate-600'}`}>{f.l}</span>
+                                                                     </button>
+                                                                 ))}
+                                                             </div>
+                                                         ) : (
+                                                             /* Fallback for text/string or unknown types */
+                                                             <input 
+                                                                type="text"
+                                                                value={answers[qId] || ''}
+                                                                onChange={(e) => handleAnswerChange(qId, e.target.value)}
+                                                                placeholder={q.placeholder || "Enter response..."}
+                                                                className="w-full bg-white/10 border border-white/20 rounded-2xl px-6 py-5 text-white text-lg font-black outline-none focus:border-cyan-500/50 focus:bg-white/15 transition-all shadow-inner"
+                                                             />
+                                                         )}
+                                                     </div>
+                                                 </div>
+                                             );
+                                         })}
                                     </div>
                                 </div>
                             </div>
@@ -767,7 +1088,7 @@ export default function StudyScreener() {
                                 )}
 
                                 <div className="space-y-4">
-                                    <div className="grid grid-cols-2 gap-4">
+                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                                         <div className="space-y-2">
                                             <label className="text-[11px] font-bold text-slate-400">First name</label>
                                             <input 
@@ -776,6 +1097,16 @@ export default function StudyScreener() {
                                                 onChange={(e) => setFormData({...formData, firstName: e.target.value})}
                                                 className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-white/30 outline-none transition-all"
                                                 placeholder="Jane"
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-[11px] font-bold text-slate-400">Middle name</label>
+                                            <input 
+                                                type="text"
+                                                value={formData.middleName}
+                                                onChange={(e) => setFormData({...formData, middleName: e.target.value})}
+                                                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-white/30 outline-none transition-all"
+                                                placeholder="A."
                                             />
                                         </div>
                                         <div className="space-y-2">
@@ -842,8 +1173,33 @@ export default function StudyScreener() {
                                 </div>
 
                                 {error && (
-                                    <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-xs font-bold flex items-center gap-3">
-                                        <AlertCircle className="w-4 h-4" /> {error}
+                                    <div className="space-y-4">
+                                        <div className="p-6 bg-red-500/10 border border-red-500/20 rounded-2xl text-red-400 text-[13px] font-bold flex items-start gap-4 shadow-xl">
+                                            <AlertCircle className="w-6 h-6 shrink-0 mt-0.5" />
+                                            <div className="space-y-4 w-full">
+                                                <p className="leading-relaxed">{error}</p>
+                                                
+                                                {/* Action Buttons for Existing Accounts */}
+                                                {(error.toLowerCase().includes('already exists') || error.toLowerCase().includes('duplicate')) && (
+                                                    <div className="flex flex-wrap gap-3 pt-2">
+                                                        <Link 
+                                                            to="/signin" 
+                                                            state={{ initialMode: 'LOGIN', email: formData.email }}
+                                                            className="px-4 py-2 bg-white text-black rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-red-500 hover:text-white transition-all flex items-center gap-2"
+                                                        >
+                                                            Sign In Now <ArrowRight className="w-3 h-3" />
+                                                        </Link>
+                                                        <Link 
+                                                            to="/forgot-password" 
+                                                            state={{ email: formData.email }}
+                                                            className="px-4 py-2 bg-black/40 border border-white/10 text-white rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-white/10 transition-all flex items-center gap-2"
+                                                        >
+                                                            Forgot Password? <Lock className="w-3 h-3" />
+                                                        </Link>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
                                     </div>
                                 )}
 

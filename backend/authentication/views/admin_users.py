@@ -466,6 +466,7 @@ def admin_get_audit_logs(request):
             'user': log.user_email or 'Anonymous',
             'details': log.detail or 'Platform operation successful',
             'ip': log.ip_address or 'Unknown',
+            'user_agent': log.user_agent or 'Unknown Device',
             'severity': 'danger' if 'FAILED' in log.action or 'LIMITED' in log.action else
                         ('warning' if 'RESET' in log.action or 'REISSUED' in log.action else 'info')
         })

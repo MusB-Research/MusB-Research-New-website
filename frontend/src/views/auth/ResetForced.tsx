@@ -39,11 +39,20 @@ export default function ResetForced() {
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || (Array.isArray(data.detail) ? data.detail[0] : data.detail) || 'Reset failed');
 
+            // Save new tokens and user data if provided
+            if (data.access && data.refresh) {
+                localStorage.setItem('access_token', data.access);
+                localStorage.setItem('refresh_token', data.refresh);
+            }
+            if (data.user) {
+                localStorage.setItem('user', JSON.stringify(data.user));
+            }
+
             setSuccess(true);
             // After 2 seconds redirect to dashboard
             setTimeout(() => {
                 const user = JSON.parse(localStorage.getItem('user') || '{}');
-                // Update local storage flag
+                // Update local storage flag (redundant now but safe)
                 user.must_reset = false;
                 localStorage.setItem('user', JSON.stringify(user));
                 

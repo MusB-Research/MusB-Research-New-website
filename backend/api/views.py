@@ -5,10 +5,10 @@ from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.permissions import IsAdminUser
 from django.core.mail import send_mail
 from django.conf import settings
+from django.http import HttpResponse
 from rest_framework.parsers import MultiPartParser, FormParser
 from pypdf import PdfReader
-from rest_framework.parsers import MultiPartParser, FormParser
-from pypdf import PdfReader
+import logging
 from .models import (
     Visit, Study, StudyAssignment, Participant, Form, FormResponse, Task, 
     ParticipantTask, StaffTask, Consent, ConsentTemplate, Lead, CommunicationLog, 
@@ -24,6 +24,7 @@ ClinicalAuditLog, PIIRevealLog,
     StaffMember, Advisor, ClinicalCollaborator
 )
 
+from django.utils import timezone
 import logging
 import requests
 
@@ -556,7 +557,6 @@ class StudyViewSet(WorkflowContentMixin, viewsets.ModelViewSet):
             
         else: # Default CSV
             import csv
-            from django.http import HttpResponse
             
             response = HttpResponse(content_type='text/csv')
             response['Content-Disposition'] = f'attachment; filename="Study_{study.protocol_id}_Data.csv"'
@@ -1097,7 +1097,7 @@ class ParticipantViewSet(SoftPaginationMixin, viewsets.ModelViewSet):
         
         # Staff roles see everyone they are involved with
         if role in ['ADMIN', 'SUPER_ADMIN', 'COORDINATOR', 'PI', 'SPONSOR', 'SPONSOR_ADMIN'] or Study.objects.filter(Q(pi=user) | Q(coordinator=user) | Q(created_by=user) | Q(assignments__user=user)).exists():
-            qs = Participant.objects.all()
+            qs = Participant.objects.filter(is_deleted=False)
             
             # If not admin or research staff, restrict to studies the user is involved in
             if role not in ['ADMIN', 'SUPER_ADMIN', 'COORDINATOR', 'PI']:
@@ -1143,8 +1143,18 @@ class ParticipantViewSet(SoftPaginationMixin, viewsets.ModelViewSet):
         invalidate_cache("participant_records_list")
         
     def perform_destroy(self, instance):
-        instance.delete()
+        # Soft Delete: User requested to store data, so we don't hard-delete.
+        instance.is_deleted = True
+        instance.deleted_at = timezone.now()
+        instance.status = 'DROPPED'
+        instance.save()
+        
+        # Clear related caches
         invalidate_cache("participant_records_list")
+        if instance.user:
+            from api.utils.cache_utils import invalidate_cache
+            invalidate_cache("participant_dashboard", user_id=instance.user.id)
+            invalidate_cache("participant_me", user_id=instance.user.id)
 
 
     # Removed _ensure_test_participant logic to allow 'No Active Study' states for testing as per user request.
@@ -1742,6 +1752,15 @@ class ParticipantViewSet(SoftPaginationMixin, viewsets.ModelViewSet):
                     changes={'status': {'old': old_status, 'new': 'INELIGIBLE'}}
                 )
                 
+                # Create notification for participant
+                if participant.user:
+                    Notification.objects.create(
+                        user=participant.user,
+                        title="Eligibility Update",
+                        message=f"A decision has been reached regarding your application for {participant.study.protocol_id}. Please check your dashboard for details.",
+                        type="INFO"
+                    )
+
                 return Response({'status': 'rejected', 'message': 'Subject marked as ineligible.'})
 
             if decision in ['ACCEPT', 'ELIGIBLE', 'APPROVE']:
@@ -2845,6 +2864,7 @@ class AssignedFormViewSet(viewsets.ModelViewSet):
         af.participant_signed_at = now()
         af.data = form_data
         af.status = 'PARTICIPANT_SIGNED'
+        af.completed_by = 'PARTICIPANT'
         af.save()
         
         # Mark Task as COMPLETED (for participant UI)
@@ -3149,7 +3169,17 @@ class UserViewSet(viewsets.ModelViewSet):
         from django.http import Http404
         from .utils.cache_utils import invalidate_cache
         try:
+            target_user = self.get_object()
+            target_email = target_user.email
             response = super().destroy(request, *args, **kwargs)
+            
+            # Log the deletion
+            AuditLog.log(
+                action='ACCOUNT_DELETED',
+                user_email=request.user.email,
+                request=request,
+                detail=f"Deleted user account: {target_email}"
+            )
         except Http404:
             # If already deleted, heal frontend state by returning 204 and invalidating cache
             invalidate_cache("users_list")
@@ -3161,7 +3191,17 @@ class UserViewSet(viewsets.ModelViewSet):
         return response
 
     def perform_update(self, serializer):
-        super().perform_update(serializer)
+        old_instance = self.get_object()
+        user_instance = serializer.save()
+        
+        # Log the update
+        AuditLog.log(
+            action='ACCOUNT_UPDATED',
+            user_email=self.request.user.email,
+            request=self.request,
+            detail=f"Updated account information for: {user_instance.email}"
+        )
+        
         from .utils.cache_utils import invalidate_cache
         invalidate_cache("users_list")
 
@@ -3200,6 +3240,14 @@ class UserViewSet(viewsets.ModelViewSet):
                     ).start()
                 except Exception as mail_err:
                     logger.error("Failed to trigger welcome email for new user %s: %s", user_instance.email, mail_err)
+                
+            # Log the creation
+            AuditLog.log(
+                action='ACCOUNT_CREATED',
+                user_email=request.user.email,
+                request=request,
+                detail=f"Created new {user_instance.role} account for: {user_instance.email}"
+            )
 
             headers = self.get_success_headers(serializer.data)
             return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
@@ -3308,8 +3356,8 @@ class InvitationViewSet(viewsets.ModelViewSet):
                     if std:
                         study_name = std.title
                         study_title = std.full_title or std.description or ""
-                except Exception:
-                    pass
+                except Exception as e:
+                    logging.getLogger(__name__).warning(f"Invitation email study fetch failed: {str(e)}")
 
             from django.conf import settings as django_settings
             import urllib.parse
@@ -3320,8 +3368,8 @@ class InvitationViewSet(viewsets.ModelViewSet):
 
             def _send_invite_email():
                 try:
-                    from .utils.email_utils import send_musb_system_email
-                    send_musb_system_email(
+                    from api.tasks import send_email_task
+                    send_email_task.delay(
                         user_email=invitee_email,
                         user_name=invitee_name,
                         mode='INVITE',
@@ -3332,10 +3380,47 @@ class InvitationViewSet(viewsets.ModelViewSet):
                     )
                 except Exception as exc:
                     import logging
-                    logging.getLogger(__name__).error(f"Invitation email delivery failed for token {token}: {exc}")
+                    logging.getLogger(__name__).error(
+                        f"Invitation email delivery failed for token {token}: {exc}"
+                    )
 
-            import threading
-            threading.Thread(target=_send_invite_email, daemon=True).start()
+            # def _send_invite_email():
+            #     try:
+            #         from .utils.email_utils import send_musb_system_email
+            #         from api.tasks import send_email_task
+            #         send_email_task.delay(
+            #             user_email=user.email,
+            #             user_name=user.full_name,
+            #             mode='INVITE',
+            #             secret_data=invite_link,
+            #             study_name=study.title,
+            #             role=role
+            #         )
+
+                    # send_musb_system_email(
+                    #     user_email=invitee_email,
+                    #     user_name=invitee_name,
+                    #     mode='INVITE',
+                    #     secret_data=accept_link,
+                    #     study_name=study_name,
+                    #     study_title=study_title,
+                    #     role=invitee_role,
+                    # )
+                # except Exception as exc:
+                #     import logging
+                #     logging.getLogger(__name__).error(f"Invitation email delivery failed for token {token}: {exc}")
+
+            # import threading
+            # threading.Thread(target=_send_invite_email, daemon=True).start()
+
+            # FIXED — using Celery
+            from api.tasks import send_email_task
+            send_email_task.delay(
+                user_email=user_instance.email,
+                user_name=user_instance.decrypted_name or user_instance.email,
+                mode='INVITE',
+                secret_data=reset_link,
+            )
 
             headers = self.get_success_headers(serializer.data)
             return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
@@ -4160,6 +4245,13 @@ class QuestionnaireTemplateViewSet(viewsets.ModelViewSet):
     queryset = QuestionnaireTemplate.objects.all().order_by('-created_at')
     serializer_class = QuestionnaireTemplateSerializer
 
+    def get_queryset(self):
+        qs = self.queryset
+        category = self.request.query_params.get('category')
+        if category:
+            qs = qs.filter(category=category.upper())
+        return qs
+
     @cache_api_response("questionnaire_templates", timeout=300)
     def list(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
@@ -4168,10 +4260,19 @@ class QuestionnaireTemplateViewSet(viewsets.ModelViewSet):
         user = self.request.user
         pdf_file = self.request.FILES.get('pdf_file')
         name = self.request.data.get('name')
+        category = self.request.data.get('category', 'INSTRUMENT')
+        description = self.request.data.get('description', '')
+        
         if not name and pdf_file:
             name = pdf_file.name.rsplit('.', 1)[0]
         # Ensure pdf_file is passed explicitly to handle potential sanitizer stripping
-        serializer.save(created_by=user, name=name or "Untitled Questionnaire", pdf_file=pdf_file)
+        serializer.save(
+            created_by=user, 
+            name=name or "Untitled Questionnaire", 
+            pdf_file=pdf_file,
+            category=category.upper(),
+            description=description
+        )
         from .utils.cache_utils import invalidate_cache
         invalidate_cache("questionnaire_templates")
 
@@ -4361,6 +4462,22 @@ class QuestionnaireTemplateViewSet(viewsets.ModelViewSet):
             import traceback
             return Response({'error': str(e), 'trace': traceback.format_exc()[-1000:]}, status=500)
 
+    @action(detail=False, methods=['post'], url_path='smart-extract')
+    def smart_extract(self, request):
+        """
+        AI Extraction engine for raw text blocks (e.g. pasted protocol snippets).
+        """
+        text = request.data.get('text')
+        if not text:
+            return Response({'error': 'No text provided in "text" field.'}, status=400)
+            
+        from .utils.pdf_extractor import extract_schema
+        try:
+            result = extract_schema(text)
+            return Response(result)
+        except Exception as e:
+            return Response({'error': f"AI Extraction failed: {str(e)}"}, status=500)
+
 
 
 
@@ -4461,6 +4578,15 @@ class QuestionnaireScheduleInstanceViewSet(viewsets.ModelViewSet):
         if signature:
             instance.participant_signature = signature
             instance.participant_signed_at = timezone.now()
+            
+        # Determine completed_by role
+        role = (request.user.role or '').upper()
+        if role == 'PARTICIPANT':
+            instance.completed_by = 'PARTICIPANT'
+        elif role in ['COORDINATOR', 'PI', 'ADMIN', 'SUPER_ADMIN']:
+            instance.completed_by = 'COORDINATOR'
+        else:
+            instance.completed_by = 'SYSTEM'
             
         # Determine status (COMPLETED or LATE)
         now = timezone.now()
@@ -5049,7 +5175,7 @@ def test_smtp_connection(request):
             f"- Backend: {backend}\n"
             f"- Host: {host}\n"
             f"- User: {user}\n"
-            f"- Timestamp: {logging.time.strftime('%Y-%m-%d %H:%M:%S')}\n\n"
+            f"- Timestamp: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n"
             f"If you received this, your Gmail SMTP production setup is WORKING."
         )
         
@@ -5082,11 +5208,68 @@ def test_smtp_connection(request):
 
 class ZipLookupView(APIView):
     """
+    Global postal code lookup service.
+    Uses Geoapify with Zippopotamus fallback.
+    """
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request, country, zip):
+        from api.services.postal_service import PostalLookupService
+        
+        country = country.lower().strip()
+        zip = zip.strip()
+
+        if len(zip) < 3:
+            return Response({"error": "Postal code too short"}, status=status.HTTP_400_BAD_REQUEST)
+
+        result = PostalLookupService.lookup(country, zip)
+        if result:
+            return Response(result)
+        
+        return Response({"error": "Location not found"}, status=status.HTTP_404_NOT_FOUND)
+    
+class ScreenerConversionStatsView(APIView):
+    """
+    Analytics for Super Admin:
+    Tracks how many people filled screeners vs how many created accounts.
+    """
+    permission_classes = [permissions.IsAuthenticated, IsAdminOrCoordinator]
+
+    def get(self, request):
+        from contact.models import Submission
+        
+        # 1. Total Screeners (Submissions with formData metadata)
+        total_screeners = Submission.objects.filter(metadata__has_key='formData').count()
+        
+        # 2. Converted Users (Participants who have an email that exists in Submissions)
+        # We look for participants because screeners are for clinical trials
+        screener_emails = Submission.objects.filter(
+            metadata__has_key='formData'
+        ).values_list('email', flat=True).distinct()
+        
+        converted_count = User.objects.filter(
+            email__in=screener_emails,
+            role__in=['PARTICIPANT', 'participant', 'Participant']
+        ).count()
+        
+        # 3. Conversion Rate
+        conversion_rate = (converted_count / total_screeners * 100) if total_screeners > 0 else 0
+        
+        return Response({
+            'total_screeners': total_screeners,
+            'converted_accounts': converted_count,
+            'conversion_rate': round(conversion_rate, 2),
+            'last_updated': now()
+        })
+    
+class ZipLookupView(APIView):
+    """
     Proxy for zippopotam.us to bypass frontend CSP restrictions.
     """
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request, country, zip):
+        import requests
         url = f"https://api.zippopotam.us/{country}/{zip}"
         try:
             response = requests.get(url, timeout=5)
@@ -5094,5 +5277,69 @@ class ZipLookupView(APIView):
                 return Response(response.json())
             return Response({"error": "ZIP code not found"}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
-            logger.error(f"ZIP lookup failed: {e}")
-            return Response({"error": "Service unavailable"}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+            logger.error(f"[ZIP-LOOKUP] Failed for {country}/{zip}: {str(e)}")
+            return Response({"error": "Postal lookup service unavailable"}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+
+@api_view(['POST'])
+@permission_classes([IsAdminUser])
+def test_smtp_raw(request):
+    """
+    Standalone SMTP diagnostic test with maximum verbosity (debuglevel 1).
+    Bypasses Django's email abstraction.
+    """
+    import smtplib
+    import ssl
+    
+    target_email = request.data.get('email')
+    if not target_email:
+        return Response({'error': 'Recipient email is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+    smtp_host = getattr(settings, 'EMAIL_HOST', 'smtp.gmail.com')
+    smtp_port = getattr(settings, 'EMAIL_PORT', 587)
+    smtp_user = getattr(settings, 'EMAIL_HOST_USER', '')
+    smtp_pass = getattr(settings, 'EMAIL_HOST_PASSWORD', '')
+    use_tls = getattr(settings, 'EMAIL_USE_TLS', True)
+
+    logs = []
+    def log_append(msg):
+        logger.info(f"[SMTP-RAW] {msg}")
+        logs.append(msg)
+
+    log_append("Starting Raw SMTP Diagnostic")
+    
+    try:
+        context = ssl.create_default_context()
+        log_append(f"Connecting to {smtp_host}:{smtp_port}...")
+        server = smtplib.SMTP(smtp_host, smtp_port, timeout=15)
+        server.set_debuglevel(1)
+        
+        if use_tls:
+            server.ehlo()
+            server.starttls(context=context)
+            server.ehlo()
+            log_append("TLS Handshake complete")
+        
+        log_append(f"Logging in as {smtp_user}...")
+        server.login(smtp_user, smtp_pass)
+        log_append("Login SUCCESS")
+        
+        subject = "MusB Production Raw SMTP Test"
+        body = "If you see this, raw smtplib is working."
+        msg = f"Subject: {subject}\n\n{body}"
+        
+        server.sendmail(smtp_user, [target_email], msg)
+        log_append("Email sent successfully")
+        server.quit()
+        
+        return Response({
+            'status': 'success',
+            'logs': logs
+        })
+    except Exception as e:
+        log_append(f"FAILED: {str(e)}")
+        return Response({
+            'status': 'error',
+            'error': str(e),
+            'logs': logs
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+

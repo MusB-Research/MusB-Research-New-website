@@ -41,11 +41,14 @@ def send_smtp_email_task(self, to_email, subject, html_content, plain_content=No
             logger.error(f"[CELERY-SMTP] FATAL: All retries exhausted for {to_email}")
             return False
 
-@shared_task
-def send_musb_system_email_async(user_email, user_name, mode, secret_data, study_name=None, study_title=None, role=None, expires_in_days=7):
-    """
-    Wrapper task for system emails (Invitations, OTPs).
-    """
-    from api.utils.email_utils import send_musb_system_email
-    # We call the existing utility but from a background worker
-    return send_musb_system_email(user_email, user_name, mode, secret_data, study_name, study_title, role, expires_in_days)
+@shared_task(bind=True, max_retries=3)
+def send_email_task(self, user_email, user_name, mode, secret_data,
+                    study_name=None, study_title=None, role=None, expires_in_days=7):
+    try:
+        from api.utils.email_utils import send_musb_system_email
+        return send_musb_system_email(
+            user_email, user_name, mode, secret_data,
+            study_name, study_title, role, expires_in_days
+        )
+    except Exception as exc:
+        raise self.retry(exc=exc, countdown=60 * (2 ** self.request.retries))

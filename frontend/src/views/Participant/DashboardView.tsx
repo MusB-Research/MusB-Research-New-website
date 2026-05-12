@@ -5,7 +5,7 @@ import {
     FileText, CheckCircle2, AlertCircle,
     MessageSquare, History, ClipboardList,
     Search, MapPin, DollarSign, Globe, ShieldCheck,
-    Package, Truck, Zap, Layers3
+    Package, Truck, Zap, Layers3, X, FileSignature, Trophy
 } from 'lucide-react';
 import { Card, Badge, ProgressBar, CircularProgress, Skeleton } from './SharedComponents';
 
@@ -130,11 +130,62 @@ const DashboardView = ({
         </div>
     );
 
-    const isEnrolled = ['ENROLLED', 'ACTIVE', 'PENDING_REVIEW', 'CONSENTED', 'RANDOMIZED', 'COMPLETED', 'REGISTERED', 'SCREENING'].includes((participant?.status || '').toUpperCase());
-    const isPending = ['PENDING_APPROVAL', 'APPLIED', 'PENDING_REVIEW'].includes((participant?.status || '').toUpperCase());
+    const pStatus = (participant?.status || '').toUpperCase().trim();
+    const appStatus = (participant?.approval_status || '').toUpperCase().trim();
+    const isConsented = ['CONSENTED', 'RANDOMIZED', 'ACTIVE', 'COMPLETED'].includes(pStatus);
+    const isEnrolled = isConsented || ['ENROLLED', 'REGISTERED', 'SCREENING', 'ELIGIBLE'].includes(pStatus);
+    const isPending = ['PENDING_APPROVAL', 'APPLIED', 'PENDING_REVIEW'].includes(pStatus);
+    const isRejected = pStatus === 'INELIGIBLE' || pStatus === 'DROPPED' || appStatus === 'REJECTED';
 
-    // ──────────────── CASE 1: NOT ENROLLED / REVIEW PENDING ────────────────
-    if (!study || !participant || participant?.status === 'INELIGIBLE' || participant?.status === 'WITHDRAWN' || isPending) {
+    if (!study || !participant || isRejected || isPending) {
+        if (isRejected) {
+            const isDropped = pStatus === 'DROPPED';
+            return (
+                <div className="flex flex-col gap-4 w-full animate-in fade-in duration-500">
+                    {studySwitcher}
+                    <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-6 animate-in fade-in zoom-in duration-500">
+                        <div className="w-24 h-24 bg-white border border-red-100 rounded-[24px] flex items-center justify-center mb-8 shadow-sm">
+                            {isDropped ? <AlertCircle className="w-10 h-10 text-orange-500/50" /> : <X className="w-10 h-10 text-red-500/50" />}
+                        </div>
+                        <h2 className="text-3xl font-bold text-[#1A2B49] tracking-tight mb-4">{isDropped ? 'Study Participation Ended' : 'Eligibility Update'}</h2>
+                        <p className="text-[#5F6F89] font-bold uppercase tracking-widest mb-6 max-w-lg leading-relaxed">
+                            {isDropped 
+                                ? `Your participation in ${study?.title || 'the study'} has been formally closed.`
+                                : `A decision has been reached regarding your application for ${study?.title || 'the study'}.`}
+                        </p>
+                        
+                        <Card className={`p-8 border-l-4 max-w-xl w-full text-left ${isDropped ? 'border-orange-500 bg-orange-50/30' : 'border-red-500 bg-red-50/30'}`}>
+                            <div className="flex items-start gap-4">
+                                <AlertCircle className={`w-6 h-6 shrink-0 mt-0.5 ${isDropped ? 'text-orange-500' : 'text-red-500'}`} />
+                                <div>
+                                    <h4 className="text-[12px] font-black text-[#1A2B49] uppercase tracking-[0.2em] mb-3">Feedback from Clinical Team</h4>
+                                    <div className="text-[14px] text-[#5F6F89] font-bold leading-relaxed uppercase whitespace-pre-wrap">
+                                        {participant?.status_notes || (isDropped 
+                                            ? "Your record has been updated to reflect study withdrawal/completion. Thank you for your time."
+                                            : "Thank you for your interest. At this time, you do not meet all the specific criteria required for this protocol. We appreciate your contribution to medical research.")
+                                        }
+                                    </div>
+                                    <div className="mt-6 pt-6 border-t border-red-100">
+                                        <p className="text-[11px] text-[#8A99B3] font-bold uppercase tracking-widest">
+                                            This status update is final. For further clarification, please contact the study coordinator.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </Card>
+
+                        <button
+                            onClick={() => onAction('Discover Studies')}
+                            className="mt-10 flex items-center gap-3 px-10 py-5 bg-white border border-[#E3ECF5] hover:bg-[#F8FBFF] text-[#1A2B49] rounded-xl font-bold text-[14px] uppercase tracking-widest transition-all active:scale-95 shadow-sm"
+                        >
+                            <Search className="w-4 h-4" />
+                            Browse Other Studies
+                        </button>
+                    </div>
+                </div>
+            );
+        }
+
         if (isPending) {
             return (
                 <div className="flex flex-col gap-4 w-full animate-in fade-in duration-500">
@@ -230,6 +281,31 @@ const DashboardView = ({
             })()}
 
             {/* TOP SECTION: ENROLLMENT & TIMELINE */}
+            {!isConsented && (
+                <div className="bg-[#FFF3E0] border border-[#FFE0B2] rounded-2xl p-6 flex items-start gap-5 shadow-sm">
+                    <div className="w-12 h-12 bg-[#FF9800]/10 rounded-xl flex items-center justify-center shrink-0">
+                        <FileSignature className="w-6 h-6 text-[#F57C00]" />
+                    </div>
+                    <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                            <span className="text-[10px] font-black text-[#F57C00] uppercase tracking-[0.2em]">Action Required</span>
+                            <div className="h-1 w-1 bg-[#F57C00]/30 rounded-full" />
+                        </div>
+                        <h3 className="text-lg font-bold text-[#1A2B49] mb-1">Informed Consent Form Pending</h3>
+                        <p className="text-[#5F6F89] text-[13px] font-bold leading-relaxed mb-4 uppercase">
+                            You have been approved for <span className="text-[#1E88E5]">{study?.title}</span>. To begin your participation and access questionnaires, you must first review and sign the informed consent document.
+                        </p>
+                        <button 
+                            onClick={() => onAction('Tasks')}
+                            className="bg-[#FF9800] hover:bg-[#F57C00] text-white px-6 py-2.5 rounded-xl text-[12px] font-black uppercase tracking-widest transition-all shadow-md shadow-orange-500/20 flex items-center gap-2"
+                        >
+                            Sign Document Now
+                            <ArrowRight size={14} />
+                        </button>
+                    </div>
+                </div>
+            )}
+
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
 
                 {/* Enrollment Card */}
@@ -298,22 +374,28 @@ const DashboardView = ({
     
                     {/* Tasks Card */}
                     <Card
-                        className="p-5 hover:border-[#1E88E5]/50 border-2 border-transparent transition-all cursor-pointer flex flex-col justify-between min-h-[180px] bg-white group shadow-[0_4px_25px_rgba(30,136,229,0.04)]"
+                        className={`p-5 hover:border-[#1E88E5]/50 border-2 border-transparent transition-all cursor-pointer flex flex-col justify-between min-h-[180px] bg-white group shadow-[0_4px_25px_rgba(30,136,229,0.04)] ${!isConsented ? 'border-orange-100' : ''}`}
                         onClick={() => onAction('Tasks')}
                     >
                         <div className="space-y-3">
                             <div className="flex items-center gap-2.5">
-                                <div className="w-8 h-8 bg-[#E3F2FD] rounded-lg flex items-center justify-center text-[#1E88E5] border border-[#BBDEFB]">
+                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center border ${!isConsented ? 'bg-orange-50 text-orange-500 border-orange-200' : 'bg-[#E3F2FD] text-[#1E88E5] border-[#BBDEFB]'}`}>
                                     <ClipboardList className="w-4 h-4" />
                                 </div>
-                                <span className="text-[11px] font-bold text-[#5F6F89] uppercase tracking-widest">Clinical Protocol</span>
+                                <span className="text-[11px] font-bold text-[#5F6F89] uppercase tracking-widest">
+                                    {!isConsented ? 'Enrollment Required' : 'Clinical Protocol'}
+                                </span>
                             </div>
                             <div className="space-y-1">
                                 <h4 className="text-xl font-bold text-[#1A2B49] tracking-tight">
-                                    <span className="text-[#1E88E5]">{pendingTasksCount}</span> Activities Pending
+                                    {!isConsented ? (
+                                        <><span className="text-orange-500">Sign</span> Consent Form</>
+                                    ) : (
+                                        <><span className="text-[#1E88E5]">{pendingTasksCount}</span> Activities Pending</>
+                                    )}
                                 </h4>
                                 <p className="text-[12px] font-bold text-[#5F6F89] uppercase tracking-widest">
-                                    {pendingTasksCount > 0 ? "Items requiring immediate attention." : "Protocol adherence complete for today."}
+                                    {!isConsented ? "Required before accessing study tasks." : (pendingTasksCount > 0 ? "Items requiring immediate attention." : "Protocol adherence complete for today.")}
                                 </p>
                             </div>
                         </div>
@@ -444,6 +526,33 @@ const DashboardView = ({
                     </div>
                 </Card>
             )}
+
+            {/* STUDY OVERVIEW & BENEFITS (DYNAMIC) */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <Card className="p-6 border-l-4 border-l-[#1E88E5] bg-white">
+                    <div className="flex items-center gap-3 mb-4">
+                        <div className="p-2 bg-[#E3F2FD] rounded-lg text-[#1E88E5]">
+                            <Globe className="w-4 h-4" />
+                        </div>
+                        <h4 className="text-[11px] font-black text-[#1A2B49] uppercase tracking-[0.2em]">Study Protocol Overview</h4>
+                    </div>
+                    <div className="text-[13px] text-[#5F6F89] font-medium leading-relaxed max-h-[300px] overflow-y-auto no-scrollbar pr-2">
+                        {study?.description || study?.overview || "Study overview and protocol details will be available here."}
+                    </div>
+                </Card>
+
+                <Card className="p-6 border-l-4 border-l-[#4CAF50] bg-white">
+                    <div className="flex items-center gap-3 mb-4">
+                        <div className="p-2 bg-[#E8F5E9] rounded-lg text-[#4CAF50]">
+                            <Trophy className="w-4 h-4" />
+                        </div>
+                        <h4 className="text-[11px] font-black text-[#1A2B49] uppercase tracking-[0.2em]">Participant Benefits</h4>
+                    </div>
+                    <div className="text-[13px] text-[#5F6F89] font-medium leading-relaxed max-h-[300px] overflow-y-auto no-scrollbar pr-2">
+                        {study?.benefit || "Information regarding compensation, laboratory results, and health benefits will be detailed here."}
+                    </div>
+                </Card>
+            </div>
 
             {/* MESSAGES BAR */}
 

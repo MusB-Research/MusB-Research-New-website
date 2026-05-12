@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Lock, ArrowRight, Eye, EyeOff, Mail, Globe } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
-import { saveToken, saveUser, API } from '../../utils/auth';
+import { saveToken, saveUser, isLoggedIn, getRole, API } from '../../utils/auth';
 
 const ParticlesBackground = () => {
     useEffect(() => {
@@ -105,6 +105,13 @@ export default function SuperAdminSignIn() {
     const [error, setError] = useState<string | null>(null);
     
     const navigate = useNavigate();
+
+    // Auto-redirect if already logged in as SUPER_ADMIN
+    useEffect(() => {
+        if (isLoggedIn() && getRole() === 'SUPER_ADMIN') {
+            navigate('/dashboard/super-admin');
+        }
+    }, [navigate]);
 
     const handleAdminLogin = async (e: React.FormEvent) => {
         e.preventDefault();

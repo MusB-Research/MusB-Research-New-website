@@ -23,6 +23,7 @@ import WorkflowModerationPanel from '../components/admin/WorkflowModerationPanel
 import PIMessagesModule from '../components/pi/PIMessagesModule';
 import { MessageSquare, Mail } from 'lucide-react';
 import StudyInquiriesModule from '../components/admin/StudyInquiriesModule';
+import LogoutConfirmationModal from '../components/LogoutConfirmationModal';
 import { usePolling } from '@/hooks/usePolling';
 
 
@@ -100,6 +101,7 @@ export default function AdminDashboard() {
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [selectedStudy, setSelectedStudy] = useState<any>(null);
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+    const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
     const [user, setUser] = useState<any>(null);
     const [currentTime, setCurrentTime] = useState(new Date());
 
@@ -255,6 +257,10 @@ export default function AdminDashboard() {
         return item.roles.includes(user.role?.toLowerCase());
     });
 
+    const handleSignOut = () => {
+        setIsLogoutModalOpen(true);
+    };
+
     const confirmSignOut = async () => {
         await performLogout();
     };
@@ -293,7 +299,7 @@ export default function AdminDashboard() {
                 </nav>
 
                 <div className="absolute bottom-10 left-6 right-6 space-y-2">
-                    <button onClick={confirmSignOut} className="w-full flex items-center gap-4 px-4 py-4 rounded-2xl text-slate-500 hover:bg-red-500/10 hover:text-red-400 transition-all group">
+                    <button onClick={handleSignOut} className="w-full flex items-center gap-4 px-4 py-4 rounded-2xl text-slate-500 hover:bg-red-500/10 hover:text-red-400 transition-all group">
                         <LogOut className="w-5 h-5" />
                         {isSidebarOpen && <span className="text-sm font-bold">Sign Out</span>}
                     </button>
@@ -372,7 +378,7 @@ export default function AdminDashboard() {
                                             </p>
                                         </div>
                                         <button
-                                            onClick={confirmSignOut}
+                                            onClick={handleSignOut}
                                             className="w-full flex items-center gap-4 px-5 py-4 rounded-2xl text-red-100 hover:text-white hover:bg-red-500 transition-all text-sm font-black uppercase tracking-widest"
                                         >
                                             <LogOut className="w-5 h-5 text-red-400 group-hover:text-white" /> 
@@ -556,6 +562,12 @@ export default function AdminDashboard() {
                     </div>
                 )}
             </AnimatePresence>
+
+            <LogoutConfirmationModal 
+                isOpen={isLogoutModalOpen} 
+                onClose={() => setIsLogoutModalOpen(false)} 
+                onConfirm={confirmSignOut} 
+            />
         </div>
     );
 }

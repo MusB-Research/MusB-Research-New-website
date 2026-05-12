@@ -214,7 +214,7 @@ def _detect_global_scale(lines):
     """Look at the first 20 lines for a repeating numeric → label scale legend."""
     for line in lines[:20]:
         matches = re.findall(
-            r'(\d)\s*[=\-:]\s*([A-Za-z][A-Za-z\s\/]+?)(?=\s+\d|$)', line
+            r'(\d+)\s*[=\-:]\s*([A-Za-z][A-Za-z\s\/]+?)(?=\s+\d+|$)', line
         )
         if len(matches) >= 2:
             return [f"{m[0]} = {m[1].strip()}" for m in matches]
@@ -427,12 +427,12 @@ def extract_schema(raw_text: str) -> dict:
             q_type = 'short_text'
 
             inline_opts = re.findall(
-                r'(\d)\s*[=\-:]?\s*([A-Za-z][A-Za-z\s\/\(\), \-]+?)(?=\s+\d\s*[=\-:]?\s*[A-Za-z]|$)',
+                r'(\d+)\s*[=\-:]?\s*([A-Za-z][A-Za-z\s\/\(\), \-]+?)(?=\s+\d+\s*[=\-:]?\s*[A-Za-z]|$)',
                 line
             )
             if len(inline_opts) >= 2:
                 options = [f"{m[0]} = {m[1].strip()}" for m in inline_opts]
-                q_label = re.split(r'\s+\d\s*[=\-:]?\s*[A-Za-z]', q_label)[0].strip()
+                q_label = re.split(r'\s+\d+\s*[=\-:]?\s*[A-Za-z]', q_label)[0].strip()
 
             elif re.search(r'\(0 for NO,?\s*1 for YES\)', line, re.I):
                 options = ['0 = NO', '1 = YES']

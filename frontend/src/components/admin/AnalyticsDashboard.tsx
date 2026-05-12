@@ -6,15 +6,24 @@ import { authFetch, API } from '../../utils/auth';
 export default function AnalyticsDashboard() {
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<any>(null);
+  const [screenerStats, setScreenerStats] = useState<any>(null);
 
   useEffect(() => {
     const fetchStats = async () => {
       try {
         const apiUrl = API || 'http://localhost:8003';
-        const response = await authFetch(`${apiUrl}/api/auth/admin/analytics-stats/`);
-        if (response.ok) {
-          const data = await response.json();
+        const [statsRes, screenerRes] = await Promise.all([
+          authFetch(`${apiUrl}/api/auth/admin/analytics-stats/`),
+          authFetch(`${apiUrl}/api/screener-stats/`)
+        ]);
+
+        if (statsRes.ok) {
+          const data = await statsRes.json();
           setStats(data);
+        }
+        if (screenerRes.ok) {
+          const sData = await screenerRes.json();
+          setScreenerStats(sData);
         }
       } catch (error) {
         console.error('Failed to fetch analytics:', error);
@@ -47,7 +56,14 @@ export default function AnalyticsDashboard() {
     { label: 'Total Node Users', value: summary.total_users.toLocaleString(), change: '+12%', icon: Globe, color: 'text-blue-500', bg: 'bg-blue-500/10' },
     { label: 'Live Research Studies', value: summary.total_studies.toLocaleString(), change: '+5%', icon: Clock, color: 'text-indigo-500', bg: 'bg-indigo-500/10' },
     { label: 'Active Participants', value: summary.total_participants.toLocaleString(), change: '+8%', icon: Users, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
-    { label: 'Calculated Conversion', value: '4.8%', change: '-2%', icon: TrendingUp, color: 'text-pink-500', bg: 'bg-pink-500/10', down: true }
+    { 
+      label: 'Screener Conversion', 
+      value: screenerStats ? `${screenerStats.conversion_rate}%` : '4.8%', 
+      change: screenerStats ? `${screenerStats.converted_accounts} User Accounts` : '-2%', 
+      icon: TrendingUp, 
+      color: 'text-pink-500', 
+      bg: 'bg-pink-500/10'
+    }
   ];
 
   return (
@@ -74,8 +90,8 @@ export default function AnalyticsDashboard() {
             <p className="text-[12px] font-black text-[#555a7a] uppercase tracking-[0.2em] mb-2">{stat.label}</p>
             <div className="flex items-end gap-4">
               <h4 className="text-3xl font-black text-white italic tracking-tighter">{stat.value}</h4>
-              <span className={`text-[12px] font-black uppercase flex items-center mb-1.5 ${stat.down ? 'text-red-500' : 'text-emerald-500'}`}>
-                {stat.change} <ArrowUpRight className={`w-4 h-4 ${stat.down ? 'rotate-90' : ''}`} />
+              <span className={`text-[12px] font-black uppercase flex items-center mb-1.5 ${(stat as any).down ? 'text-red-500' : 'text-emerald-500'}`}>
+                {stat.change} <ArrowUpRight className={`w-4 h-4 ${(stat as any).down ? 'rotate-90' : ''}`} />
               </span>
             </div>
           </div>

@@ -47,7 +47,7 @@ export default function AuditLogs({ activities }: AuditLogsProps) {
       timestamp: a.timestamp || new Date().toISOString(),
       status: a.severity === 'danger' ? 'Failure' : a.severity === 'warning' ? 'Warning' : 'Success',
       ip: a.ip || '0.0.0.0',
-      device: 'Server Log',
+      device: a.user_agent || 'Unknown Device',
       location: 'Remote Node'
     }));
   }, [activities]);

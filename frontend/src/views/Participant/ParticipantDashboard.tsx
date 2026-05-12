@@ -1275,8 +1275,25 @@ export default function ParticipantDashboard() {
             }
 
             if (title.toLowerCase().includes('delete')) {
-                if (window.confirm("FINAL WARNING: This will permanently delete your clinical profile and all associated data. This action is irreversible. Proceed?")) {
-                    alert("🔒 Securely scrubbing personal data... logging out.");
+                if (window.confirm("REQUEST RECEIVED: We will review your data removal request. To protect study integrity, a clinical team member will contact you to finalize the process. Would you like to log out now?")) {
+                    // Notify staff of the formal request
+                    try {
+                        authFetch(`${API}/help-request/`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                action_title: 'DATA_REMOVAL_REQUEST',
+                                description: `OFFICIAL NOTIFICATION: Participant ${userProfile.userName} (${userProfile.userEmail}) has initiated a formal data removal request. Clinical team must review against protocol retention requirements. Priority: MEDIUM.`,
+                                alert_priority: 'MEDIUM',
+                                notify_roles: ['PI', 'COORDINATOR'],
+                                message: "Request for account closure and data de-identification initiated via portal."
+                            })
+                        });
+                    } catch (e) {
+                        console.error("Failed to notify staff of deletion request:", e);
+                    }
+
+                    alert("🔒 SECURE LOGOUT: Your request has been logged. You will be signed out now for your protection.");
                     performLogout();
                     navigate('/signin');
                 }
@@ -1368,7 +1385,14 @@ export default function ParticipantDashboard() {
     const initials = (userProfile.userName || 'U').split(' ').filter(n => n).map(n => n[0]).join('').toUpperCase().slice(0, 2);
 
     const activeParticipantStatus = (activeParticipant?.status || '').toUpperCase().trim();
-    const isEnrolled = ['ENROLLED', 'CONSENTED', 'RANDOMIZED', 'ACTIVE', 'COMPLETED'].some(s => activeParticipantStatus.includes(s))
+    
+    // CONSENT-FIRST GATE: Strictly define what constitutes an "enrolled" participant for data access.
+    // We only allow access to clinical data (Tasks, Logs, visits, etc.) IF they have CONSENTED or further.
+    const isConsented = ['CONSENTED', 'RANDOMIZED', 'ACTIVE', 'COMPLETED'].some(s => activeParticipantStatus.includes(s));
+    
+    // "isEnrolled" for general layout purposes still includes PENDING/APPROVED states to show the switcher,
+    // but the specific tabs are hidden via the 'hidden' property below.
+    const isEnrolled = isConsented || ['ENROLLED'].some(s => activeParticipantStatus.includes(s))
                         || allParticipants.some(p => ['ENROLLED', 'CONSENTED', 'RANDOMIZED', 'ACTIVE'].includes((p.status || '').toUpperCase()));
 
     const navItems = [
@@ -1377,16 +1401,16 @@ export default function ParticipantDashboard() {
         { label: 'Dashboard', icon: LayoutDashboard },
         { label: 'Tasks', icon: ClipboardList, hidden: !isEnrolled },
 
-        { label: 'Logs', icon: Activity, hidden: !isEnrolled },
+        { label: 'Logs', icon: Activity, hidden: !isConsented },
         { label: 'Messages', icon: MessageSquare },
-        { label: 'Documents', icon: FileText, hidden: !isEnrolled },
-        { label: 'Reports', icon: TrendingUp, hidden: !isEnrolled },
-        { label: 'Visits', icon: Calendar, hidden: !isEnrolled },
-        { label: 'Compensation', icon: Trophy, hidden: !isEnrolled },
+        { label: 'Documents', icon: FileText, hidden: !isConsented },
+        { label: 'Reports', icon: TrendingUp, hidden: !isConsented },
+        { label: 'Visits', icon: Calendar, hidden: !isConsented },
+        { label: 'Compensation', icon: Trophy, hidden: !isConsented },
 
         { label: 'Profile', icon: User },
-        { label: 'Study Kit', icon: Package, hidden: !isEnrolled || !activeStudy?.has_study_kit },
-        { label: 'Return Label', icon: Truck, hidden: !isEnrolled || !activeStudy?.has_study_kit },
+        { label: 'Study Kit', icon: Package, hidden: !isConsented || !activeStudy?.has_study_kit },
+        { label: 'Return Label', icon: Truck, hidden: !isConsented || !activeStudy?.has_study_kit },
         { label: 'Privacy & Data', icon: ShieldCheck },
     ].filter(item => !item.hidden);
 
@@ -1689,7 +1713,7 @@ export default function ParticipantDashboard() {
                                     conversations={filteredConversations}
                                 />
                             )}
-                            {activeNav === 'Tasks' && <TasksView isLoading={isDataLoading} tasks={filteredTasks} onAction={openActionModal} study={activeStudy} userName={userProfile.userName} defaultFilter={tasksDefaultFilter} />}
+                            {activeNav === 'Tasks' && <TasksView isLoading={isDataLoading} tasks={filteredTasks} onAction={openActionModal} study={activeStudy} userName={userProfile.userName} defaultFilter={tasksDefaultFilter} hasSignedConsent={isConsented} />}
 
                             {activeNav === 'Logs' && <LogsView study={activeStudy} onAction={openActionModal} preselectedDate={logsPreselectedDate} preselectedLog={selectedLog} defaultViewMode={logsDefaultViewMode} initialLogs={logs} />}
                             {activeNav === 'Messages' && <MessagesView isLoading={isDataLoading} study={activeStudy} conversations={filteredConversations} onAction={refreshData} fullConversations={fullConversations} setFullConversations={setFullConversations} />}

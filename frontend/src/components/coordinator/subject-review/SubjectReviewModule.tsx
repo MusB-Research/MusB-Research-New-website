@@ -13,6 +13,7 @@ import { SafetySignals } from './views/SafetySignals';
 import { LabParameters } from './views/LabParameters';
 import { DocumentRegistry } from './views/DocumentRegistry';
 import { SubjectAuditTrail } from './views/SubjectAuditTrail';
+import { SubjectTasks } from './views/SubjectTasks';
 import { SummaryPanel } from './components/SummaryPanel';
 import { ActionFooter } from './components/ActionFooter';
 import LifecycleTracker from './clinical/LifecycleTracker';
@@ -21,6 +22,8 @@ import PIIRevealButton from './clinical/PIIRevealButton';
 import ClinicalAuditTrail from './clinical/ClinicalAuditTrail';
 import ClinicalEnrollmentWorkflow from './clinical/ClinicalEnrollmentWorkflow';
 import InformedConsentWorkflow from './clinical/InformedConsentWorkflow';
+import InstrumentModal from '../../../views/Participant/InstrumentModal';
+import FormSignatureModal from '../../../views/Participant/FormSignatureModal';
 
 // --- TYPES ---
 interface AE {
@@ -82,10 +85,12 @@ export default function CCC_SubjectReviewModule({
     // State
     const [participant, setParticipant] = useState<any>(null);
     const [loading, setLoading] = useState(true);
+    const [instrumentModal, setInstrumentModal] = useState<{ isOpen: boolean, task: any, readonly: boolean }>({ isOpen: false, task: null, readonly: false });
+    const [formModal, setFormModal] = useState<{ isOpen: boolean, task: any, readonly: boolean }>({ isOpen: false, task: null, readonly: false });
 
     // Tab Definitions
     const tabs = useMemo(() => {
-        const base = ['Overview', 'Screening Review'];
+        const base = ['Overview', 'Screening Review', 'Tasks'];
         // Only show clinical data tabs if the participant has progressed past screening or has data
         if (participant) {
             const hasClinicalData = ['ENROLLED', 'ACTIVE', 'COMPLETED', 'WITHDRAWN'].includes(participant.status) || 
@@ -253,6 +258,39 @@ export default function CCC_SubjectReviewModule({
         };
         fetchSchema();
     }, [selectedStudyId]);
+
+    useEffect(() => {
+        const handleOpenInstrument = (e: any) => {
+            const { instanceId, readonly } = e.detail;
+            const task = participant?.scheduled_questionnaires?.find((q: any) => q.id === instanceId);
+            if (task) {
+                setInstrumentModal({ isOpen: true, task: { q_data: task }, readonly });
+            }
+        };
+        const handleOpenForm = (e: any) => {
+            const { assignedFormId, readonly } = e.detail;
+            const task = participant?.assigned_forms?.find((f: any) => f.id === assignedFormId);
+            if (task) {
+                // Adapt task structure for FormSignatureModal
+                const adaptedTask = { 
+                    ...task,
+                    task_details: { 
+                        form_details: {
+                            ...task.form_details,
+                            schema: task.form_details?.schema || []
+                        }
+                    } 
+                };
+                setFormModal({ isOpen: true, task: adaptedTask, readonly });
+            }
+        };
+        window.addEventListener('open-instrument-modal', handleOpenInstrument);
+        window.addEventListener('open-form-modal', handleOpenForm);
+        return () => {
+            window.removeEventListener('open-instrument-modal', handleOpenInstrument);
+            window.removeEventListener('open-form-modal', handleOpenForm);
+        };
+    }, [participant]);
 
     const processedParticipant = useMemo(() => {
         if (!participant) return null;
@@ -604,6 +642,15 @@ export default function CCC_SubjectReviewModule({
                                     isApproving={isApproving}
                                 />
                             )}
+
+                            {activeTab === 'Tasks' && (
+                                <SubjectTasks 
+                                    participant={participant}
+                                    addToast={addToast}
+                                    logAction={logAction}
+                                    refreshData={fetchData}
+                                />
+                            )}
                             {activeTab === 'Screening Review' && <EligibilityAudit participant={processedParticipant} screeningNotes={screeningNotes} setScreeningNotes={setScreeningNotes} logAction={logAction} onUpdateParticipant={setParticipant} />}
                             {activeTab === 'Outcomes' && <ClinicalOutcomes participant={processedParticipant} onUpdateParticipant={setParticipant} />}
                             {activeTab === 'Safety' && <SafetySignals participant={processedParticipant} />}
@@ -672,6 +719,44 @@ export default function CCC_SubjectReviewModule({
                     </div>
                 )}
             </AnimatePresence>
+
+            {instrumentModal.isOpen && (
+                <InstrumentModal 
+                    isOpen={instrumentModal.isOpen}
+                    onClose={() => setInstrumentModal({ ...instrumentModal, isOpen: false })}
+                    task={instrumentModal.task}
+                    readonly={instrumentModal.readonly}
+                    onSuccess={() => {
+                        fetchData();
+                        setInstrumentModal({ ...instrumentModal, isOpen: false });
+                    }}
+                />
+            )}
+
+            {formModal.isOpen && (
+                <FormSignatureModal 
+                    isOpen={formModal.isOpen}
+                    onClose={() => setFormModal({ ...formModal, isOpen: false })}
+                    task={formModal.task}
+                    readonly={formModal.readonly}
+                    userProfile={{ userName: processedParticipant.display_name }}
+                    onComplete={async (data, signature) => {
+                        try {
+                            const res = await authFetch(`${API}/api/assigned-forms/${formModal.task.id}/sign_coordinator/`, {
+                                method: 'POST',
+                                body: JSON.stringify({ signature, data })
+                            });
+                            if (res.ok) {
+                                addToast("Form signed and locked.");
+                                fetchData();
+                                setFormModal({ ...formModal, isOpen: false });
+                            }
+                        } catch (err) {
+                            addToast("Failed to sign form.", "error");
+                        }
+                    }}
+                />
+            )}
         </div>
     );
 }
