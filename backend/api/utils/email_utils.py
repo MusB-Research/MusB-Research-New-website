@@ -412,10 +412,59 @@ def send_musb_system_email(
                 f"MusB Research Team"
             )
 
+        elif mode == 'SCREENER_THANKS':
+            study_name = study_name or secret_data
+            subject = f"Thank you for applying to {study_name} — MusB Research"
+            html_message = f"""<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px;">
+            <h2 style="color:#1E3A8A;">Thank You, {user_name}!</h2>
+            <p>We have received your eligibility form for <strong>{study_name}</strong>.</p>
+            <p>Our clinical team will review your information and contact you within <strong>2–3 business days</strong>.</p>
+            <p>Questions? Email us at <a href="mailto:info@musbresearch.com">info@musbresearch.com</a></p>
+            <p style="color:#64748b;font-size:13px;">MusB Research Team</p>
+            </div>"""
+            plain_message = f"Thank you {user_name}, we received your application for {study_name}. We will contact you in 2-3 business days."
+
+        elif mode == 'SCREENER_ALERT':
+            subject = f"New Screener Submission — {secret_data}"
+            html_message = f"""<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px;">
+            <h2 style="color:#1E3A8A;">New Screener Submission</h2>
+            <p><strong>Details:</strong> {secret_data}</p>
+            <p><strong>Study:</strong> {study_name or 'N/A'}</p>
+            <p>Please login to the coordinator portal to review.</p>
+            </div>"""
+            plain_message = f"New screener submission: {secret_data}"
+
+        elif mode == 'ACCOUNT_CREATED':
+            temp_password = secret_data
+            subject = f"Your MusB Research Account — Accepted to {study_name}"
+            html_message = f"""<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px;">
+            <h2 style="color:#1E3A8A;">Welcome, {user_name}!</h2>
+            <p>You have been <strong style="color:#16a34a;">accepted</strong> to participate in <strong>{study_name}</strong>.</p>
+            <p>Your account credentials:</p>
+            <div style="background:#f1f5f9;border-radius:8px;padding:16px;margin:16px 0;">
+            <p><strong>Email:</strong> {user_email}</p>
+            <p><strong>Temporary Password:</strong> <code style="background:#e2e8f0;padding:2px 6px;">{temp_password}</code></p>
+            </div>
+            <p>You will be asked to change your password on first login.</p>
+            <a href="https://musbhealth.com/signin" style="display:inline-block;background:#1D4ED8;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;">Log In Now</a>
+            </div>"""
+            plain_message = f"Welcome {user_name}! Accepted to {study_name}. Login: {user_email} / Temp password: {temp_password}"
+
+        elif mode == 'SCREENER_REJECTED':
+            subject = f"Update on Your Application — {study_name}"
+            html_message = f"""<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px;">
+            <h2 style="color:#1E3A8A;">Application Update</h2>
+            <p>Dear {user_name},</p>
+            <p>Thank you for your interest in <strong>{study_name}</strong>.</p>
+            <p>After reviewing your information, our clinical team has determined that you do not meet the eligibility criteria for this study at this time.</p>
+            <p>We encourage you to check our website for other studies that may be a better fit.</p>
+            <p style="color:#64748b;font-size:13px;">MusB Research Team | info@musbresearch.com</p>
+            </div>"""
+            plain_message = f"Dear {user_name}, thank you for applying to {study_name}. Unfortunately you do not meet the eligibility criteria at this time."
+
         else:
             logger.error(f"send_musb_system_email: unknown mode '{mode}'")
             return False
-
         from_email = f"MusB Research <{getattr(settings, 'SMTP_EMAIL', None) or getattr(settings, 'EMAIL_HOST_USER', 'noreplymusbresearch@gmail.com')}>"
         
         # ─────────────────────────────────────────────────────────

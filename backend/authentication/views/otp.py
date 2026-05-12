@@ -45,16 +45,34 @@ def send_otp(request):
     )
 
     # Deliver via MusB branded Gmail SMTP (no Resend)
+    # try:
+    #     from api.utils.email_utils import send_musb_system_email
+    #     success = send_musb_system_email(
+    #         user_email=email,
+    #         user_name=email.split('@')[0].replace('.', ' ').replace('_', ' ').title(),
+    #         mode='VERIFY',
+    #         secret_data=code,
+    #     )
+    # except Exception:
+    #     # Fallback to legacy premium mailer
+    #     success = send_mail_premium(
+    #         to_email=email,
+    #         subject='Verification Code - MusB Research',
+    #         title='Clinical ID Verification',
+    #         body=f'Your secure verification code is <strong>{code}</strong>. It expires in 10 minutes.',
+    #     )
+
+    # NEW — returns instantly, email sends in background
     try:
-        from api.utils.email_utils import send_musb_system_email
-        success = send_musb_system_email(
+        from api.tasks import send_email_task
+        send_email_task.delay(
             user_email=email,
             user_name=email.split('@')[0].replace('.', ' ').replace('_', ' ').title(),
             mode='VERIFY',
             secret_data=code,
         )
+        success = True  # task queued successfully
     except Exception:
-        # Fallback to legacy premium mailer
         success = send_mail_premium(
             to_email=email,
             subject='Verification Code - MusB Research',
