@@ -1,16 +1,17 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Send, FileText, CheckCircle2, Save, Lock, Loader2, AlertTriangle, Check, Smile, Meh, Frown } from 'lucide-react';
-import { authFetch, API } from '../../utils/auth';
+import { authFetch, API, getRole } from '../../utils/auth';
 
 interface InstrumentModalProps {
     isOpen: boolean;
     onClose: () => void;
     task: any;
     onSuccess: () => void;
+    readonly?: boolean;
 }
 
-export default function InstrumentModal({ isOpen, onClose, task, onSuccess }: InstrumentModalProps) {
+export default function InstrumentModal({ isOpen, onClose, task, onSuccess, readonly = false }: InstrumentModalProps) {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [responses, setResponses] = useState<Record<string, any>>({});
     const [step, setStep] = useState<'FORM' | 'SUCCESS'>('FORM');
@@ -28,7 +29,7 @@ export default function InstrumentModal({ isOpen, onClose, task, onSuccess }: In
 
     const qData = task?.q_data;
     const template = qData?.questionnaire_details?.template_details || qData?.template_details;
-    const isLocked = qData?.status === 'COMPLETED' || qData?.status === 'LATE' || qData?.status === 'LOCKED' || task?.status === 'COMPLETED';
+    const isLocked = readonly || qData?.status === 'COMPLETED' || qData?.status === 'LATE' || qData?.status === 'LOCKED' || task?.status === 'COMPLETED';
     const mode = qData?.mode; // 'PDF' or 'STRUCTURED'
 
     const getDisplayName = () => {
@@ -48,6 +49,11 @@ export default function InstrumentModal({ isOpen, onClose, task, onSuccess }: In
     const robustQuestions = useMemo(() => {
         if (Array.isArray(template?.json_structure?.questions) && template.json_structure.questions.length > 0) {
             return template.json_structure.questions;
+        }
+
+        const inputStep = template?.json_structure?.steps?.find((s: any) => s.type === 'user_input');
+        if (inputStep?.questions) {
+            return inputStep.questions;
         }
 
         if (Array.isArray(template?.json_structure?.sections) && template.json_structure.sections.length > 0) {
@@ -220,11 +226,15 @@ export default function InstrumentModal({ isOpen, onClose, task, onSuccess }: In
         setIsSubmitting(true);
         setError(null);
         const signature = hasSigned ? canvasRef.current?.toDataURL() : null;
+        const role = (getRole() || '').toUpperCase();
+        const isCoordinator = ['COORDINATOR', 'PI', 'ADMIN', 'SUPER_ADMIN'].includes(role);
+
         const submissionPayload = { 
             responses,
             signature,
             typed_name: typedName,
-            clinical_score: totalScore
+            clinical_score: totalScore,
+            completed_by: isCoordinator ? 'COORDINATOR' : 'PARTICIPANT'
         };
 
         try {
@@ -266,12 +276,13 @@ export default function InstrumentModal({ isOpen, onClose, task, onSuccess }: In
 
     // Calculate completion percentage
     const progressPercentage = useMemo(() => {
-        if (robustQuestions.length === 0) return 0;
-        const answeredCount = robustQuestions.filter((q: any) => {
+        const inputQuestions = robustQuestions.filter((q: any) => q.type !== 'header' && q.type !== 'description');
+        if (inputQuestions.length === 0) return 0;
+        const answeredCount = inputQuestions.filter((q: any) => {
             const val = responses[q.id];
             return val !== undefined && val !== null && val !== '';
         }).length;
-        return Math.round((answeredCount / robustQuestions.length) * 100);
+        return Math.round((answeredCount / inputQuestions.length) * 100);
     }, [robustQuestions, responses]);
 
     // Calculate dynamic clinical score
@@ -513,25 +524,50 @@ export default function InstrumentModal({ isOpen, onClose, task, onSuccess }: In
                             ) : (
                                 /* KISS STACKED LAYOUT */
                                 <div className="space-y-4">
-                                    {template?.json_structure?.instructions && (
-                                        <div 
-                                            className="p-3.5 rounded-xl border mb-2 shrink-0 shadow-sm"
-                                            style={{ backgroundColor: '#F8FAFC', borderColor: '#E2E8F0' }}
-                                        >
-                                            <p 
-                                                className="text-[10px] font-bold uppercase tracking-wide text-center leading-normal"
-                                                style={{ color: '#475569' }}
-                                            >
-                                                {template.json_structure.instructions.replace(/\n/g, ' ')}
-                                            </p>
-                                        </div>
-                                    )}
+                                    {(() => {
+                                        const inputStep = template?.json_structure?.steps?.find((s: any) => s.type === 'user_input');
+                                        const title = inputStep?.title || template?.name || template?.title;
+                                        const instructions = inputStep?.instructions || template?.json_structure?.instructions;
+
+                                        return (
+                                            <div className="mb-8">
+                                                {title && (
+                                                    <h1 className="text-3xl font-black text-slate-900 uppercase tracking-tighter italic mb-3">
+                                                        {title}
+                                                    </h1>
+                                                )}
+                                                {instructions && (
+                                                    <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5 shadow-sm">
+                                                        <p className="text-[11px] font-bold text-slate-600 uppercase tracking-widest leading-relaxed">
+                                                            {instructions}
+                                                        </p>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        );
+                                    })()}
 
                                     {/* Responsive 2-column Grid on Desktop, 1-column on Mobile */}
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                         {robustQuestions.map((q: any, idx: number) => {
                                             const fieldId = q.id || `q-${idx}`;
                                             const currentVal = responses[fieldId];
+
+                                            if (q.type === 'header') {
+                                                return (
+                                                    <div key={fieldId} className="col-span-full pt-8 pb-4 border-b-2 border-slate-900 mb-6">
+                                                        <h2 className="text-xl font-black text-slate-900 uppercase tracking-tighter leading-none italic">{q.label}</h2>
+                                                    </div>
+                                                );
+                                            }
+
+                                            if (q.type === 'description') {
+                                                return (
+                                                    <div key={fieldId} className="col-span-full bg-slate-50/50 border border-slate-200 rounded-2xl p-6 mb-6">
+                                                        <p className="text-[11px] font-bold text-slate-600 leading-relaxed uppercase tracking-widest italic">{q.label}</p>
+                                                    </div>
+                                                );
+                                            }
 
                                             return (
                                                 <div 
@@ -548,132 +584,121 @@ export default function InstrumentModal({ isOpen, onClose, task, onSuccess }: In
                                                                 {q.label || q.question || q.question_text}
                                                             </h4>
                                                         </div>
-                                                    </div>
 
-                                                    {/* Compact Option Controls */}
-                                                    <div className="mt-1">
-                                                        {q.type === 'choice' || q.type === 'multiple_choice' || q.type === 'radio' || q.type === 'likert' ? (
-                                                            <div className="grid grid-cols-2 gap-2">
-                                                                {q.options?.map((opt: string) => {
-                                                                    const isMulti = q.type === 'multiple_choice' || q.allow_multiple;
-                                                                    const isSelected = isMulti 
-                                                                        ? (Array.isArray(currentVal) && currentVal.includes(opt))
-                                                                        : currentVal === opt;
-                                                                    return (
-                                                                        <button
-                                                                            key={opt}
-                                                                            disabled={isLocked}
-                                                                            onClick={() => updateResponse(fieldId, opt, isMulti)}
-                                                                            className={`px-2.5 py-2 rounded-lg border text-left transition-all duration-150 flex items-center gap-2 select-none outline-none ${
-                                                                                isSelected 
-                                                                                    ? 'bg-blue-600 border-blue-600 text-white shadow-sm' 
-                                                                                    : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50'
-                                                                            }`}
-                                                                        >
-                                                                            <div className={`w-3.5 h-3.5 ${isMulti ? 'rounded-md' : 'rounded-full'} border flex items-center justify-center shrink-0 ${isSelected ? 'border-white bg-white/20' : 'border-slate-300 bg-white'}`}>
-                                                                                {isSelected && <div className={`w-1.5 h-1.5 bg-white ${isMulti ? 'rounded-sm' : 'rounded-full'}`} />}
-                                                                            </div>
-                                                                            <span className="truncate text-[9px] font-black uppercase tracking-wider">{opt}</span>
-                                                                        </button>
-                                                                    );
-                                                                })}
-                                                            </div>
-                                                        ) : q.type === 'yesno' ? (
-                                                            <div className="grid grid-cols-2 gap-2">
-                                                                {['Yes', 'No'].map((opt) => {
-                                                                    const isSelected = currentVal === opt;
-                                                                    return (
-                                                                        <button
-                                                                            key={opt}
-                                                                            disabled={isLocked}
-                                                                            onClick={() => updateResponse(fieldId, opt)}
-                                                                            className={`py-2 rounded-lg border text-center transition-all duration-150 text-[10px] font-black uppercase tracking-wider ${
-                                                                                isSelected 
-                                                                                    ? 'bg-blue-600 border-blue-600 text-white shadow-sm' 
-                                                                                    : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50'
-                                                                            }`}
-                                                                        >
-                                                                            {opt}
-                                                                        </button>
-                                                                    );
-                                                                })}
-                                                            </div>
-                                                        ) : (q.type === 'faces' || q.type === 'emoji') ? (
-                                                            <div className="bg-slate-50/50 p-6 rounded-2xl border border-slate-100">
-                                                                <div className="flex justify-between items-start gap-1">
-                                                                    {[
-                                                                        { label: 'Excellent', emoji: <Smile className="w-10 h-10" />, val: '5', color: '#059669', bg: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-700' },
-                                                                        { label: 'Good', emoji: <Smile className="w-10 h-10 opacity-70" />, val: '4', color: '#10b981', bg: 'bg-emerald-50/50', border: 'border-emerald-100', text: 'text-emerald-600' },
-                                                                        { label: 'Fair', emoji: <Meh className="w-10 h-10" />, val: '3', color: '#6b7280', bg: 'bg-slate-100', border: 'border-slate-200', text: 'text-slate-600' },
-                                                                        { label: 'Poor', emoji: <Frown className="w-10 h-10 opacity-70" />, val: '2', color: '#f97316', bg: 'bg-orange-50', border: 'border-orange-200', text: 'text-orange-600' },
-                                                                        { label: 'Very poor', emoji: <Frown className="w-10 h-10" />, val: '1', color: '#b91c1c', bg: 'bg-rose-50', border: 'border-rose-200', text: 'text-rose-700' }
-                                                                    ].map((f) => {
-                                                                        const isSelected = currentVal === f.val;
+                                                        {/* Compact Option Controls */}
+                                                        <div className="mt-1">
+                                                            {q.type === 'choice' || q.type === 'multiple_choice' || q.type === 'radio' || q.type === 'likert' || q.type === 'dropdown' ? (
+                                                                <div className="grid grid-cols-2 gap-2">
+                                                                    {q.options?.map((opt: string) => {
+                                                                        const isMulti = q.type === 'multiple_choice' || q.allow_multiple;
+                                                                        const isSelected = isMulti 
+                                                                            ? (Array.isArray(currentVal) && currentVal.includes(opt))
+                                                                            : currentVal === opt;
                                                                         return (
                                                                             <button
-                                                                                key={f.val}
+                                                                                key={opt}
                                                                                 disabled={isLocked}
-                                                                                type="button"
-                                                                                onClick={() => updateResponse(fieldId, f.val)}
-                                                                                className="flex flex-col items-center gap-3 flex-1 group outline-none"
+                                                                                onClick={() => updateResponse(fieldId, opt, isMulti)}
+                                                                                className={`px-2.5 py-2 rounded-lg border text-left transition-all duration-150 flex items-center gap-2 select-none outline-none ${
+                                                                                    isSelected 
+                                                                                        ? 'bg-blue-600 border-blue-600 text-white shadow-sm' 
+                                                                                        : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50'
+                                                                                }`}
                                                                             >
-                                                                                <div 
-                                                                                    className={`w-16 h-16 rounded-full border-2 flex items-center justify-center transition-all duration-300 ${
-                                                                                        isSelected 
-                                                                                            ? `${f.bg} ${f.border} shadow-lg ring-4 ring-offset-2 ring-blue-500/10 scale-110` 
-                                                                                            : 'bg-white border-slate-100 hover:border-slate-200 hover:scale-105'
-                                                                                    }`}
-                                                                                    style={{ color: f.color }}
-                                                                                >
-                                                                                    {f.emoji}
+                                                                                <div className={`w-3.5 h-3.5 ${isMulti ? 'rounded-md' : 'rounded-full'} border flex items-center justify-center shrink-0 ${isSelected ? 'border-white bg-white/20' : 'border-slate-300 bg-white'}`}>
+                                                                                    {isSelected && <div className={`w-1.5 h-1.5 bg-white ${isMulti ? 'rounded-sm' : 'rounded-full'}`} />}
                                                                                 </div>
-                                                                                <span className={`text-[9px] font-black uppercase tracking-tight transition-colors ${isSelected ? f.text : 'text-slate-400 group-hover:text-slate-600'}`}>
-                                                                                    {f.label}
-                                                                                </span>
+                                                                                <span className="truncate text-[9px] font-black uppercase tracking-wider">{opt}</span>
                                                                             </button>
                                                                         );
                                                                     })}
                                                                 </div>
-                                                            </div>
-                                                        ) : q.type === 'scale' ? (
-                                                            <div className="space-y-1.5 bg-slate-50/50 p-2 rounded-lg border border-slate-100">
-                                                                <div className="relative h-5 flex items-center">
-                                                                    <div className="absolute left-0 right-0 h-1 bg-slate-200 rounded-full overflow-hidden">
+                                                            ) : (q.type === 'faces' || q.type === 'emoji') ? (
+                                                                <div className="bg-slate-50/50 p-6 rounded-2xl border border-slate-100">
+                                                                    <div className="flex justify-between items-start gap-1">
+                                                                        {[
+                                                                            { label: 'Excellent', emoji: <Smile className="w-10 h-10" />, val: '5', color: '#059669', bg: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-700' },
+                                                                            { label: 'Good', emoji: <Smile className="w-10 h-10 opacity-70" />, val: '4', color: '#10b981', bg: 'bg-emerald-50/50', border: 'border-emerald-100', text: 'text-emerald-600' },
+                                                                            { label: 'Fair', emoji: <Meh className="w-10 h-10" />, val: '3', color: '#6b7280', bg: 'bg-slate-100', border: 'border-slate-200', text: 'text-slate-600' },
+                                                                            { label: 'Poor', emoji: <Frown className="w-10 h-10 opacity-70" />, val: '2', color: '#f97316', bg: 'bg-orange-50', border: 'border-orange-200', text: 'text-orange-600' },
+                                                                            { label: 'Very poor', emoji: <Frown className="w-10 h-10" />, val: '1', color: '#b91c1c', bg: 'bg-rose-50', border: 'border-rose-200', text: 'text-rose-700' }
+                                                                        ].map((f) => {
+                                                                            const isSelected = String(currentVal) === f.val;
+                                                                            return (
+                                                                                <button
+                                                                                    key={f.val}
+                                                                                    disabled={isLocked}
+                                                                                    type="button"
+                                                                                    onClick={() => updateResponse(fieldId, f.val)}
+                                                                                    className="flex flex-col items-center gap-3 flex-1 group outline-none"
+                                                                                >
+                                                                                    <div 
+                                                                                        className={`w-16 h-16 rounded-full border-2 flex items-center justify-center transition-all duration-300 ${
+                                                                                            isSelected 
+                                                                                                ? `${f.bg} ${f.border} shadow-lg ring-4 ring-offset-2 ring-blue-500/10 scale-110` 
+                                                                                                : 'bg-white border-slate-100 hover:border-slate-200 hover:scale-105'
+                                                                                        }`}
+                                                                                        style={{ color: f.color }}
+                                                                                    >
+                                                                                        {f.emoji}
+                                                                                    </div>
+                                                                                    <span className={`text-[9px] font-black uppercase tracking-tight transition-colors ${isSelected ? f.text : 'text-slate-400 group-hover:text-slate-600'}`}>
+                                                                                        {f.label}
+                                                                                    </span>
+                                                                                </button>
+                                                                            );
+                                                                        })}
+                                                                    </div>
+                                                                </div>
+                                                            ) : q.type === 'scale' ? (
+                                                                <div className="space-y-1.5 bg-slate-50/50 p-2 rounded-lg border border-slate-100">
+                                                                    <div className="relative h-5 flex items-center">
+                                                                        <div className="absolute left-0 right-0 h-1 bg-slate-200 rounded-full overflow-hidden">
+                                                                            <div 
+                                                                                className="h-full bg-blue-600" 
+                                                                                style={{ width: `${((Number(currentVal) || 0) / (q.scale_max || 100)) * 100}%` }}
+                                                                            />
+                                                                        </div>
+                                                                        <input 
+                                                                            type="range"
+                                                                            disabled={isLocked}
+                                                                            min={q.scale_min || 0}
+                                                                            max={q.scale_max || 100}
+                                                                            value={currentVal || 0}
+                                                                            onChange={(e) => updateResponse(fieldId, e.target.value)}
+                                                                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                                                                        />
                                                                         <div 
-                                                                            className="h-full bg-blue-600" 
-                                                                            style={{ width: `${((Number(currentVal) || 0) / (q.scale_max || 100)) * 100}%` }}
+                                                                            className="absolute w-3.5 h-3.5 bg-white border-2 border-blue-600 rounded-full shadow pointer-events-none transition-all"
+                                                                            style={{ left: `calc(${((Number(currentVal) || 0) / (q.scale_max || 100)) * 100}% - 7px)` }}
                                                                         />
                                                                     </div>
-                                                                    <input 
-                                                                        type="range"
-                                                                        disabled={isLocked}
-                                                                        min={q.scale_min || 0}
-                                                                        max={q.scale_max || 100}
-                                                                        value={currentVal || 0}
-                                                                        onChange={(e) => updateResponse(fieldId, e.target.value)}
-                                                                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                                                                    />
-                                                                    <div 
-                                                                        className="absolute w-3.5 h-3.5 bg-white border-2 border-blue-600 rounded-full shadow pointer-events-none transition-all"
-                                                                        style={{ left: `calc(${((Number(currentVal) || 0) / (q.scale_max || 100)) * 100}% - 7px)` }}
-                                                                    />
+                                                                    <div className="flex justify-between items-center text-[8px] font-black text-slate-400 uppercase tracking-widest">
+                                                                        <span>{q.options?.[0] || 'Min'}</span>
+                                                                        <span className="text-blue-600 font-bold bg-blue-50 px-1.5 rounded">{currentVal || 0}</span>
+                                                                        <span>{q.options?.[1] || 'Max'}</span>
+                                                                    </div>
                                                                 </div>
-                                                                <div className="flex justify-between items-center text-[8px] font-black text-slate-400 uppercase tracking-widest">
-                                                                    <span>{q.options?.[0] || 'Min'}</span>
-                                                                    <span className="text-blue-600 font-bold bg-blue-50 px-1.5 rounded">{currentVal || 0}</span>
-                                                                    <span>{q.options?.[1] || 'Max'}</span>
-                                                                </div>
-                                                            </div>
-                                                        ) : (
-                                                            /* TEXT COMPONENT */
-                                                            <textarea 
-                                                                disabled={isLocked}
-                                                                className="w-full bg-white border border-slate-200 rounded-lg p-2 text-[11px] font-bold text-slate-800 placeholder:text-slate-300 min-h-[50px] focus:border-blue-500 outline-none resize-none transition-colors"
-                                                                placeholder={q.placeholder || "Type answer..."}
-                                                                value={currentVal || ''}
-                                                                onChange={(e) => updateResponse(fieldId, e.target.value)}
-                                                            />
-                                                        )}
+                                                            ) : q.type === 'number' ? (
+                                                                <input 
+                                                                    type="number"
+                                                                    disabled={isLocked}
+                                                                    value={currentVal || ''}
+                                                                    onChange={(e) => updateResponse(fieldId, e.target.value)}
+                                                                    placeholder={q.placeholder || "0"}
+                                                                    className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-[11px] font-bold text-slate-800 focus:border-blue-500 outline-none transition-colors"
+                                                                />
+                                                            ) : (
+                                                                /* TEXT COMPONENT */
+                                                                <textarea 
+                                                                    disabled={isLocked}
+                                                                    className="w-full bg-white border border-slate-200 rounded-lg p-2 text-[11px] font-bold text-slate-800 placeholder:text-slate-300 min-h-[50px] focus:border-blue-500 outline-none resize-none transition-colors"
+                                                                    placeholder={q.placeholder || "Type answer..."}
+                                                                    value={currentVal || ''}
+                                                                    onChange={(e) => updateResponse(fieldId, e.target.value)}
+                                                                />
+                                                            )}
+                                                        </div>
                                                     </div>
                                                 </div>
                                             );

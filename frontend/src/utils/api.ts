@@ -7,7 +7,7 @@ import { getAccessToken, getRefreshToken, saveTokens, performLogout } from './au
  */
 
 const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || 
-    ((import.meta as any).env?.PROD ? 'https://musb-research-new-website-hk4k.onrender.com' : 'http://localhost:8000');
+    ((import.meta as any).env?.PROD ? 'https://musb-research-new-website.onrender.com' : 'http://localhost:8000');
 
 export const api = axios.create({
     baseURL: API_BASE_URL,

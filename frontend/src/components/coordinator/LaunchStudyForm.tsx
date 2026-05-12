@@ -20,6 +20,8 @@ interface LaunchStudyFormProps {
 
 
 
+const cleanCountry = (name: string) => (name || '').replace(/[\[\]"]/g, '').trim();
+
 const STEPS = [
     { id: 1, label: 'Protocol' },
     { id: 2, label: 'Study info' },
@@ -61,6 +63,8 @@ const SponsorSearchModal = ({ isOpen, onClose, onSelect, availableSponsors, avai
         `${u.first_name || ''} ${u.last_name || ''} ${u.email || ''}`.toLowerCase().includes(q)
     );
     const getInitials = (u: any) => ((u.first_name?.[0] || '') + (u.last_name?.[0] || '')).toUpperCase() || u.email?.[0]?.toUpperCase() || '?';
+
+
 
     return (
         <div className="fixed inset-0 bg-[#060B16]/80 backdrop-blur-md z-[100] flex items-center justify-center p-4">
@@ -549,21 +553,11 @@ const CountrySelector = ({ selectedCountries, onChange }: { selectedCountries: s
                     <div>
                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] block">Global Reach</label>
                         <h4 className="text-[11px] font-black text-white uppercase tracking-wider">Recruitment Coverage</h4>
-                        {/* Display country list inside the card */}
-                        {selectedCountries.length > 0 && (
-                            <div className="flex flex-wrap gap-1 mt-2">
-                                {selectedCountries.map(c => (
-                                    <span key={c} className="text-[10px] font-black text-blue-400 bg-blue-400/10 border border-blue-400/20 px-2 py-0.5 rounded-lg uppercase tracking-wider">
-                                        {c}
-                                    </span>
-                                ))}
-                            </div>
-                        )}
                     </div>
                 </div>
                 <div className="flex flex-col items-end">
                     <span className="text-[10px] font-black text-blue-400 bg-blue-400/10 border border-blue-400/20 px-3 py-1 rounded-full uppercase tracking-widest">
-                        {selectedCountries.length} Countries Selected
+                        {selectedCountries.length} {selectedCountries.length === 1 ? 'Country' : 'Countries'} Selected
                     </span>
                 </div>
             </div>
@@ -580,7 +574,7 @@ const CountrySelector = ({ selectedCountries, onChange }: { selectedCountries: s
                                 exit={{ opacity: 0, scale: 0.9, x: 5 }}
                                 className="flex items-center gap-2 pl-3 pr-2 py-1.5 bg-blue-600/10 border border-blue-500/20 rounded-xl text-blue-400 group hover:bg-blue-600/20 transition-all cursor-default"
                             >
-                                <span className="text-[11px] font-black uppercase tracking-tight">{c}</span>
+                                <span className="text-[11px] font-black uppercase tracking-tight">{cleanCountry(c)}</span>
                                 <button 
                                     type="button" 
                                     onClick={(e) => {
@@ -663,7 +657,7 @@ const CountrySelector = ({ selectedCountries, onChange }: { selectedCountries: s
                             
                             {filtered.length > 0 && (
                                 <div className="p-3 bg-white/5 border-t border-white/5 flex items-center justify-between">
-                                    <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">{filtered.length} Regions Available</span>
+                                    <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">{filtered.length} Countries Available</span>
                                     <div className="text-[9px] font-black text-blue-400 uppercase tracking-widest italic">MusB Global Intelligence</div>
                                 </div>
                             )}
@@ -947,10 +941,10 @@ const LaunchStudyForm: React.FC<LaunchStudyFormProps> = ({
         full_title: '',
         title: '',
         category: '',
-        briefSummary: '',
-        overview: '',
-        benefit: '',
-        participation_message: '',
+        briefSummary: 'A paid gut health clinical study enrolling adults now',
+        overview: 'Beat the Bloat is a preclinical-to-clinical gut health research study investigates the effects of a natural botanical product on common digestive symptoms including bloating, gas, and general gut discomfort.\n\nParticipants will be carefully monitored throughout the study duration by trained clinical staff. All procedures follow rigorous scientific and ethical standards.',
+        benefit: ' No cost to you - All study materials and monitoring provided free of charge\n Clinically monitored - Your health is tracked by experienced research professionals\n 100% natural product - Botanical ingredient with a strong safety profile\n Get paid $150 - Compensation for your time and contribution',
+        participation_message: 'Beyond compensation, your participation directly advances gut health research. Join MusB Research in helping our community access safe, natural, and scientifically-validated digestive solutions.',
         primaryModel: '',
         clinicalPhase: 'N/A',
         maskingStrategy: 'None (open label)',
@@ -989,6 +983,8 @@ const LaunchStudyForm: React.FC<LaunchStudyFormProps> = ({
         inviteSponsorFirstName: '',
         inviteSponsorLastName: '',
         screenerQuestions: [] as any[],
+        screenerTitle: '',
+        screenerInstructions: '',
         screenerFile: null as File | null,
         extractedScreenerText: '',
         selectedQuestionnaires: [] as string[],
@@ -1296,6 +1292,8 @@ const LaunchStudyForm: React.FC<LaunchStudyFormProps> = ({
                                     id: 'STEP2',
                                     type: 'user_input',
                                     label: 'Eligibility',
+                                    title: formData.screenerTitle,
+                                    instructions: formData.screenerInstructions,
                                     questions: (formData.screenerQuestions || []).map((q: any, index: number) => ({
                                         ...q,
                                         id: q?.id || `launch_screener_${index + 1}`
@@ -1393,7 +1391,7 @@ const LaunchStudyForm: React.FC<LaunchStudyFormProps> = ({
                 questionnaireDetails: questionnaireDetails && questionnaireDetails.length > 0 ? questionnaireDetails : prev.questionnaireDetails,
                 questionnaireFrequencies: Object.keys(questionnaireFrequencies).length > 0 ? questionnaireFrequencies : prev.questionnaireFrequencies,
                 extractedConsentText: initialData.consent_content || initialData.consent_template || initialData.extracted_consent_text || prev.extractedConsentText,
-                countries: (initialData.countries && initialData.countries.length > 0) ? initialData.countries : prev.countries
+                countries: (initialData.countries && initialData.countries.length > 0) ? initialData.countries.map(cleanCountry) : prev.countries
             }));
         }
     }, [initialData]);
@@ -1691,7 +1689,7 @@ const LaunchStudyForm: React.FC<LaunchStudyFormProps> = ({
                                             };
                                         })}
                                         onChange={(val) => setFormData(prev => ({ ...prev, briefSummary: val }))}
-                                        placeholder="e.g. Are you feeling gassy and bloated? You may qualify for this study."
+                                        placeholder="e.g. A paid gut health clinical study enrolling adults now"
                                         rows={3}
                                     />
                                 </div>
@@ -1714,7 +1712,7 @@ const LaunchStudyForm: React.FC<LaunchStudyFormProps> = ({
                                             };
                                         })}
                                         onChange={(val) => setFormData(prev => ({ ...prev, overview: val }))}
-                                        placeholder="Describe the study..."
+                                        placeholder="Describe the study... e.g. Beat the Bloat is a preclinical-to-clinical gut health research study investigates the effects of a natural botanical product on common digestive symptoms..."
                                         rows={4}
                                     />
                                 </div>
@@ -1737,7 +1735,7 @@ const LaunchStudyForm: React.FC<LaunchStudyFormProps> = ({
                                             };
                                         })}
                                         onChange={(val) => setFormData(prev => ({ ...prev, benefit: val }))}
-                                        placeholder="List participant benefits..."
+                                        placeholder="List participant benefits... e.g. Get paid $150 for your time and contribution."
                                         rows={3}
                                     />
                                 </div>
@@ -1760,7 +1758,7 @@ const LaunchStudyForm: React.FC<LaunchStudyFormProps> = ({
                                             };
                                         })}
                                         onChange={(val) => setFormData(prev => ({ ...prev, participation_message: val }))}
-                                        placeholder="Why should people participate?"
+                                        placeholder="Why should people participate? e.g. Your participation directly advances gut health research."
                                         rows={3}
                                     />
                                 </div>
@@ -2325,7 +2323,14 @@ const LaunchStudyForm: React.FC<LaunchStudyFormProps> = ({
 
                         <ScreenerBuilder
                             initialQuestions={formData.screenerQuestions}
-                            onSave={(questions: any[]) => setFormData(prev => ({ ...prev, screenerQuestions: questions }))}
+                            initialTitle={formData.screenerTitle}
+                            initialInstructions={formData.screenerInstructions}
+                            onSave={(questions: any[], title: string, instructions: string) => setFormData(prev => ({ 
+                                ...prev, 
+                                screenerQuestions: questions,
+                                screenerTitle: title,
+                                screenerInstructions: instructions
+                            }))}
                             standalone={true}
                         />
 
@@ -2836,7 +2841,7 @@ const LaunchStudyForm: React.FC<LaunchStudyFormProps> = ({
                                         <ReviewRow label="Sponsor" value={getSponsorDisplayName(formData.sponsor)} placeholder="Not selected" isCritical={!formData.sponsor} />
                                         <ReviewRow label="Start Date" value={formData.startDate} placeholder="Not set" />
                                         <ReviewRow label="End Date" value={formData.endDate} placeholder="Not set" />
-                                        <ReviewRow label="Countries" value={formData.countries.join(', ')} placeholder="Global Study" />
+                                        <ReviewRow label="Countries" value={formData.countries.map(c => cleanCountry(c)).join(', ')} placeholder="Global Study" />
                                     </div>
                                 </div>
 

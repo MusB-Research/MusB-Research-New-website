@@ -3723,7 +3723,7 @@ export default function SuperAdminDashboard() {
       <LogoutConfirmationModal
         isOpen={isLogoutModalOpen}
         onClose={() => setIsLogoutModalOpen(false)}
-        onConfirm={() => { clearToken(); window.location.href = "/mainframe/restricted-auth"; }}
+        onConfirm={() => performLogout()}
       />
 
       <style>{`

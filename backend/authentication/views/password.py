@@ -139,4 +139,35 @@ def reset_forced(request):
     from ..models import AuditLog
     AuditLog.log('PASSWORD_RESET_FORCED', user_email=user.email, request=request, detail='Mandatory password reset completed')
 
-    return Response({'message': 'Identity secured. Password updated successfully.'})
+    # Re-issue tokens to prevent logout
+    from .auth import _set_auth_cookies, get_user_data_dict
+    from ..security import generate_access_token, generate_refresh_token, hash_token, REFRESH_TOKEN_LIFETIME
+    from ..models import RefreshToken
+    from django.utils.timezone import now
+
+    try:
+        access_token = generate_access_token(user)
+        refresh_token, ref_jti = generate_refresh_token(user)
+        
+        # Store refresh token
+        ip = request.META.get('HTTP_X_FORWARDED_FOR', request.META.get('REMOTE_ADDR'))
+        ua = request.META.get('HTTP_USER_AGENT', '')[:512]
+        RefreshToken.objects.create(
+            user=user,
+            token_hash=hash_token(refresh_token),
+            jti=ref_jti,
+            expires_at=now() + REFRESH_TOKEN_LIFETIME,
+            user_agent=ua,
+            ip_address=ip.split(',')[0].strip() if ip and ',' in ip else ip,
+        )
+
+        response = Response({
+            'message': 'Identity secured. Password updated successfully.',
+            'access': access_token,
+            'refresh': refresh_token,
+            'user': get_user_data_dict(user)
+        })
+        return _set_auth_cookies(response, access_token, refresh_token)
+    except Exception as e:
+        logger.error(f"Token generation failed after reset_forced: {e}")
+        return Response({'message': 'Password updated, but session refresh failed. Please log in again.'})

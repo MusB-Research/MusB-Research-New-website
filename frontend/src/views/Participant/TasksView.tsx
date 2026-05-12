@@ -15,7 +15,8 @@ const TasksView = ({
     study,
     userName,
     defaultFilter = 'Overdue',
-    isLoading = false
+    isLoading = false,
+    hasSignedConsent = false
 }: {
     tasks: any[];
     onAction: (t: string, task?: any) => void;
@@ -23,6 +24,7 @@ const TasksView = ({
     userName?: string;
     defaultFilter?: string;
     isLoading?: boolean;
+    hasSignedConsent?: boolean;
 }) => {
     const [filter, setFilter] = useState(defaultFilter);
     const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
@@ -37,6 +39,10 @@ const TasksView = ({
     const getTaskStatus = (task: any) => {
         const rawStatus = (task.status || '').toUpperCase();
         if (rawStatus === 'COMPLETED' || rawStatus === 'VIEW_SUBMISSION') return 'Completed';
+
+        // CONSENT GATE: Lock all clinical tasks (except Consent tasks) if study consent is not signed
+        const taskType = (task.task_type || task.task_details?.task_type || '').toUpperCase();
+        if (!hasSignedConsent && taskType !== 'CONSENT') return 'Locked';
 
         const today = new Date();
         today.setHours(0, 0, 0, 0);

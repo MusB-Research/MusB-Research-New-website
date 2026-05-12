@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { Activity, ShieldCheck, Globe, Calendar, Mail, Phone, MapPin, ArrowRight, ExternalLink, Ticket } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -83,14 +83,15 @@ function TrialSection() {
         const loadTrials = async () => {
             try {
                 const data = await fetchStudies();
-                // Filter for Recruiting studies and take the top ones
+                // Filter for Recruiting studies and map needed fields
                 const recruiting = data
                     .filter((s: any) => s.status === 'Recruiting')
                     .map((s: any) => ({
                         id: s.id,
                         title: s.title,
                         description: s.description || s.condition,
-                        link: `/trials?id=${s.id}#current-studies`
+                        link: `/trials?id=${s.id}#current-studies`,
+                        countries: Array.isArray(s.countries) ? s.countries : (typeof s.countries === 'string' && s.countries ? s.countries.split(',').map((c: string) => c.trim()) : [])
                     }));
                 setTrials(recruiting);
             } catch (error) {
@@ -101,6 +102,23 @@ function TrialSection() {
         };
         loadTrials();
     }, []);
+
+    const cleanCountry = (name: string) => (name || '').replace(/[\[\]"]/g, '').trim();
+
+    // Group trials by country
+    const trialsByCountry = useMemo(() => {
+        const groups: Record<string, any[]> = {};
+        trials.forEach(trial => {
+            const countryArray = Array.isArray(trial.countries) ? trial.countries : [];
+            const rawCountries = countryArray.length > 0 ? countryArray : ['Global'];
+            rawCountries.forEach((rawCountry: string) => {
+                const country = cleanCountry(rawCountry);
+                if (!groups[country]) groups[country] = [];
+                groups[country].push(trial);
+            });
+        });
+        return groups;
+    }, [trials]);
 
     return (
         <div className="space-y-16">
@@ -114,25 +132,43 @@ function TrialSection() {
                     <div className="w-12 h-12 border-4 border-cyan-500/20 border-t-cyan-500 rounded-full animate-spin"></div>
                 </div>
             ) : trials.length > 0 ? (
-                <div className="grid md:grid-cols-2 gap-8">
-                    {trials.map(trial => (
-                        <Link 
-                            key={trial.id} 
-                            to={trial.link}
-                            className="group relative p-12 rounded-[3rem] border border-white/10 bg-white/5 backdrop-blur-xl hover:border-cyan-500/30 transition-all overflow-hidden flex flex-col justify-between"
-                        >
-                            <div className="absolute top-0 right-0 w-64 h-64 bg-cyan-500/5 blur-3xl group-hover:bg-cyan-500/10 transition-all" />
-                            <div className="relative z-10 space-y-6">
-                                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-[10px] font-black uppercase tracking-widest">
-                                    Active Study
-                                </div>
-                                <h3 className="text-3xl font-serif text-white group-hover:text-cyan-400 transition-colors">{trial.title}</h3>
-                                <p className="text-slate-400 text-lg leading-relaxed line-clamp-3">{trial.description}</p>
+                <div className="space-y-24">
+                    {Object.entries(trialsByCountry).map(([country, countryTrials]) => (
+                        <div key={country} className="space-y-8">
+                            <div className="flex items-center gap-4">
+                                <div className="h-px flex-1 bg-gradient-to-r from-transparent to-white/10" />
+                                <h3 className="text-sm font-black text-cyan-400 uppercase tracking-[0.3em] italic flex items-center gap-3 bg-white/5 px-6 py-2 rounded-full border border-white/5">
+                                    <Globe className="w-4 h-4" /> {country}
+                                </h3>
+                                <div className="h-px flex-1 bg-gradient-to-l from-transparent to-white/10" />
                             </div>
-                            <div className="relative z-10 flex items-center gap-3 text-cyan-400 font-bold uppercase text-xs tracking-widest pt-8">
-                                View Study Details <ArrowRight className="w-4 h-4 group-hover:translate-x-2 transition-transform" />
+                            <div className="grid md:grid-cols-2 gap-8">
+                                {countryTrials.map(trial => (
+                                    <Link 
+                                        key={`${country}-${trial.id}`} 
+                                        to={trial.link}
+                                        className="group relative p-12 rounded-[3rem] border border-white/10 bg-white/5 backdrop-blur-xl hover:border-cyan-500/30 transition-all overflow-hidden flex flex-col justify-between"
+                                    >
+                                        <div className="absolute top-0 right-0 w-64 h-64 bg-cyan-500/5 blur-3xl group-hover:bg-cyan-500/10 transition-all" />
+                                        <div className="relative z-10 space-y-6">
+                                            <div className="flex items-center justify-between">
+                                                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-[10px] font-black uppercase tracking-widest">
+                                                    Active Study
+                                                </div>
+                                                <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                                                    <Activity className="w-3 h-3 text-cyan-500/50" /> Recruiting
+                                                </div>
+                                            </div>
+                                            <h3 className="text-3xl font-serif text-white group-hover:text-cyan-400 transition-colors">{trial.title}</h3>
+                                            <p className="text-slate-400 text-lg leading-relaxed line-clamp-3">{trial.description}</p>
+                                        </div>
+                                        <div className="relative z-10 flex items-center gap-3 text-cyan-400 font-bold uppercase text-xs tracking-widest pt-8">
+                                            View Study Details <ArrowRight className="w-4 h-4 group-hover:translate-x-2 transition-transform" />
+                                        </div>
+                                    </Link>
+                                ))}
                             </div>
-                        </Link>
+                        </div>
                     ))}
                 </div>
             ) : (

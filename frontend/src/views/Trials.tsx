@@ -68,9 +68,25 @@ export default function Trials() {
 
             const mappedStudies = studyList.map((s: any) => {
                 const mappedType = s.study_type === 'VIRTUAL' ? 'Virtual' : (s.study_type === 'IN_PERSON' ? 'On-site' : 'Hybrid');
+                let calculatedDuration = s.duration || s.time_commitment || "4-12 Weeks";
+                if (s.start_date && s.end_date) {
+                    try {
+                        const start = new Date(s.start_date);
+                        const end = new Date(s.end_date);
+                        const diffTime = Math.abs(end.getTime() - start.getTime());
+                        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                        const weeks = Math.ceil(diffDays / 7);
+                        if (weeks > 0) calculatedDuration = `${weeks} Weeks`;
+                    } catch (e) {}
+                }
+
+                const cleanCountry = (name: string) => (name || '').replace(/[\[\]"]/g, '').trim();
+                const rawCountries = Array.isArray(s.countries) ? s.countries : (typeof s.countries === 'string' && s.countries ? s.countries.split(',').map((c: string) => c.trim()) : (s.location ? [s.location] : []));
+                const countries = rawCountries.map(cleanCountry).filter(Boolean);
+
                 return {
                     id: s.protocol_id || s.id,
-                    db_id: s.id, // Needed for chronological sort
+                    db_id: s.id,
                     title: s.title,
                     full_title: s.full_title || '',
                     description: s.description || '',
@@ -80,10 +96,10 @@ export default function Trials() {
                     condition: s.condition || s.primary_indication || "Other",
                     type: mappedType,
                     status: statusMap[s.status] || 'Paused',
-                    duration: s.duration || s.time_commitment || "4-12 Weeks",
+                    duration: calculatedDuration,
                     compensation: s.compensation || "Varies by study",
                     location: s.location || "",
-                    countries: Array.isArray(s.countries) ? s.countries : (typeof s.countries === 'string' && s.countries ? s.countries.split(',').map((c: string) => c.trim()) : (s.location ? [s.location] : [])),
+                    countries,
                     tags: [s.trial_model, mappedType].filter(Boolean),
                     pi_details: s.pi_details
                 };
@@ -446,19 +462,11 @@ export default function Trials() {
                                                     </p>
                                                 </div>
                                                 <div className="flex flex-wrap gap-2 justify-end max-w-[120px]">
-                                                    {(study.tags || []).map((tag: string) => {
-                                                        const isHybrid = (tag || '').toLowerCase() === 'hybrid';
-                                                        let displayTag = tag;
-                                                        if (isHybrid && study.countries && study.countries.length > 0) {
-                                                            const cStr = Array.isArray(study.countries) ? study.countries.join(', ') : study.countries;
-                                                            displayTag = `${cStr} - ${tag}`;
-                                                        }
-                                                        return (
-                                                            <span key={tag} className="px-2 py-0.5 bg-white/5 border border-white/5 rounded text-[9px] font-black text-slate-600 uppercase tracking-widest">
-                                                                {displayTag}
-                                                            </span>
-                                                        );
-                                                    })}
+                                                    {(study.tags || []).map((tag: string) => (
+                                                        <span key={tag} className="px-2 py-0.5 bg-white/5 border border-white/5 rounded text-[9px] font-black text-slate-600 uppercase tracking-widest">
+                                                            {tag}
+                                                        </span>
+                                                    ))}
                                                 </div>
                                             </div>
 
@@ -493,8 +501,10 @@ export default function Trials() {
                                                         <div className="text-[9px] font-black uppercase tracking-widest text-slate-600 mb-1">Location</div>
                                                         <div className="text-[11px] font-black text-white group-hover/item:text-cyan-400 transition-colors truncate px-1">
                                                             {study.countries && study.countries.length > 0 
-                                                                ? (study.countries.length === 1 ? study.countries[0] : `${study.countries.length} Regions`)
-                                                                : (study.location && study.location.trim() !== '' ? study.location : (study.type === 'Virtual' ? 'Virtual' : 'On-site'))}
+                                                                ? (study.countries.length === 1 
+                                                                    ? study.countries[0]
+                                                                    : `${study.countries.length} Countries`)
+                                                                : (study.location && study.location.trim() !== '' ? study.location.replace(/[\[\]"]/g, '').trim() : (study.type === 'Virtual' ? 'Virtual' : 'On-site'))}
                                                         </div>
                                                     </div>
                                                 </div>

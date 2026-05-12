@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Mail, User, ShieldCheck, ArrowRight, Lock, Key, CheckCircle2, AlertCircle, ChevronLeft, LogIn, PhoneCall, Eye, EyeOff } from 'lucide-react';
 import ReCAPTCHA from 'react-google-recaptcha';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { saveToken, saveUser, API } from '../../utils/auth';
+import { saveToken, saveUser, isLoggedIn, getRole, API } from '../../utils/auth';
 
 type AuthMode = 'LOGIN' | 'REGISTER' | 'FORGOT';
 type AuthStep = 'INFO' | 'OTP' | 'PASSWORD' | 'SUCCESS';
@@ -39,14 +39,33 @@ export default function SignIn() {
     const recaptchaRef = useRef<ReCAPTCHA>(null);
     const googleButtonRef = useRef<HTMLDivElement>(null);
     
-    // Handle initial mode from navigation state (e.g. from Profile page "Change Password")
+    // Handle initial mode and pre-filled data from navigation state
     useEffect(() => {
         const state = location.state as any;
-        if (state?.initialMode) {
-            setMode(state.initialMode);
+        if (state) {
+            if (state.initialMode) setMode(state.initialMode);
+            if (state.email) setEmail(state.email);
+            if (state.name) setName(state.name);
             window.history.replaceState({}, document.title);
         }
     }, [location.state]);
+
+    // Auto-redirect if already logged in
+    useEffect(() => {
+        if (isLoggedIn()) {
+            const role = getRole();
+            switch (role) {
+                case 'ADMIN': navigate('/dashboard/admin'); break;
+                case 'SUPER_ADMIN': navigate('/dashboard/super-admin'); break;
+                case 'COORDINATOR':
+                case 'TEAM_MEMBER': navigate('/dashboard/coordinator'); break;
+                case 'SPONSOR': navigate('/dashboard/sponsor'); break;
+                case 'PI': navigate('/dashboard/pi'); break;
+                default: navigate('/dashboard/participant');
+            }
+        }
+    }, [navigate]);
+
 
     useEffect(() => {
         let timer: any;

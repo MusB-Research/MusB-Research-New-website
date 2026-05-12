@@ -6,7 +6,7 @@ import {
     X, AlertCircle, ChevronDown, Layers, MousePointer2,
     CheckSquare, GripVertical, Settings2, Trash2, Upload, Eye, FileUp, ExternalLink, Database,
     Terminal, CheckCircle2, AlertTriangle, Wand2, DraftingCompass, ShieldCheck, Sparkles, Link as LinkIcon,
-    Smile, Meh, Frown
+    Smile, Meh, Frown, FileSearch
 } from 'lucide-react';
 import { apiFetch } from '../../api';
 import { authFetch, API } from '../../utils/auth';
@@ -70,6 +70,7 @@ export default function QuestionnaireBuilder({
     const [editingPdfUrl, setEditingPdfUrl] = useState<string | null>(null);
     const [editingPdfName, setEditingPdfName] = useState<string | null>(null);
     const [showSourceText, setShowSourceText] = useState(false);
+    const [showSmartPaste, setShowSmartPaste] = useState(false);
     const [sourceLines, setSourceLines] = useState<string[]>([]);
     const [name, setName] = useState('');
     const [instructions, setInstructions] = useState('');
@@ -125,7 +126,7 @@ export default function QuestionnaireBuilder({
 
     const fetchTemplates = async () => {
         try {
-            const res = await authFetch(`${API}/api/questionnaire-templates/`);
+            const res = await authFetch(`${API}/api/questionnaire-templates/?category=INSTRUMENT`);
             if (res.ok) {
                 const data = await res.json();
                 setTemplates(Array.isArray(data) ? data : (data.results || []));
@@ -171,6 +172,7 @@ export default function QuestionnaireBuilder({
                         method: editingId ? 'PATCH' : 'POST',
                         body: JSON.stringify({
                             name,
+                            category: 'INSTRUMENT',
                             json_structure: {
                                 questions,
                                 instructions,
@@ -205,6 +207,7 @@ export default function QuestionnaireBuilder({
         const formData = new FormData();
         formData.append('pdf_file', file);
         formData.append('name', file.name.split('.')[0] || 'Untitled PDF Protocol');
+        formData.append('category', 'INSTRUMENT');
         formData.append('mode', 'PDF');
 
         try {
@@ -222,163 +225,143 @@ export default function QuestionnaireBuilder({
         }
     };
 
-    const addQuestion = (type: Question['type']) => {
+    const addQuestion = (type: string) => {
+        const isCheckbox = type === 'checkbox';
+        const actualType: Question['type'] = isCheckbox ? 'choice' : type as any;
+
         const newQuestion: Question = {
             id: `q_${Date.now()}`,
-            type,
-            label: type === 'faces' ? 'How are you feeling today?' : 'New Question',
+            type: actualType,
+            label: actualType === 'faces' ? 'How are you feeling today?' : 'New Question',
             placeholder: '...',
             required: true,
-            options: (type === 'choice' || type === 'likert') ? ['Option 1', 'Option 2'] : (type === 'scale' ? ['Min Label', 'Max Label'] : undefined),
-            scale_min: type === 'scale' ? 0 : undefined,
-            scale_max: type === 'scale' ? 100 : undefined
+            options: (actualType === 'choice' || actualType === 'likert') ? ['Option 1', 'Option 2'] : (actualType === 'scale' ? ['Min Label', 'Max Label'] : undefined),
+            allow_multiple: isCheckbox,
+            scale_min: actualType === 'scale' ? 0 : undefined,
+            scale_max: actualType === 'scale' ? 100 : undefined
         };
         setQuestions([...questions, newQuestion]);
     };
 
-    const runAIExtraction = async () => {
-        if (!editingId) return alert("Upload / Select a PDF first.");
-        setIsSaving(true);
-        setStatusMessage({ text: 'Running AI extraction engine...', type: 'success' });
-        try {
-            const res = await authFetch(`${API}/api/questionnaire-templates/${editingId}/extract_text/`);
-            if (!res.ok) {
-                const err = await res.json();
-                throw new Error(err.error || 'Extraction failed');
-            }
+    const processExtractionResult = (data: any) => {
+        const suggested: Question[] = [];
+        const sections = data.sections || [];
+        const docType: string = data.document_type || 'unknown';
 
-            const data = await res.json();
-
-            // ── Document type banner ────────────────────────────────────────
-            const docType: string = data.document_type || 'unknown';
-
-            // ── Flatten all sections into a Question[] list ─────────────────
-            const sections: any[] = data.sections || [];
-            const suggested: Question[] = [];
-
+        if (sections.length > 0) {
             for (const section of sections) {
-                // Add section header as a visual separator (instruction type)
+                // Add section header as a visual separator
                 if (section.title && section.title !== 'General') {
                     suggested.push({
                         id: `section_${Date.now()}_${Math.random()}`,
-                        type: 'short_text',
-                        label: `── ${section.title} ──`,
-                        placeholder: '',
+                        type: 'header' as any, // Using as any because type system might be strict
+                        label: section.title,
+                        placeholder: 'Section Header',
                         required: false,
                     });
                 }
 
                 for (const field of (section.fields || [])) {
                     const base = {
-                        id: `ai_${Date.now()}_${Math.random().toString(36).substr(2,6)}`,
+                        id: `ai_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
                         required: field.required ?? true,
-                        placeholder: field.placeholder || '',
-                        allow_multiple: field.allow_multiple ?? false,
+                        placeholder: field.placeholder || 'Enter response...',
                     };
 
-                    switch (field.type) {
-                        // ── Premium Clinical Components ─────────────────────
-                        case 'faces':
-                        case 'emoji_scale':
-                            suggested.push({
-                                ...base,
-                                type: 'faces',
-                                label: field.label || 'How are you feeling?',
-                            });
-                            break;
+                    // Map backend types to QuestionnaireBuilder types
+                    let type: Question['type'] = 'short_text';
+                    if (field.type === 'radio' || field.type === 'choice' || field.type === 'checkbox') type = 'choice';
+                    else if (field.type === 'scale' || field.type === 'vas') type = 'scale';
+                    else if (field.type === 'faces' || field.type === 'emoji_scale') type = 'faces';
+                    else if (field.type === 'matrix' || field.type === 'likert') type = 'matrix';
+                    else if (field.type === 'number') type = 'number';
+                    else if (field.type === 'date') type = 'date';
+                    else if (field.type === 'yesno') type = 'yesno';
+                    else if (field.type === 'header') type = 'header' as any;
+                    else if (field.type === 'instruction' || field.type === 'description') type = 'description' as any;
 
-                        case 'scale':
-                        case 'vas':
-                        case 'percentage_scale':
-                            suggested.push({
-                                ...base,
-                                type: 'scale',
-                                label: field.label || 'Please rate',
-                                scale_min: field.min ?? 0,
-                                scale_max: field.max ?? 100,
-                                options: field.type === 'percentage_scale' ? ['0%', '100%'] : ['Min', 'Max'],
-                            });
-                            break;
-
-                        case 'likert':
-                        case 'matrix':
-                            suggested.push({
-                                ...base,
-                                type: 'matrix',
-                                label: field.label || 'Assessment Grid',
-                                options: field.options || field.columns || ['Disagree', 'Neutral', 'Agree'],
-                                rows: field.rows || []
-                            });
-                            break;
-
-                        // ── Standard Components ─────────────────────────────
-                        case 'checkbox':
-                        case 'radio':
-                        case 'choice':
-                            suggested.push({
-                                ...base,
-                                type: 'choice',
-                                label: field.label || 'Select option(s)',
-                                options: field.options || [],
-                                allow_multiple: field.type === 'checkbox',
-                            });
-                            break;
-
-                        case 'date':
-                            suggested.push({ ...base, type: 'date', label: field.label || '', options: [] });
-                            break;
-
-                        case 'yesno':
-                            suggested.push({ ...base, type: 'yesno', label: field.label || '', options: [] });
-                            break;
-
-                        // ── Instruction / plain text ─────────────────────────
-                        case 'instruction':
-                            suggested.push({
-                                ...base,
-                                type: 'short_text',
-                                label: `ℹ️ ${field.text || ''}`,
-                                placeholder: '',
-                                required: false,
-                            });
-                            break;
-
-                        // ── Default: text / email / phone / signature ─────────
-                        default:
-                            if (field.label && field.label.length > 2) {
-                                suggested.push({
-                                    ...base,
-                                    type: 'short_text',
-                                    label: field.label,
-                                    options: [],
-                                });
-                            }
-                            break;
-                    }
+                    suggested.push({
+                        ...base,
+                        type,
+                        label: field.label || field.text || 'Question',
+                        options: field.options || field.columns || [],
+                        rows: field.rows || [],
+                        allow_multiple: field.type === 'checkbox' || !!field.allow_multiple,
+                        scale_min: field.min ?? 0,
+                        scale_max: field.max ?? 10
+                    } as Question);
                 }
             }
+        } else {
+            // Fallback to basic line parsing
+            const rawLines: string[] = data.lines || [];
+            let currentBlock = "";
+            const blocks: string[] = [];
+            for (const line of rawLines) {
+                const trimmed = line.trim();
+                if (!trimmed || trimmed.startsWith('©') || /page\s+\d+/i.test(trimmed)) continue;
+                if (/^(\d+[\.\)]|[A-G][\.\)]|[\u2022\u25cf\-\u25a1])\s+/.test(trimmed) && currentBlock) {
+                    blocks.push(currentBlock.trim());
+                    currentBlock = trimmed;
+                } else {
+                    currentBlock += (currentBlock ? " " : "") + trimmed;
+                }
+            }
+            if (currentBlock) blocks.push(currentBlock.trim());
 
-            // Filter empty / separator-only results
-            const final = suggested.filter(q => q.label.trim().length > 2);
+            for (const block of blocks) {
+                let options: string[] = [];
+                let label = block;
+                if (/\(0 for NO, 1 for YES\)/i.test(block)) {
+                    label = block.replace(/\(0 for NO, 1 for YES\)/i, '').trim();
+                    options = ["0 - NO", "1 - YES"];
+                }
+                const cleanLabel = label.replace(/^\d+[\.\)]\s+/, '').replace(/^[A-G][\.\)]\s+/, '').trim();
+                if (cleanLabel.length < 3) continue;
+
+                suggested.push({
+                    id: `q_ai_${Math.random().toString(36).substr(2, 9)}`,
+                    type: options.length > 0 ? 'choice' : 'short_text',
+                    label: cleanLabel,
+                    placeholder: '',
+                    required: true,
+                    options: options.length > 0 ? options : undefined,
+                });
+            }
+        }
+
+        const final = suggested.filter(q => q.label && q.label.trim().length > 2);
+        if (final.length > 0) {
             setQuestions(final);
+            setStatusMessage({ 
+                text: `✅ Extracted ${final.length} fields. Type: ${docType.toUpperCase()}.`, 
+                type: 'success' 
+            });
+        } else {
+            setStatusMessage({ text: "⚠️ Extraction completed but no valid fields found.", type: 'error' });
+        }
+        setTimeout(() => setStatusMessage(null), 6000);
+    };
 
-            const sectionCount = sections.length;
-            const msg = final.length > 0
-                ? `✅ Extracted ${final.length} fields across ${sectionCount} section(s). Document type: ${docType.toUpperCase()}.`
-                : `⚠️ Extraction completed but no structured fields found. Check PDF quality.`;
-            setStatusMessage({ text: msg, type: final.length > 0 ? 'success' : 'error' });
-            setTimeout(() => setStatusMessage(null), 6000);
+    const runAIExtraction = async () => {
+        if (!editingId) return alert("Upload / Select a PDF first.");
+        setIsSaving(true);
+        setStatusMessage({ text: 'Neural extraction engine running...', type: 'success' });
+        try {
+            const res = await authFetch(`${API}/api/questionnaire-templates/${editingId}/extract_text/`);
+            if (res.ok) {
+                const data = await res.json();
+                processExtractionResult(data);
+            } else {
+                const err = await res.json();
+                throw new Error(err.error || 'Extraction failed');
+            }
         } catch (err: any) {
-            console.error(err);
             setStatusMessage({ text: `Extraction failed: ${err.message}`, type: 'error' });
         } finally {
             setIsSaving(false);
         }
     };
-
-
-
-
 
     const fetchSourceLines = async () => {
         if (!editingId) return;
@@ -395,6 +378,28 @@ export default function QuestionnaireBuilder({
             console.error(err);
         }
     };
+
+    const handleSmartImport = async (text: string) => {
+        setIsSaving(true);
+        setStatusMessage({ text: 'AI engine analyzing text block...', type: 'success' });
+        try {
+            const res = await authFetch(`${API}/api/questionnaire-templates/smart-extract/`, {
+                method: 'POST',
+                body: JSON.stringify({ text })
+            });
+            if (res.ok) {
+                const data = await res.json();
+                processExtractionResult(data);
+            } else {
+                throw new Error("Smart extraction failed");
+            }
+        } catch (err) {
+            setStatusMessage({ text: 'Neural text extraction failed.', type: 'error' });
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
     const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
         if (!file) return;
@@ -403,136 +408,34 @@ export default function QuestionnaireBuilder({
         setStatusMessage({ text: `Uploading and analyzing ${file.name}...`, type: 'success' });
         
         try {
-            let templateId = editingId;
-            let currentName = name || file.name.split('.')[0] || 'Untitled PDF Protocol';
-
             const formData = new FormData();
             formData.append('pdf_file', file);
-            formData.append('name', currentName);
-            formData.append('mode', 'PDF');
+            formData.append('name', name || file.name.split('.')[0]);
+            formData.append('category', 'INSTRUMENT');
 
-            const url = templateId
-                ? `${API}/api/questionnaire-templates/${templateId}/`
-                : `${API}/api/questionnaire-templates/`;
-
-            const method = templateId ? 'PATCH' : 'POST';
-
+            const url = editingId ? `${API}/api/questionnaire-templates/${editingId}/` : `${API}/api/questionnaire-templates/`;
             const uploadRes = await authFetch(url, {
-                method,
+                method: editingId ? 'PATCH' : 'POST',
                 body: formData
             });
 
             if (uploadRes.ok) {
                 const uploadedData = await uploadRes.json();
-                templateId = uploadedData.id;
-                setEditingId(templateId);
-                setName(uploadedData.name);
+                setEditingId(uploadedData.id);
                 setEditingPdfUrl(uploadedData.pdf_file);
-                setEditingPdfName(uploadedData.pdf_file ? uploadedData.pdf_file.split('/').pop() : 'Protocol.pdf');
-
-                const extractRes = await authFetch(`${API}/api/questionnaire-templates/${templateId}/extract_text/`);
+                
+                const extractRes = await authFetch(`${API}/api/questionnaire-templates/${uploadedData.id}/extract_text/`);
                 if (extractRes.ok) {
                     const data = await extractRes.json();
-                    const suggested: Question[] = [];
-
-                    // PRIORITIZE STRUCTURED SECTIONS (AI)
-                    if (data.sections && data.sections.length > 0) {
-                        for (const section of data.sections) {
-                            if (section.title && section.title !== 'General') {
-                                suggested.push({
-                                    id: `section_${Date.now()}_${Math.random()}`,
-                                    type: 'short_text',
-                                    label: `── ${section.title} ──`,
-                                    placeholder: '',
-                                    required: false,
-                                });
-                            }
-                            for (const field of (section.fields || [])) {
-                                const base = {
-                                    id: `ai_${Date.now()}_${Math.random().toString(36).substr(2,6)}`,
-                                    required: field.required ?? true,
-                                    placeholder: field.placeholder || '',
-                                    allow_multiple: field.allow_multiple ?? false,
-                                };
-
-                                if (field.type === 'matrix' && field.rows) {
-                                    suggested.push({
-                                        ...base,
-                                        type: 'matrix',
-                                        label: field.label || 'Assessment Grid',
-                                        options: field.columns || field.options || [],
-                                        rows: field.rows,
-                                    });
-                                } else {
-                                    suggested.push({
-                                        ...base,
-                                        type: (field.type === 'choice' || field.type === 'radio' || field.type === 'checkbox') ? 'choice' : field.type,
-                                        label: field.label || field.text || 'Question',
-                                        options: field.options || field.columns || [],
-                                        allow_multiple: field.type === 'checkbox' || !!field.allow_multiple
-                                    } as any);
-                                }
-                            }
-                        }
-                    } else {
-                        // Fallback to basic line parsing if structured extraction yielded nothing
-                        const rawLines: string[] = data.lines || [];
-                        const blocks: string[] = [];
-                        let currentBlock = "";
-                        for (const line of rawLines) {
-                            const trimmed = line.trim();
-                            if (!trimmed || trimmed.startsWith('©') || /page\s+\d+/i.test(trimmed)) continue;
-                            const isNewQuestion = /^(\d+[\.\)]|[A-G][\.\)]|[\u2022\u25cf\-\u25a1])\s+/.test(trimmed);
-                            if (isNewQuestion && currentBlock) {
-                                blocks.push(currentBlock.trim());
-                                currentBlock = trimmed;
-                            } else {
-                                currentBlock += (currentBlock ? " " : "") + trimmed;
-                            }
-                        }
-                        if (currentBlock) blocks.push(currentBlock.trim());
-
-                        for (let block of blocks) {
-                            let options: string[] = [];
-                            let label = block;
-                            if (/\(0 for NO, 1 for YES\)/i.test(block)) {
-                                label = block.replace(/\(0 for NO, 1 for YES\)/i, '').trim();
-                                options = ["0 - NO", "1 - YES"];
-                            }
-                            let cleanLabel = label.replace(/^\d+[\.\)]\s+/, '').replace(/^[A-G][\.\)]\s+/, '').trim();
-                            if (cleanLabel.length < 3) continue;
-
-                            suggested.push({
-                                id: `q_ai_${Math.random().toString(36).substr(2, 9)}`,
-                                type: options.length > 0 ? 'choice' : 'short_text',
-                                label: cleanLabel,
-                                placeholder: '',
-                                required: true,
-                                options: options.length > 0 ? options : undefined,
-                            });
-                        }
-                    }
-
-                    if (suggested.length > 0) {
-                        const final = suggested.filter(q => q.label && q.label.trim().length > 2);
-                        setQuestions([...questions, ...final]);
-                        setStatusMessage({ text: `Successfully extracted ${final.length} fields.`, type: 'success' });
-                    } else {
-                        setStatusMessage({ text: "Extraction completed, but no fields were detected.", type: 'error' });
-                    }
+                    processExtractionResult(data);
                     fetchTemplates();
-                } else {
-                    alert("Could not automatically extract text from this file.");
                 }
-            } else {
-                alert("File upload failed.");
             }
         } catch (err) {
-            console.error("Neural upload error", err);
+            setStatusMessage({ text: 'Extraction failed.', type: 'error' });
         } finally {
             setIsExtracting(false);
             if (fileInputRef.current) fileInputRef.current.value = '';
-            setTimeout(() => setStatusMessage(null), 4000);
         }
     };
 
@@ -548,6 +451,7 @@ export default function QuestionnaireBuilder({
                 method: editingId ? 'PATCH' : 'POST',
                 body: JSON.stringify({
                     name,
+                    category: 'INSTRUMENT',
                     json_structure: {
                         questions,
                         instructions,
@@ -1086,7 +990,11 @@ export default function QuestionnaireBuilder({
                                     </button>
                                     <button onClick={() => addQuestion('choice')} className="p-2.5 bg-white/5 border border-white/10 rounded-xl hover:border-indigo-500/30 hover:bg-indigo-500/5 transition-all group flex flex-col items-center gap-1">
                                         <List size={14} className="text-slate-500 group-hover:text-indigo-400 transition-colors" />
-                                        <span className="text-[10px] font-bold text-slate-400 group-hover:text-white uppercase tracking-wider text-center">Choices</span>
+                                        <span className="text-[10px] font-bold text-slate-400 group-hover:text-white uppercase tracking-wider text-center">Radio</span>
+                                    </button>
+                                    <button onClick={() => addQuestion('checkbox' as any)} className="p-2.5 bg-white/5 border border-white/10 rounded-xl hover:border-sky-500/30 hover:bg-sky-500/5 transition-all group flex flex-col items-center gap-1">
+                                        <CheckSquare size={14} className="text-slate-500 group-hover:text-sky-400 transition-colors" />
+                                        <span className="text-[10px] font-bold text-slate-400 group-hover:text-white uppercase tracking-wider text-center">Checkboxes</span>
                                     </button>
                                     <button onClick={() => addQuestion('yesno')} className="p-2.5 bg-white/5 border border-white/10 rounded-xl hover:border-emerald-500/30 hover:bg-emerald-500/5 transition-all group flex flex-col items-center gap-1">
                                         <CheckSquare size={14} className="text-slate-500 group-hover:text-emerald-400 transition-colors" />
@@ -1151,11 +1059,19 @@ export default function QuestionnaireBuilder({
                                 </button>
                                 
                                 <button
+                                    onClick={() => setShowSmartPaste(true)}
+                                    className="w-full py-2.5 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-sm font-bold text-emerald-400 uppercase tracking-wider hover:bg-emerald-500/20 transition-all flex items-center justify-center gap-2 group"
+                                >
+                                    <Terminal className="w-3.5 h-3.5 group-hover:scale-110 transition-transform" />
+                                    Smart Paste
+                                </button>
+
+                                <button
                                     onClick={fetchSourceLines}
                                     disabled={!editingId}
                                     className="w-full py-2.5 bg-white/5 border border-white/10 rounded-xl text-sm font-bold text-slate-400 uppercase tracking-wider hover:bg-white/10 hover:text-white transition-all flex items-center justify-center gap-2"
                                 >
-                                    <Terminal className="w-3.5 h-3.5" />
+                                    <FileSearch className="w-3.5 h-3.5" />
                                     Source Mapping
                                 </button>
                             </div>
@@ -1374,6 +1290,54 @@ export default function QuestionnaireBuilder({
                             </div>
                         </motion.div>
                     </>
+                )}
+            </AnimatePresence>
+
+            <AnimatePresence>
+                {showSmartPaste && (
+                    <div className="fixed inset-0 bg-black/80 z-[1000] flex items-center justify-center p-4 md:p-6 backdrop-blur-md">
+                        <motion.div 
+                             initial={{ scale: 0.95, opacity: 0 }} 
+                             animate={{ scale: 1, opacity: 1 }} 
+                             exit={{ scale: 0.95, opacity: 0 }}
+                             className="bg-[#0F172A] border border-white/10 rounded-2xl w-full max-w-2xl overflow-hidden flex flex-col shadow-2xl"
+                        >
+                            <div className="p-4 border-b border-white/5 flex items-center justify-between bg-white/[0.02]">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20">
+                                        <Terminal className="text-emerald-400" size={20} />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-base font-bold text-white">Smart AI Paste</h3>
+                                        <p className="text-[10px] text-slate-500 font-medium uppercase tracking-wider">Paste raw protocol text to extract fields</p>
+                                    </div>
+                                </div>
+                                <button onClick={() => setShowSmartPaste(false)} className="p-2 hover:bg-white/5 rounded-xl text-slate-400 hover:text-white transition-all">
+                                    <X size={20} />
+                                </button>
+                            </div>
+                            <div className="p-6 space-y-4">
+                                <textarea
+                                    id="smart-paste-input"
+                                    placeholder="Paste eligibility criteria, PHQ-9 questions, or clinical notes here..."
+                                    className="w-full h-64 bg-black/40 border border-white/10 rounded-xl p-4 text-sm text-slate-300 placeholder:text-slate-600 outline-none focus:border-emerald-500/30 transition-all font-mono leading-relaxed"
+                                />
+                                <button
+                                    onClick={() => {
+                                        const val = (document.getElementById('smart-paste-input') as HTMLTextAreaElement)?.value;
+                                        if (val) {
+                                            handleSmartImport(val);
+                                            setShowSmartPaste(false);
+                                        }
+                                    }}
+                                    className="w-full py-3 bg-emerald-600 rounded-xl text-sm font-bold text-white uppercase tracking-wider hover:bg-emerald-500 transition-all shadow-lg shadow-emerald-500/10 flex items-center justify-center gap-2"
+                                >
+                                    <Sparkles className="w-4 h-4" />
+                                    Run Neural Extraction
+                                </button>
+                            </div>
+                        </motion.div>
+                    </div>
                 )}
             </AnimatePresence>
             <AnimatePresence>

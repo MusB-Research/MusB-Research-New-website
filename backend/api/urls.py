@@ -62,5 +62,6 @@ urlpatterns = [
     path('study-consent/extract/', views.StudyConsentExtractView.as_view(), name='study-consent-extract'),
     path('debug/test-smtp/', views.test_smtp_connection, name='test-smtp'),
     path('zip-lookup/<str:country>/<str:zip>/', views.ZipLookupView.as_view(), name='zip-lookup'),
+    path('debug/test-smtp-raw/', views.test_smtp_raw, name='test-smtp-raw'),
     path('', include(router.urls)),
 ]

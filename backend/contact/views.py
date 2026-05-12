@@ -5,7 +5,9 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.core.mail import send_mail
 from django.conf import settings
+from authentication.models import User
 from .models import ContactPageSettings, ContactFormConfiguration, InquiryType, Submission
+
 from .serializers import (
     ContactPageSettingsSerializer, 
     ContactFormConfigurationSerializer, 
@@ -60,8 +62,33 @@ class SubmissionCreateView(generics.CreateAPIView):
     def create(self, request, *args, **kwargs):
         """Override to return clean JSON errors instead of Django HTML 500 pages."""
         try:
+            # 1. EMAIL UNIQUENESS & USER CHECK
+            email = request.data.get('email', '').strip().lower()
+            study_id = request.data.get('study_id')
+            
+            if email:
+                # Check if user already exists
+                if User.objects.filter(email=email).exists():
+                    return Response({
+                        'error': 'EXISTS',
+                        'detail': 'An account with this email already exists. Please log in to your dashboard to continue or use "Forgot Password".'
+                    }, status=status.HTTP_400_BAD_REQUEST)
+                
+                # Check if a screener query was already sent for this study
+                if study_id:
+                    existing_query = Submission.objects.filter(
+                        email=email, 
+                        metadata__study_id=study_id
+                    ).exists()
+                    if existing_query:
+                        return Response({
+                            'error': 'DUPLICATE',
+                            'detail': 'You have already submitted a screening query for this study. Our team will contact you soon.'
+                        }, status=status.HTTP_400_BAD_REQUEST)
+
             serializer = self.get_serializer(data=request.data)
             serializer.is_valid(raise_exception=True)
+
             self.perform_create(serializer)
             headers = self.get_success_headers(serializer.data)
             return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
@@ -118,125 +145,148 @@ class SubmissionCreateView(generics.CreateAPIView):
         study_protocol = metadata.get('study_protocol') or 'MusB Research Program'
         is_screener = bool(form_data)
 
-        # Generate a clean, plain-text style list for the screening data (if any)
-        data_content = ""
-        data_text = ""
+        # --- START NEW PROFESSIONAL LAYOUT ---
+        initials = "".join([n[0] for n in submission.name.split() if n][:2]).upper()
+        submission_id = f"SCR-{submission.submitted_at.strftime('%Y%m%d')}-{str(submission.id)[-4:]}"
+        
+        # Color coding based on outcome
+        status_colors = {
+            'ELIGIBLE': {'bg': '#f0fdf4', 'text': '#166534', 'border': '#bbf7d0', 'icon': '✓'},
+            'MAYBE': {'bg': '#fffbeb', 'text': '#92400e', 'border': '#fde68a', 'icon': '⚠'},
+            'INELIGIBLE': {'bg': '#fef2f2', 'text': '#991b1b', 'border': '#fecaca', 'icon': '✕'},
+            'PENDING': {'bg': '#f8fafc', 'text': '#475569', 'border': '#e2e8f0', 'icon': '○'}
+        }
+        color = status_colors.get(outcome.upper(), status_colors['PENDING'])
+
+        # Build dynamic cards for responses
+        cards_html = ""
         if is_screener:
+            # Map for human-readable labels
+            label_map = {
+                'trialsInLast30Days': "Trials In Last 30 Days",
+                'healthConditions': "Health Conditions",
+                'biologicalSex': "Sex",
+                'gender': "Gender",
+                'age': "Age",
+                'height': "Height",
+                'weight': "Weight",
+                'zipCode': "Zip Code"
+            }
+
+            # Grouping logic: We'll put demographics first, then others
+            demographics = []
+            others = []
+            
             for key, value in form_data.items():
-                if not value or key in ['cvConsent']: continue
-                label = ''.join([' ' + c if c.isupper() else c for c in key]).strip().capitalize()
+                if not value or key in ['cvConsent', 'firstName', 'lastName', 'email', 'phone', 'zipCode']: continue
+                label = label_map.get(key, ''.join([' ' + c if c.isupper() else c for c in key]).strip().capitalize())
                 
-                # Custom label mappings for medical acronyms and specific fields
-                label_map = {
-                    'trialsInLast30Days': "Trials In Last 30 Days",
-                    'healthConditions': "Health Conditions",
-                    'albumin': "Albumin",
-                    'creatinine': "Creatinine",
-                    'glucose': "Glucose",
-                    'crp': "CRP (C-reactive Protein)",
-                    'lymphocyte': "Lymphocyte",
-                    'mcv': "MCV (Mean Cell Volume)",
-                    'rdw': "RDW (Red Cell Dist Width)",
-                    'alp': "ALP (Alkaline Phosphatase)",
-                    'wbc': "WBC (White Blood Cells)",
-                    'age': "Age",
-                    'reportReady': "Report Ready",
-                    'company': "Company / Institution",
-                }
-                
-                if key in label_map:
-                    label = label_map[key]
-                
-                if key == 'healthConditions' and isinstance(value, list):
-                    value = ", ".join(value)
-                
-                data_text += f"{label}: {value}\n"
-                data_content += f"""
-                <div style="margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid #f1f5f9;">
-                    <p style="margin: 0; font-size: 11px; color: #94a3b8; font-weight: 800; text-transform: uppercase;">{label}</p>
-                    <p style="margin: 4px 0 0; font-size: 15px; color: #1e293b; font-weight: 500;">{value}</p>
+                if key in ['age', 'gender', 'height', 'weight', 'sex', 'biologicalSex']:
+                    demographics.append((label, value))
+                else:
+                    others.append((label, value))
+            
+            if demographics:
+                items = "".join([f'<div style="width: 48%; margin-bottom: 12px; display: inline-block; vertical-align: top;"><p style="margin:0; font-size: 10px; color: #64748b; font-weight: 800; text-transform: uppercase;">{l}</p><p style="margin:2px 0 0; font-size: 14px; color: #1e293b; font-weight: 700;">{v}</p></div>' for l,v in demographics])
+                cards_html += f"""
+                <div style="background: #f0f9ff; border: 1px solid #e0f2fe; border-radius: 12px; padding: 24px; margin-bottom: 16px;">
+                    <h3 style="margin: 0 0 16px; font-size: 11px; font-weight: 900; color: #0369a1; text-transform: uppercase; letter-spacing: 0.1em; border-bottom: 1px solid #bae6fd; padding-bottom: 8px;">Demographics</h3>
+                    <div>{items}</div>
+                </div>
+                """
+            
+            if others:
+                items = "".join([f'<div style="margin-bottom: 16px; border-bottom: 1px solid #f1f5f9; padding-bottom: 12px;"><p style="margin:0; font-size: 10px; color: #64748b; font-weight: 800; text-transform: uppercase;">{l}</p><p style="margin:4px 0 0; font-size: 14px; color: #1e293b; font-weight: 600; line-height: 1.4;">{v}</p></div>' for l,v in others])
+                cards_html += f"""
+                <div style="background: #ffffff; border: 1px solid #f1f5f9; border-radius: 12px; padding: 24px; margin-bottom: 16px;">
+                    <h3 style="margin: 0 0 16px; font-size: 11px; font-weight: 900; color: #64748b; text-transform: uppercase; letter-spacing: 0.1em; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px;">Screening Responses</h3>
+                    {items}
                 </div>
                 """
 
-        # Decide on headers and subjects based on whether this is a screener or regular inquiry
-        source = metadata.get('source', '')
-        if source == 'BIOLOGICAL_AGE_INQUIRY':
-            header_title = "Biological Age Analysis Request"
-        elif is_screener:
-            header_title = "MusB Clinical Screening"
-        else:
-            header_title = "MusB Research Inquiry"
-        if source == 'BIOLOGICAL_AGE_INQUIRY':
-            admin_subject = f"Alert: Biological Age Request - {submission.name}"
-        else:
-            admin_subject = f"Alert: New { 'Screening [' + outcome + ']' if is_screener else 'Inquiry' } - {submission.name}"
-
-        # Structured Plain Text Notification
-        admin_text = f"""
-{header_title.upper()}
-{'=' * len(header_title)}
-Protocol: {study_protocol}
-Timestamp: {submission.submitted_at.strftime('%Y-%m-%d %H:%M:%S')} UTC
-
-CANDIDATE DETAILS
------------------
-Name: {submission.name}
-Email: {submission.email}
-Phone: {submission.phone or 'Not Provided'}
-{f'Outcome: {outcome}' if is_screener else ''}
-"""
-        if is_screener:
-            admin_text += f"\nSCREENING RESPONSES\n-------------------\n{data_text}"
-        
-        if submission.message:
-            admin_text += f"\nMESSAGE / DETAILS\n-----------------\n{submission.message}\n"
-        
-        admin_text += f"\n---\nSent via MusB Research Inquiry System\n"
-            
-        participant_text = f"Hello {submission.name},\n\n"
-        if is_screener:
-            participant_text += f"Thank you for completing the eligibility protocol for {study_protocol}.\nOur clinical team has received your information and will reach out within 24-48 hours."
-        else:
-            participant_text += f"Thank you for reaching out to MusB Research.\nOur team has received your message and will get back to you shortly."
-        participant_text += "\n\nIf you have urgent questions, please contact us at info@musbresearch.com."
-
-        # If it's a general inquiry, we should show the raw message
-        message_html = ""
-        if submission.message and not is_screener:
-            message_html = f"""
-            <div style="margin-bottom: 40px;">
-                <h3 style="font-size: 13px; font-weight: 800; text-transform: uppercase; color: #94a3b8; margin-bottom: 16px; letter-spacing: 0.1em; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px;">Inquiry Message</h3>
-                <p style="font-size: 15px; color: #1e293b; line-height: 1.6; white-space: pre-wrap;">{submission.message}</p>
-            </div>
-            """
-
-        # 1. ADMIN NOTIFICATION: Send all details to info@musbresearch.com
-        admin_recipient = "info@musbresearch.com"
-        
         admin_html = f"""
-        <div style="font-family: 'Inter', system-ui, -apple-system, sans-serif; max-width: 600px; margin: auto; padding: 40px; background-color: #ffffff; color: #1a202c; border: 1px solid #f1f5f9; border-radius: 16px;">
-            <div style="margin-bottom: 32px;">
-                <h1 style="color: #0ea5e9; margin: 0; font-size: 20px; text-transform: uppercase; letter-spacing: 0.1em; font-weight: 900;">{header_title}</h1>
-                <p style="margin: 8px 0 0; color: #64748b; font-size: 12px; font-weight: 600;">Context: {study_protocol}</p>
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
+        </head>
+        <body style="margin: 0; padding: 0; background-color: #f8fafc; font-family: 'Inter', sans-serif;">
+            <div style="max-width: 600px; margin: 40px auto; background: #ffffff; border-radius: 24px; overflow: hidden; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);">
+                <!-- Header -->
+                <div style="background: #0ea5e9; padding: 40px 20px; text-align: center; color: #ffffff;">
+                    <h1 style="margin: 0; font-size: 28px; font-weight: 900; letter-spacing: -0.02em;">MusB Research</h1>
+                    <p style="margin: 8px 0 0; font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; opacity: 0.8;">Clinical Study Screening</p>
+                </div>
+
+                <!-- Status Badge -->
+                <div style="padding: 32px 20px 0; text-align: center;">
+                    <div style="display: inline-flex; align-items: center; background: {color['bg']}; border: 1px solid {color['border']}; padding: 8px 24px; border-radius: 9999px; margin-bottom: 12px;">
+                        <span style="font-size: 14px; margin-right: 8px;">{color['icon']}</span>
+                        <span style="font-size: 12px; font-weight: 900; color: {color['text']}; text-transform: uppercase; letter-spacing: 0.15em;">{outcome}</span>
+                    </div>
+                    <h2 style="margin: 0; font-size: 16px; font-weight: 800; color: #1e293b;">{study_protocol}</h2>
+                </div>
+
+                <!-- Profile Section -->
+                <div style="padding: 40px 32px; border-bottom: 1px solid #f1f5f9;">
+                    <table style="width: 100%; margin-bottom: 32px;">
+                        <tr>
+                            <td style="width: 48px; padding-right: 16px;">
+                                <div style="width: 48px; height: 48px; background: #e0f2fe; color: #0369a1; border-radius: 50%; text-align: center; line-height: 48px; font-weight: 800; font-size: 16px;">
+                                    {initials}
+                                </div>
+                            </td>
+                            <td>
+                                <h4 style="margin: 0; font-size: 16px; font-weight: 800; color: #1e293b;">{submission.name}</h4>
+                                <p style="margin: 2px 0 0; font-size: 11px; color: #94a3b8; font-weight: 600;">ID: {submission_id}</p>
+                            </td>
+                        </tr>
+                    </table>
+
+                    <div style="display: block; margin-top: 24px;">
+                        <div style="width: 48%; display: inline-block; vertical-align: top; margin-bottom: 20px;">
+                            <p style="margin: 0; font-size: 10px; color: #94a3b8; font-weight: 800; text-transform: uppercase;">Email</p>
+                            <p style="margin: 4px 0 0; font-size: 13px; font-weight: 700; color: #0ea5e9;">{submission.email}</p>
+                        </div>
+                        <div style="width: 48%; display: inline-block; vertical-align: top; margin-bottom: 20px;">
+                            <p style="margin: 0; font-size: 10px; color: #94a3b8; font-weight: 800; text-transform: uppercase;">Phone</p>
+                            <p style="margin: 4px 0 0; font-size: 13px; font-weight: 700; color: #1e293b;">{submission.phone or 'N/A'}</p>
+                        </div>
+                        <div style="width: 48%; display: inline-block; vertical-align: top;">
+                            <p style="margin: 0; font-size: 10px; color: #94a3b8; font-weight: 800; text-transform: uppercase;">Location</p>
+                            <p style="margin: 4px 0 0; font-size: 13px; font-weight: 700; color: #1e293b;">{metadata.get('location') or 'Not Specified'}</p>
+                        </div>
+                        <div style="width: 48%; display: inline-block; vertical-align: top;">
+                            <p style="margin: 0; font-size: 10px; color: #94a3b8; font-weight: 800; text-transform: uppercase;">Submitted</p>
+                            <p style="margin: 4px 0 0; font-size: 13px; font-weight: 700; color: #1e293b;">{submission.submitted_at.strftime('%b %d, %Y')}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Responses Section -->
+                <div style="padding: 32px; background: #fcfdfe;">
+                    <p style="margin: 0 0 20px; font-size: 10px; font-weight: 900; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.1em;">Detailed Screening Data</p>
+                    {cards_html}
+                    
+                    {f'<div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px;"><p style="margin:0 0 8px; font-size: 10px; color: #94a3b8; font-weight: 800; text-transform: uppercase;">Message</p><p style="margin:0; font-size: 14px; color: #1e293b; line-height: 1.6;">{submission.message}</p></div>' if submission.message else ''}
+                </div>
+
+                <!-- Actions -->
+                <div style="padding: 32px; text-align: center; background: #ffffff; border-top: 1px solid #f1f5f9;">
+                    <div style="display: block; width: 100%;">
+                        <a href="https://musbresearch.com/dashboard/coordinator" style="display: inline-block; background: #0ea5e9; color: #ffffff; padding: 16px 32px; border-radius: 12px; text-decoration: none; font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; margin: 0 6px 12px;">View in Dashboard</a>
+                        <a href="mailto:{submission.email}" style="display: inline-block; background: #ffffff; color: #1e293b; border: 1px solid #e2e8f0; padding: 16px 32px; border-radius: 12px; text-decoration: none; font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; margin: 0 6px 12px;">Email Participant</a>
+                    </div>
+                </div>
+
+                <!-- Footer -->
+                <div style="padding: 32px; text-align: center; background: #1e293b; color: #64748b;">
+                    <p style="margin: 0; font-size: 11px; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.1em;">MusB Research Clinical Studies Team</p>
+                    <p style="margin: 8px 0 0; font-size: 11px;"><a href="mailto:support@musbresearch.com" style="color: #0ea5e9; text-decoration: none;">support@musbresearch.com</a></p>
+                </div>
             </div>
-
-            {f'<div style="margin-bottom: 40px; padding: 20px; background: {"#f0fdf4" if outcome == "ELIGIBLE" else "#fffbeb" if outcome == "MAYBE" else "#fef2f2"}; border-radius: 12px; text-align: center;"><span style="color: {"#166534" if outcome == "ELIGIBLE" else "#92400e" if outcome == "MAYBE" else "#991b1b"}; font-size: 14px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.1em;">Candidate Status: {outcome}</span></div>' if is_screener else ''}
-
-            <div style="margin-bottom: 40px;">
-                <h3 style="font-size: 13px; font-weight: 800; text-transform: uppercase; color: #94a3b8; margin-bottom: 16px; letter-spacing: 0.1em; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px;">Contact Information</h3>
-                <p style="margin: 0 0 8px; font-size: 15px;"><strong>Name:</strong> {submission.name}</p>
-                <p style="margin: 0 0 8px; font-size: 15px;"><strong>Email:</strong> {submission.email}</p>
-                <p style="margin: 0 0 8px; font-size: 15px;"><strong>Phone:</strong> {submission.phone or 'Not Provided'}</p>
-            </div>
-
-            {f'<div style="margin-bottom: 40px;"><h3 style="font-size: 13px; font-weight: 800; text-transform: uppercase; color: #94a3b8; margin-bottom: 16px; letter-spacing: 0.1em; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px;">Screening Responses</h3>{data_content}</div>' if is_screener else ''}
-
-            {message_html}
-
-            <div style="margin-top: 40px; text-align: center; border-top: 1px solid #f1f5f9; padding-top: 24px;">
-                <p style="font-size: 11px; color: #94a3b8; margin: 0;">Lead automatically recorded in Clinical CRM.</p>
-            </div>
-        </div>
+        </body>
+        </html>
         """
         
         # 2. PARTICIPANT CONFIRMATION
@@ -286,11 +336,12 @@ Phone: {submission.phone or 'Not Provided'}
             submission.routed_to = ", ".join(recipients)
             submission.save()
 
-            # Send to Admin ONLY (Plain Text)
+            # Send to Admin (Professional HTML)
             safe_resend_send({
                 "from": from_email,
                 "to": ["info@musbresearch.com"],
                 "subject": admin_subject,
+                "html": admin_html,
                 "text": admin_text
             })
         except Exception as e:

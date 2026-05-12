@@ -57,7 +57,7 @@ if os.getenv('RENDER'):
 # Frontend URL used for generating email links
 FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:5173')
 
-ALLOWED_HOSTS = [h.strip() for h in os.getenv('DJANGO_ALLOWED_HOSTS', 'localhost,127.0.0.1,musb-research-new-website-hk4k.onrender.com').split(',') if h.strip()]
+ALLOWED_HOSTS = [h.strip() for h in os.getenv('DJANGO_ALLOWED_HOSTS', 'localhost,127.0.0.1,musb-backend.onrender.com,musb-research-new-website.onrender.com,.onrender.com').split(',') if h.strip()]
 if DEBUG:
     ALLOWED_HOSTS = ['*']
 
@@ -372,6 +372,10 @@ else:
 
 # Resend Configuration (Used as high-performance delivery option)
 RESEND_API_KEY = os.getenv('RESEND_API_KEY', '').strip()
+
+# Geoapify Configuration
+GEOAPIFY_API_KEY = os.getenv('GEOAPIFY_API_KEY', '').strip()
+
 
 # Production Security Settings
 if not DEBUG:

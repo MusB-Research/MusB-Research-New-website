@@ -107,6 +107,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     # Mandatory Profile Data (Cont.)
     date_of_birth = models.DateField(null=True, blank=True)
     age = models.IntegerField(null=True, blank=True)
+    birth_year = models.IntegerField(null=True, blank=True)
     
     # Enrollment State for Multiple Applications
     has_active_enrollment = models.BooleanField(default=False) # True if currently active in a study
