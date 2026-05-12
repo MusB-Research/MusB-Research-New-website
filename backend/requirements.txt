@@ -31,3 +31,5 @@ pypdf==4.1.0
 reportlab==4.1.0
 pdfrw==0.4
 anthropic==0.25.0
+boto3==1.36.0
+django-storages==1.14.4
