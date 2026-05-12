@@ -57,7 +57,29 @@ if os.getenv('RENDER'):
 # Frontend URL used for generating email links
 FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:5173')
 
-ALLOWED_HOSTS = [h.strip() for h in os.getenv('DJANGO_ALLOWED_HOSTS', 'localhost,127.0.0.1,musb-backend.onrender.com,musb-research-new-website.onrender.com,musbresearchwebsite.onrender.com,.onrender.com').split(',') if h.strip()]
+# ── ALLOWED_HOSTS: Bulletproof configuration ──────────────────────────────────
+# These domains are ALWAYS allowed, regardless of any env-var overrides.
+# This prevents the "Bad Request (400)" that occurs when a new Render
+# deployment's hostname isn't in the list.
+_GUARANTEED_HOSTS = [
+    'localhost',
+    '127.0.0.1',
+    '.onrender.com',                          # Wildcard: matches ANY *.onrender.com
+    'musbresearchwebsite.onrender.com',       # Current primary Render deployment
+    'musb-research-new-website.onrender.com', # Previous Render deployment
+    'musb-backend.onrender.com',              # Legacy Render deployment
+]
+
+# Merge with any env-var hosts (so Render dashboard config still works)
+_env_hosts = [h.strip() for h in os.getenv('DJANGO_ALLOWED_HOSTS', '').split(',') if h.strip()]
+
+# Render auto-sets RENDER_EXTERNAL_HOSTNAME to the service's .onrender.com domain
+_render_hostname = os.getenv('RENDER_EXTERNAL_HOSTNAME', '')
+if _render_hostname:
+    _env_hosts.append(_render_hostname)
+
+ALLOWED_HOSTS = list(set(_GUARANTEED_HOSTS + _env_hosts))
+
 if DEBUG:
     ALLOWED_HOSTS = ['*']
 
