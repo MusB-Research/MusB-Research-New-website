@@ -275,6 +275,8 @@ class AuditLog(models.Model):
         ('PASSWORD_RESET',         'Password Reset'),
         ('ROLE_CHANGED',           'Role Changed'),
         ('ACCOUNT_CREATED',        'Account Created'),
+        ('ACCOUNT_UPDATED',        'Account Updated'),
+        ('ACCOUNT_DELETED',        'Account Deleted'),
         ('ACCOUNT_DISABLED',       'Account Disabled'),
         ('GOOGLE_LOGIN',           'Google Login'),
         ('RATE_LIMITED',           'Rate Limited'),

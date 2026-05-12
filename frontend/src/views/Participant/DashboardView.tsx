@@ -5,7 +5,7 @@ import {
     FileText, CheckCircle2, AlertCircle,
     MessageSquare, History, ClipboardList,
     Search, MapPin, DollarSign, Globe, ShieldCheck,
-    Package, Truck, Zap, Layers3
+    Package, Truck, Zap, Layers3, X, FileSignature, Trophy
 } from 'lucide-react';
 import { Card, Badge, ProgressBar, CircularProgress, Skeleton } from './SharedComponents';
 

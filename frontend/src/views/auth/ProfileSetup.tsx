@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { User, MapPin, Globe, CheckCircle2, ArrowRight, ArrowLeft, ShieldCheck, Heart, CalendarDays, ChevronLeft, ChevronRight } from 'lucide-react';
+import { User, MapPin, Globe, CheckCircle2, ArrowRight, ArrowLeft, ShieldCheck, Heart, CalendarDays, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import { authFetch, saveToken, saveUser, getUser, API } from '../../utils/auth';
 import { usePostalLookup } from '../../hooks/usePostalLookup';
 

@@ -2325,11 +2325,11 @@ const LaunchStudyForm: React.FC<LaunchStudyFormProps> = ({
                             initialQuestions={formData.screenerQuestions}
                             initialTitle={formData.screenerTitle}
                             initialInstructions={formData.screenerInstructions}
-                            onSave={(questions: any[], title: string, instructions: string) => setFormData(prev => ({ 
+                            onSave={(questions: any[], title?: string, instructions?: string) => setFormData(prev => ({ 
                                 ...prev, 
                                 screenerQuestions: questions,
-                                screenerTitle: title,
-                                screenerInstructions: instructions
+                                screenerTitle: title || '',
+                                screenerInstructions: instructions || ''
                             }))}
                             standalone={true}
                         />

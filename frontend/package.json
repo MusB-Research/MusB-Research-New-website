@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "vite",
-    "build": "tsc --noEmit && vite build",
+    "build": "npm run check-types && vite build",
+    "check-types": "tsc --noEmit",
     "preview": "vite preview",
     "start": "vite"
   },

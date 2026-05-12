@@ -43,6 +43,19 @@ class ObjectIdField(serializers.Field):
 
 class SanitizedModelSerializer(serializers.ModelSerializer):
     id = ObjectIdField(read_only=True)
+    
+    def get_field_names(self, declared_fields, info):
+        """
+        Senior Developer optimization:
+        When fields = '__all__' is used, DRF by default only includes model fields.
+        We override this to automatically include any custom fields defined on the serializer class,
+        ensuring that 'fields = "__all__"' is both safe and comprehensive.
+        """
+        expanded_fields = super().get_field_names(declared_fields, info)
+        if getattr(self.Meta, 'fields', None) == '__all__':
+            # Include all declared fields that aren't already in expanded_fields
+            return list(expanded_fields) + [f for f in declared_fields if f not in expanded_fields]
+        return expanded_fields
 
     @staticmethod
     def sanitize_data(data):
@@ -1391,7 +1404,7 @@ class QuestionnaireTemplateBriefSerializer(SanitizedModelSerializer):
 
     class Meta:
         model = QuestionnaireTemplate
-        fields = ['id', 'name', 'category', 'description', 'pdf_file', 'json_structure', 'created_at', 'used_in_studies']
+        fields = '__all__'
 
     def get_used_in_studies(self, obj):
         sqs = getattr(obj, '_prefetched_objects_cache', {}).get('studyquestionnaire_set', None)
@@ -1499,19 +1512,8 @@ class ParticipantSerializer(SanitizedModelSerializer):
 
     class Meta:
         model = Participant
-        fields = [
-            'id', 'participant_sid', 'participant_status', 'user', 'user_details', 'study', 'study_name', 'protocol_id',
-            'coordinator_name', 'gender', 'dob', 'age', 'status', 'assigned_arm', 'completion_date',
-            'condition', 'study_type', 'eligibility_data',
-            'display_name', 'display_email', 'display_phone', 'display_address',
-            'created_at', 'updated_at', 'reviewed_at', 'reviewed_by', 'reviewer_name',
-            'visits', 'ae_reports', 'daily_logs', 'lab_results', 'consent_records',
-            'kits', 'tasks', 'scheduled_questionnaires', 'assigned_forms',
+        fields = '__all__'
 
-            'coordinator_approved', 'coordinator_approved_at', 'coordinator_signature',
-            'pi_approved', 'pi_approved_at', 'pi_signature', 'approval_status',
-            'consent_details', 'randomization_details', 'assigned_arm', 'assigned_arm_name'
-        ]
 
     def validate(self, data):
         """

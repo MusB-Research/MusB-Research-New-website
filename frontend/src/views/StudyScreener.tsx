@@ -163,6 +163,7 @@ export default function StudyScreener() {
         state: '',
         country: '',
         firstName: '',
+        middleName: '',
         lastName: '',
         email: '',
         phone: '',
@@ -172,7 +173,14 @@ export default function StudyScreener() {
 
     const [answers, setAnswers] = useState<Record<string, any>>({});
     const [autoFilledFields, setAutoFilledFields] = useState<Set<string>>(new Set());
+    const [prefilledData, setPrefilledData] = useState<any>(null);
 
+    const ELIGIBILITY_CRITERIA: string[] = [
+        "Are you between the ages of 18 and 65?",
+        "Do you have a documented history of the condition under study?",
+        "Are you willing to attend all scheduled clinic visits?",
+        "Are you currently taking any excluded medications?",
+    ];
 
     const user = getUser();
 
@@ -200,6 +208,7 @@ export default function StudyScreener() {
                         state: '',
                         country: '',
                         firstName: '',
+                        middleName: '',
                         lastName: '',
                         email: '',
                         phone: '',
@@ -209,13 +218,27 @@ export default function StudyScreener() {
 
                     // Pre-fill from User Session
                     if (user) {
+                        const fullName = (user.decrypted_name || user.full_name || '').trim();
+                        const nameParts = fullName.split(' ');
+                        
+                        setPrefilledData({
+                            email: user.email || '',
+                            phone: user.decrypted_phone || user.phone_number || '',
+                            firstName: nameParts[0] || '',
+                            lastName: nameParts.length > 1 ? nameParts[nameParts.length - 1] : '',
+                            middleName: nameParts.length > 2 ? nameParts.slice(1, -1).join(' ') : '',
+                            fullName: fullName,
+                            zipCode: user.zip_code || ''
+                        });
+                        
                         initialFormData = {
                             ...initialFormData,
-                            firstName: user.first_name || user.firstName || user.full_name?.split(' ')[0] || '',
-                            lastName: user.last_name || user.lastName || user.full_name?.split(' ').slice(1).join(' ') || '',
+                            firstName: nameParts[0] || '',
+                            middleName: nameParts.length > 2 ? nameParts.slice(1, -1).join(' ') : '',
+                            lastName: nameParts.length > 1 ? nameParts[nameParts.length - 1] : '',
                             email: user.email || '',
-                            phone: user.decrypted_phone || user.phone_number || user.phone || '',
-                            zipCode: user.zip_code || user.zipCode || '',
+                            phone: user.decrypted_phone || user.phone_number || '',
+                            zipCode: user.zip_code || '',
                             city: user.city || '',
                             state: user.state || '',
                             country: user.country || ''
@@ -283,7 +306,7 @@ export default function StudyScreener() {
                         setAnswers(initialAnswers);
                         setAutoFilledFields(filledFields);
                     } else {
-                        ELIGIBILITY_CRITERIA.forEach((_, i) => { initialAnswers[String(i)] = false; });
+                        ELIGIBILITY_CRITERIA.forEach((_: string, i: number) => { initialAnswers[String(i)] = false; });
                         setAnswers(initialAnswers);
                     }
                 } else {
@@ -775,7 +798,7 @@ export default function StudyScreener() {
                                 )}
 
                                 <div className="space-y-4">
-                                    <div className="grid grid-cols-2 gap-4">
+                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                                         <div className="space-y-2">
                                             <label className="text-[11px] font-bold text-slate-400">First name</label>
                                             <input 
@@ -784,6 +807,16 @@ export default function StudyScreener() {
                                                 onChange={(e) => setFormData({...formData, firstName: e.target.value})}
                                                 className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-white/30 outline-none transition-all"
                                                 placeholder="Jane"
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-[11px] font-bold text-slate-400">Middle name</label>
+                                            <input 
+                                                type="text"
+                                                value={formData.middleName}
+                                                onChange={(e) => setFormData({...formData, middleName: e.target.value})}
+                                                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-white/30 outline-none transition-all"
+                                                placeholder="A."
                                             />
                                         </div>
                                         <div className="space-y-2">
@@ -931,7 +964,7 @@ export default function StudyScreener() {
                                                      <div className="space-y-4">
                                                          {/* Input based on type */}
                                                          {(q.type === 'yesno' || q.type === 'boolean') ? (
-                                                             <div className="grid grid-cols-2 gap-4">
+                                                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                                                                  <button 
                                                                      onClick={() => handleAnswerChange(qId, 'Yes')}
                                                                      className={`py-4 rounded-2xl border font-black text-xs uppercase tracking-widest transition-all ${answers[qId] === 'Yes' ? 'bg-white text-black border-white shadow-lg' : 'bg-transparent border-white/10 text-white hover:bg-white/5'}`}
@@ -1055,7 +1088,7 @@ export default function StudyScreener() {
                                 )}
 
                                 <div className="space-y-4">
-                                    <div className="grid grid-cols-2 gap-4">
+                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                                         <div className="space-y-2">
                                             <label className="text-[11px] font-bold text-slate-400">First name</label>
                                             <input 
@@ -1064,6 +1097,16 @@ export default function StudyScreener() {
                                                 onChange={(e) => setFormData({...formData, firstName: e.target.value})}
                                                 className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-white/30 outline-none transition-all"
                                                 placeholder="Jane"
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-[11px] font-bold text-slate-400">Middle name</label>
+                                            <input 
+                                                type="text"
+                                                value={formData.middleName}
+                                                onChange={(e) => setFormData({...formData, middleName: e.target.value})}
+                                                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-white/30 outline-none transition-all"
+                                                placeholder="A."
                                             />
                                         </div>
                                         <div className="space-y-2">

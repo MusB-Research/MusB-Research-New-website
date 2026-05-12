@@ -501,10 +501,16 @@ export default function Trials() {
                                                         <div className="text-[9px] font-black uppercase tracking-widest text-slate-600 mb-1">Location</div>
                                                         <div className="text-[11px] font-black text-white group-hover/item:text-cyan-400 transition-colors truncate px-1">
                                                             {study.countries && study.countries.length > 0 
-                                                                ? (study.countries.length === 1 
-                                                                    ? study.countries[0]
-                                                                    : `${study.countries.length} Countries`)
-                                                                : (study.location && study.location.trim() !== '' ? study.location.replace(/[\[\]"]/g, '').trim() : (study.type === 'Virtual' ? 'Virtual' : 'On-site'))}
+                                                                ? (
+                                                                    <div className="flex flex-wrap gap-1.5 mt-1">
+                                                                        {study.countries.map((c: string) => (
+                                                                            <span key={c} className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-100">
+                                                                                {c}
+                                                                            </span>
+                                                                        ))}
+                                                                    </div>
+                                                                  )
+                                                                : 'Global Participation'}
                                                         </div>
                                                     </div>
                                                 </div>

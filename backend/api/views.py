@@ -3169,7 +3169,17 @@ class UserViewSet(viewsets.ModelViewSet):
         from django.http import Http404
         from .utils.cache_utils import invalidate_cache
         try:
+            target_user = self.get_object()
+            target_email = target_user.email
             response = super().destroy(request, *args, **kwargs)
+            
+            # Log the deletion
+            AuditLog.log(
+                action='ACCOUNT_DELETED',
+                user_email=request.user.email,
+                request=request,
+                detail=f"Deleted user account: {target_email}"
+            )
         except Http404:
             # If already deleted, heal frontend state by returning 204 and invalidating cache
             invalidate_cache("users_list")
@@ -3181,7 +3191,17 @@ class UserViewSet(viewsets.ModelViewSet):
         return response
 
     def perform_update(self, serializer):
-        super().perform_update(serializer)
+        old_instance = self.get_object()
+        user_instance = serializer.save()
+        
+        # Log the update
+        AuditLog.log(
+            action='ACCOUNT_UPDATED',
+            user_email=self.request.user.email,
+            request=self.request,
+            detail=f"Updated account information for: {user_instance.email}"
+        )
+        
         from .utils.cache_utils import invalidate_cache
         invalidate_cache("users_list")
 
@@ -3220,6 +3240,14 @@ class UserViewSet(viewsets.ModelViewSet):
                     ).start()
                 except Exception as mail_err:
                     logger.error("Failed to trigger welcome email for new user %s: %s", user_instance.email, mail_err)
+                
+            # Log the creation
+            AuditLog.log(
+                action='ACCOUNT_CREATED',
+                user_email=request.user.email,
+                request=request,
+                detail=f"Created new {user_instance.role} account for: {user_instance.email}"
+            )
 
             headers = self.get_success_headers(serializer.data)
             return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
@@ -5199,6 +5227,58 @@ class ZipLookupView(APIView):
             return Response(result)
         
         return Response({"error": "Location not found"}, status=status.HTTP_404_NOT_FOUND)
+    
+class ScreenerConversionStatsView(APIView):
+    """
+    Analytics for Super Admin:
+    Tracks how many people filled screeners vs how many created accounts.
+    """
+    permission_classes = [permissions.IsAuthenticated, IsAdminOrCoordinator]
+
+    def get(self, request):
+        from contact.models import Submission
+        
+        # 1. Total Screeners (Submissions with formData metadata)
+        total_screeners = Submission.objects.filter(metadata__has_key='formData').count()
+        
+        # 2. Converted Users (Participants who have an email that exists in Submissions)
+        # We look for participants because screeners are for clinical trials
+        screener_emails = Submission.objects.filter(
+            metadata__has_key='formData'
+        ).values_list('email', flat=True).distinct()
+        
+        converted_count = User.objects.filter(
+            email__in=screener_emails,
+            role__in=['PARTICIPANT', 'participant', 'Participant']
+        ).count()
+        
+        # 3. Conversion Rate
+        conversion_rate = (converted_count / total_screeners * 100) if total_screeners > 0 else 0
+        
+        return Response({
+            'total_screeners': total_screeners,
+            'converted_accounts': converted_count,
+            'conversion_rate': round(conversion_rate, 2),
+            'last_updated': now()
+        })
+    
+class ZipLookupView(APIView):
+    """
+    Proxy for zippopotam.us to bypass frontend CSP restrictions.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, country, zip):
+        import requests
+        url = f"https://api.zippopotam.us/{country}/{zip}"
+        try:
+            response = requests.get(url, timeout=5)
+            if response.status_code == 200:
+                return Response(response.json())
+            return Response({"error": "ZIP code not found"}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            logger.error(f"[ZIP-LOOKUP] Failed for {country}/{zip}: {str(e)}")
+            return Response({"error": "Postal lookup service unavailable"}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
 
 @api_view(['POST'])
 @permission_classes([IsAdminUser])

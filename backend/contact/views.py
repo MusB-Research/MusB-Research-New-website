@@ -141,6 +141,7 @@ class SubmissionCreateView(generics.CreateAPIView):
         submission = serializer.save()
         metadata = submission.metadata or {}
         form_data = metadata.get('formData', {})
+        answers = metadata.get('answers', {}) # Dynamic screener questions
         outcome = metadata.get('outcome', 'PENDING')
         study_protocol = metadata.get('study_protocol') or 'MusB Research Program'
         is_screener = bool(form_data)
@@ -177,11 +178,17 @@ class SubmissionCreateView(generics.CreateAPIView):
             demographics = []
             others = []
             
-            for key, value in form_data.items():
-                if not value or key in ['cvConsent', 'firstName', 'lastName', 'email', 'phone', 'zipCode']: continue
+            # Combine static formData and dynamic answers for thorough demographic scanning
+            combined_fields = {**form_data, **answers}
+            
+            for key, value in combined_fields.items():
+                # Skip already displayed fields or empty values
+                if not value or key in ['cvConsent', 'firstName', 'lastName', 'middleName', 'email', 'phone', 'zipCode']: continue
+                
                 label = label_map.get(key, ''.join([' ' + c if c.isupper() else c for c in key]).strip().capitalize())
                 
-                if key in ['age', 'gender', 'height', 'weight', 'sex', 'biologicalSex']:
+                # Identify demographics (Age, Gender, Sex, etc.)
+                if any(x in key.lower() for x in ['age', 'gender', 'sex', 'biological']):
                     demographics.append((label, value))
                 else:
                     others.append((label, value))
@@ -237,7 +244,9 @@ class SubmissionCreateView(generics.CreateAPIView):
                                 </div>
                             </td>
                             <td>
-                                <h4 style="margin: 0; font-size: 16px; font-weight: 800; color: #1e293b;">{submission.name}</h4>
+                                <h4 style="margin: 0; font-size: 16px; font-weight: 800; color: #1e293b;">
+                                    {f"{form_data.get('firstName', '')} {form_data.get('middleName', '')} {form_data.get('lastName', '')}".strip() or submission.name}
+                                </h4>
                                 <p style="margin: 2px 0 0; font-size: 11px; color: #94a3b8; font-weight: 600;">ID: {submission_id}</p>
                             </td>
                         </tr>
@@ -436,32 +445,69 @@ class SubmissionCreateView(generics.CreateAPIView):
                     # 3. SYNC WITH USER MASTER PROFILE (Requirement 11)
                     if user_obj:
                         needs_save = False
+                        combined = {**form_data, **answers}
                         
                         # Use screener data to fill profile gaps
-                        if not user_obj.age and form_data.get('age'):
-                            user_obj.age = form_data.get('age')
+                        if not user_obj.age and combined.get('age'):
+                            user_obj.age = combined.get('age')
                             needs_save = True
-                        if not user_obj.date_of_birth and form_data.get('date_of_birth'):
-                            user_obj.date_of_birth = form_data.get('date_of_birth')
+                        
+                        # Robust Date of Birth extraction
+                        dob_val = combined.get('date_of_birth') or combined.get('dob') or combined.get('dateOfBirth')
+                        if not user_obj.date_of_birth and dob_val:
+                            user_obj.date_of_birth = dob_val
                             needs_save = True
-                        if not user_obj.zip_code and form_data.get('zipCode'):
-                            user_obj.zip_code = form_data.get('zipCode')
+                        
+                        if not user_obj.zip_code and combined.get('zipCode'):
+                            user_obj.zip_code = combined.get('zipCode')
                             needs_save = True
-                        if not user_obj.phone_number and form_data.get('phone'):
-                            user_obj.phone_number = encrypt_data(form_data.get('phone'))
+                        
+                        phone_val = combined.get('phone') or combined.get('phoneNumber')
+                        if not user_obj.phone_number and phone_val:
+                            user_obj.phone_number = encrypt_data(phone_val)
                             needs_save = True
-                        if not user_obj.full_address and form_data.get('location'):
-                            user_obj.full_address = encrypt_data(form_data.get('location'))
+                        
+                        loc_val = combined.get('location') or combined.get('address') or metadata.get('location')
+                        if not user_obj.full_address and loc_val:
+                            user_obj.full_address = encrypt_data(loc_val)
                             needs_save = True
                             
-                        # Update name if empty
+                        # Update name if empty or constructing from parts
+                        f_name = combined.get('firstName') or combined.get('first_name')
+                        m_name = combined.get('middleName') or combined.get('middle_name') or ''
+                        l_name = combined.get('lastName') or combined.get('last_name')
+                        
+                        constructed_name = ""
+                        if f_name and l_name:
+                            constructed_name = f"{f_name} {m_name} {l_name}".replace('  ', ' ').strip()
+                        
                         current_name = decrypt_data(user_obj.full_name) if user_obj.full_name else ""
-                        if not current_name and submission.name:
-                            user_obj.full_name = encrypt_data(submission.name)
+                        final_name = constructed_name or submission.name
+                        
+                        if not current_name and final_name:
+                            user_obj.full_name = encrypt_data(final_name)
                             needs_save = True
 
                         if needs_save:
                             user_obj.save()
+
+                    # 4. SYNC WITH PARTICIPANT RECORD (Clinical Demographics)
+                    p_needs_save = False
+                    combined = {**form_data, **answers}
+                    
+                    gender_val = combined.get('gender') or combined.get('biologicalSex') or combined.get('sex')
+                    if not participant.gender and gender_val:
+                        participant.gender = gender_val
+                        p_needs_save = True
+                    
+                    dob_val = combined.get('date_of_birth') or combined.get('dob') or combined.get('dateOfBirth')
+                    if not participant.dob and dob_val:
+                        # Participant model uses DateField, ensure string is valid or cast
+                        participant.dob = dob_val
+                        p_needs_save = True
+                    
+                    if p_needs_save:
+                        participant.save()
                     
                     # 4. Root Cause Fix: Automatically transition SCREENER tasks if they exist for this study
                     from api.models import ParticipantTask

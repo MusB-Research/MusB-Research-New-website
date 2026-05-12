@@ -14,7 +14,7 @@ import { getMediaUrl } from '../../utils/media';
 
 interface Question {
     id: string;
-    type: 'short_text' | 'choice' | 'dropdown' | 'date' | 'yesno' | 'faces' | 'scale' | 'likert' | 'matrix';
+    type: 'short_text' | 'choice' | 'dropdown' | 'date' | 'yesno' | 'faces' | 'scale' | 'likert' | 'matrix' | 'number';
     label: string;
     placeholder: string;
     required: boolean;
